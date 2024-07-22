@@ -822,18 +822,21 @@ std::any PatternGraphMaker::visit(geax::frontend::Exists* node) {
     std::unordered_map<std::string, SymbolNode> temp_symbols;
     std::map<size_t, std::pair<std::string, SymbolNode>> argument_symbols;
     size_t temp_symbols_idx = 0;
-    for (auto & [alias, symbol] : symbols_prev) {
+    for (auto& [alias, symbol] : symbols_prev) {
         auto it = symbols_cur.find(alias);
         if (it != symbols_cur.end()) {
-            argument_symbols.emplace(symbol.id, std::make_pair(alias, SymbolNode(symbol.id, symbol.type, SymbolNode::ARGUMENT)));
+            argument_symbols.emplace(
+                symbol.id,
+                std::make_pair(alias, SymbolNode(symbol.id, symbol.type, SymbolNode::ARGUMENT)));
         }
     }
 
-    for (auto & [id, pair] : argument_symbols) {
-        temp_symbols.emplace(pair.first, SymbolNode(temp_symbols_idx++, pair.second.type, pair.second.scope));
+    for (auto& [id, pair] : argument_symbols) {
+        temp_symbols.emplace(pair.first,
+                             SymbolNode(temp_symbols_idx++, pair.second.type, pair.second.scope));
     }
 
-    for (auto & [alias, symbol] : symbols_cur) {
+    for (auto& [alias, symbol] : symbols_cur) {
         auto it = symbols_prev.find(alias);
         if (it == symbols_prev.end()) {
             temp_symbols.emplace(alias, SymbolNode(temp_symbols_idx++, symbol.type, symbol.scope));
@@ -878,7 +881,7 @@ std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
         auto statement = i->statement();
         pattern_graphs_size += 1;
         if (statement->type() == geax::frontend::AstNodeType::kQueryStatement) {
-            geax::frontend::QueryStatement *queryStatement =
+            geax::frontend::QueryStatement* queryStatement =
                 (geax::frontend::QueryStatement*)statement;
             // not support join query, but support union query
             // in CompositeQueryStatement
@@ -1211,7 +1214,7 @@ void PatternGraphMaker::AddRelationship(Relationship* rel) {
 
 std::any PatternGraphMaker::visit(geax::frontend::RemoveSingleProperty* node) { NOT_SUPPORT(); }
 std::any PatternGraphMaker::visit(geax::frontend::ListComprehension* node) {
-    geax::frontend::Ref *ref = nullptr;
+    geax::frontend::Ref* ref = nullptr;
     checkedCast(node->getVariable(), ref);
     AddSymbol(ref->name(), cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getVariable());

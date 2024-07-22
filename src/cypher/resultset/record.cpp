@@ -63,7 +63,6 @@ bool Entry::GetEntityEfficient(RTContext *ctx) const {
                 for (auto &it : eits) {
                     if (!it.IsValid()) return false;
                 }
-                
                 return true;
             } else {
                 auto eit = relationship->ItRef();
