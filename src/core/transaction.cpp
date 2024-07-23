@@ -479,6 +479,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
     graph_->DeleteVertex(*txn_, it, on_edge_deleted);
     if (schema->DetachProperty()) {
         schema->DeleteDetachedVertexProperty(*txn_, vid);
+        schema->DeleteDetachedVectorIndex(*txn_, vid, prop);
     }
     vertex_delta_count_[schema->GetLabelId()]--;
     // delete vertex fulltext index
@@ -935,6 +936,8 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
         if (fe->Type() == FieldType::BLOB) {
             UpdateBlobField(fe, values[i], new_prop, blob_manager_, *txn_);
             // no need to update index since blob cannot be indexed
+        } else if (fe->Type() == FieldType::FLOAT_VECTOR) {
+            fe->ParseAndSet(new_prop, values[i]);
         } else {
             fe->ParseAndSet(new_prop, values[i]);
             // update index if there is no error
@@ -979,6 +982,8 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
     }
     if (schema->DetachProperty()) {
         schema->SetDetachedVertexProperty(*txn_, vid, new_prop);
+        schema->DeleteDetachedVectorIndex(*txn_, vid, old_prop);
+        schema->AddDetachedVectorToVectorIndex(*txn_, vid, new_prop);       
     } else {
         it.SetProperty(std::move(new_prop));
     }
@@ -1295,6 +1300,7 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     schema->AddVertexToCompositeIndex(*txn_, newvid, prop, created_composite_index);
     if (schema->DetachProperty()) {
         schema->AddDetachedVertexProperty(*txn_, newvid, prop);
+        schema->AddDetachedVectorToVectorIndex(*txn_, newvid, prop);
     }
     if (fulltext_index_) {
         schema->AddVertexToFullTextIndex(newvid, prop, fulltext_buffers_);

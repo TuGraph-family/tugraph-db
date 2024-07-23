@@ -34,6 +34,9 @@ include_directories(${DEPS_INCLUDE_DIR})
 set(BRPC_LIB libbrpc.a)
 set(BRAFT_LIB libbraft.a)
 
+# faiss
+include_directories(${PROJECT_SOURCE_DIR}/faiss)
+
 ############### liblgraph_server_lib ######################
 
 set(TARGET_SERVER_LIB lgraph_server_lib)
@@ -74,6 +77,8 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             geax_isogql
             bolt
             gar
+            faiss
+            faiss_env
             # begin static linking
             -Wl,-Bstatic
             cpprest
@@ -132,6 +137,7 @@ add_executable(${TARGET_SERVER}
 
 target_link_libraries(${TARGET_SERVER}
         ${TARGET_SERVER_LIB}
-        librocksdb.a)
-
-
+        librocksdb.a
+        faiss
+        faiss_env
+)

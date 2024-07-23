@@ -450,6 +450,29 @@ class GraphDB {
     bool AddVertexCompositeIndex(const std::string& label,
                                  const std::vector<std::string>& fields,
                                  CompositeIndexType type);
+     /**
+     * @brief   Adds a vector index to 'label:field'. This function blocks until the index is fully
+     *          created.
+     *
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access
+     *                                      level.
+     * @exception   InputError              Thrown if label:field does not exist, or not
+     *                                      indexable.
+     *
+     * @param   label           The label.
+     * @param   field           The field.
+     * @param   is_unique       True if the field content is unique for each vertex.
+     * @param   index_type      Type of the index
+     * @param   vec_dimension   Dimension of the vector
+     * @param   distance_type   Type of the distance
+     * @param   index_spec      Specification of the index
+     * 
+     * @returns True if it succeeds, false if the index already exists.
+     */
+    bool AddVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
+                        int vec_dimension, const std::string& distance_type, std::vector<int>& index_spec, IndexType type);
+
 
     /**
      * @brief   Check if this vertex_label:field is indexed.
@@ -512,6 +535,24 @@ class GraphDB {
      * @returns True if it succeeds, false if the index does not exists.
      */
     bool DeleteEdgeIndex(const std::string &label, const std::string &field);
+
+    /**
+     * @brief   Deletes the vector index to 'vertex_label:field'
+     *
+     * @exception   InvalidGraphDB     Thrown when currently GraphDB is invalid.
+     * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access level.
+     * @exception   InputError         Thrown if label or field does not exist.
+     *
+     * @param   label           The label.
+     * @param   field           The field.
+     * @param   index_type      Type of the index
+     * @param   vec_dimension   Dimension of the vector
+     * @param   distance_type   Type of the distance
+     * 
+     * @returns True if it succeeds, false if the index does not exists.
+     */
+    bool DeleteVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
+                           int vec_dimension, const std::string& distance_type);
 
     /**
      * @brief   Get graph description
