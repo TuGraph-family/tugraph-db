@@ -50,6 +50,7 @@ set(LGRAPH_CORE_SRC
         core/vertex_index.cpp
         core/vector_index_layer.cpp
         core/vector_index_manager.cpp
+        core/Faiss_IVF_FLAT.cpp
         core/wal.cpp
         core/lmdb/mdb.c
         core/lmdb/midl.c
