@@ -20,6 +20,7 @@
 #include "core/edge_index.h"
 #include "core/schema_common.h"
 #include "core/vector_index_layer.h"
+#include "core/Faiss_IVF_FLAT.h"
 
 namespace lgraph {
 class Schema;
@@ -72,7 +73,16 @@ class FieldExtractor {
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
-        vector_index_.reset(rhs.vector_index_ ? new VectorIndex(*rhs.vector_index_) : nullptr);
+        if (rhs.vector_index_ != nullptr) {
+            if (rhs.vector_index_->GetIndexType() == "IVF_FLAT") {
+                vector_index_.reset(new FaissIVFFlat(dynamic_cast<FaissIVFFlat&>(*rhs.vector_index_)));
+            } else {
+                vector_index_.reset(nullptr);
+            }
+        }
+        else {
+            vector_index_.reset(nullptr);
+        }
     }
 
     FieldExtractor& operator=(const FieldExtractor& rhs) {
@@ -86,7 +96,16 @@ class FieldExtractor {
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
-        vector_index_.reset(rhs.vector_index_ ? new VectorIndex(*rhs.vector_index_) : nullptr);
+        if (rhs.vector_index_ != nullptr) {
+            if (rhs.vector_index_->GetIndexType() == "IVF_FLAT") {
+                vector_index_.reset(new FaissIVFFlat(dynamic_cast<FaissIVFFlat&>(*rhs.vector_index_)));
+            } else {
+                vector_index_.reset(nullptr);
+            }
+        }
+        else {
+            vector_index_.reset(nullptr);
+        }
         return *this;
     }
 

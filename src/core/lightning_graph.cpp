@@ -2178,7 +2178,6 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             LOG_DEBUG() << "index count: " << count;
             txn.Commit();
             schema_.Assign(new_schema.release());
-
             return true;
         }
     }
