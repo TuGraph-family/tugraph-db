@@ -268,7 +268,7 @@ class KeyPacker {
         return v;
     }
 
-    static EdgeUid GetEuidFromPropertyTableKey(const Value& key) {
+    static EdgeUid GetEuidFromPropertyTableKey(const Value& key, uint16_t lid) {
         auto no_tid = ::lgraph::_detail::VID_SIZE*2 + ::lgraph::_detail::EID_SIZE;
         auto with_tid = ::lgraph::_detail::VID_SIZE*2 +
               ::lgraph::_detail::EID_SIZE +
@@ -276,6 +276,7 @@ class KeyPacker {
         FMA_ASSERT(key.Size() == no_tid || key.Size() == with_tid);
         bool compress_tid = (key.Size() == no_tid);
         EdgeUid ret;
+        ret.lid = lid;
         uint8_t offset = 0;
         ret.src = GetNByteIntId<::lgraph::_detail::VID_SIZE>(key.Data());
         offset = ::lgraph::_detail::VID_SIZE;

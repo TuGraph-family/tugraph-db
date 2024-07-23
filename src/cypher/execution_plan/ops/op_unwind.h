@@ -19,6 +19,7 @@
 
 #include "parser/clause.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
 
 namespace cypher {
 

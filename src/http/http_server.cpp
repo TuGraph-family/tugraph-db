@@ -126,9 +126,9 @@ nlohmann::json ProtoFieldDataToJson(const ProtoFieldData& data) {
         {
             nlohmann::json vec = nlohmann::json::array();
             auto size = data.fvector().fv_size();
-            for(int i = 0; i < size; i++) {
+            for (int i = 0; i < size; i++) {
                 vec.push_back(data.fvector().fv(i));
-            }            
+            }
             return vec;
         }
     }

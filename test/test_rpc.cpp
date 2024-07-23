@@ -83,6 +83,7 @@ void on_initialize_rpc_server() {
     sm_config.rpc_port = 19099;
 
     gconfig->ft_index_options.enable_fulltext_index = true;
+    lgraph::AccessControlledDB::SetEnablePlugin(true);
     ptr_state_machine = new lgraph::StateMachine(sm_config, gconfig);
     ptr_rpc_service = new RPCService(ptr_state_machine);
 
@@ -1864,6 +1865,12 @@ void test_import_file(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 8);
+
+    ret = client.CallCypher(str, "CALL db.dropAllVertex()");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "match (n) return count(n)");
+    json_val = web::json::value::parse(str);
+    UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 0);
 }
 
 void test_import_content(lgraph::RpcClient& client) {

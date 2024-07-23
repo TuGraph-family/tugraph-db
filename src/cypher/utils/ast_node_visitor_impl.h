@@ -133,6 +133,12 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::BSquare* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
     std::any visit(geax::frontend::BAnd* node) override {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
@@ -917,6 +923,14 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::ManagerStatement* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::UnwindStatement* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 

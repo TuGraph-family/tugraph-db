@@ -138,7 +138,7 @@ struct EdgeOptions : LabelOptions {
         std::string constraints;
         for (size_t i = 0; i < edge_constraints.size(); i++) {
             constraints += edge_constraints[i].first + " -> " + edge_constraints[i].second;
-            if (i != edge_constraints.size() - 1) {
+            if (i != edge_constraints.size()-1) {
                 constraints += ", ";
             }
         }
@@ -247,20 +247,20 @@ inline const std::string to_string(FieldType v) {
 }
 
 /**
- * @brief a type of value used in result entry and parameter in procedure or plugin signature
- * @param INTEGER
- * @param FLOAT
- * @param DOUBLE
- * @param BOOLEAN
- * @param STRING
- * @param MAP <string, FieldData>
- * @param NODE VertexIterator, VertexId
- * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
- * @param PATH lgraph_api::Path
- * @param LIST <string, FieldData>
- * @param ANY like Object in Java,
- * its procedure author's responsibility to check the underlying concrete type
- * whether valid in runtime.
+   * @brief a type of value used in result entry and parameter in procedure or plugin signature
+   * @param INTEGER
+   * @param FLOAT
+   * @param DOUBLE
+   * @param BOOLEAN
+   * @param STRING
+   * @param MAP <string, FieldData>
+   * @param NODE VertexIterator, VertexId
+   * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
+   * @param PATH lgraph_api::Path
+   * @param LIST <string, FieldData>
+   * @param ANY like Object in Java,
+   * its procedure author's responsibility to check the underlying concrete type
+   * whether valid in runtime.
  */
 enum class LGraphType : uint16_t {
     NUL = 0x0,
@@ -489,6 +489,7 @@ struct FieldData {
 
     ~FieldData() {
         if (IsBufType(type)) delete data.buf;
+        if (type == FieldType::FLOAT_VECTOR) delete data.vp;
     }
 
     FieldData(const FieldData& rhs) {
@@ -499,7 +500,7 @@ struct FieldData {
             // the integer type must have the biggest size, see static_assertion below
             data.int64 = rhs.data.int64;
         } else {
-            data.vp = rhs.data.vp;
+            data.vp = new std::vector<float>(*rhs.data.vp);
         }
     }
 
@@ -561,14 +562,14 @@ struct FieldData {
     static inline FieldData Point(const ::lgraph_api::Point<Wgs84>& p) {return FieldData(p); }
     static inline FieldData Point(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
-        case ::lgraph_api::SRID::NUL:
-            THROW_CODE(InputError, "Unsupported SRID!");
-        case ::lgraph_api::SRID::CARTESIAN:
-            return FieldData(::lgraph_api::Point<Cartesian>(str));
-        case ::lgraph_api::SRID::WGS84:
-            return FieldData(::lgraph_api::Point<Wgs84>(str));
-        default:
-            THROW_CODE(InputError, "Unsupported SRID!");
+            case ::lgraph_api::SRID::NUL:
+                THROW_CODE(InputError, "Unsupported SRID!");
+            case ::lgraph_api::SRID::CARTESIAN:
+                return FieldData(::lgraph_api::Point<Cartesian>(str));
+            case ::lgraph_api::SRID::WGS84:
+                return FieldData(::lgraph_api::Point<Wgs84>(str));
+            default:
+                THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -578,14 +579,14 @@ struct FieldData {
         return FieldData(l); }
     static inline FieldData LineString(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
-        case ::lgraph_api::SRID::NUL:
-            THROW_CODE(InputError, "Unsupported SRID!");
-        case ::lgraph_api::SRID::CARTESIAN:
-            return FieldData(::lgraph_api::LineString<Cartesian>(str));
-        case ::lgraph_api::SRID::WGS84:
-            return FieldData(::lgraph_api::LineString<Wgs84>(str));
-        default:
-            THROW_CODE(InputError, "Unsupported SRID!");
+            case ::lgraph_api::SRID::NUL:
+                THROW_CODE(InputError, "Unsupported SRID!");
+            case ::lgraph_api::SRID::CARTESIAN:
+                return FieldData(::lgraph_api::LineString<Cartesian>(str));
+            case ::lgraph_api::SRID::WGS84:
+                return FieldData(::lgraph_api::LineString<Wgs84>(str));
+            default:
+                THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -594,14 +595,14 @@ struct FieldData {
     static inline FieldData Polygon(const ::lgraph_api::Polygon<Wgs84>& p) {return FieldData(p); }
     static inline FieldData Polygon(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
-        case ::lgraph_api::SRID::NUL:
-            THROW_CODE(InputError, "Unsupported SRID!");
-        case ::lgraph_api::SRID::CARTESIAN:
-            return FieldData(::lgraph_api::Polygon<Cartesian>(str));
-        case ::lgraph_api::SRID::WGS84:
-            return FieldData(::lgraph_api::Polygon<Wgs84>(str));
-        default:
-            THROW_CODE(InputError, "Unsupported SRID!");
+            case ::lgraph_api::SRID::NUL:
+                THROW_CODE(InputError, "Unsupported SRID!");
+            case ::lgraph_api::SRID::CARTESIAN:
+                return FieldData(::lgraph_api::Polygon<Cartesian>(str));
+            case ::lgraph_api::SRID::WGS84:
+                return FieldData(::lgraph_api::Polygon<Wgs84>(str));
+            default:
+                THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -610,14 +611,14 @@ struct FieldData {
     static inline FieldData Spatial(const ::lgraph_api::Spatial<Wgs84>& s) {return FieldData(s); }
     static inline FieldData Spatial(const std::string& str) {
         switch (::lgraph_api::ExtractSRID(str)) {
-        case ::lgraph_api::SRID::NUL:
-            THROW_CODE(InputError, "Unsupported SRID!");
-        case ::lgraph_api::SRID::CARTESIAN:
-            return FieldData(::lgraph_api::Spatial<Cartesian>(str));
-        case ::lgraph_api::SRID::WGS84:
-            return FieldData(::lgraph_api::Spatial<Wgs84>(str));
-        default:
-            THROW_CODE(InputError, "Unsupported SRID!");
+            case ::lgraph_api::SRID::NUL:
+                THROW_CODE(InputError, "Unsupported SRID!");
+            case ::lgraph_api::SRID::CARTESIAN:
+                return FieldData(::lgraph_api::Spatial<Cartesian>(str));
+            case ::lgraph_api::SRID::WGS84:
+                return FieldData(::lgraph_api::Spatial<Wgs84>(str));
+            default:
+                THROW_CODE(InputError, "Unsupported SRID!");
         }
     }
 
@@ -877,8 +878,7 @@ struct FieldData {
         throw std::bad_cast();
     }
 
-    inline std::vector<float> AsFloatVector() 
-    const {
+    inline std::vector<float> AsFloatVector() const {
         if (type == FieldType::FLOAT_VECTOR) return *data.vp;
         throw std::bad_cast();
     }
@@ -921,10 +921,16 @@ struct FieldData {
             {
                 std::string vec_str;
                 for (float num : *data.vp) {
-                    vec_str += std::to_string(num);
+                    if (num > 999999) {
+                        vec_str += std::to_string(num).substr(0, 7);
+                    } else {
+                        vec_str += std::to_string(num).substr(0, 8);
+                    }
                     vec_str += ',';
                 }
-                vec_str.pop_back();
+                if (!vec_str.empty()) {
+                    vec_str.pop_back();
+                }
                 return vec_str;
             }
         }
@@ -1215,7 +1221,7 @@ struct FieldSpec {
     /** @brief   is this field optional? */
     bool optional;
 
-    FieldSpec() : name(), type(FieldType::NUL), optional(false) {}
+    FieldSpec(): name(), type(FieldType::NUL), optional(false) {}
 
     /**
      * @brief   Constructor
@@ -1253,10 +1259,10 @@ enum class IndexType {
 };
 
 enum class CompositeIndexType {
-    /** @brief this is not unique composite index
-     *  Temporarily require all attributes to be non-empty attributes
-     * */
-    UniqueIndex = 1
+    /** @brief this is unique composite index */
+    UniqueIndex = 1,
+    /** @brief this is not unique composite index */
+    NonUniqueIndex = 2
 };
 
 /** @brief   An index specifier. */
@@ -1266,6 +1272,15 @@ struct IndexSpec {
     /** @brief   field name */
     std::string field;
     IndexType type;
+};
+
+/** @brief   A composite index specifier. */
+struct CompositeIndexSpec {
+    /** @brief   label name */
+    std::string label;
+    /** @brief   fields name */
+    std::vector<std::string> fields;
+    CompositeIndexType type;
 };
 
 struct EdgeUid {

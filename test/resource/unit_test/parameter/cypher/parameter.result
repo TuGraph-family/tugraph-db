@@ -1,0 +1,4 @@
+MATCH (n:Person) WHERE n.name = $name RETURN n;
+[{"n":{"identity":8,"label":"Person","properties":{"birthyear":1986,"name":"Lindsay Lohan"}}}]
+MATCH (n:Person {name:$name}) RETURN n;
+[{"n":{"identity":8,"label":"Person","properties":{"birthyear":1986,"name":"Lindsay Lohan"}}}]

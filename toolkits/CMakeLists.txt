@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.16)
 project(TuGraph C CXX)
 
 ############### lgraph_import ######################
@@ -9,14 +9,16 @@ add_executable(${TARGET_LGRAPH_IMPORT}
         lgraph_import.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
-        ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp)
+        ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp
+        ${LGRAPH_ROOT_DIR}/src/import/graphar_parser.cpp)
 
 # TODO: break circular dependency between cypher and state machine
 target_link_libraries(${TARGET_LGRAPH_IMPORT}
         lgraph_server_lib
         lgraph_cypher_lib
         lgraph_server_lib
-        librocksdb.a)
+        librocksdb.a
+        gar)
 
 if (NOT ENABLE_ASAN)
     target_link_libraries(${TARGET_LGRAPH_IMPORT} libjemalloc.a)
@@ -106,9 +108,8 @@ add_executable(${TARGET_MDB_STAT} ${LGRAPH_ROOT_DIR}/src/core/lmdb/mdb_stat.c
         ${LGRAPH_ROOT_DIR}/src/core/lmdb/midl.c)
 target_link_libraries(${TARGET_MDB_STAT} pthread)
 
-set(LGRAPH_TOOLKITS ${TARGET_LGRAPH_IMPORT} ${TARGET_LGRAPH_BACKUP} ${TARGET_LGRAPH_WARMUP}
-        ${TARGET_LGRAPH_PEEK} ${TARGET_LGRAPH_EXPORT} ${TARGET_LGRAPH_BINLOG}
-        ${TARGET_LGRAPH_MONITOR} ${TARGET_MDB_STAT} ${TARGET_LGRAPH_CLI})
+set(LGRAPH_TOOLKITS ${TARGET_LGRAPH_IMPORT} ${TARGET_LGRAPH_BACKUP} ${TARGET_LGRAPH_EXPORT}
+                    ${TARGET_MDB_STAT} ${TARGET_LGRAPH_CLI})
 
 # install
 install(TARGETS ${LGRAPH_TOOLKITS}

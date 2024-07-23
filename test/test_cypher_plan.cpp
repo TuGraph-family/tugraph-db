@@ -59,6 +59,7 @@ void eval_query_check(cypher::RTContext *ctx, const std::string &query,
 
     double t0, t1, t2;
     t0 = fma_common::GetTime();
+    execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
     execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
     execution_plan.DumpGraph();
     std::string res_plan = execution_plan.DumpPlan(0, false);

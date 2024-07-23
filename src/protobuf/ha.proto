@@ -38,7 +38,7 @@ enum ProtoAccessLevel {
     FULL = 3;
 };
 
-message floatvector {
+message FloatVector {
     repeated float fv = 1;
 }
 
@@ -59,7 +59,7 @@ message ProtoFieldData {
         string linestring = 13;
         string polygon = 14;
         string spatial = 15;
-        floatvector fvector = 16;
+        FloatVector fvector = 16;
     }
 };
 

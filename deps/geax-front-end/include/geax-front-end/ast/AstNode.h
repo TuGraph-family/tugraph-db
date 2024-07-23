@@ -140,6 +140,7 @@ using StrArray = std::array<const char* const, N>;
     TYPE(BMul, kBMul, "BMul")                                                             \
     TYPE(BDiv, kBDiv, "BDiv")                                                             \
     TYPE(BMod, kBMod, "BMod")                                                             \
+    TYPE(BSquare, kBSquare, "BSquare")                                                    \
     TYPE(BOr, kBOr, "BOr")                                                                \
     TYPE(BXor, kBXor, "BXor")                                                             \
     TYPE(BAnd, kBAnd, "BAnd")                                                             \
@@ -187,6 +188,8 @@ using StrArray = std::array<const char* const, N>;
     TYPE(MkRecord, kMkRecord, "MkRecord")                                                 \
     TYPE(MkSet, kMkSet, "MkSet")                                                          \
     TYPE(MkTuple, kMkTuple, "MkTuple")                                                    \
+    TYPE(UnwindStatement, kUnwindStatement, "UnwindStatement")                            \
+    TYPE(InQueryProcedureCall, kInQueryProcedureCall, "InQueryProcedureCall")             \
     TYPE(DummyNode, kNotDefined, "NotDefined")
 // This should always be the last one
 

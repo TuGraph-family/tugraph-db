@@ -49,7 +49,7 @@ namespace cypher {
     } while (0)
 
 typedef std::unordered_map<std::string, std::unordered_map<std::string, lgraph::FieldData>>
-    EDGE_FILTER_T;
+    EDGE_PROPERTY_FILTER_T;
 
 const std::unordered_map<std::string, lgraph::FieldType> BuiltinProcedure::type_map_ =
     lgraph::field_data_helper::_detail::_FieldName2TypeDict_();
@@ -187,6 +187,31 @@ void BuiltinProcedure::DbIndexes(RTContext *ctx, const Record *record, const VEC
         r.AddConstant(lgraph::FieldData(pair_unique));
         records->emplace_back(r.Snapshot());
     }
+
+    auto vertex_composite_indexes = ctx->txn_->GetTxn()->ListVertexCompositeIndexes();
+    for (auto &i : vertex_composite_indexes) {
+        Record r;
+        r.AddConstant(lgraph::FieldData(i.label));
+        r.AddConstant(lgraph::FieldData(boost::join(i.fields, ",")));
+        r.AddConstant(lgraph::FieldData("vertex"));
+        bool unique = false, pair_unique = false;
+        switch (i.type) {
+        case lgraph::CompositeIndexType::UniqueIndex:
+            {
+                unique = true;
+                break;
+            }
+        case lgraph::CompositeIndexType::NonUniqueIndex:
+            {
+                unique = false;
+                break;
+            }
+        }
+        r.AddConstant(lgraph::FieldData(unique));
+        r.AddConstant(lgraph::FieldData(pair_unique));
+        records->emplace_back(r.Snapshot());
+    }
+
     auto edge_indexes = ctx->txn_->GetTxn()->ListEdgeIndexes();
     for (auto &i : edge_indexes) {
         Record r;
@@ -220,14 +245,16 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
 
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                      FMA_FMT("{} has to be a string ", args[0].String()))
-    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
-                     FMA_FMT("{} has to be a string ", args[0].String()))
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
+                     FMA_FMT("{} has to be a string ", args[1].String()))
     auto label = args[0].String();
     bool is_vertex = ParseIsVertex(args[1]);
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     std::vector<lgraph::IndexSpec> indexes;
+    std::vector<lgraph::CompositeIndexSpec> compositeIndexes;
     if (is_vertex) {
         indexes = ctx->txn_->GetTxn()->ListVertexIndexByLabel(label);
+        compositeIndexes = ctx->txn_->GetTxn()->ListVertexCompositeIndexByLabel(label);
     } else {
         indexes = ctx->txn_->GetTxn()->ListEdgeIndexByLabel(label);
     }
@@ -247,6 +274,28 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
         case lgraph::IndexType::NonuniqueIndex:
             // just to pass the compilation
             break;
+        }
+        r.AddConstant(lgraph::FieldData(unique));
+        r.AddConstant(lgraph::FieldData(pair_unique));
+        records->emplace_back(r.Snapshot());
+    }
+    for (auto &i : compositeIndexes) {
+        if (i.label != label) continue;
+        Record r;
+        r.AddConstant(lgraph::FieldData(i.label));
+        r.AddConstant(lgraph::FieldData(boost::join(i.fields, ",")));
+        bool unique = false, pair_unique = false;
+        switch (i.type) {
+        case lgraph::CompositeIndexType::UniqueIndex:
+            {
+                unique = true;
+                break;
+            }
+        case lgraph::CompositeIndexType::NonUniqueIndex:
+            {
+                unique = false;
+                break;
+            }
         }
         r.AddConstant(lgraph::FieldData(unique));
         r.AddConstant(lgraph::FieldData(pair_unique));
@@ -1127,10 +1176,12 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
     if (is_vertex) {
         auto vo = std::make_unique<lgraph::VertexOptions>();
         vo->primary_field = primary_fd;
+        vo->detach_property = true;
         options = std::move(vo);
     } else {
         auto eo = std::make_unique<lgraph::EdgeOptions>();
         eo->edge_constraints = edge_constraints;
+        eo->detach_property = true;
         options = std::move(eo);
     }
     auto ret = ac_db.AddLabel(is_vertex, label, field_specs, *options);
@@ -1314,10 +1365,12 @@ void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record, c
     _ExtractFds(args, label, extra, fds);
     auto ec = nlohmann::json::parse(extra);
     for (auto &item : ec) {
-        edge_constraints.push_back(std::make_pair(item[0], item[1]));
+        edge_constraints.emplace_back(item[0], item[1]);
     }
+    lgraph::EdgeOptions eo(edge_constraints);
+    eo.detach_property = true;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    auto ret = ac_db.AddLabel(false, label, fds, lgraph::EdgeOptions(edge_constraints));
+    auto ret = ac_db.AddLabel(false, label, fds, eo);
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
@@ -1342,6 +1395,36 @@ void BuiltinProcedure::DbAddVertexIndex(RTContext *ctx, const Record *record, co
     bool success = ac_db.AddVertexIndex(label, field, type);
     if (!success) {
         throw lgraph::IndexExistException(label, field);
+    }
+}
+
+void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
+                                                 const cypher::Record *record,
+                                                 const cypher::VEC_EXPR &args,
+                                                 const cypher::VEC_STR &yield_items,
+                                                 std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 3,
+                     "need 3 parameters, e.g. db.addIndex(label_name, field_name, unique)")
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST, "field_names type should be list")
+    CYPHER_ARG_CHECK(args[2].type == parser::Expression::BOOL, "unique type should be boolean")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    /* close the previous txn first, in case of nested transaction */
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].String();
+    auto fields_args = args[1].List();
+    std::vector<std::string> fields;
+    for (auto &arg : fields_args) {
+        fields.push_back(arg.String());
+    }
+    auto unique = args[2].Bool();
+    lgraph::CompositeIndexType type = unique ? lgraph::CompositeIndexType::UniqueIndex :
+                                      lgraph::CompositeIndexType::NonUniqueIndex;
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
+    if (!success) {
+        std::string field_strings = boost::algorithm::join(fields, ",");
+        THROW_CODE(IndexExist, "VertexCompositeIndex [{}:{}] already exist.", label, field_strings);
     }
 }
 
@@ -2829,6 +2912,26 @@ void BuiltinProcedure::DbDeleteEdgeIndex(RTContext *ctx, const Record *record, c
     }
 }
 
+void BuiltinProcedure::DbDeleteCompositeIndex(RTContext *ctx, const Record *record,
+                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              std::vector<Record> *records) {
+    CYPHER_ARG_CHECK(args.size() == 2,
+                     "need two parameters, e.g. db.deleteIndex(label_name, field_name)")
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST,
+                     "field_names type should be list<string>")
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    std::vector<std::string> fields;
+    for (const auto &v : args[1].List()) {
+        fields.push_back(v.String());
+    }
+    bool success = ctx->ac_db_->DeleteVertexCompositeIndex(args[0].String(), fields);
+    if (!success) {
+        throw lgraph::IndexNotExistException(args[0].String(), args[1].String());
+    }
+}
+
 void BuiltinProcedure::DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -2850,6 +2953,18 @@ void BuiltinProcedure::DbDropDB(RTContext *ctx, const Record *record, const VEC_
                                            "given. Usage: db.dropDB()",
                                            args.size()))
     ctx->ac_db_->DropAllData();
+}
+
+void BuiltinProcedure::DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                       const VEC_STR &yield_items, std::vector<Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
+    if (!ctx->galaxy_->IsAdmin(ctx->user_))
+        THROW_CODE(Unauthorized, "Admin access right required.");
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: db.dropAllVertex()",
+                                           args.size()))
+    ctx->ac_db_->DropAllVertex();
 }
 
 void BuiltinProcedure::DbTaskListTasks(RTContext *ctx, const Record *record, const VEC_EXPR &args,
@@ -2973,7 +3088,7 @@ static void _FetchPath(lgraph::Transaction &txn, size_t hops,
 
 template<typename EIT>
 static bool _Filter(lgraph::Transaction &txn, const EIT &eit,
-                    const EDGE_FILTER_T &edge_filter) {
+                    const EDGE_PROPERTY_FILTER_T &edge_filter) {
     for (auto &kv1 : edge_filter) {
         auto field = txn.GetEdgeField(eit.GetUid(), kv1.first);
         for (auto &kv2 : kv1.second) {
@@ -2986,15 +3101,19 @@ static bool _Filter(lgraph::Transaction &txn, const EIT &eit,
     return true;
 }
 
+struct EdgeFilter {
+    std::string label;
+    EDGE_PROPERTY_FILTER_T property_filter;
+};
+
 static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgraph::VertexId vid,
-                                                   const std::string &edge_label,
-                                                   const EDGE_FILTER_T& edge_filter,
+                                                   const std::vector<EdgeFilter>& edge_filters,
                                                    const parser::LinkDirection& direction,
                                                    std::optional<size_t> per_node_limit) {
     auto vit = txn.GetVertexIterator(vid);
     CYPHER_THROW_ASSERT(vit.IsValid());
     std::vector<lgraph::VertexId> neighbors;
-    if (edge_label.empty()) {
+    if (edge_filters.empty()) {
         bool out_edge_left = false, in_edge_left = false;
         neighbors = vit.ListDstVids(nullptr, nullptr,
                                     per_node_limit.has_value() ? per_node_limit.value() : 10000,
@@ -3013,33 +3132,40 @@ static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgr
             neighbors.insert(neighbors.end(), srcIds.begin(), srcIds.end());
         }
     } else {
-        auto edge_lid = txn.GetLabelId(false, edge_label);
         if (direction == parser::LinkDirection::LEFT_TO_RIGHT ||
             direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
-            size_t count = 0;
-            for (auto eit = vit.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-                 eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() != edge_lid) break;
-                count += 1;
-                if (per_node_limit.has_value() && count > per_node_limit.value()) {
-                    break;
+            for (auto& edge_filter : edge_filters) {
+                size_t count = 0;
+                auto edge_lid = txn.GetLabelId(false, edge_filter.label);
+                for (auto eit = vit.GetOutEdgeIterator(
+                         lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                     eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() != edge_lid) break;
+                    count += 1;
+                    if (per_node_limit.has_value() && count > per_node_limit.value()) {
+                        break;
+                    }
+                    if (!_Filter(txn, eit, edge_filter.property_filter)) continue;
+                    neighbors.push_back(eit.GetDst());
                 }
-                if (!_Filter(txn, eit, edge_filter)) continue;
-                neighbors.push_back(eit.GetDst());
             }
         }
         if (direction == parser::LinkDirection::RIGHT_TO_LEFT ||
             direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
-            size_t count = 0;
-            for (auto eit = vit.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-                 eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() != edge_lid) break;
-                count += 1;
-                if (per_node_limit.has_value() && count > per_node_limit.value()) {
-                    break;
+            for (auto& edge_filter : edge_filters) {
+                size_t count = 0;
+                auto edge_lid = txn.GetLabelId(false, edge_filter.label);
+                for (auto eit = vit.GetInEdgeIterator(
+                         lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                     eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() != edge_lid) break;
+                    count += 1;
+                    if (per_node_limit.has_value() && count > per_node_limit.value()) {
+                        break;
+                    }
+                    if (!_Filter(txn, eit, edge_filter.property_filter)) continue;
+                    neighbors.push_back(eit.GetSrc());
                 }
-                if (!_Filter(txn, eit, edge_filter)) continue;
-                neighbors.push_back(eit.GetSrc());
             }
         }
     }
@@ -3054,9 +3180,10 @@ static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgr
  * parameter. For example, direction:"INCOMING" or direction:"OUTGOING".
  */
 static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexId start_vid,
-                                       lgraph::VertexId end_vid, const std::string &edge_label,
+                                       lgraph::VertexId end_vid,
+                                       const std::vector<EdgeFilter> &edge_filters,
                                        size_t max_hops, cypher::Path &path,
-                                       const EDGE_FILTER_T &edge_filter, parser::LinkDirection &dir,
+                                       parser::LinkDirection &dir,
                                        std::optional<size_t> per_node_limit) {
     path.Clear();
     path.SetStart(start_vid);
@@ -3077,7 +3204,7 @@ static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexI
         if (forward_q.size() <= backward_q.size()) {
             // search forward
             for (auto vid : forward_q) {
-                auto nbrs = _GetNeighbors(txn, vid, edge_label, edge_filter, forward_dir,
+                auto nbrs = _GetNeighbors(txn, vid, edge_filters, forward_dir,
                                           per_node_limit);
                 for (auto nbr : nbrs) {
                     if (child.find(nbr) != child.end()) {
@@ -3096,7 +3223,7 @@ static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexI
             forward_q = std::move(next_q);
         } else {
             for (auto vid : backward_q) {
-                auto nbrs = _GetNeighbors(txn, vid, edge_label, edge_filter, backward_dir,
+                auto nbrs = _GetNeighbors(txn, vid, edge_filters, backward_dir,
                                           per_node_limit);
                 for (auto nbr : nbrs) {
                     if (parent.find(nbr) != parent.end()) {
@@ -3177,16 +3304,17 @@ static void _EmplaceBackwardNeighbor(
 
 void _EnumeratePartialPaths(lgraph::Transaction &txn,
                             const std::unordered_map<int64_t, int> &hop_info, const int64_t vid,
-                            const int depth, const std::string &edge_label, cypher::Path &path,
+                            const int depth, const std::vector<std::string> &edge_labels,
+                            cypher::Path &path,
                             std::vector<cypher::Path> &paths) {
     if (depth != 0) {
-        if (edge_label.empty()) {
+        if (edge_labels.empty()) {
             for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
                 int64_t nbr = eit.GetDst();
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
+                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path, paths);
                     path.PopBack();
                 }
             }
@@ -3195,32 +3323,38 @@ void _EnumeratePartialPaths(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
+                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path, paths);
                     path.PopBack();
                 }
             }
         } else {
-            auto edge_lid = txn.GetLabelId(false, edge_label);
-            for (auto eit = txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-                 eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() != edge_lid) break;
-                int64_t nbr = eit.GetDst();
-                auto it = hop_info.find(nbr);
-                if (it != hop_info.end() && it->second == depth - 1) {
-                    path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
-                    path.PopBack();
+            for (auto& edge_label : edge_labels) {
+                auto edge_lid = txn.GetLabelId(false, edge_label);
+                for (auto eit =
+                         txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                     eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() != edge_lid) break;
+                    int64_t nbr = eit.GetDst();
+                    auto it = hop_info.find(nbr);
+                    if (it != hop_info.end() && it->second == depth - 1) {
+                        path.Append(eit.GetUid());
+                        _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path,
+                                               paths);
+                        path.PopBack();
+                    }
                 }
-            }
-            for (auto eit = txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-                 eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() != edge_lid) break;
-                int64_t nbr = eit.GetSrc();
-                auto it = hop_info.find(nbr);
-                if (it != hop_info.end() && it->second == depth - 1) {
-                    path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_label, path, paths);
-                    path.PopBack();
+                for (auto eit =
+                         txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                     eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() != edge_lid) break;
+                    int64_t nbr = eit.GetSrc();
+                    auto it = hop_info.find(nbr);
+                    if (it != hop_info.end() && it->second == depth - 1) {
+                        path.Append(eit.GetUid());
+                        _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path,
+                                               paths);
+                        path.PopBack();
+                    }
                 }
             }
         }
@@ -3230,7 +3364,8 @@ void _EnumeratePartialPaths(lgraph::Transaction &txn,
 }
 
 static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::VertexId start_vid,
-                                           lgraph::VertexId end_vid, const std::string &edge_label,
+                                           lgraph::VertexId end_vid,
+                                           const std::vector<std::string> &edge_labels,
                                            std::vector<cypher::Path> &paths) {
     // TODO(heng): fix PrimaryId
     if (start_vid == end_vid) {
@@ -3253,7 +3388,7 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
         if (forward_q.size() <= backward_q.size()) {
             fhop++;
             for (auto vid : forward_q) {
-                if (edge_label.empty()) {
+                if (edge_labels.empty()) {
                     for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
                     }
@@ -3261,18 +3396,20 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
                     }
                 } else {
-                    auto edge_lid = txn.GetLabelId(false, edge_label);
-                    for (auto eit =
-                             txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-                         eit.IsValid(); eit.Next()) {
-                        if (eit.GetLabelId() != edge_lid) break;
-                        _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
-                    }
-                    for (auto eit =
-                             txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-                         eit.IsValid(); eit.Next()) {
-                        if (eit.GetLabelId() != edge_lid) break;
-                        _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                    for (auto& edge_label : edge_labels) {
+                        auto edge_lid = txn.GetLabelId(false, edge_label);
+                        for (auto eit = txn.GetOutEdgeIterator(
+                                 lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                             eit.IsValid(); eit.Next()) {
+                            if (eit.GetLabelId() != edge_lid) break;
+                            _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                        }
+                        for (auto eit = txn.GetInEdgeIterator(
+                                 lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                             eit.IsValid(); eit.Next()) {
+                            if (eit.GetLabelId() != edge_lid) break;
+                            _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
+                        }
                     }
                 }
             }
@@ -3281,7 +3418,7 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
         } else {
             bhop++;
             for (auto vid : backward_q) {
-                if (edge_label.empty()) {
+                if (edge_labels.empty()) {
                     for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
                     }
@@ -3289,18 +3426,20 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
                     }
                 } else {
-                    auto edge_lid = txn.GetLabelId(false, edge_label);
-                    for (auto eit =
-                             txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
-                         eit.IsValid(); eit.Next()) {
-                        if (eit.GetLabelId() != edge_lid) break;
-                        _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
-                    }
-                    for (auto eit =
-                             txn.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
-                         eit.IsValid(); eit.Next()) {
-                        if (eit.GetLabelId() != edge_lid) break;
-                        _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                    for (auto& edge_label : edge_labels) {
+                        auto edge_lid = txn.GetLabelId(false, edge_label);
+                        for (auto eit = txn.GetOutEdgeIterator(
+                                 lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                             eit.IsValid(); eit.Next()) {
+                            if (eit.GetLabelId() != edge_lid) break;
+                            _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                        }
+                        for (auto eit = txn.GetInEdgeIterator(
+                                 lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                             eit.IsValid(); eit.Next()) {
+                            if (eit.GetLabelId() != edge_lid) break;
+                            _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
+                        }
                     }
                 }
             }
@@ -3315,10 +3454,10 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
         auto bvid = std::get<1>(hit);
         cypher::Path path;
         path.SetStart(fvid);
-        _EnumeratePartialPaths(txn, parent, fvid, parent[fvid], edge_label, path, fpaths);
+        _EnumeratePartialPaths(txn, parent, fvid, parent[fvid], edge_labels, path, fpaths);
         path.Clear();
         path.SetStart(bvid);
-        _EnumeratePartialPaths(txn, child, bvid, child[bvid], edge_label, path, bpaths);
+        _EnumeratePartialPaths(txn, child, bvid, child[bvid], edge_labels, path, bpaths);
         for (auto &fpath : fpaths) {
             fpath.Reverse();
             fpath.Append(std::get<4>(hit)
@@ -3342,37 +3481,56 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
                          args[1].type == parser::Expression::VARIABLE &&
                          (args.size() == 2 || args[2].type == parser::Expression::MAP),
                      "wrong type")
-    std::string edge_label;
-    EDGE_FILTER_T edge_filter;
+    std::vector<EdgeFilter> edge_filters;
     parser::LinkDirection direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
     size_t max_hops = 20;
     if (args.size() == 3) {
         auto &map = args[2].Map();
-        auto it = map.find("relationshipQuery");
-        if (it != map.end()) {
-            if (it->second.type != parser::Expression::STRING) CYPHER_TODO();
-            edge_label = it->second.String();
+        // edgeFilter
+        auto iter = map.find("relationshipQuery");
+        if (iter != map.end()) {
+            if (iter->second.type != parser::Expression::LIST &&
+                iter->second.type != parser::Expression::STRING) CYPHER_TODO();
+            if (iter->second.type == parser::Expression::STRING) {
+                EdgeFilter e_filter;
+                e_filter.label = iter->second.String();
+                edge_filters.emplace_back(std::move(e_filter));
+            } else {
+                for (auto &item : iter->second.List()) {
+                    if (item.type != parser::Expression::MAP) CYPHER_TODO();
+                    auto &edge_filter = item.Map();
+                    auto label_iter = edge_filter.find("label");
+                    if (label_iter == edge_filter.end()) CYPHER_TODO();
+                    EdgeFilter e_filter;
+                    e_filter.label = label_iter->second.String();
+                    auto property_filter_iter =
+                        edge_filter.find("property_filter");
+                    if (property_filter_iter != edge_filter.end()) {
+                        if (property_filter_iter->second.type != parser::Expression::MAP)
+                            CYPHER_TODO();
+                        for (auto &kv : property_filter_iter->second.Map()) {
+                            if (kv.second.type != parser::Expression::MAP) CYPHER_TODO();
+                            std::unordered_map<std::string, lgraph::FieldData> filter_t;
+                            for (auto &filter_pair : kv.second.Map()) {
+                                lgraph::FieldData field;
+                                if (!filter_pair.second.IsLiteral()) CYPHER_TODO();
+                                field = parser::MakeFieldData(filter_pair.second);
+                                filter_t.emplace(filter_pair.first, field);
+                            }
+                            e_filter.property_filter.emplace(kv.first, filter_t);
+                        }
+                    }
+                    edge_filters.emplace_back(std::move(e_filter));
+                }
+            }
         }
+        // maxHops
         auto max = map.find("maxHops");
         if (max != map.end()) {
             if (max->second.type != parser::Expression::INT) CYPHER_TODO();
             max_hops = max->second.Int();
         }
-        auto map_edge_filter = map.find("edgeFilter");
-        if (map_edge_filter != map.end()) {
-            if (map_edge_filter->second.type != parser::Expression::MAP) CYPHER_TODO();
-            for (auto &kv : map_edge_filter->second.Map()) {
-                if (kv.second.type != parser::Expression::MAP) CYPHER_TODO();
-                std::unordered_map<std::string, lgraph::FieldData> filter_t;
-                for (auto filter_pair : kv.second.Map()) {
-                    lgraph::FieldData field;
-                    if (!filter_pair.second.IsLiteral()) CYPHER_TODO();
-                    field = parser::MakeFieldData(filter_pair.second);
-                    filter_t.emplace(filter_pair.first, field);
-                }
-                edge_filter.emplace(kv.first, filter_t);
-            }
-        }
+        // direction
         auto it_dir = map.find("direction");
         if (it_dir != map.end()) {
             if (it_dir->second.type != parser::Expression::STRING) CYPHER_TODO();
@@ -3397,8 +3555,8 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     auto end_vid = record->values[it2->second.id].node->PullVid();
     cypher::Path path;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, max_hops,
-                               path, edge_filter, direction, std::nullopt);
+    _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_filters, max_hops,
+                               path, direction, std::nullopt);
 
     auto pp = global_ptable.GetProcedure("algo.shortestPath");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
@@ -3429,13 +3587,24 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cyph
                          args[1].type == parser::Expression::VARIABLE &&
                          (args.size() == 2 || args[2].type == parser::Expression::MAP),
                      "wrong type")
-    std::string edge_label;
+    std::vector<std::string> edge_labels;
     if (args.size() == 3) {
         auto &map = args[2].Map();
-        auto it = map.find("relationshipQuery");
-        if (it != map.end()) {
-            if (it->second.type != parser::Expression::STRING) CYPHER_TODO();
-            edge_label = it->second.String();
+        auto iter = map.find("relationshipQuery");
+        if (iter != map.end()) {
+            if (iter->second.type != parser::Expression::LIST &&
+                iter->second.type != parser::Expression::STRING) CYPHER_TODO();
+            if (iter->second.type == parser::Expression::STRING) {
+                edge_labels.push_back(iter->second.String());
+            } else {
+                for (auto &item : iter->second.List()) {
+                    if (item.type != parser::Expression::MAP) CYPHER_TODO();
+                    auto &edge_filter = item.Map();
+                    auto label_iter = edge_filter.find("label");
+                    if (label_iter == edge_filter.end()) CYPHER_TODO();
+                    edge_labels.push_back(label_iter->second.String());
+                }
+            }
         }
     }
     CYPHER_THROW_ASSERT(record);
@@ -3448,7 +3617,7 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cyph
     auto end_vid = record->values[it2->second.id].node->PullVid();
     std::vector<cypher::Path> paths;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    _P2PUnweightedAllShortestPaths(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_label, paths);
+    _P2PUnweightedAllShortestPaths(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_labels, paths);
 
     auto pp = global_ptable.GetProcedure("algo.allShortestPaths");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeIds") &&
@@ -3521,11 +3690,15 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
         CYPHER_THROW_ASSERT(record);
         auto i = record->symbol_table->symbols.find(args[0].String());
         if (i == record->symbol_table->symbols.end()) CYPHER_TODO();
-        auto &eid = record->values[i->second.id];
-        if (!eid.IsString()) CYPHER_TODO();
+        auto &eids = record->values[i->second.id];
         auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-        value = ctx->txn_->GetTxn()->GetEdgeField(
-            _detail::ExtractEdgeUid(eid.constant.scalar.AsString()), it2->second.String());
+        if (eids.IsArray()) {
+            value = cypher::FieldData::Array(0);
+            for (auto &id : *eids.constant.array) {
+                value.array->emplace_back(ctx->txn_->GetTxn()->GetEdgeField(
+                    _detail::ExtractEdgeUid(id.AsString()), it2->second.String()));
+            }
+        }
     }
 
     auto pp = global_ptable.GetProcedure("algo.native.extract");

@@ -59,7 +59,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
 
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
-                                                               const std::string& data) const {
+                                                          const std::string& data) const {
     // check whether the linestring data is valid;
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::LINESTRING))
         throw ParseStringException(Name(), data, FieldType::LINESTRING);
@@ -68,7 +68,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
 
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
-                                                            const std::string& data) const {
+                                                          const std::string& data) const {
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POLYGON))
         throw ParseStringException(Name(), data, FieldType::POLYGON);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
@@ -76,7 +76,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
 
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
-                                                            const std::string& data) const {
+                                                          const std::string& data) const {
     ::lgraph_api::SpatialType s;
     // throw ParseStringException in this function;
     try {
@@ -92,8 +92,22 @@ void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
 
 template <>
 void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
-                                                                 const std::string& data) const {
+                                                          const std::string& data) const {
     std::vector<float> vec;
+    // check if there are only numbers and commas
+    std::regex nonNumbersAndCommas("[^0-9,.]");
+    if (std::regex_search(data, nonNumbersAndCommas)) {
+        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);
+    }
+    // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
+    if (!std::regex_match(data, vector)) {
+        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);
+    }
+    // check if there are 1.000,,2.000 & 1.000,2.000,
+    if (data.front() == ',' || data.back() == ',' || data.find(",,") != std::string::npos) {
+        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);
+    }
     std::regex pattern("-?[0-9]+\\.?[0-9]*");
     std::sregex_iterator begin_it(data.begin(), data.end(), pattern), end_it;
     while (begin_it != end_it) {
@@ -101,8 +115,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
         vec.push_back(std::stof(match.str()));
         ++begin_it;
     }
-    if (vec.size() <= 0)
-        throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);                                                        
+    if (vec.size() <= 0) throw ParseStringException(Name(), data, FieldType::FLOAT_VECTOR);
     return _SetVariableLengthValue(record, Value::ConstRef(vec));
 }
 /**
@@ -235,39 +248,39 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         }
     case FieldType::LINESTRING:
         {
-            if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
-                throw ParseFieldDataException(Name(), data, Type());
-            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::LINESTRING))
+        if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
+            throw ParseFieldDataException(Name(), data, Type());
+        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::LINESTRING))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::LINESTRING);
 
-            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
     case FieldType::POLYGON:
         {
-            if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
-                throw ParseFieldDataException(Name(), data, Type());
-            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
+        if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
+            throw ParseFieldDataException(Name(), data, Type());
+        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::POLYGON);
 
-            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
     case FieldType::SPATIAL:
         {
-            if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
-                throw ParseFieldDataException(Name(), data, Type());
-            ::lgraph_api::SpatialType s;
+        if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
+            throw ParseFieldDataException(Name(), data, Type());
+        ::lgraph_api::SpatialType s;
 
-            // throw ParseStringException in this function;
-            try {
-                s = ::lgraph_api::ExtractType(*data.data.buf);
-            } catch (...) {
+        // throw ParseStringException in this function;
+        try {
+            s = ::lgraph_api::ExtractType(*data.data.buf);
+        }  catch (...) {
+            throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
+        }
+
+        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
-            }
 
-            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
-                throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
-
-            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
     case FieldType::FLOAT_VECTOR:
         {
@@ -356,7 +369,13 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
         {
             std::string vec_str;
             for (size_t i = 0; i < record.AsType<std::vector<float>>().size(); i++) {
-                vec_str += std::to_string(record.AsType<std::vector<float>>().at(i)) + ",";
+                auto floatnum = record.AsType<std::vector<float>>().at(i);
+                if (record.AsType<std::vector<float>>().at(i) > 999999) {
+                    vec_str += std::to_string(floatnum).substr(0, 7);
+                } else {
+                    vec_str += std::to_string(floatnum).substr(0, 8);
+                }
+                vec_str += ',';
             }
             if (!vec_str.empty()) {
                 vec_str.pop_back();

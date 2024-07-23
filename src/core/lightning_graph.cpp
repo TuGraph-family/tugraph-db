@@ -66,7 +66,7 @@ void LightningGraph::DropAllVertex() {
         Transaction txn = CreateWriteTxn(false);
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         // clear indexes
-        auto indexes = index_manager_->ListAllIndexes(txn.GetTxn());
+        auto [indexes, composite_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
         for (auto& idx : indexes) {
             auto v_schema = curr_schema->v_schema_manager.GetSchema(idx.label);
             auto e_schema = curr_schema->e_schema_manager.GetSchema(idx.label);
@@ -80,6 +80,13 @@ void LightningGraph::DropAllVertex() {
                 auto ext = e_schema->GetFieldExtractor(idx.field);
                 FMA_DBG_ASSERT(ext);
                 ext->GetEdgeIndex()->Clear(txn.GetTxn());
+            }
+        }
+        for (auto& idx : composite_indexes) {
+            auto v_schema = curr_schema->v_schema_manager.GetSchema(idx.label);
+            FMA_DBG_ASSERT(v_schema);
+            if (v_schema) {
+                v_schema->GetCompositeIndex(idx.fields)->Clear(txn.GetTxn());
             }
         }
         // clear detached property data
@@ -322,7 +329,8 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
                 bool r = graph_->DeleteVertex(txn.GetTxn(), vid, on_edge_deleted);
                 FMA_DBG_ASSERT(r);
             } else {
-                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
+                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(
+                    kv_iter->GetKey(), schema->GetLabelId());
                 bool r = graph_->DeleteEdge(txn.GetTxn(), euid);
                 FMA_DBG_ASSERT(r);
             }
@@ -826,6 +834,10 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
                                                     extractor->Name());
             }
         }
+        auto composite_index_key = curr_schema->GetRelationalCompositeIndexKey(fids);
+        for (const auto &cidx : composite_index_key) {
+            index_manager_->DeleteVertexCompositeIndex(txn.GetTxn(), label, cidx);
+        }
     };
 
     return _AlterLabel(is_vertex, label, setup_and_gen_new_schema, make_new_prop_and_destroy_old,
@@ -1015,6 +1027,10 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
                 index_manager_->DeleteEdgeIndex(txn.GetTxn(), label, extractor->Name());
             }
         }
+        auto composite_index_key = curr_schema->GetRelationalCompositeIndexKey(mod_fids);
+        for (const auto &cidx : composite_index_key) {
+            index_manager_->DeleteVertexCompositeIndex(txn.GetTxn(), label, cidx);
+        }
     };
 
     return _AlterLabel(
@@ -1193,26 +1209,50 @@ struct CompositeKeyVid {
                 THROW_CODE(KvException, "Unknown data type: {}", types[i]);
             }
         }
-        return true;
+        return vid < rhs.vid;
     }
 
-    Value GenerateCompositeIndexKey() {
-        int n = keys.size(), len = (n - 1) * 2;
+    bool operator==(const CompositeKeyVid& rhs) const {
+        int n = keys.size();
         for (int i = 0; i < n; ++i) {
-            len += keys[i].Size();
+            switch (types[i]) {
+            case FieldType::BOOL:
+                if (keys[i].AsType<bool>() == rhs.keys[i].AsType<bool>()) continue;
+                return false;
+            case FieldType::INT8:
+                if (keys[i].AsType<int8_t>() == rhs.keys[i].AsType<int8_t>()) continue;
+                return false;
+            case FieldType::INT16:
+                if (keys[i].AsType<int16_t>() == rhs.keys[i].AsType<int16_t>()) continue;
+                return false;
+            case FieldType::INT32:
+                if (keys[i].AsType<int32_t>() == rhs.keys[i].AsType<int32_t>()) continue;
+                return false;
+            case FieldType::DATE:
+                if (keys[i].AsType<int32_t>() == rhs.keys[i].AsType<int32_t>()) continue;
+                return false;
+            case FieldType::INT64:
+                if (keys[i].AsType<int64_t>() == rhs.keys[i].AsType<int64_t>()) continue;
+                return false;
+            case FieldType::DATETIME:
+                if (keys[i].AsType<int64_t>() == rhs.keys[i].AsType<int64_t>()) continue;
+                return false;
+            case FieldType::FLOAT:
+                if (keys[i].AsType<float>() == rhs.keys[i].AsType<float>()) continue;
+                return false;
+            case FieldType::DOUBLE:
+                if (keys[i].AsType<double>() == rhs.keys[i].AsType<double>()) continue;
+                return false;
+            case FieldType::STRING:
+                if (keys[i].AsType<std::string>() == rhs.keys[i].AsType<std::string>()) continue;
+                return false;
+            case FieldType::BLOB:
+                THROW_CODE(KvException, "Blob fields cannot act as key.");
+            default:
+                THROW_CODE(KvException, "Unknown data type: {}", types[i]);
+            }
         }
-        Value res(len);
-        int16_t off = 0;
-        for (int i = 0; i < n - 1; ++i) {
-            off += keys[i].Size();
-            memcpy(res.Data() + i * 2, &off, sizeof(int16_t));
-        }
-        off = 0;
-        for (int i = 0; i < n; ++i) {
-            memcpy(res.Data() + (n - 1) * 2 + off, keys[i].Data(), keys[i].Size());
-            off += keys[i].Size();
-        }
-        return res;
+        return true;
     }
 };
 
@@ -1276,7 +1316,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
             for (auto it = txn.GetVertexIterator(vid, true); it.IsValid() && it.GetId() < curr_end;
                  it.Next()) {
                 Value prop = it.GetProperty();
-                if (schema_manager->GetRecordLabelId(prop) != label_id) continue;
+                if (lgraph::SchemaManager::GetRecordLabelId(prop) != label_id) continue;
                 if (v_schema->DetachProperty()) {
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
@@ -1476,6 +1516,17 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                 if (v_schema->DetachProperty()) {
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
+                bool can_index = true;
+                for (const std::string &field : fields) {
+                    const _detail::FieldExtractor* extractor = v_schema->GetFieldExtractor(field);
+                    if (extractor->GetIsNull(prop)) {
+                        can_index = false;
+                        break;
+                    }
+                }
+                if (!can_index) {
+                    continue;
+                }
                 std::vector<Value> values;
                 std::vector<FieldType> types;
                 for (auto &field : fields) {
@@ -1507,15 +1558,39 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                         }
                         for (auto& kv : key_vids)
                             index->_AppendCompositeIndexEntry(txn.GetTxn(),
-                                                              kv.GenerateCompositeIndexKey(),
-                                                           (VertexId)kv.vid);
+                                   composite_index_helper::GenerateCompositeIndexKey(kv.keys),
+                                   (VertexId)kv.vid);
+                        break;
+                    }
+                case CompositeIndexType::NonUniqueIndex:
+                    {
+                        std::vector<Value> key;
+                        if (!key_vids.empty())
+                            key = key_vids.front().keys;
+                        std::vector<VertexId> vids;
+                        for (size_t i = 0; i < key_vids.size(); ++i) {
+                            auto& kv = key_vids[i];
+                            if (!(key == kv.keys)) {
+                                // write out a bunch of vids
+                                index->_AppendNonUniqueCompositeIndexEntry(txn.GetTxn(),
+                                composite_index_helper::GenerateCompositeIndexKey(key), vids);
+                                key = kv.keys;
+                                vids.clear();
+                            }
+                            vids.push_back(kv.vid);
+                        }
+                        if (!vids.empty()) {
+                            index->_AppendNonUniqueCompositeIndexEntry(txn.GetTxn(),
+                                     composite_index_helper::GenerateCompositeIndexKey(key), vids);
+                        }
                         break;
                     }
                 }
             } else {
                 // multiple blocks, use regular index calls
                 for (auto& kv : key_vids) {
-                    index->Add(txn.GetTxn(), kv.GenerateCompositeIndexKey(), kv.vid);
+                    index->Add(txn.GetTxn(),
+                               composite_index_helper::GenerateCompositeIndexKey(kv.keys), kv.vid);
                 }
             }
         }
@@ -1781,9 +1856,10 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
                                                bool known_vid_range, VertexId start_vid,
                                                VertexId end_vid) {
     _HoldWriteLock(meta_lock_);
-    if (fields.size() > _detail::MAX_COMPOSITE_FILED_SIZE)
+    std::string field_names = boost::algorithm::join(fields, ",");
+    if (fields.size() > _detail::MAX_COMPOSITE_FILED_SIZE || fields.size() < 2)
         THROW_CODE(InputError, "The number of fields({}) in the combined index "
-                   "exceeds the maximum limit.", fields.size());
+                   "exceeds the maximum limit.", field_names);
     Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
     Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
@@ -1803,10 +1879,10 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
             else
                 THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
         }
-        if (extractor->IsOptional() && type == CompositeIndexType::UniqueIndex) {
+        /* if (extractor->IsOptional() && type == CompositeIndexType::UniqueIndex) {
             THROW_CODE(InputError, "Unique index cannot be added to an optional field [{}:{}]",
                        label, field);
-        }
+        } */
         if (extractor->Type() == FieldType::BLOB) {
             THROW_CODE(InputError, "Field with type BLOB cannot be indexed");
         }
@@ -1814,16 +1890,15 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
     }
     if (schema->GetCompositeIndex(fields) != nullptr)
         return false;
-    std::string field_names = boost::algorithm::join(fields, ",");
     if (is_vertex) {
-        std::unique_ptr<CompositeIndex> composite_index;
+        std::shared_ptr<CompositeIndex> composite_index;
         bool success = index_manager_->AddVertexCompositeIndex(txn.GetTxn(), label, fields,
                                                                field_types, type, composite_index);
         if (!success)
             THROW_CODE(InputError, "build index {}-{} failed", label, field_names);
 
         composite_index->SetReady();
-        schema->SetCompositeIndex(fields, composite_index.release());
+        schema->SetCompositeIndex(fields, composite_index.get());
         if (schema->DetachProperty()) {
             LOG_INFO() <<
                 FMA_FMT("start building vertex index for {}:{} in detached model",
@@ -1841,8 +1916,8 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
                     values.emplace_back(schema->GetFieldExtractor(field)->GetConstRef(prop));
                     types.emplace_back(schema->GetFieldExtractor(field)->Type());
                 }
-                index->Add(txn.GetTxn(), CompositeKeyVid(values, types, vid)
-                                             .GenerateCompositeIndexKey(), vid);
+                index->Add(txn.GetTxn(),
+                           composite_index_helper::GenerateCompositeIndexKey(values), vid);
                 count++;
                 if (count % 100000 == 0) {
                     LOG_DEBUG() << "index count: " << count;
@@ -1995,8 +2070,8 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             EdgeIndex* index = extractor->GetEdgeIndex();
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(kv_iter->GetKey());
-                euid.lid = schema->GetLabelId();
+                auto euid = graph::KeyPacker::GetEuidFromPropertyTableKey(
+                    kv_iter->GetKey(), schema->GetLabelId());
                 auto prop = kv_iter->GetValue();
                 if (extractor->GetIsNull(prop)) {
                     continue;
@@ -2319,8 +2394,12 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
                 for (; eit.IsValid(); eit.Next()) {
                     if (eit.GetLabelId() == lid) {
                         EdgeUid euid = eit.GetUid();
+                        Value e_property = eit.GetProperty();
+                        if (schema->DetachProperty()) {
+                            e_property = schema->GetDetachedEdgeProperty(txn.GetTxn(), euid);
+                        }
                         key_euids.emplace_back(GetIndexKeyFromValue<T>(
-                                        extractor->GetConstRef(eit.GetProperty())), euid);
+                                        extractor->GetConstRef(e_property)), euid);
                     }
                 }
                 if (v_lid != start_lid) {
@@ -2589,6 +2668,16 @@ bool LightningGraph::IsIndexed(const std::string& label, const std::string& fiel
     }
 }
 
+bool LightningGraph::IsCompositeIndexed(const std::string& label,
+                                        const std::vector<std::string>& fields) {
+    Transaction txn = CreateReadTxn();
+    auto curr_schema = schema_.GetScopedRef();
+    Schema* s = curr_schema->v_schema_manager.GetSchema(label);
+    auto index = s->GetCompositeIndex(fields);
+    return index && index->IsReady();
+}
+
+
 bool LightningGraph::DeleteFullTextIndex(bool is_vertex, const std::string& label,
                                          const std::string& field) {
     _HoldWriteLock(meta_lock_);
@@ -2658,6 +2747,37 @@ bool LightningGraph::DeleteIndex(const std::string& label, const std::string& fi
     return false;
 }
 
+bool LightningGraph::DeleteCompositeIndex(const std::string& label,
+                                          const std::vector<std::string>& fields,
+                                          bool is_vertex) {
+    _HoldWriteLock(meta_lock_);
+    Transaction txn = CreateWriteTxn(false);
+    ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
+    Schema* schema = is_vertex ? curr_schema->v_schema_manager.GetSchema(label)
+                               : curr_schema->e_schema_manager.GetSchema(label);
+    std::unique_ptr<SchemaInfo> old_schema_backup(new SchemaInfo(*curr_schema.Get()));
+    if (!schema) throw LabelNotExistException(label);
+    if (is_vertex) {
+        if (!schema->GetCompositeIndex(fields)) return false;
+        std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
+        schema = new_schema->v_schema_manager.GetSchema(label);
+        bool deleted = true;
+        schema->UnVertexCompositeIndex(fields);
+        deleted = index_manager_->DeleteVertexCompositeIndex(txn.GetTxn(), label, fields);
+        if (deleted) {
+            // install the new schema
+            schema_.Assign(new_schema.release());
+            AutoCleanupAction revert_assign_new_schema(
+                [&]() { schema_.Assign(old_schema_backup.release()); });
+            txn.Commit();
+            // if success, cancel revert
+            revert_assign_new_schema.Cancel();
+            return true;
+        }
+    }
+    return false;
+}
+
 bool LightningGraph::DeleteVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
                                        int vec_dimension, const std::string& distance_type, bool is_vertex) {
     _HoldWriteLock(meta_lock_);
@@ -2707,7 +2827,7 @@ void LightningGraph::DropAllIndex() {
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
         std::unique_ptr<SchemaInfo> backup_schema(new SchemaInfo(*curr_schema.Get()));
-        auto indexes = index_manager_->ListAllIndexes(txn.GetTxn());
+        auto [indexes, composite_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
 
         bool success = true;
         for (auto& idx : indexes) {
@@ -2729,6 +2849,14 @@ void LightningGraph::DropAllIndex() {
                 auto ext = e_schema->GetFieldExtractor(idx.field);
                 e_schema->UnEdgeIndex(ext->GetFieldId());
             }
+        }
+        for (auto& idx : composite_indexes) {
+            auto v_schema = new_schema->v_schema_manager.GetSchema(idx.label);
+            if (!index_manager_->DeleteVertexCompositeIndex(txn.GetTxn(), idx.label, idx.fields)) {
+                success = false;
+                break;
+            }
+            v_schema->UnVertexCompositeIndex(idx.fields);
         }
         if (success) {
             schema_.Assign(new_schema.release());

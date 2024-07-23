@@ -5,10 +5,10 @@ import liblgraph_client_python
 
 log = logging.getLogger(__name__)
 
-SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092",
+SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092 --enable_plugin 1",
              "cleanup_dir":["./testdb"]}
 
-SERVEROPT_1 = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092",
+SERVEROPT_1 = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7072 --rpc_port 9092 --enable_plugin 1",
              "cleanup_dir":[]}
 
 CLIENTOPT = {"host":"127.0.0.1:9092", "user":"admin", "password":"73@TuGraph"}
@@ -471,7 +471,7 @@ class TestProcedure:
         procedures = json.loads(ret[1])
         #TODO when this assert failed , you should add the additional procedure test code or remove the deleted procedure test code
         log.info("procedures count : %s", len(procedures))
-        assert len(procedures) == 100
+        assert len(procedures) == 103
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)

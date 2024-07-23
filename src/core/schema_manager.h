@@ -377,6 +377,16 @@ class SchemaManager {
         return indexes;
     }
 
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexes() const {
+        std::vector<CompositeIndexSpec> indexes;
+        for (auto& schema : schemas_) {
+            for (auto &spec : schema.GetCompositeIndexSpec()) {
+                indexes.push_back(spec);
+            }
+        }
+        return indexes;
+    }
+
     std::vector<IndexSpec> ListEdgeIndexes() const {
         std::vector<IndexSpec> indexes;
         for (auto& schema : schemas_) {
@@ -433,6 +443,14 @@ class SchemaManager {
             indexes.push_back(std::move(is));
         }
         return indexes;
+    }
+
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexByLabel(
+                                    const std::string &label) const {
+        const Schema* schema = GetSchema(label);
+        if (!schema)
+            THROW_CODE(InputError, "Label [{}] does not exist.", label);
+        return schema->GetCompositeIndexSpec();
     }
 
  private:

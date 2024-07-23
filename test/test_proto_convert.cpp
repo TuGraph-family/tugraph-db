@@ -95,20 +95,29 @@ TEST_F(TestProtoConvert, ProtoConvert) {
             UT_EXPECT_TRUE(fd.AsWgsSpatial() == fd2.AsWgsSpatial());
         }
 
-        // testing float vector data 
+        // testing float vector data
         {
-            std::vector<float> vec1 = {1.111, 2.111 ,3.111, 4.111, 5.111};
-            FieldData fd(vec1);
-            FieldDataConvert::FromLGraphT(fd, &pfd);
-            std::vector<float> vec2;
+            std::vector<std::vector<float>> test_vector = {
+                {1.111111, 2.111111, 3.111111, 4.111111, 5.111111},
+                {1111111, 2111111, 3111111, 4111111, 5111111},
+                {0.111111, 0.222222, 0.3333333},
+                {111.1111, 222.2222, 333.3333},
+                {111111.0, 222222.0, 333333.0},
+                {1111, 2222, 3333}
+            };
+            for (size_t i = 0; i < test_vector.size(); i ++) {
+                FieldData fd(test_vector[i]);
+                FieldDataConvert::FromLGraphT(fd, &pfd);
+                std::vector<float> vec2;
                 auto size = pfd.fvector().fv_size();
-                for(int i = 0; i < size; i++) {
+                for (int i = 0; i < size; i++) {
                     vec2.push_back(pfd.fvector().fv(i));
                 }
-            UT_EXPECT_TRUE(fd.AsFloatVector() == vec2);
-            UT_EXPECT_TRUE(pfd.has_fvector());
-            auto fd2 = FieldDataConvert::ToLGraphT(pfd);
-            UT_EXPECT_TRUE(fd.AsFloatVector() == fd2.AsFloatVector());
+                UT_EXPECT_TRUE(fd.AsFloatVector() == vec2);
+                UT_EXPECT_TRUE(pfd.has_fvector());
+                auto fd2 = FieldDataConvert::ToLGraphT(pfd);
+                UT_EXPECT_TRUE(fd.AsFloatVector() == fd2.AsFloatVector());
+            }
         }
 
         {
