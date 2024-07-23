@@ -94,6 +94,42 @@ const std::unordered_map<std::string, geax::frontend::BinarySetFunction>
         {"percentileDisc", geax::frontend::BinarySetFunction::kPercentileDisc},
 };
 
+void ExtractLabelTree(std::vector<std::string> &labels, const geax::frontend::LabelTree *root) {
+    if (root->type() == geax::frontend::AstNodeType::kSingleLabel) {
+        labels.emplace_back(((geax::frontend::SingleLabel *)root)->label());
+    } else if (root->type() == geax::frontend::AstNodeType::kLabelOr) {
+        geax::frontend::LabelOr *label_or = (geax::frontend::LabelOr *)root;
+        ExtractLabelTree(labels, label_or->left());
+        ExtractLabelTree(labels, label_or->right());
+    } else {
+        CYPHER_TODO();
+    }
+}
+
+void CypherBaseVisitorV2::PropertyExtractor(geax::frontend::ElementFiller *filler, bool isVertex) {
+    std::vector<std::string> labels;
+    if (filler->label().has_value()) {
+        ExtractLabelTree(labels, filler->label().value());
+    }
+    std::vector<std::string> fields;
+    for (auto &p : filler->predicates()) {
+        if (p->type() == geax::frontend::AstNodeType::kPropStruct) {
+            for (auto &[key, val] : ((geax::frontend::PropStruct *)p)->properties()) {
+                fields.push_back(key);
+            }
+        }
+    }
+    for (auto &label : labels) {
+        for (auto field : fields) {
+            if (isVertex) {
+                node_property_[label].emplace(field);
+            } else {
+                rel_property_[label].emplace(field);
+            }
+        }
+    }
+}
+
 std::string CypherBaseVisitorV2::GetFullText(antlr4::ParserRuleContext *ruleCtx) const {
     if (ruleCtx->children.size() == 0) {
         return "";
@@ -134,9 +170,9 @@ std::string CypherBaseVisitorV2::GenAnonymousAlias(bool is_node) {
 std::any CypherBaseVisitorV2::visitOC_Statement(LcypherParser::OC_StatementContext *ctx) {
     geax::frontend::NormalTransaction *node = nullptr;
     checkedCast(node_, node);
-    cmd_type_ = ctx->EXPLAIN() ? parser::CmdType::EXPLAIN
+    cmd_type_ = ctx->EXPLAIN()   ? parser::CmdType::EXPLAIN
                 : ctx->PROFILE() ? parser::CmdType::PROFILE
-                : parser::CmdType::QUERY;
+                                 : parser::CmdType::QUERY;
     auto body = ALLOC_GEAOBJECT(geax::frontend::ProcedureBody);
     node->setProcedureBody(body);
     SWITCH_CONTEXT_VISIT_CHILDREN(ctx, body);
@@ -183,7 +219,7 @@ std::any CypherBaseVisitorV2::visitOC_SinglePartQuery(
     if (ctx->oC_ReadingClause().size() > 2) NOT_SUPPORT_AND_THROW();
     geax::frontend::ProcedureBody *body = nullptr;
     checkedCast(node_, body);
-    geax::frontend::StatementWithYield* node;
+    geax::frontend::StatementWithYield *node;
     if (ctx->oC_UpdatingClause().empty()) {
         VisitGuard guard(VisitType::kReadingClause, visit_types_);
         auto l = ALLOC_GEAOBJECT(geax::frontend::AmbientLinearQueryStatement);
@@ -199,7 +235,7 @@ std::any CypherBaseVisitorV2::visitOC_SinglePartQuery(
             co->setHead(l);
         } else {
             node = body->statements().back();
-            auto stmt = (geax::frontend::QueryStatement*)node->statement();
+            auto stmt = (geax::frontend::QueryStatement *)node->statement();
             stmt->joinQuery()->head()->appendBody(ALLOC_GEAOBJECT(geax::frontend::Union), l);
         }
         SWITCH_CONTEXT_VISIT_CHILDREN(ctx, l);
@@ -485,8 +521,7 @@ std::any CypherBaseVisitorV2::visitOC_RemoveItem(LcypherParser::OC_RemoveItemCon
         geax::frontend::Expr *name_expr = nullptr, *property_expr = nullptr;
         auto pe_ctx = ctx->oC_PropertyExpression();
         checkedAnyCast(visit(ctx->oC_PropertyExpression()->oC_Atom()), name_expr);
-        if (pe_ctx->oC_PropertyLookup().empty())
-            CYPHER_TODO();
+        if (pe_ctx->oC_PropertyLookup().empty()) CYPHER_TODO();
         checkedAnyCast(visit(pe_ctx->oC_PropertyLookup(0)), property_expr);
         geax::frontend::Ref *vstr = nullptr;
         geax::frontend::VString *pstr = nullptr;
@@ -836,7 +871,7 @@ std::any CypherBaseVisitorV2::visitOC_NodePattern(LcypherParser::OC_NodePatternC
         // if alias is absent, generate an alias for the node
         filler->setV(GenAnonymousAlias(true));
     }
-
+   
     if (ctx->oC_NodeLabels() != nullptr) {
         std::vector<std::string> labels;
         checkedAnyCast(visit(ctx->oC_NodeLabels()), labels);
@@ -877,6 +912,7 @@ std::any CypherBaseVisitorV2::visitOC_NodePattern(LcypherParser::OC_NodePatternC
     if (ctx->oC_Properties() != nullptr) {
         SWITCH_CONTEXT_VISIT(ctx->oC_Properties(), filler);
     }
+    PropertyExtractor(filler, true);
     return 0;
 }
 
@@ -952,7 +988,7 @@ std::any CypherBaseVisitorV2::visitOC_RelationshipDetail(
     if (ctx->oC_RangeLiteral() != nullptr) {
         SWITCH_CONTEXT_VISIT(ctx->oC_RangeLiteral(), edge);
     }
-
+    PropertyExtractor(filler, false);
     return 0;
 }
 
@@ -1752,9 +1788,10 @@ std::any CypherBaseVisitorV2::visitOC_ListComprehension(
     }
     listComprehension->setOpExpression(op_expr);
     list_comprehension_depth--;
-    list_comprehension_anonymous_symbols_[ctx->oC_FilterExpression()->
-                                          oC_IdInColl()->oC_Variable()->getText()].pop();
-    return (geax::frontend::Expr*)listComprehension;
+    list_comprehension_anonymous_symbols_
+        [ctx->oC_FilterExpression()->oC_IdInColl()->oC_Variable()->getText()]
+            .pop();
+    return (geax::frontend::Expr *)listComprehension;
 }
 
 std::any CypherBaseVisitorV2::visitOC_PatternComprehension(

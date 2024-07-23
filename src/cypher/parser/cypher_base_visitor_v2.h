@@ -87,6 +87,9 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     std::unordered_map<std::string, std::stack<std::string>> list_comprehension_anonymous_symbols_;
     std::unordered_map<std::string, int32_t> list_comprehension_anonymous_idx_;
     int32_t list_comprehension_depth {0};
+    
+    std::unordered_map<std::string, std::set<std::string>> node_property_;
+    std::unordered_map<std::string, std::set<std::string>> rel_property_;
 
     std::string GenerateListComprehension(const std::string &x) {
         return std::string("LIST_COMPREHENSION@") + x + "@" +
@@ -335,6 +338,14 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     std::any visitOC_RightArrowHead(LcypherParser::OC_RightArrowHeadContext *ctx) override;
 
     std::any visitOC_Dash(LcypherParser::OC_DashContext *ctx) override;
+
+    const std::unordered_map<std::string, std::set<std::string>>&
+    GetNodeProperty() const {return node_property_;}
+
+    const std::unordered_map<std::string, std::set<std::string>>&
+    GetRelProperty() const {return rel_property_;}
+
+    void PropertyExtractor(geax::frontend::ElementFiller *filler, bool isVertex);
 };
 
 }  // namespace parser
