@@ -703,6 +703,15 @@ public:
         VISIT_PARAM_AND_CHECK_WITH_MSG(rig);
         return GEAXErrorCode::GEAX_SUCCEED;
     }
+    std::any visit(BSquare* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(BSquare);
+        auto lef = node->left();
+        auto rig = node->right();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(lef);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(rig);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
     std::any visit(BAnd* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(BAnd);
@@ -1453,6 +1462,26 @@ public:
     std::any visit(NamedProcedureCall* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(NamedProcedureCall);
+        auto& name = node->name();
+        auto& args = node->args();
+        auto& yield = node->yield();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(name);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(args);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(yield);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(UnwindStatement* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(UnwindStatement);
+        auto& v = node->variable();
+        auto list = node->list();
+        VISIT_PARAM_AND_CHECK_WITH_MSG(v);
+        VISIT_PARAM_AND_CHECK_WITH_MSG(list);
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+    std::any visit(InQueryProcedureCall* node) override {
+        INDET_GUARD();
+        VARIABLE_GUARD_WITH_TYPE_NAME(InQueryProcedureCall);
         auto& name = node->name();
         auto& args = node->args();
         auto& yield = node->yield();

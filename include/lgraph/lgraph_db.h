@@ -447,6 +447,9 @@ class GraphDB {
      */
     bool AddEdgeIndex(const std::string &label, const std::string &field, IndexType type);
 
+    bool AddVertexCompositeIndex(const std::string& label,
+                                 const std::vector<std::string>& fields,
+                                 CompositeIndexType type);
      /**
      * @brief   Adds a vector index to 'label:field'. This function blocks until the index is fully
      *          created.
@@ -469,6 +472,7 @@ class GraphDB {
      */
     bool AddVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
                         int vec_dimension, const std::string& distance_type, std::vector<int>& index_spec, IndexType type);
+
 
     /**
      * @brief   Check if this vertex_label:field is indexed.
@@ -496,6 +500,9 @@ class GraphDB {
      */
     bool IsEdgeIndexed(const std::string &label, const std::string &field);
 
+    bool IsVertexCompositeIndexed(const std::string &label,
+                                  const std::vector<std::string> &field);
+
     /**
      * @brief   Deletes the index to 'vertex_label:field'
      *
@@ -510,6 +517,9 @@ class GraphDB {
      * @returns True if it succeeds, false if the index does not exists.
      */
     bool DeleteVertexIndex(const std::string &label, const std::string &field);
+
+    bool DeleteVertexCompositeIndex(const std::string& label,
+                                    const std::vector<std::string>& fields);
 
     /**
      * @brief   Deletes the index to 'edge_label:field'

@@ -1,0 +1,18 @@
+MATCH (a:Person {name:'Lindsay Lohan'}), (b:Film {title:'The Parent Trap'}) CREATE (a)-[r:DIRECTED]->(b);
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(v2) as cnt;
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt;
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt;
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt desc;
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt desc,v1.title;
+match (v1:Film) return distinct v1.title order by v1.title;
+match (v1:Film) return distinct v1.title order by v1.title limit 3 /* Batman, Camelot, Goodbye */;
+match (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by cnt desc limit 3 /* NOTE: unstable heap sort */;
+match (:Person {name:'Vanessa Redgrave'})<-[:HAS_CHILD]-(p)-[:ACTED_IN*0..]->(m) return p.name,m order by p.name;
+MATCH (n) RETURN n,n.name AS name ORDER BY name;
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN m.name;
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name;
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name;
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name LIMIT 5;
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name SKIP 2;
+MATCH (n:Person {name:'Vanessa Redgrave'})-[*2]-(m:Person) RETURN DISTINCT m.name ORDER BY m.name SKIP 2 LIMIT 3;
+MATCH (v1:Film)<-[r:ACTED_IN|DIRECTED]-(v2:Person) RETURN v1.title AS title, r ORDER BY title LIMIT 5;

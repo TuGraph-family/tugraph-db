@@ -4,7 +4,7 @@ import os
 
 log = logging.getLogger(__name__)
 
-SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7073 --rpc_port 9093",
+SERVEROPT = {"cmd":"./lgraph_server -c lgraph_standalone.json --directory ./testdb --port 7073 --rpc_port 9093 --enable_plugin 1",
                "cleanup_dir":["./testdb"]}
 
 RESTTOPT = {"port":"7073", "user":"admin", "password":"73@TuGraph"}

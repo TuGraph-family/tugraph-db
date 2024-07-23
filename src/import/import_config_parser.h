@@ -293,7 +293,7 @@ struct LabelDesc {
     std::vector<ColumnSpec> columns;
     EdgeConstraints edge_constraints;
     bool is_vertex;
-    bool detach_property{false};
+    bool detach_property{true};
     LabelDesc() {}
     std::string ToString() const {
         std::string prefix = is_vertex ? "vertex" : "edge";
@@ -960,9 +960,11 @@ class ImportConfParser {
                     cd.size = fs::file_size(file);
                 }
                 cd.data_format = item["format"];
-                if (cd.data_format != "CSV" && cd.data_format != "JSON") {
+
+                if (cd.data_format != "CSV" && cd.data_format != "JSON" &&
+                    cd.data_format != "GraphAr") {
                     THROW_CODE(InputError,
-                        "\"format\" value error : {}, should be CSV or JSON in json {}",
+                        "\"format\" value error : {}, should be CSV, JSON or GraphAr in json {}",
                                 cd.data_format, item.dump(4));
                 }
                 cd.label = item["label"];

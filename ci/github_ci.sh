@@ -28,9 +28,9 @@ make -j2
 
 if [[ "$TEST" == "ut" ]]; then
   # build tugraph db management
-  cd $WORKSPACE/deps/tugraph-db-management/
-  sh local_build.sh
-  cp target/tugraph-db-management-*.jar $WORKSPACE/build/output/
+  #cd $WORKSPACE/deps/tugraph-db-management/
+  #sh local_build.sh
+  #cp target/tugraph-db-management-*.jar $WORKSPACE/build/output/
 
   # unittest
   mkdir -p $WORKSPACE/testresult/gtest/
@@ -53,10 +53,10 @@ if [[ "$TEST" == "ut" ]]; then
   python3  ./ci/lcov_cobertura.py $WORKSPACE/testresult/coverage.info --output $WORKSPACE/testresult/coverage.xml --demangle
 else
   # build java client
-  cd $WORKSPACE/deps/tugraph-db-client-java/
-  sh local_build.sh
-  cp rpc-client-test/target/tugraph-db-java-rpc-client-test-*.jar $WORKSPACE/build/output/
-  cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar $WORKSPACE/build/output/
+  #cd $WORKSPACE/deps/tugraph-db-client-java/
+  #sh local_build.sh
+  #cp rpc-client-test/target/tugraph-db-java-rpc-client-test-*.jar $WORKSPACE/build/output/
+  #cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar $WORKSPACE/build/output/
 
   # build cpp client test
   cd $WORKSPACE/test/test_rpc_client

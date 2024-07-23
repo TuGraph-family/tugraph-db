@@ -28,6 +28,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
     : db_(db), index_list_table_(std::move(index_list_table)) {
     size_t v_index_len = strlen(_detail::VERTEX_INDEX);
     size_t e_index_len = strlen(_detail::EDGE_INDEX);
+    size_t c_index_len = strlen(_detail::COMPOSITE_INDEX);
     size_t v_ft_index_len = strlen(_detail::VERTEX_FULLTEXT_INDEX);
     size_t e_ft_index_len = strlen(_detail::EDGE_FULLTEXT_INDEX);
     size_t vector_index_len = strlen(_detail::VECTOR_INDEX);
@@ -80,6 +81,18 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             const _detail::FieldExtractor* fe = schema->GetFieldExtractor(ft_idx.field);
             FMA_DBG_ASSERT(fe);
             schema->MarkFullTextIndexed(fe->GetFieldId(), true);
+        } else if (index_name.size() > c_index_len &&
+                   index_name.substr(index_name.size() - c_index_len) == _detail::COMPOSITE_INDEX) {
+            _detail::CompositeIndexEntry idx = LoadCompositeIndex(it->GetValue());
+            FMA_DBG_CHECK_EQ(idx.table_name, it->GetKey().AsString());
+            Schema* schema = v_schema_manager->GetSchema(idx.label);
+            FMA_DBG_ASSERT(schema);
+            auto tbl = CompositeIndex::OpenTable(
+                txn, db_->GetStore(), idx.table_name, idx.field_types, idx.index_type);
+            auto index = std::make_unique<CompositeIndex>(
+                std::move(tbl), idx.field_types, idx.index_type);  // creates index table
+            index->SetReady();
+            schema->SetCompositeIndex(idx.field_names, index.release());
         } else if (index_name.size() > vector_index_len &&
                    index_name.substr(index_name.size() - vector_index_len) == _detail::VECTOR_INDEX) {
             _detail::IndexEntry idx = LoadIndex(it->GetValue());
@@ -196,12 +209,13 @@ bool IndexManager::AddVertexCompositeIndex(KvTransaction& txn, const std::string
                                            const std::vector<std::string>& fields,
                                            const std::vector<FieldType>& types,
                                            CompositeIndexType type,
-                                           std::unique_ptr<CompositeIndex>& index) {
+                                           std::shared_ptr<CompositeIndex>& index) {
     for (auto &dt : types) {
         if (dt == FieldType::BLOB) THROW_CODE(InputError, "BLOB fields cannot be indexed.");
     }
     _detail::CompositeIndexEntry cidx;
     cidx.label = label;
+    cidx.n = fields.size();
     cidx.field_names = fields;
     cidx.field_types = types;
     cidx.table_name = GetVertexCompositeIndexTableName(label, fields);
@@ -213,7 +227,7 @@ bool IndexManager::AddVertexCompositeIndex(KvTransaction& txn, const std::string
     it->AddKeyValue(Value::ConstRef(cidx.table_name), idxv);
 
     auto tbl = CompositeIndex::OpenTable(txn, db_->GetStore(), cidx.table_name, types, type);
-    index = std::make_unique<CompositeIndex>(std::move(tbl), types, type);  // creates index table
+    index.reset(new CompositeIndex(std::move(tbl), types, type));  // creates index table
     return true;
 }
 
@@ -270,6 +284,19 @@ bool IndexManager::DeleteEdgeIndex(KvTransaction& txn, const std::string& label,
     return true;
 }
 
+bool IndexManager::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
+                                              const std::string& label,
+                                              const std::vector<std::string>& fields) {
+    std::string table_name = GetVertexCompositeIndexTableName(label, fields);
+    // delete the entry from index list table
+    if (!index_list_table_->DeleteKey(txn, Value::ConstRef(table_name)))
+        return false;  // does not exist
+                       // now delete the index table
+    bool r = db_->GetStore().DeleteTable(txn, table_name);
+    FMA_DBG_ASSERT(r);
+    return true;
+}
+  
 bool IndexManager::DeleteVectorIndex(KvTransaction& txn, const std::string& label, const std::string& field, const std::string& index_type, 
                                                    int vec_dimension, const std::string& distance_type) {
     std::string closest_table_name = label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR + index_type + _detail::NAME_SEPERATOR + 

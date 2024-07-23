@@ -79,6 +79,7 @@ class BSub;
 class BMod;
 class BMul;
 class BDiv;
+class BSquare;
 class BOr;
 class BXor;
 class BBitAnd;
@@ -178,6 +179,8 @@ class MergeStatement;
 class ShowProcessListStatement;
 class KillStatement;
 class ManagerStatement;
+class UnwindStatement;
+class InQueryProcedureCall;
 
 class DummyNode;
 
@@ -252,6 +255,7 @@ class AstNodeVisitor {
     virtual std::any visit(BDiv* node) = 0;
     virtual std::any visit(BMul* node) = 0;
     virtual std::any visit(BMod* node) = 0;
+    virtual std::any visit(BSquare* node) = 0;
     virtual std::any visit(BAnd* node) = 0;
     virtual std::any visit(BOr* node) = 0;
     virtual std::any visit(BXor* node) = 0;
@@ -357,6 +361,8 @@ class AstNodeVisitor {
     virtual std::any visit(ShowProcessListStatement* node) = 0;
     virtual std::any visit(KillStatement* node) = 0;
     virtual std::any visit(ManagerStatement* node) = 0;
+    virtual std::any visit(UnwindStatement* node) = 0;
+    virtual std::any visit(InQueryProcedureCall* node) = 0;
 
     virtual std::any visit(DummyNode* node) = 0;
 
@@ -498,6 +504,7 @@ class AstExprNodeVisitorImpl : public AstNodeVisitor {
     virtual std::any visit(BDiv* node) override = 0;
     virtual std::any visit(BMul* node) override = 0;
     virtual std::any visit(BMod* node) override = 0;
+    virtual std::any visit(BSquare* node) override = 0;
     virtual std::any visit(BAnd* node) override = 0;
     virtual std::any visit(BOr* node) override = 0;
     virtual std::any visit(BXor* node) override = 0;
@@ -721,6 +728,12 @@ class AstExprNodeVisitorImpl : public AstNodeVisitor {
     virtual std::any visit(ManagerStatement*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
+    virtual std::any visit(UnwindStatement*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    virtual std::any visit(InQueryProcedureCall*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
 
     virtual std::any visit(DummyNode*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
@@ -890,6 +903,9 @@ class AstLabelTreeNodeVisitorImpl : public AstNodeVisitor {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(BMod*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    virtual std::any visit(BSquare*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(BAnd*) override {
@@ -1189,6 +1205,12 @@ class AstLabelTreeNodeVisitorImpl : public AstNodeVisitor {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(ManagerStatement*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    virtual std::any visit(UnwindStatement*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    virtual std::any visit(InQueryProcedureCall*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
 

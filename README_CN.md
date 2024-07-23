@@ -45,7 +45,7 @@ TuGraph的文档在[链接](https://tugraph-db.readthedocs.io/zh_CN/latest)，�
 一个简单的方法是使用docker进行设置，可以在[DockerHub](https://hub.docker.com/u/tugraph)中找到, 名称为`tugraph/tugraph-runtime-[os]:[tugraph version]`,
 例如， `tugraph/tugraph-runtime-centos7:3.3.0`。
 
-更多详情请参考[快速上手文档](./docs/zh-CN/source/3.quick-start/1.preparation.md).
+更多详情请参考 [快速上手文档](./docs/zh-CN/source/3.quick-start/1.preparation.md) 和 [业务开发指南](./docs/zh-CN/source/development_guide.md).
 
 ## 3. 从源代码编译
 
@@ -54,7 +54,7 @@ TuGraph的文档在[链接](https://tugraph-db.readthedocs.io/zh_CN/latest)，�
 以下是编译TuGraph的步骤：
 
 1. 如果需要web接口运行`deps/build_deps.sh`，不需要web接口则跳过此步骤
-2. 根据容器系统信息执行`cmake .. -DOURSYSTEM=centos`或者`cmake .. -DOURSYSTEM=ubuntu`，如果需要shell运行lgraph_cypher，加上`-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
+2. 根据容器系统信息执行`cmake .. -DOURSYSTEM=centos`或者`cmake .. -DOURSYSTEM=ubuntu`
 3. `make`
 4. `make package` 或者 `cpack --config CPackConfig.cmake`
 
@@ -65,7 +65,7 @@ $ git clone --recursive https://github.com/TuGraph-family/tugraph-db.git
 $ cd tugraph-db
 $ deps/build_deps.sh
 $ mkdir build && cd build
-$ cmake .. -DOURSYSTEM=centos -DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1
+$ cmake .. -DOURSYSTEM=centos7
 $ make
 $ make package
 ```

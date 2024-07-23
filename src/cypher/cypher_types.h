@@ -17,19 +17,19 @@
 //
 #pragma once
 
+#include <unordered_map>
 #include "core/data_type.h"
 #include "cypher/cypher_exception.h"
 
 namespace cypher {
 
 struct FieldData {
-    enum FieldType {
-        SCALAR,
-        ARRAY,
-    } type;
+    // TODO(lingsu) : a default state should be added
+    enum FieldType { SCALAR, ARRAY, MAP } type;
 
     ::lgraph::FieldData scalar;
     std::vector<::lgraph::FieldData>* array = nullptr;
+    std::unordered_map<std::string, lgraph::FieldData>* map = nullptr;
 
     FieldData() : type(SCALAR) {}
 
@@ -47,36 +47,88 @@ struct FieldData {
         array = new std::vector<::lgraph::FieldData>(std::move(rhs));
     }
 
+    explicit FieldData(const std::unordered_map<std::string, lgraph::FieldData>& rhs) {
+        type = MAP;
+        map = new std::unordered_map<std::string, lgraph::FieldData>(rhs);
+    }
+
+    explicit FieldData(std::unordered_map<std::string, lgraph::FieldData>&& rhs) {
+        type = MAP;
+        map = new std::unordered_map<std::string, lgraph::FieldData>(std::move(rhs));
+    }
+
     ~FieldData() {
-        if (type == ARRAY) delete array;
+        switch (type) {
+        case ARRAY:
+            delete array;
+            break;
+        case MAP:
+            delete map;
+            break;
+        case SCALAR:
+            break;
+        }
     }
 
     FieldData(const FieldData& rhs) {
         type = rhs.type;
-        if (rhs.type == ARRAY) {
+        switch (type) {
+        case ARRAY:
             array = new std::vector<::lgraph::FieldData>(*rhs.array);
-        } else {
+            break;
+        case MAP:
+            map = new std::unordered_map<std::string, lgraph::FieldData>(*rhs.map);
+            break;
+        case SCALAR:
             scalar = rhs.scalar;
+            break;
         }
     }
 
     FieldData(FieldData&& rhs) {
         type = rhs.type;
-        scalar = std::move(rhs.scalar);
-        array = rhs.array;
-        // rhs.scalar becomes FieldType::NUL after move
+        switch (type) {
+        case ARRAY:
+            array = rhs.array;
+            break;
+        case MAP:
+            map = rhs.map;
+            break;
+        case SCALAR:
+            scalar = std::move(rhs.scalar);
+            break;
+        }
+        // TODO(lingsu) : rhs should return to the default state
         rhs.type = SCALAR;
     }
 
     FieldData& operator=(const ::lgraph::FieldData& rhs) {
-        if (type == ARRAY) delete array;
+        switch (type) {
+        case ARRAY:
+            delete array;
+            break;
+        case MAP:
+            delete map;
+            break;
+        case SCALAR:
+            break;
+        }
         type = SCALAR;
         scalar = rhs;
         return *this;
     }
 
     FieldData& operator=(::lgraph::FieldData&& rhs) {
-        if (type == ARRAY) delete array;
+        switch (type) {
+        case ARRAY:
+            delete array;
+            break;
+        case MAP:
+            delete map;
+            break;
+        case SCALAR:
+            break;
+        }
         type = SCALAR;
         scalar = std::move(rhs);
         return *this;
@@ -84,32 +136,76 @@ struct FieldData {
 
     FieldData& operator=(const ::cypher::FieldData& rhs) {
         if (this == &rhs) return *this;
-        if (type == ARRAY) delete array;
+        switch (type) {
+        case ARRAY:
+            delete array;
+            break;
+        case MAP:
+            delete map;
+            break;
+        case SCALAR:
+            break;
+        }
+
         type = rhs.type;
-        if (rhs.type == ARRAY) {
+
+        switch (type) {
+        case ARRAY:
             array = new std::vector<::lgraph::FieldData>(*rhs.array);
-        } else {
+            break;
+        case MAP:
+            map = new std::unordered_map<std::string, lgraph::FieldData>(*rhs.map);
+            break;
+        case SCALAR:
             scalar = rhs.scalar;
+            break;
         }
         return *this;
     }
 
     FieldData& operator=(::cypher::FieldData&& rhs) {
         if (this == &rhs) return *this;
-        if (type == ARRAY) delete array;
+        switch (type) {
+        case ARRAY:
+            delete array;
+            array = nullptr;
+            break;
+        case MAP:
+            delete map;
+            map = nullptr;
+            break;
+        case SCALAR:
+            break;
+        }
         type = rhs.type;
-        scalar = std::move(rhs.scalar);
-        array = rhs.array;
-        // rhs.scalar becomes FieldType::NUL after move
+        switch (type) {
+        case ARRAY:
+            std::swap(array, rhs.array);
+            break;
+        case MAP:
+            std::swap(map, rhs.map);
+            break;
+        case SCALAR:
+            scalar = std::move(rhs.scalar);
+            break;
+        }
+        // TODO(lingsu) : rhs should return to the default state
         rhs.type = SCALAR;
         return *this;
     }
 
     bool operator==(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
-        if (type == SCALAR) return scalar == rhs.scalar;
-        if (type == ARRAY) CYPHER_TODO();
+            throw std::runtime_error("Unable to compare between different field data types");
+        switch (type) {
+        case ARRAY:
+            CYPHER_TODO();
+        case MAP:
+            CYPHER_TODO();
+        case SCALAR:
+            return scalar == rhs.scalar;
+        }
+        CYPHER_TODO();
         return false;
     }
 
@@ -117,17 +213,31 @@ struct FieldData {
 
     bool operator>(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
-        if (type == SCALAR) return scalar > rhs.scalar;
-        if (type == ARRAY) CYPHER_TODO();
+            throw std::runtime_error("Unable to compare between different field data types");
+        switch (type) {
+        case ARRAY:
+            CYPHER_TODO();
+        case MAP:
+            CYPHER_TODO();
+        case SCALAR:
+            return scalar > rhs.scalar;
+        }
+        CYPHER_TODO();
         return false;
     }
 
     bool operator>=(const FieldData& rhs) const {
         if (type != rhs.type)
-            throw std::runtime_error("Unable to compare between SCALAR and ARRAY.");
-        if (type == SCALAR) return scalar >= rhs.scalar;
-        if (type == ARRAY) CYPHER_TODO();
+            throw std::runtime_error("Unable to compare between different field data types");
+        switch (type) {
+        case ARRAY:
+            CYPHER_TODO();
+        case MAP:
+            CYPHER_TODO();
+        case SCALAR:
+            return scalar >= rhs.scalar;
+        }
+        CYPHER_TODO();
         return false;
     }
 
@@ -136,12 +246,16 @@ struct FieldData {
     bool operator<=(const FieldData& rhs) const { return !(*this > rhs); }
 
     bool EqualNull() const {
-        if (type == SCALAR) {
-            return scalar.is_null();
-        } else {
-            CYPHER_THROW_ASSERT(type == ARRAY);
+        switch (type) {
+        case ARRAY:
             return !array || array->empty();
+        case MAP:
+            return !map || map->empty();
+        case SCALAR:
+            return scalar.is_null();
         }
+        CYPHER_TODO();
+        return false;
     }
 
     bool IsNull() const { return type == SCALAR && scalar.is_null(); }
@@ -168,23 +282,39 @@ struct FieldData {
 
     bool IsPolygon() const { return type == SCALAR && scalar.type == lgraph::FieldType::POLYGON; }
 
-    bool IsSpatial() const { return (IsPoint() || IsLineString() || IsPolygon()) ||
-    (type == SCALAR && scalar.type == lgraph::FieldType::SPATIAL); }
+    bool IsSpatial() const {
+        return (IsPoint() || IsLineString() || IsPolygon()) ||
+               (type == SCALAR && scalar.type == lgraph::FieldType::SPATIAL);
+    }
 
     bool IsArray() const { return type == ARRAY; }
 
     static FieldData Array(size_t n) { return FieldData(std::vector<::lgraph::FieldData>(n)); }
 
+    bool IsMap() const { return type == MAP; }
+
     std::string ToString(const std::string& null_value = "NUL") const {
-        if (type == SCALAR) {
-            return scalar.ToString(null_value);
-        } else {
-            CYPHER_THROW_ASSERT(type == ARRAY && array);
+        switch (type) {
+        case ARRAY: {
             std::string str("[");
             for (auto& s : *array) str.append(s.ToString(null_value)).append(",");
             if (str.size() > 1) str.pop_back();
             str.append("]");
             return str;
+        }
+        case MAP: {
+            std::string str("{");
+            for (auto& pair : *map) {
+                str.append("{");
+                str.append(pair.first).append(",").append(pair.second.ToString(null_value));
+                str.append("},");
+            }
+            if (str.size() > 1) str.pop_back();
+            str.append("}");
+            return str;
+        }
+        case SCALAR:
+            return scalar.ToString(null_value);
         }
         throw std::runtime_error("internal error: unhandled type: " + std::to_string((int)type));
     }

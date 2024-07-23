@@ -119,6 +119,7 @@ TEST_P(TestRestfulBaseOperation, RestfulBaseOperation) {
     gconfig->db_dir = db_dir;
     gconfig->server_key_file = key_path;
     gconfig->server_cert_file = cert_path;
+    gconfig->enable_plugin = true;
     LGraphServer server(gconfig);
     server.Start();
 #endif

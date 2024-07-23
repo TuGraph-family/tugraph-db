@@ -1,0 +1,9 @@
+
+MATCH (rachel:Person {name:'Rachel Kempson'})-[]->(family:Person)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(richard:Person {name:'Richard Harris'}) RETURN family.name ;
+[{"family.name":"Vanessa Redgrave"}]
+MATCH (rachel:Person {name:'Rachel Kempson'})-[]->(family:Person)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(richard:Person {name:'Richard Harris'}) USING JOIN ON film RETURN family.name ;
+[{"family.name":"Vanessa Redgrave"}]
+MATCH (rachel:Person {name:'Rachel Kempson'})-[]->(family:Person)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(richard:Person {name:'Richard Harris'}) USING JOIN ON family RETURN family.name ;
+[{"family.name":"Vanessa Redgrave"}]
+MATCH (camelot:Film {title:'Camelot'})<-[:ACTED_IN]-(actor)-[]->(x) USING START ON camelot RETURN x ;
+[{"x":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"x":{"identity":14,"label":"City","properties":{"name":"London"}}},{"x":{"identity":18,"label":"Film","properties":{"title":"Harry Potter and the Sorcerer's Stone"}}}]

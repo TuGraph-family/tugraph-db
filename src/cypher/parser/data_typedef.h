@@ -71,7 +71,7 @@ typedef std::tuple<std::string, TUP_PATTERN_ELEMENT> TUP_PATTERN_PART;
 // pattern_parts
 typedef std::vector<TUP_PATTERN_PART> VEC_PATTERN;
 // expression, as_variable
-typedef std::tuple<Expression, std::string> TUP_RETURN_ITEM;
+typedef std::tuple<Expression, std::string, bool> TUP_RETURN_ITEM;
 // return_items, sort_items(return_item_idx, asc), skip, limit
 typedef std::tuple<std::vector<TUP_RETURN_ITEM>, std::vector<std::pair<int, bool>>, Expression,
                    Expression>

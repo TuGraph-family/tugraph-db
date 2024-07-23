@@ -1,0 +1,12 @@
+MATCH ()-[r]->() RETURN euid(r) /* 28 */;
+MATCH ()-[r]->() RETURN id(r) /* 28 */;
+MATCH (n),(m) WHERE id(n)=0 and id(m)=1 CREATE (n)-[r:ACTED_IN {charactername: "testaha"}]->(m) RETURN r;
+MATCH (n),(m),(k)  WHERE id(n)=0 and id(m)=2 and id(k)=3 CREATE (n)-[r:ACTED_IN {charactername: "testaha"}]->(m),(n)-[q:MARRIED]->(k) RETURN r,q;
+MATCH (n)-[e]->() where id(n)=4 return euid(e);
+MATCH ()-[e]->(n) where id(n)=4 return euid(e);
+MATCH (n)-[e]-() where id(n)=4 return euid(e);
+MATCH ()-[e]->() where euid(e)="0_2_0_0_0" return e,labels(e),properties(e);
+MATCH ()-[e]->() where euid(e)="4_17_5_0_0" return properties(e);
+MATCH ()-[e]->() where euid(e)="4_17_5_0_0" return e.charactername;
+MATCH ()-[e]->() where euid(e)="8_13_2_0_0" set e.weight=1223 return e,labels(e),properties(e);
+MATCH ()-[e]->() where euid(e)="4_17_5_0_0" delete e;

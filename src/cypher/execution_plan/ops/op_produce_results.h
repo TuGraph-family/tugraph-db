@@ -106,8 +106,14 @@ static void RRecordToURecord(
             if (header_type == lgraph_api::LGraphType::RELATIONSHIP ||
                 header_type == lgraph_api::LGraphType::ANY) {
                 auto uit = v.relationship->ItRef();
-                auto uid = uit->GetUid();
-                record.Insert(header[index].first, uid, txn);
+                if (uit->IsValid()) {
+                    auto uid = uit->GetUid();
+                    record.Insert(header[index].first, uid, txn);
+                } else {
+                    lgraph::EdgeUid euid;
+                    euid.eid = -1;
+                    record.InsertEdgeByID(header[index].first, euid);
+                }
                 continue;
             } else {
                 throw lgraph::CypherException(
@@ -278,7 +284,7 @@ class ProduceResults : public OpBase {
             if (res != OP_OK) {
                 if (ctx->result_->Size() > 0 &&
                     session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
-                    session->ps.AppendRecords(ctx->result_->BoltRecords(session->python_driver));
+                    session->ps.AppendRecords(ctx->result_->BoltRecords());
                 }
                 session->ps.AppendSuccess();
                 session->state = bolt::SessionState::READY;
@@ -289,7 +295,7 @@ class ProduceResults : public OpBase {
             if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                 auto record = ctx->result_->MutableRecord();
                 RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
-                session->ps.AppendRecords(ctx->result_->BoltRecords(session->python_driver));
+                session->ps.AppendRecords(ctx->result_->BoltRecords());
                 ctx->result_->ClearRecords();
                 bool sync = false;
                 if (--session->streaming_msg.value().n == 0) {

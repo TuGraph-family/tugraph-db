@@ -1,0 +1,8 @@
+RETURN [x IN range(0,10) | x] AS result;
+[{"result":[0,1,2,3,4,5,6,7,8,9,10]}]
+RETURN [x IN range(0,10) | x^3] AS result;
+[{"result":[0.0,1.0,8.0,27.0,64.0,125.0,216.0,343.0,512.0,729.0,1000.0]}]
+WITH [2,4,6] AS y RETURN [x IN y | x] AS result;
+[{"result":[2,4,6]}]
+WITH [2,4,6] AS y RETURN [x IN range(0, size(y)) | x] AS result;
+[{"result":[0,1,2,3]}]

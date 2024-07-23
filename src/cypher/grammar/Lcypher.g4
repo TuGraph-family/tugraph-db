@@ -465,7 +465,7 @@ oC_DoubleLiteral : ExponentDecimalReal
                  | RegularDecimalReal
                  ;
 
-ExponentDecimalReal : ( ( Digit )+ | ( ( Digit )+ '.' ( Digit )+ ) | ( '.' ( Digit )+ ) ) ( ( 'E' | 'e' ) | ( 'E' | 'e' ) ) '-'? ( Digit )+ ;
+ExponentDecimalReal : ( ( Digit )+ | ( ( Digit )+ '.' ( Digit )+ ) | ( '.' ( Digit )+ ) ) ( 'E' | 'e' ) '-'? ( Digit )+ ;
 
 RegularDecimalReal : ( Digit )* '.' ( Digit )+ ;
 

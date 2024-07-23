@@ -83,38 +83,44 @@ def start_ha_server(host, db):
               f"&& cd ha1 && ./lgraph_server --host {host} --port 27072 --enable_rpc "
               f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
               f"--rpc_port 29092 --directory {db} --log_dir "
-              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 -c lgraph_ha.json -d start")
+              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 --enable_plugin 1"
+              f" -c lgraph_ha.json -d start")
     time.sleep(3)
     os.system(f"mkdir ha2 && cp -r ../../src/server/lgraph_ha.json "
               f"./lgraph_server ./resource ha2 "
               f"&& cd ha2 && ./lgraph_server --host {host} --port 27073 --enable_rpc "
               f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
               f"--rpc_port 29093 --directory {db} --log_dir "
-              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 -c lgraph_ha.json -d start")
+              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 --enable_plugin 1"
+              f" -c lgraph_ha.json -d start")
     time.sleep(3)
     os.system(f"mkdir ha3 && cp -r ../../src/server/lgraph_ha.json "
               f"./lgraph_server ./resource ha3 "
               f"&& cd ha3 && ./lgraph_server --host {host} --port 27074 --enable_rpc "
               f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
               f"--rpc_port 29094 --directory {db} --log_dir "
-              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 -c lgraph_ha.json -d start")
+              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 --enable_plugin 1"
+              f" -c lgraph_ha.json -d start")
     time.sleep(10)
 
 def restart_ha_server(host, db):
     os.system(f"cd ha1 && ./lgraph_server --host {host} --port 27072 --enable_rpc "
               f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
               f"--rpc_port 29092 --directory {db} --log_dir "
-              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 -c lgraph_ha.json -d start")
+              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 --enable_plugin 1"
+              f" -c lgraph_ha.json -d start")
     time.sleep(3)
     os.system(f"cd ha2 && ./lgraph_server --host {host} --port 27073 --enable_rpc "
               f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
               f"--rpc_port 29093 --directory {db} --log_dir "
-              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 -c lgraph_ha.json -d start")
+              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 --enable_plugin 1"
+              f" -c lgraph_ha.json -d start")
     time.sleep(3)
     os.system(f"cd ha3 && ./lgraph_server --host {host} --port 27074 --enable_rpc "
               f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
               f"--rpc_port 29094 --directory {db} --log_dir "
-              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 -c lgraph_ha.json -d start")
+              f"./log  --ha_conf {host}:29092,{host}:29093,{host}:29094 --enable_plugin 1"
+              f" -c lgraph_ha.json -d start")
     time.sleep(10)
 
 def start_ha_client(host, port, user=DEFAULT_ADMIN_NAME, pwd=DEFAULT_ADMIN_PASS, urls=None):

@@ -148,6 +148,10 @@ class BuiltinProcedure {
     static void DbAddVertexIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbAddVertexCompositeIndex(RTContext *ctx, const Record *record,
+                                          const VEC_EXPR &args, const VEC_STR &yield_items,
+                                          std::vector<Record> *records);
+
     static void DbAddEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -350,10 +354,16 @@ class BuiltinProcedure {
     static void DbDeleteEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                   const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbDeleteCompositeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                              const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbDropDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                         const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                          const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbTaskListTasks(RTContext *ctx, const Record *record, const VEC_EXPR &args,
@@ -521,7 +531,7 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("db.listLabelIndexes", BuiltinProcedure::DbListLabelIndexes,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
-                                  {"label_type", {1, lgraph_api::LGraphType::LIST}}},
+                                  {"label_type", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{
                   {"label", {0, lgraph_api::LGraphType::STRING}},
                   {"field", {1, lgraph_api::LGraphType::STRING}},
@@ -668,6 +678,12 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.addIndex", BuiltinProcedure::DbAddVertexIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.addVertexCompositeIndex", BuiltinProcedure::DbAddVertexCompositeIndex,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_names", {1, lgraph_api::LGraphType::LIST}},
                                   {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
@@ -1110,10 +1126,18 @@ static std::vector<Procedure> global_procedures = {
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
+    Procedure("db.deleteCompositeIndex", BuiltinProcedure::DbDeleteCompositeIndex,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_name", {1, lgraph_api::LGraphType::LIST}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
     Procedure("db.flushDB", BuiltinProcedure::DbFlushDB, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.dropDB", BuiltinProcedure::DbDropDB, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.dropAllVertex", BuiltinProcedure::DbDropAllVertex, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("dbms.task.listTasks", BuiltinProcedure::DbTaskListTasks, Procedure::SIG_SPEC{},

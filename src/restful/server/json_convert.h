@@ -458,9 +458,9 @@ inline web::json::value ValueToJson(const FieldData& fd) {
     case FieldType::FLOAT_VECTOR:
         {
             std::vector<web::json::value> json_vec;
-            for(float num: *fd.data.vp){
+            for (float num : *fd.data.vp) {
                 json_vec.push_back(web::json::value::number(num));
-            }            
+            }
             return web::json::value::array(json_vec);
         }
     }
