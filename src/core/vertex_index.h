@@ -218,7 +218,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      */
     bool Next();
 
-    bool Goto(lgraph::VertexId vid);
+    bool Goto(VertexId vid);
 
 
     /**
