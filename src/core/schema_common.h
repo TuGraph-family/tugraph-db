@@ -208,6 +208,7 @@ class VectorSizeTooLargeException : public LgraphException {
         : LgraphException(ErrorCode::VectorSizeTooLarge,
                           "Failed to set field [{}]: Vector size too big, max is {}, given {}",
                           field, max_size, dsize) {}
+};
 
 class VectorIndexNotExistException : public LgraphException {
  public:

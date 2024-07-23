@@ -152,8 +152,8 @@ class IndexManager {
         }
         INDEX_SPEC.pop_back();
         INDEX_SPEC += ']';    
-        return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR + index_type + _detail::NAME_SEPERATOR + 
-               std::to_string(vec_dimension) + _detail::NAME_SEPERATOR + distance_type + _detail::NAME_SEPERATOR + INDEX_SPEC + _detail::NAME_SEPERATOR +
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR + index_type + _detail::NAME_SEPARATOR + 
+               std::to_string(vec_dimension) + _detail::NAME_SEPARATOR + distance_type + _detail::NAME_SEPARATOR + INDEX_SPEC + _detail::NAME_SEPARATOR +
                _detail::VECTOR_INDEX;
     }
 

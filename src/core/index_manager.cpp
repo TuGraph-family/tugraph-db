@@ -299,8 +299,8 @@ bool IndexManager::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
   
 bool IndexManager::DeleteVectorIndex(KvTransaction& txn, const std::string& label, const std::string& field, const std::string& index_type, 
                                                    int vec_dimension, const std::string& distance_type) {
-    std::string closest_table_name = label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR + index_type + _detail::NAME_SEPERATOR + 
-               std::to_string(vec_dimension) + _detail::NAME_SEPERATOR;  
+    std::string closest_table_name = label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR + index_type + _detail::NAME_SEPARATOR + 
+               std::to_string(vec_dimension) + _detail::NAME_SEPARATOR;  
     auto table_name = (index_list_table_->GetClosestIterator(txn, Value::ConstRef(closest_table_name))->GetKey()).AsString();                                   
     // delete the entry from index list table
     if (!index_list_table_->DeleteKey(txn, Value::ConstRef(table_name)))
