@@ -1647,7 +1647,8 @@ void BuiltinProcedure::DbmsMetaRefreshCount(RTContext *ctx, const Record *record
     ac_db.RefreshCount();
 }
 
-void BuiltinProcedure::DbmsSecurityIsDefaultUserPassword(RTContext *ctx, const cypher::Record *record,
+void BuiltinProcedure::DbmsSecurityIsDefaultUserPassword(RTContext *ctx,
+                                                         const cypher::Record *record,
                                                          const cypher::VEC_EXPR &args,
                                                          const cypher::VEC_STR &yield_items,
                                                          std::vector<Record> *records) {
