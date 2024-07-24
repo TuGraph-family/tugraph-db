@@ -81,7 +81,7 @@ void BuiltinProcedureV2::DbSubgraph(RTContext *ctx, const Record *record, const 
     std::set<lgraph::VertexId> set_vids;
     for (auto &vid : *args[0].constant.array) {
         CYPHER_ARG_CHECK(vid.IsInteger(), "db.DbSubGraph(vids): `vid` must be int");
-        set_vids.emplace(vid.integer());
+        set_vids.emplace(vid.scalar.integer());
     }
     auto vit = ctx->txn_->GetTxn()->GetVertexIterator();
     std::vector<nlohmann::json> vertices;
@@ -587,7 +587,7 @@ void BuiltinProcedureV2::DbAlterLabelAddFields(RTContext *ctx, const Record *rec
         lgraph::FieldType ft;
         if (!lgraph::field_data_helper::TryGetFieldType(list[1].AsString(), ft))
             THROW_CODE(InputError, "Illegal field type:{}", list[1]);
-        lgraph::FieldData default_value = list[2];
+        lgraph::FieldData default_value = list[2].scalar;
         fields.emplace_back(name, ft, list[3].AsBool());
         values.emplace_back(std::move(default_value));
     }
@@ -1107,7 +1107,7 @@ void BuiltinProcedureV2::DbmsGraphModGraph(RTContext *ctx, const cypher::Record 
             act.mod_size = true;
             if (!kv.second.IsInteger())
                 THROW_CODE(InputError, "Invalid value for max_size_GB: must be integer");
-            act.max_size = kv.second.integer() << 30;
+            act.max_size = kv.second.scalar.integer() << 30;
         } else if (kv.first == "description") {
             act.mod_desc = true;
             if (kv.second.IsString())
@@ -1918,7 +1918,7 @@ void BuiltinProcedureV2::DbImportorFullImportor(RTContext *ctx, const Record *re
     lgraph::import_v3::Importer::Config import_config_v3;
     std::map<std::string, lgraph::FieldData> full_import_conf;
     for (auto &kv : *args[0].constant.map) {
-        full_import_conf[kv.first] = kv.second;
+        full_import_conf[kv.first] = kv.second.scalar;
     }
     auto check = [&full_import_conf](const std::string &name, lgraph::FieldType type) {
         if (full_import_conf.count(name) && full_import_conf[name].GetType() != type)
@@ -2656,7 +2656,7 @@ void AlgoFuncV2::ShortestPath(RTContext *ctx, const Record *record, const cypher
         auto max = map.find("maxHops");
         if (max != map.end()) {
             if (!max->second.IsInteger()) CYPHER_TODO();
-            max_hops = max->second.integer();
+            max_hops = max->second.scalar.integer();
         }
         auto map_edge_filter = map.find("edgeFilter");
         if (map_edge_filter != map.end()) {

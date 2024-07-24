@@ -163,7 +163,7 @@ class LocateNodeByIndexedProp : public OptPass {
                 if (!right_data.IsArray()) CYPHER_TODO();
                 field = in_filter->ae_left_.operand.variadic.entity_prop;
                 for (auto &r : *right_data.constant.array) {
-                    target_value_datas.emplace_back(r);
+                    target_value_datas.emplace_back(r.scalar);
                 }
                 return true;
             }

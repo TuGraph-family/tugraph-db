@@ -235,7 +235,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BIn* node) {
     if (!l_val.IsScalar()) NOT_SUPPORT_AND_THROW();
     if (!r_val.IsArray()) NOT_SUPPORT_AND_THROW();
     for (auto& val : *r_val.constant.array) {
-        if (l_val.constant.scalar == val) {
+        if (l_val.constant.scalar == val.scalar) {
             return Entry(cypher::FieldData(lgraph::FieldData(true)));
         }
     }
