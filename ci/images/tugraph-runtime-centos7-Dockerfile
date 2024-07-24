@@ -70,3 +70,5 @@ RUN wget ${FILEPATH}/${FILENAME} && rpm -ivh ${FILENAME} && rm -f /${FILENAME}
 
 ENV LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH
+
+CMD ["lgraph_server -d start"]
