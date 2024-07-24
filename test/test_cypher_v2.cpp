@@ -198,7 +198,7 @@ class TestCypherV2 : public TuGraphTest {
             if (ret != GEAXErrorCode::GEAX_SUCCEED) {
                 UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
                 result = execution_plan_v2.ErrorMsg();
-                return false;
+                return true;
             } else {
 //                if (visitor.CommandType() != parser::CmdType::QUERY) {
 //                    ctx_->result_info_ = std::make_unique<cypher::ResultInfo>();
@@ -567,12 +567,12 @@ TEST_F(TestCypherV2, TestOpt) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestFixCrashIssues) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/fix_crash_issues/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestFixCrashIssues) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/fix_crash_issues/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestUndefinedVar) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
