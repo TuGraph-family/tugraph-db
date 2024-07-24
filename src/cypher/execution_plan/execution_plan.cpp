@@ -606,7 +606,8 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_PARAMETER,
                                    cypher::FieldData(lgraph::FieldData(pf.value_alias)));
                 } else if (pf.type == Property::VARIABLE) {
-                    ae2.SetOperandVariable(ArithOperandNode::AR_OPERAND_VARIABLE, pf.value_alias, pf.map_field_name);
+                    ae2.SetOperandVariable(ArithOperandNode::AR_OPERAND_VARIABLE,
+                                        pf.value_alias, pf.map_field_name);
                 } else {
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_CONSTANT,
                                    cypher::FieldData(pf.value));

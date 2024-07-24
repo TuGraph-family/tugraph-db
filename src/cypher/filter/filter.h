@@ -491,7 +491,7 @@ class RangeFilter : public Filter {
                     int value_rec_idx_ = it->second.id;
                     cypher::FieldData constant = record.values[value_rec_idx_].constant;
 
-                    if(map_field_name != ""){
+                    if (map_field_name != "") {
                         auto map = constant.map;
                         if (map->find(map_field_name) == map->end()) {
                             throw lgraph::CypherException("Undefined property: " + map_field_name);

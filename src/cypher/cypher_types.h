@@ -126,7 +126,7 @@ struct FieldData {
         for (auto& kv : rhs) {
             map->emplace(std::move(kv));
         }
-    }    
+    }
 
     explicit FieldData(CYPHER_DATA_MAP&& rhs) {
         type = MAP;
@@ -393,7 +393,6 @@ struct FieldData {
         }
         throw std::runtime_error("internal error: unhandled type: " + std::to_string((int)type));
     }
-    
     inline bool AsBool() const {
         return scalar.AsBool();
     }

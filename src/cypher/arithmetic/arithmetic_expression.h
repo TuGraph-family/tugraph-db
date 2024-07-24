@@ -495,13 +495,13 @@ struct ArithOperandNode {
         } else if (type == AR_OPERAND_PARAMETER) {
             str = variadic.alias;
         } else if (type == AR_OPERAND_VARIABLE) {
-            if(variable._map_field_name == ""){
+            if (variable._map_field_name == "") {
                 str.append(variable._value_alias);
             } else {
                 str.append(variable._value_alias)
                 .append(".")
                 .append(variable._map_field_name);
-            }      
+            }
         }
         return str;
     }

@@ -38,7 +38,7 @@ class OpFilter : public OpBase {
         : OpBase(OpType::FILTER, "Filter"), filter_(filter) {
         _state = FilterUninitialized;
     }
-    
+
     const std::shared_ptr<lgraph::Filter> &Filter() const { return filter_; }
 
     OpResult Initialize(RTContext *ctx) override {
