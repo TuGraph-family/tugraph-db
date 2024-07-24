@@ -59,7 +59,7 @@ struct FieldData {
 
     explicit FieldData(const char* rhs) : type(SCALAR), scalar(rhs) {}
 
-    explicit FieldData(const char* rhs, size_t s) : type(SCALAR), scalar(rhs) {}
+    explicit FieldData(const char* rhs, size_t s) : type(SCALAR), scalar(rhs, s) {}
 
     explicit FieldData(const lgraph::PointCartesian& rhs) : type(SCALAR), scalar(rhs) {}
 
