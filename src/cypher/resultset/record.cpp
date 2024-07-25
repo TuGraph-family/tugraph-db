@@ -48,7 +48,7 @@ lgraph::FieldData Entry::GetEntityField(RTContext *ctx, const std::string &fd) c
     }
 }
 
-bool Entry::GetEntityEfficient(RTContext *ctx) const {
+bool Entry::CheckEntityEfficient(RTContext *ctx) const {
     switch (type) {
     case NODE:
         {

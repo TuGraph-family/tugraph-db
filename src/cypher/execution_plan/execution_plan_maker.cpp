@@ -158,14 +158,12 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
 
 std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statistics) const {
     std::string s = "Execution Plan Before Connect: \n";
-    if (lgraph_log::LoggerManager::GetInstance().GetLevel() == lgraph_log::severity_level::DEBUG) {
-        for (size_t i = 0; i < pattern_graph_root_.size(); i++) {
-            if (should_connect_[i]) {
-                OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
-            }
+    for (size_t i = 0; i < pattern_graph_root_.size(); i++) {
+        if (should_connect_[i]) {
+            OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
         }
-        LOG_DEBUG() << s;
     }
+    LOG_DEBUG() << s;
     return s;
 }
 

@@ -553,7 +553,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
     auto it_head = sym_tab_->symbols.find(head_name);
     if (it_head == sym_tab_->symbols.end() || it_head->second.type != SymbolNode::NODE)
         NOT_SUPPORT_AND_THROW();
-    if (!record_->values[it_head->second.id].GetEntityEfficient(ctx_))
+    if (!record_->values[it_head->second.id].CheckEntityEfficient(ctx_))
         return Entry(cypher::FieldData(lgraph::FieldData(false)));
 
     auto& tails = path_chains[0]->tails();
@@ -563,14 +563,14 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
         auto it_rel = sym_tab_->symbols.find(rel_name);
         if (it_rel == sym_tab_->symbols.end() || it_rel->second.type != SymbolNode::RELATIONSHIP)
             NOT_SUPPORT_AND_THROW();
-        if (!record_->values[it_rel->second.id].GetEntityEfficient(ctx_))
+        if (!record_->values[it_rel->second.id].CheckEntityEfficient(ctx_))
             return Entry(cypher::FieldData(lgraph::FieldData(false)));
         auto neighbor = std::get<1>(tail);
         const std::string ne_name = getNodeOrEdgeName(neighbor);
         auto it_ne = sym_tab_->symbols.find(ne_name);
         if (it_ne == sym_tab_->symbols.end() || it_ne->second.type != SymbolNode::NODE)
             NOT_SUPPORT_AND_THROW();
-        if (!record_->values[it_ne->second.id].GetEntityEfficient(ctx_))
+        if (!record_->values[it_ne->second.id].CheckEntityEfficient(ctx_))
             return Entry(cypher::FieldData(lgraph::FieldData(false)));
     }
     return Entry(cypher::FieldData(lgraph::FieldData(true)));

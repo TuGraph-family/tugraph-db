@@ -89,7 +89,7 @@ class NodeIndexSeek : public OpBase {
             it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(),
                             field_, value, value);
         } else {
-            // Weak index iterator]
+            // Weak index iterator
             it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
         }
         consuming_ = false;
