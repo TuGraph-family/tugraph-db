@@ -43,10 +43,14 @@ lgraph::FieldData Entry::GetEntityField(RTContext *ctx, const std::string &fd) c
         }
     case CONSTANT:
         {
-            CYPHER_THROW_ASSERT(constant.type == cypher::FieldData::MAP);
+            if (constant.type != cypher::FieldData::MAP) {
+                THROW_CODE(CypherException, "Only support for map type");
+            }
             auto it = constant.map->find(fd);
-            CYPHER_THROW_ASSERT(it != constant.map->end() &&
-                                it->second.type == cypher::FieldData::SCALAR);
+            if (it == constant.map->end() ||
+                it->second.type != cypher::FieldData::SCALAR) {
+                THROW_CODE(CypherException, "Not found or type mismatch");
+            }
             return it->second.scalar;
         }
     case RELP_SNAPSHOT:
