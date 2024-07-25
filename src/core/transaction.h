@@ -937,6 +937,10 @@ class Transaction {
                                    const FieldData& key_start = FieldData(),
                                    const FieldData& key_end = FieldData());
 
+    EdgeIndexIterator GetEdgePairUniqueIndexIterator(
+        size_t label_id, size_t field_id, VertexId src_vid, VertexId dst_vid,
+        const FieldData& key_start, const FieldData& key_end);
+
     EdgeIndexIterator GetEdgeIndexIterator(const std::string& label, const std::string& field,
                                    const std::string& key_start, const std::string& key_end);
 

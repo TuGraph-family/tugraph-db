@@ -680,6 +680,23 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t fiel
     return index->GetIterator(this, std::move(ks), std::move(ke), 0);
 }
 
+EdgeIndexIterator Transaction::GetEdgePairUniqueIndexIterator(
+    size_t label_id, size_t field_id, VertexId src_vid, VertexId dst_vid,
+    const FieldData& key_start, const FieldData& key_end) {
+    EdgeIndex* index = GetEdgeIndex(label_id, field_id);
+    if (!index || !index->IsReady()) {
+        THROW_CODE(InputError, "EdgeIndex is not created for this field");
+    }
+    Value ks, ke;
+    if (!key_start.IsNull()) {
+        ks = field_data_helper::FieldDataToValueOfFieldType(key_start, index->KeyType());
+    }
+    if (!key_end.IsNull()) {
+        ke = field_data_helper::FieldDataToValueOfFieldType(key_end, index->KeyType());
+    }
+    return index->GetIterator(this, std::move(ks), std::move(ke), src_vid, dst_vid);
+}
+
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
                                                     const std::string& field,
                                                     const std::string& key_start = "",

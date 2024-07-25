@@ -339,6 +339,16 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t fiel
                              txn_);
 }
 
+EdgeIndexIterator Transaction::GetEdgePairUniqueIndexIterator(size_t label_id, size_t field_id,
+                                                            int64_t src_vid, int64_t dst_vid,
+                                                            const FieldData& key_start,
+                                                            const FieldData& key_end) {
+    ThrowIfInvalid();
+    return EdgeIndexIterator(txn_->GetEdgePairUniqueIndexIterator(
+                                 label_id, field_id, src_vid, dst_vid, key_start, key_end),
+                             txn_);
+}
+
 VertexIndexIterator Transaction::GetVertexIndexIterator(const std::string& label,
                                                         const std::string& field,
                                                         const FieldData& key_start,
@@ -501,6 +511,7 @@ OutEdgeIterator Transaction::GetEdgeByUniqueIndex(size_t label_id, size_t field_
     euid = eit.GetUid();
     return GetOutEdgeIterator(euid, false);
 }
+
 size_t Transaction::GetNumVertices() {
     ThrowIfInvalid();
     return txn_->graph_->GetLooseNumVertex(txn_->GetTxn());

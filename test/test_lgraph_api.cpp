@@ -1207,6 +1207,7 @@ TEST_F(TestLGraphApi, pairUniqueIndex) {
                                    std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
                                    eo));
     UT_EXPECT_TRUE(db.AddEdgeIndex("like", "id", IndexType::PairUniqueIndex));
+
     std::vector<std::string> vp{"id"};
     std::vector<std::string> ep{"id"};
     auto txn = db.CreateWriteTxn();
@@ -1219,8 +1220,34 @@ TEST_F(TestLGraphApi, pairUniqueIndex) {
     }
     for (int i = 0; i < vids.size()-1; i++) {
         txn.AddEdge(vids[i], vids[i+1],
-                    std::string("Relation"), vp,
-                    {FieldData::Int32(i), FieldData::Int32(i), FieldData::Int32(i)});
+                    std::string("like"), vp,
+                    {FieldData::Int32(i)});
+        txn.AddEdge(vids[i], vids[i+1],
+                    std::string("know"), vp,
+                    {FieldData::Int32(i)});
     }
     txn.Commit();
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(txn.AddEdge(vids[i], vids[i+1],
+                    std::string("like"), vp,
+                    {FieldData::Int32(i)}), "index value already exists");
+        txn.Abort();
+    }
+    txn = db.CreateWriteTxn();
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn.AddEdge(vids[i], vids[i+1], std::string("know"), vp, {FieldData::Int32(i)});
+    }
+    txn.Commit();
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn = db.CreateWriteTxn();
+        auto like_lid = txn.GetEdgeLabelId("like");
+        auto fid = txn.GetEdgeFieldId(like_lid, "id");
+        auto iter = txn.GetEdgePairUniqueIndexIterator(like_lid, fid, vids[i], vids[i+1], FieldData::Int32(i), FieldData::Int32(i));
+        UT_EXPECT_TRUE(iter.IsValid());
+        auto euid = iter.GetUid();
+        auto iter2 = txn.GetOutEdgeIterator(euid);
+        UT_EXPECT_EQ(iter2.GetField("id"), FieldData::Int32(i));
+        txn.Abort();
+    }
 }
