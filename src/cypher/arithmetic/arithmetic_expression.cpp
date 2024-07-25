@@ -1428,17 +1428,17 @@ void ArithOperandNode::RealignAliasId(const SymbolTable &sym_tab) {
     variadic.alias_idx = it->second.id;
 }
 
-cypher::FieldData generateCypherFieldData(const parser::Expression &expr) {
+cypher::FieldData GenerateCypherFieldData(const parser::Expression &expr) {
     if (expr.type != parser::Expression::LIST && expr.type != parser::Expression::MAP) {
         return cypher::FieldData(parser::MakeFieldData(expr));
     }
     if (expr.type == parser::Expression::LIST) {
         std::vector<cypher::FieldData> list;
-        for (auto &e : expr.List()) list.emplace_back(generateCypherFieldData(e));
+        for (auto &e : expr.List()) list.emplace_back(GenerateCypherFieldData(e));
         return cypher::FieldData(std::move(list));
     } else {
         std::unordered_map<std::string, cypher::FieldData> map;
-        for (auto &e : expr.Map()) map.emplace(e.first, generateCypherFieldData(e.second));
+        for (auto &e : expr.Map()) map.emplace(e.first, GenerateCypherFieldData(e.second));
         return cypher::FieldData(std::move(map));
     }
 }
@@ -1481,13 +1481,13 @@ void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sy
         {
             /* e.g. [1,3,5,7], [1,3,5.55,'seven'] */
             type = ArithOperandNode::AR_OPERAND_CONSTANT;
-            constant = generateCypherFieldData(expr);
+            constant = GenerateCypherFieldData(expr);
             break;
         }
     case parser::Expression::MAP:
         {
             type = ArithOperandNode::AR_OPERAND_CONSTANT;
-            constant = generateCypherFieldData(expr);
+            constant = GenerateCypherFieldData(expr);
             break;
         }
     default:

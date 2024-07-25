@@ -64,7 +64,7 @@ static cypher::FieldData And(const cypher::FieldData& x, const cypher::FieldData
         ret.scalar = ::lgraph::FieldData(x.scalar.AsBool() && y.scalar.AsBool());
         return ret;
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(ParserException, "Type error");
 }
 
 static cypher::FieldData Or(const cypher::FieldData& x, const cypher::FieldData& y) {
@@ -74,7 +74,7 @@ static cypher::FieldData Or(const cypher::FieldData& x, const cypher::FieldData&
         ret.scalar = ::lgraph::FieldData(x.scalar.AsBool() || y.scalar.AsBool());
         return ret;
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(ParserException, "Type error");
 }
 
 static cypher::FieldData Xor(const cypher::FieldData& x, const cypher::FieldData& y) {
@@ -84,7 +84,7 @@ static cypher::FieldData Xor(const cypher::FieldData& x, const cypher::FieldData
         ret.scalar = ::lgraph::FieldData(!x.scalar.AsBool() != !y.scalar.AsBool());
         return ret;
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(ParserException, "Type error");
 }
 
 static cypher::FieldData Not(const cypher::FieldData& x) {
@@ -93,7 +93,7 @@ static cypher::FieldData Not(const cypher::FieldData& x) {
         ret.scalar = ::lgraph::FieldData(!x.scalar.AsBool());
         return ret;
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(ParserException, "Type error");
 }
 
 static cypher::FieldData Neg(const cypher::FieldData& x) {
