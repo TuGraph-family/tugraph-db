@@ -1,1 +1,0 @@
-WITH {a: 'Camelot', b: 'Vanessa Redgrave'} as pair MATCH (n1:Film {title: pair.a})<-[r]-(n2:Person {name: pair.b}) RETURN r;
