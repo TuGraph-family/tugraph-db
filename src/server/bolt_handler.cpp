@@ -225,6 +225,10 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                 session->python_driver = true;
             }
         }
+        if (principal == lgraph::_detail::DEFAULT_ADMIN_NAME &&
+            credentials == lgraph::_detail::DEFAULT_ADMIN_PASS) {
+            session->using_default_user_password = true;
+        }
         session->state = SessionState::READY;
         session->user = principal;
         session->fsm_thread = std::thread(BoltFSM, conn.shared_from_this());
