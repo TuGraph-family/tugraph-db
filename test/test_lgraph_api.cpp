@@ -1184,3 +1184,43 @@ TEST_F(TestLGraphApi, deleteAllVertex) {
     UT_EXPECT_EQ(expect, detail);
     txn.Abort();
 }
+
+TEST_F(TestLGraphApi, pairUniqueIndex) {
+    std::string path = "./testdb";
+    auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
+    auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
+    lgraph::AutoCleanDir cleaner(path);
+    Galaxy galaxy(path);
+    std::string db_path;
+    galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
+    GraphDB db = galaxy.OpenGraph("default");
+    VertexOptions vo("id");
+    vo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddVertexLabel("Person",
+                                     std::vector<FieldSpec>({{"id", FieldType::INT32, false}}), vo));
+    EdgeOptions eo;
+    eo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddEdgeLabel("like",
+                                   std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddEdgeLabel("know",
+                                   std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddEdgeIndex("like", "id", IndexType::PairUniqueIndex));
+    std::vector<std::string> vp{"id"};
+    std::vector<std::string> ep{"id"};
+    auto txn = db.CreateWriteTxn();
+    std::vector<int64_t> vids;
+    for (int i = 0; i < 100; i++) {
+        auto vid = txn.AddVertex(
+            std::string("Person"), vp,
+            {FieldData::Int32(i)});
+        vids.push_back(vid);
+    }
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn.AddEdge(vids[i], vids[i+1],
+                    std::string("Relation"), vp,
+                    {FieldData::Int32(i), FieldData::Int32(i), FieldData::Int32(i)});
+    }
+    txn.Commit();
+}
