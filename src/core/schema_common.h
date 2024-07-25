@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -200,6 +200,14 @@ class FullTextIndexExistException : public LgraphException {
     FullTextIndexExistException(const std::string& label, const std::string& field)
         : LgraphException(ErrorCode::FullTextIndexExist,
                           "FullText Index [{}:{}] already exist.", label, field) {}
+};
+
+class VectorSizeTooLargeException : public LgraphException {
+ public:
+    VectorSizeTooLargeException(const std::string& field, size_t dsize, size_t max_size)
+        : LgraphException(ErrorCode::VectorSizeTooLarge,
+                          "Failed to set field [{}]: Vector size too big, max is {}, given {}",
+                          field, max_size, dsize) {}
 };
 
 class UserNotExistException : public LgraphException {

@@ -50,7 +50,8 @@ set(LGRAPH_CORE_SRC
         core/vertex_index.cpp
         core/wal.cpp
         core/lmdb/mdb.c
-        core/lmdb/midl.c)
+        core/lmdb/midl.c
+        core/composite_index.cpp)
 
 set(LGRAPH_DB_SRC
         db/acl.cpp
@@ -74,7 +75,8 @@ set(LGRAPH_API_SRC
         lgraph_api/lgraph_vertex_iterator.cpp
         lgraph_api/lgraph_result.cpp
         lgraph_api/lgraph_exceptions.cpp
-        lgraph_api/result_element.cpp)
+        lgraph_api/result_element.cpp
+        lgraph_api/lgraph_vertex_composite_index_iterator.cpp)
 
 set(TARGET_LGRAPH lgraph)
 

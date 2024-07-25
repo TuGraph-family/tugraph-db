@@ -1,0 +1,33 @@
+match (n) return count(n);
+[{"count(n)":21}]
+
+match (n) return count(n), 1;
+[{"1":1,"count(n)":21}]
+
+match (n:Person) return avg(n.birthyear) as avg;
+[{"avg":1939.923076923077}]
+
+match (n:Person) return max(n.birthyear) as max;
+[{"max":1986.0}]
+
+match (n:Person) return min(n.birthyear) as min;
+[{"min":1873.0}]
+
+# Delete all nodes and relationships
+match (n) delete n;
+[{"<SUMMARY>":"deleted 21 vertices, deleted 28 edges."}]
+
+match (n) return count(n);
+[{"count(n)":0}]
+
+match (n) return count(n), 1;
+[]
+
+match (n:Person) return avg(n.birthyear) as avg;
+[{"avg":null}]
+
+match (n:Person) return max(n.birthyear) as max;
+[{"max":null}]
+
+match (n:Person) return min(n.birthyear) as min;
+[{"min":null}]

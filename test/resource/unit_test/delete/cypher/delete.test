@@ -1,0 +1,12 @@
+CALL db.createVertexLabel('Person', 'name', 'name', 'STRING', false, 'age', 'INT16', true, 'eyes', 'STRING', true);
+CALL db.createEdgeLabel('KNOWS', '[]', 'weight', 'INT16', true);
+ CREATE (a:Person {name:'A', age:13}) CREATE (b:Person {name:'B', age:33, eyes:'blue'}) CREATE (c:Person {name:'C', age:44, eyes:'blue'}) CREATE (d:Person {name:'D', eyes:'brown'}) CREATE (e:Person {name:'E'}) CREATE (f:Person {name:'F', age:1}) CREATE (g:Person {name:'G', age:2}) CREATE (h:Person {name:'H', age:2}) CREATE (i1:Person {name:'I', age:3}) CREATE (a)-[:KNOWS {weight:10}]->(b), (a)-[:KNOWS {weight:15}]->(c), (a)-[:KNOWS {weight:40}]->(d), (b)-[:KNOWS {weight:20}]->(e),(b)-[:KNOWS {weight:25}]->(f), (c)-[:KNOWS {weight:12}]->(e), (d)-[:KNOWS {weight:4}]->(a), (f)-[:KNOWS {weight:0}]->(g), (f)-[:KNOWS {weight:0}]->(h), (f)-[:KNOWS {weight:0}]->(i1) ;
+match (n)-[r]->(m) return r,properties(r) /*debug*/;
+MATCH (n {name:'D'}) DELETE n;
+MATCH (n {name:'B'})-[r:KNOWS]->() DELETE r;
+MATCH (n:Person {name:'F'})-[r:KNOWS]->(m:Person {name:'I'}) DELETE r;
+MATCH (n:Person {name:'A'}),(m:Person {name:'C'}) WITH n,m MATCH (n)-[r]->(m) DELETE r;
+match (n)-[r]->(m) return r,properties(r) /*debug*/;
+MATCH (n:Person {name:'A'}) DELETE n;
+MATCH (n:Person {name:'B'}) WITH n DELETE n;
+match (n) return n,properties(n) /*debug*/;

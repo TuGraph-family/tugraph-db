@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ class PassManager {
 
  public:
     explicit PassManager(OpBase *root, cypher::RTContext *ctx) : root_(root) {
-        all_passes_.emplace_back(new OptRewriteWithSchemaInference(ctx));
+        // all_passes_.emplace_back(new OptRewriteWithSchemaInference(ctx));
         all_passes_.emplace_back(new PassReduceCount());
         all_passes_.emplace_back(new EdgeFilterPushdownExpand());
         all_passes_.emplace_back(new LazyProjectTopN());

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,8 @@ struct Relationship {
     bool forward;
     std::map<std::string, lgraph_api::FieldData> properties;
     nlohmann::json ToJson();
-    bolt::Relationship ToBolt();
-    bolt::RelNode ToBoltUnbound();
+    bolt::Relationship ToBolt(int64_t* v_eid);
+    bolt::RelNode ToBoltUnbound(int64_t* v_eid);
 };
 
 // WARNING: [PathElement] just include node and relationship
@@ -131,7 +131,7 @@ struct ResultElement {
 
     nlohmann::json ToJson();
     std::string ToString();
-    std::any ToBolt();
+    std::any ToBolt(int64_t* v_eid);
 };
 
 }  // namespace lgraph_api

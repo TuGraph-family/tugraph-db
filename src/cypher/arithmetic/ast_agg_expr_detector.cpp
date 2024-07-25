@@ -16,7 +16,6 @@
 #include <any>
 #include "cypher/arithmetic/arithmetic_expression.h"
 #include "cypher/arithmetic/ast_agg_expr_detector.h"
-#include "geax-front-end/ast/expr/Ref.h"
 
 namespace cypher {
 
@@ -53,7 +52,9 @@ std::any AstAggExprDetector::visit(geax::frontend::AggFunc* node) {
     }
     in_agg_func_ += 1;
     auto agg_funcs = ArithOpNode::RegisterAggFuncs();
-    if (agg_funcs.find(ToString(node->funcName())) != agg_funcs.end()) {
+    std::string func_name = ToString(node->funcName());
+    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
+    if (agg_funcs.find(func_name) != agg_funcs.end()) {
         agg_exprs_.emplace_back(node);
     }
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
@@ -61,7 +62,26 @@ std::any AstAggExprDetector::visit(geax::frontend::AggFunc* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any AstAggExprDetector::visit(geax::frontend::Ref* node) {
+std::any AstAggExprDetector::visit(geax::frontend::BAggFunc* node) {
+    if (in_agg_func_ > 0) {
+        nested_agg_func_ = true;
+        error_msg_ = "Agg function cannot be nested";
+        return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+    }
+    in_agg_func_ += 1;
+    auto agg_funcs = ArithOpNode::RegisterAggFuncs();
+    std::string func_name = ToString(node->funcName());
+    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
+    if (agg_funcs.find(func_name) != agg_funcs.end()) {
+        agg_exprs_.emplace_back(node);
+    }
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(node->lExpr()));
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->rExpr());
+    in_agg_func_ -= 1;
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any AstAggExprDetector::visit(geax::frontend::GetField* node) {
     if (in_agg_func_ == 0) {
         outside_var_ = true;
     }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -397,8 +397,8 @@ class EdgeIndex {
             case FieldType::STRING:
                 {
                     return EdgeIndexIterator(this, &txn, *table_, std::forward<V1>(key_start),
-                                             CutEdgeIndexKeyIfLong(std::forward<V2>(key_end)), vid,
-                                             vid2, lid, tid, eid, type_);
+                           CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)), vid,
+                           vid2, lid, tid, eid, type_);
                 }
             case FieldType::BLOB:
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
@@ -410,8 +410,9 @@ class EdgeIndex {
             }
         } else {
             return EdgeIndexIterator(
-                this, &txn, *table_, CutEdgeIndexKeyIfLong(std::forward<V1>(key_start)),
-                CutEdgeIndexKeyIfLong(std::forward<V2>(key_end)), vid, vid2, lid, tid, eid, type_);
+                this, &txn, *table_, CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V1>(key_start)),
+                CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)),
+                vid, vid2, lid, tid, eid, type_);
         }
     }
 
@@ -449,8 +450,8 @@ class EdgeIndex {
             case FieldType::STRING:
                 {
                     return EdgeIndexIterator(this, txn, *table_, std::forward<V1>(key_start),
-                                             CutEdgeIndexKeyIfLong(std::forward<V2>(key_end)), vid,
-                                             vid2, lid, tid, eid, type_);
+                           CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)), vid,
+                           vid2, lid, tid, eid, type_);
                     break;
                 }
             case FieldType::BLOB:
@@ -463,8 +464,9 @@ class EdgeIndex {
             }
         } else {
             return EdgeIndexIterator(
-                this, txn, *table_, CutEdgeIndexKeyIfLong(std::forward<V1>(key_start)),
-                CutEdgeIndexKeyIfLong(std::forward<V2>(key_end)), vid, vid2, lid, tid, eid, type_);
+                this, txn, *table_, CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V1>(key_start)),
+                CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)),
+                vid, vid2, lid, tid, eid, type_);
         }
     }
 
@@ -546,9 +548,11 @@ class EdgeIndex {
      */
     bool Add(KvTransaction& txn, const Value& k, const EdgeUid& euid);
 
+    bool UniqueIndexConflict(KvTransaction& txn, const Value& k);
+
     size_t GetMaxEdgeIndexKeySize();
 
-    Value CutEdgeIndexKeyIfLong(const Value& k);
+    Value CutKeyIfLongOnlyForNonUniqueIndex(const Value& k);
 };
 
 }  // namespace lgraph

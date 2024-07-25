@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
 
 #include "db/db.h"
 #include "lgraph/lgraph_txn.h"
+
+bool lgraph::AccessControlledDB::enable_plugin = true;
 
 lgraph::AccessControlledDB::AccessControlledDB(ScopedRef<LightningGraph>&& ref,
                                                AccessLevel access_level,
@@ -64,6 +66,7 @@ bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std:
                                             plugin::CodeType code_type, const std::string& desc,
                                             bool is_read_only, const std::string& version) {
     CheckAdmin();
+    CheckLoadOrDeletePlugin();
     return graph_->GetPluginManager()->LoadPluginFromCode(plugin_type, user, name, code, filename,
                                                           code_type, desc, is_read_only, version);
 }
@@ -71,6 +74,7 @@ bool lgraph::AccessControlledDB::LoadPlugin(plugin::Type plugin_type, const std:
 bool lgraph::AccessControlledDB::DelPlugin(plugin::Type plugin_type, const std::string& user,
                                            const std::string& name) {
     CheckAdmin();
+    CheckLoadOrDeletePlugin();
     return graph_->GetPluginManager()->DelPlugin(plugin_type, user, name);
 }
 
@@ -214,6 +218,13 @@ bool lgraph::AccessControlledDB::AddVertexIndex(const std::string& label, const 
     return graph_->BlockingAddIndex(label, field, type, true);
 }
 
+bool lgraph::AccessControlledDB::AddVertexCompositeIndex(const std::string& label,
+                                                         const std::vector<std::string>& fields,
+                                                         CompositeIndexType type) {
+    CheckFullAccess();
+    return graph_->BlockingAddCompositeIndex(label, fields, type, true);
+}
+
 bool lgraph::AccessControlledDB::AddEdgeIndex(const std::string& label, const std::string& field,
                                           IndexType type) {
     CheckFullAccess();
@@ -269,6 +280,12 @@ bool lgraph::AccessControlledDB::DeleteEdgeIndex(const std::string& label,
     return graph_->DeleteIndex(label, field, false);
 }
 
+bool lgraph::AccessControlledDB::DeleteVertexCompositeIndex(const std::string& label,
+                                 const std::vector<std::string>& fields) {
+    CheckFullAccess();
+    return graph_->DeleteCompositeIndex(label, fields, true);
+}
+
 bool lgraph::AccessControlledDB::IsVertexIndexed(const std::string& label,
                                                  const std::string& field) {
     CheckReadAccess();
@@ -279,6 +296,12 @@ bool lgraph::AccessControlledDB::IsEdgeIndexed(const std::string& label,
                                                const std::string& field) {
     CheckReadAccess();
     return graph_->IsIndexed(label, field, false);
+}
+
+bool lgraph::AccessControlledDB::IsVertexCompositeIndexed(const std::string& label,
+                                 const std::vector<std::string>& fields) {
+    CheckReadAccess();
+    return graph_->IsCompositeIndexed(label, fields);
 }
 
 void lgraph::AccessControlledDB::WarmUp() const { graph_->WarmUp(); }

@@ -1,5 +1,5 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
+* Copyright 2022 AntGroup CO., Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -45,6 +45,8 @@ struct BoltSession {
     SessionState state;
     BlockingQueue<BoltMsgDetail> msgs;
     std::thread fsm_thread;
+    bool python_driver = false;
+    bool using_default_user_password = false;
 };
 
 }  // namespace bolt

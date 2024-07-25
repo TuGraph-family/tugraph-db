@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,6 +82,26 @@ bool LMDBKvTable::HasKey(KvTransaction& txn, const Value& key) {
     int ec = mdb_get(lmdb_txn.GetTxn(), dbi_, &k, &val);
     if (ec == MDB_SUCCESS) return true;
     if (ec == MDB_NOTFOUND) return false;
+    THROW_ERR(ec);
+    return false;
+}
+
+bool LMDBKvTable::GetValue(KvTransaction& txn, const Value& key, Value& value) {
+    ThrowIfTaskKilled();
+    auto& lmdb_txn = static_cast<LMDBKvTransaction&>(txn);
+    if (lmdb_txn.optimistic_) {
+        THROW_CODE(KvException, "GetValue does not support optimistic txn");
+    }
+    MDB_val val;
+    MDB_val k = key.MakeMdbVal();
+    int ec = mdb_get(lmdb_txn.GetTxn(), dbi_, &k, &val);
+    if (ec == MDB_SUCCESS) {
+        value.AssignConstRef((char*)val.mv_data + sizeof(size_t), val.mv_size - sizeof(size_t));
+        return true;
+    }
+    if (ec == MDB_NOTFOUND) {
+        return false;
+    }
     THROW_ERR(ec);
     return false;
 }

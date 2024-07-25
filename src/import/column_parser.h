@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -617,6 +617,8 @@ class JsonLinesParser : public BlockParser {
                 case FieldType::SPATIAL:
                     // TODO(shw): support import for spatial type;
                     throw std::runtime_error("do not support spatial type now!");
+                case FieldType::FLOAT_VECTOR:
+                    throw std::runtime_error("do not support FLOAT_VECTOR type now!");
                 }
                 if (fd.is_null()) {
                     throw std::bad_cast();

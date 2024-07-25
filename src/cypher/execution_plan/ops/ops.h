@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,17 +24,23 @@
 #include "cypher/execution_plan/ops/op_filter.h"
 #include "cypher/execution_plan/ops/op_expand_all.h"
 #include "cypher/execution_plan/ops/op_create.h"
+#include "cypher/execution_plan/ops/op_gql_create.h"
+#include "cypher/execution_plan/ops/op_gql_remove.h"
 #include "cypher/execution_plan/ops/op_standalone_call.h"
+#include "cypher/execution_plan/ops/op_gql_standalone_call.h"
 #include "cypher/execution_plan/ops/op_var_len_expand.h"
 #include "cypher/execution_plan/ops/op_var_len_expand_into.h"
 #include "cypher/execution_plan/ops/op_inquery_call.h"
+#include "cypher/execution_plan/ops/op_gql_inquery_call.h"
 #include "cypher/execution_plan/ops/op_aggregate.h"
 #include "cypher/execution_plan/ops/op_project.h"
 #include "cypher/execution_plan/ops/op_sort.h"
 #include "cypher/execution_plan/ops/op_limit.h"
 #include "cypher/execution_plan/ops/op_cartesian_product.h"
 #include "cypher/execution_plan/ops/op_set.h"
+#include "cypher/execution_plan/ops/op_gql_set.h"
 #include "cypher/execution_plan/ops/op_delete.h"
+#include "cypher/execution_plan/ops/op_gql_delete.h"
 #include "cypher/execution_plan/ops/op_optional.h"
 #include "cypher/execution_plan/ops/op_argument.h"
 #include "cypher/execution_plan/ops/op_apply.h"
@@ -43,6 +49,7 @@
 #include "cypher/execution_plan/ops/op_relationship_count.h"
 #include "cypher/execution_plan/ops/op_distinct.h"
 #include "cypher/execution_plan/ops/op_merge.h"
+#include "cypher/execution_plan/ops/op_gql_merge.h"
 #include "cypher/execution_plan/ops/op_remove.h"
 #include "cypher/execution_plan/ops/op_skip.h"
 #include "cypher/execution_plan/ops/op_all_node_scan_dynamic.h"

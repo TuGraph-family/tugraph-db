@@ -1,5 +1,5 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
+* Copyright 2022 AntGroup CO., Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -65,6 +65,7 @@ class KvTable {
     virtual ~KvTable() = default;
     virtual bool HasKey(KvTransaction& txn, const Value& key) = 0;
     virtual Value GetValue(KvTransaction& txn, const Value& key, bool for_update = false) = 0;
+    virtual bool GetValue(KvTransaction& txn, const Value& key, Value& val) = 0;
     virtual size_t GetKeyCount(KvTransaction& txn) = 0;
     virtual bool SetValue(KvTransaction& txn, const Value& key, const Value& value,
                   bool overwrite_if_exist = true) = 0;

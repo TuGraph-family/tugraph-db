@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -46,6 +46,7 @@ X(ParseStringException, "Parse string exception.") \
 X(ParseIncompatibleType, "Parse incompatible type.") \
 X(ParseFieldDataException, "Parse field data exception.") \
 X(DataSizeTooLarge, "Data size too large.") \
+X(VectorSizeTooLarge, "Vector size too large.") \
 X(RecordSizeLimitExceeded, "Record size limit exceeded.") \
 X(LabelNotExist, "Label not exist.") \
 X(LabelExist, "Label exist.") \
@@ -75,7 +76,10 @@ X(TxnCommitException, "Txn commit exception.") \
 X(ReminderException, "Reminder exception.") \
 X(GraphCreateException, "Graph create exception.") \
 X(CypherParameterTypeError, "Cypher parameter type error.") \
-X(ReachMaximumEid, "Edge eid exceeds the limit.")
+X(ReachMaximumEid, "Edge eid exceeds the limit.")      \
+X(ReachMaximumCompositeIndexField, "The size of composite index fields exceeds the limit.") \
+X(PluginDisabled, "Plugin disabled!") \
+X(BoltDataException, "Bolt data exception")
 
 enum class ErrorCode {
 #define X(code, msg) code,

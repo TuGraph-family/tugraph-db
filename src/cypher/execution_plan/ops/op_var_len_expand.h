@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ class VarLenExpand : public OpBase {
             iter_type = types.empty() ? lgraph::EIter::BI_EDGE : lgraph::EIter::BI_TYPE_EDGE;
             break;
         }
-        eit.Initialize(ctx->txn_->GetTxn().get(), iter_type, vid, types);
+        eit.Initialize(ctx->txn_->GetTxn().get(), iter_type, vid, types, {});
     }
 
 #if 0  // 20210704

@@ -1,0 +1,15 @@
+MATCH (s)<-[r:BORN_IN]-(d)
+RETURN s,r,r.weight,d
+ORDER BY r.weight
+LIMIT 2;
+with '123dfd\\fd45a\'bcd' as a return a;
+with "123dfd\\fd\"45a'bcd" as a return a;
+optional MATCH (n:City {name:'London'})-[r]->(m) RETURN n.name,r,m;
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) RETURN r;
+MATCH (n:Person)<-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]-(m) RETURN r;
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) where r.weight > 20 RETURN r;
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) where r.weight < 20 RETURN r;
+MATCH (n:Person)-[r:ACTED_IN {charactername:'Henri Ducard'}]->(m) RETURN r;
+MATCH (n:Person)<-[r:ACTED_IN {charactername:'Henri Ducard'}]-(m) RETURN r;
+MATCH (p:Person) RETURN p.name ORDER BY p.birthyear DESC LIMIT 5;
+MATCH (p:Person) RETURN p ORDER BY p.birthyear DESC LIMIT 5;

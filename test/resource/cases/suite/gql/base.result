@@ -42,7 +42,7 @@ RETURN n.name, label(e), m.name LIMIT 1;
 
 MATCH (n:Person)-[e:BORN_IN WHERE e.weight > 20]->(m)
 RETURN n.name, e.weight, m.name LIMIT 3;
-[{"e.weight":20.549999237060547,"m.name":"New York","n.name":"John Williams"},{"e.weight":20.6200008392334,"m.name":"New York","n.name":"Lindsay Lohan"},{"e.weight":20.18000030517578,"m.name":"London","n.name":"Natasha Richardson"}]
+[{"e.weight":20.55,"m.name":"New York","n.name":"John Williams"},{"e.weight":20.62,"m.name":"New York","n.name":"Lindsay Lohan"},{"e.weight":20.18,"m.name":"London","n.name":"Natasha Richardson"}]
 
 MATCH (n:Person WHERE n.birthyear = 1970)
 RETURN CASE WHEN n.birthyear > 1970 THEN n.name ELSE -1 END AS res;

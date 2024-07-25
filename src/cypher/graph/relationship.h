@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,15 @@
 #include <string>
 #include "cypher/graph/common.h"
 #include "parser/data_typedef.h"
+#include "cypher/filter/iterator.h"
+#include "cypher/parser/expression.h"
 
 namespace cypher {
 
 class Relationship {
     RelpID id_ = -1;
     std::set<std::string> types_;
+    parser::Expression properties_;
     NodeID lhs_ = -1;
     NodeID rhs_ = -1;
     std::string alias_;
@@ -61,6 +64,11 @@ class Relationship {
     RelpID ID() const;
 
     const std::set<std::string> &Types() const;
+
+    const parser::Expression& Properties() { return properties_; }
+    void SetProperties(parser::Expression props) {
+        properties_ = std::move(props);
+    }
 
     void SetTypes(const std::set<std::string> &types) { types_ = types; }
 

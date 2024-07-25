@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <regex>
 
 #include "fma-common/string_formatter.h"
 #include "fma-common/string_util.h"
@@ -64,11 +65,12 @@ namespace _detail {
 static constexpr const char* FieldTypeNames[] = {"NUL",   "BOOL",     "INT8",   "INT16",
                                                  "INT32", "INT64",    "FLOAT",  "DOUBLE",
                                                  "DATE",  "DATETIME", "STRING", "BLOB",
-                                                 "POINT", "LINESTRING", "POLYGON", "SPATIAL"};
+                                                 "POINT", "LINESTRING", "POLYGON", "SPATIAL",
+                                                 "FLOAT_VECTOR"};
 
 static std::unordered_map<std::string, FieldType> _FieldName2TypeDict_() {
     std::unordered_map<std::string, FieldType> ret;
-    for (int i = 0; i <= (int)FieldType::SPATIAL; i++) {
+    for (int i = 0; i <= (int)FieldType::FLOAT_VECTOR; i++) {
         ret[FieldTypeNames[i]] = FieldType(i);
         ret[fma_common::ToLower(FieldTypeNames[i])] = FieldType(i);
     }
@@ -91,7 +93,8 @@ static constexpr size_t FieldTypeSizes[] = {
     50,  // Point
     0,   // LineString
     0,   // Polygon
-    0    // Spatial
+    0,   // Spatial
+    0    // float vector
 };
 
 static constexpr bool IsFixedLengthType[] = {
@@ -110,7 +113,8 @@ static constexpr bool IsFixedLengthType[] = {
     true,   // Point
     false,  // LineString
     false,  // Polygon
-    false   // Spatial
+    false,  // Spatial
+    false   // float vector
 };
 
 template <class T, size_t N>
@@ -141,7 +145,7 @@ inline constexpr bool IsFixedLengthFieldType(FieldType dt) {
 }
 
 inline std::string TryGetFieldTypeName(FieldType ft) {
-    if (ft >= FieldType::NUL && ft <= FieldType::SPATIAL) return FieldTypeName(ft);
+    if (ft >= FieldType::NUL && ft <= FieldType::FLOAT_VECTOR) return FieldTypeName(ft);
     return fma_common::StringFormatter::Format("[Illegal FieldType, value={}]", (int)ft);
 }
 
@@ -216,6 +220,10 @@ struct FieldType2StorageType<FieldType::POLYGON> {
 template <>
 struct FieldType2StorageType<FieldType::SPATIAL> {
     typedef std::string type;
+};
+template <>
+struct FieldType2StorageType<FieldType::FLOAT_VECTOR> {
+    typedef std::vector<float> type;
 };
 
 template <FieldType FT>
@@ -414,6 +422,15 @@ struct FieldDataRangeCheck<FieldType::SPATIAL> {
     }
 };
 
+template <>
+struct FieldDataRangeCheck<FieldType::FLOAT_VECTOR> {
+    template <typename FromT>
+    static inline bool CheckAndCopy(
+        const FromT& src, typename FieldType2StorageType<FieldType::FLOAT_VECTOR>::type& dst) {
+        return true;
+    }
+};
+
 template <FieldType DstType>
 inline bool CopyFdIntoDstStorageType(const FieldData& fd,
                                      typename FieldType2StorageType<DstType>::type& dst) {
@@ -468,6 +485,8 @@ inline Value GetConstRefOfFieldDataContent(const FieldData& fd) {
     case FieldType::POLYGON:
     case FieldType::SPATIAL:
         return Value::ConstRef(*fd.data.buf);
+    case FieldType::FLOAT_VECTOR:
+        return Value::ConstRef(*fd.data.vp);
     }
     FMA_ASSERT(false);
     return Value();
@@ -555,6 +574,12 @@ GetStoredValue<FieldType::SPATIAL>(
     const FieldData& fd) {
     return *fd.data.buf;
 }
+template <>
+inline const typename FieldType2StorageType<FieldType::FLOAT_VECTOR>::type&
+GetStoredValue<FieldType::FLOAT_VECTOR>(
+    const FieldData& fd) {
+    return *fd.data.vp;
+}
 
 template <FieldType FT>
 inline typename FieldType2CType<FT>::type GetFieldDataCValue(const FieldData& fd) {
@@ -639,6 +664,10 @@ template <>
 inline bool IsCompatibleType<FieldType::SPATIAL>(FieldType st) {
     return st == FieldType::STRING;
 }
+template <>
+inline bool IsCompatibleType<FieldType::FLOAT_VECTOR>(FieldType st) {
+    return st == FieldType::FLOAT_VECTOR;
+}
 
 template <FieldType DstType>
 inline size_t ParseStringIntoFieldData(const char* beg, const char* end, FieldData& fd) {
@@ -669,6 +698,38 @@ inline size_t ParseStringIntoFieldData<FieldType::BLOB>(const char* beg, const c
                          (cd.size() > 64 ? "..." : ""));
     }
     fd = FieldData::Blob(std::move(decoded));
+    return s;
+}
+template <>
+inline size_t ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(const char* beg, const char* end,
+                                                                FieldData& fd) {
+    // string copy
+    std::string cd(beg, end);
+    size_t s = cd.length();
+    if (s == 0) return 0;
+    // check if there are only numbers and commas
+    std::regex nonNumbersAndCommas("[^0-9,.]");
+    if (std::regex_search(cd, nonNumbersAndCommas)) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
+    // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
+    if (!std::regex_match(cd, vector)) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
+    // check if there are 1.000,,2.000 & 1.000,2.000,
+    if (cd.front() == ',' || cd.back() == ',' || cd.find(",,") != std::string::npos) {
+        THROW_CODE(InputError, "This is not a float vector string");
+    }
+    std::vector<float> vec;
+    std::regex pattern("-?[0-9]+\\.?[0-9]*");
+    std::sregex_iterator begin_it(cd.begin(), cd.end(), pattern), end_it;
+    while (begin_it != end_it) {
+        std::smatch match = *begin_it;
+        vec.push_back(std::stof(match.str()));
+        ++begin_it;
+    }
+    fd = FieldData::FloatVector(vec);
     return s;
 }
 
@@ -740,6 +801,32 @@ inline bool ParseStringIntoStorageType<FieldType::SPATIAL>
     sd.assign(str.begin(), str.end());
     return true;
 }
+template <>
+inline bool ParseStringIntoStorageType<FieldType::FLOAT_VECTOR>
+(const std::string& str, std::vector<float>& sd) {
+    // check if there are only numbers and commas
+    std::regex nonNumbersAndCommas("[^0-9,.]");
+    if (std::regex_search(str, nonNumbersAndCommas)) {
+        return false;
+    }
+    // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
+    if (!std::regex_match(str, vector)) {
+        return false;
+    }
+    // check if there are 1.000,,2.000 & 1.000,2.000,
+    if (str.front() == ',' || str.back() == ',' || str.find(",,") != std::string::npos) {
+        return false;
+    }
+    std::regex pattern("-?[0-9]+\\.?[0-9]*");
+    std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+    while (begin_it != end_it) {
+        std::smatch match = *begin_it;
+        sd.push_back(std::stof(match.str()));
+        ++begin_it;
+    }
+    return true;
+}
 
 // This converts FieldData of different type into DstType
 // It is used only in schema.h, and the case when fd.type==DstType is already
@@ -797,6 +884,9 @@ struct FieldDataTypeConvert {
             break;
         case FieldType::SPATIAL:
             // nothing can be converted from spatial
+            break;
+        case FieldType::FLOAT_VECTOR:
+            // nothing can be converted from float vector
             break;
         }
         return false;
@@ -864,6 +954,8 @@ inline size_t ParseStringIntoFieldData(FieldType ft, const char* b, const char* 
     case FieldType::POLYGON:
     case FieldType::SPATIAL:
         throw std::runtime_error("do not support spatial now!");
+    case FieldType::FLOAT_VECTOR:
+        return ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(b, e, fd);
     }  // switch
     FMA_ASSERT(false);
     return 0;
@@ -930,7 +1022,7 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         }
     case FieldType::LINESTRING:
         {
-             // can only convert string to LineString
+            // can only convert string to LineString
             if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
             if (!::lgraph_api::TryDecodeEWKB(EWKB, ::lgraph_api::SpatialType::LINESTRING))
@@ -940,7 +1032,7 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
         }
     case FieldType::POLYGON:
         {
-             // can only convert string to Polygon
+            // can only convert string to Polygon
             if (fd.type != FieldType::STRING) return false;
             const std::string EWKB = *fd.data.buf;
             if (!::lgraph_api::TryDecodeEWKB(EWKB, ::lgraph_api::SpatialType::POLYGON))
@@ -965,6 +1057,11 @@ inline bool TryFieldDataToValueOfFieldType(const FieldData& fd, FieldType ft, Va
                 return false;
             v.Copy(EWKB);
             return true;
+        }
+    case FieldType::FLOAT_VECTOR:
+        {
+            throw std::runtime_error("cannot convert any type to float vector");
+            return false;
         }
     }
 
@@ -1063,6 +1160,34 @@ static inline Value ParseStringToValueOfFieldType(const std::string& str, FieldT
             v.Copy(str);
             return v;
         }
+    case FieldType::FLOAT_VECTOR:
+        {
+            std::vector<float> vec;
+            // check if there are only numbers and commas
+            std::regex nonNumbersAndCommas("[^0-9,.]");
+            if (std::regex_search(str, nonNumbersAndCommas)) {
+                ThrowParseError(str, FieldType::FLOAT_VECTOR);
+            }
+            // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+            std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
+            if (!std::regex_match(str, vector)) {
+                ThrowParseError(str, FieldType::FLOAT_VECTOR);
+            }
+            // check if there are 1.000,,2.000 & 1.000,2.000,
+            if (str.front() == ',' || str.back() == ',' || str.find(",,") != std::string::npos) {
+                ThrowParseError(str, FieldType::FLOAT_VECTOR);
+            }
+            std::regex pattern("-?[0-9]+\\.?[0-9]*");
+            std::sregex_iterator begin_it(str.begin(), str.end(), pattern), end_it;
+            while (begin_it != end_it) {
+                std::smatch match = *begin_it;
+                vec.push_back(std::stof(match.str()));
+                ++begin_it;
+            }
+            Value v;
+            v.Copy(vec);
+            return v;
+        }
     }
 
     FMA_ASSERT(false);
@@ -1150,6 +1275,8 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
                     return FieldData(::lgraph_api::Spatial<::lgraph_api::Cartesian>(ewkb));
             }
         }
+    case FieldType::FLOAT_VECTOR:
+        return FieldData(v.AsType<std::vector<float>>());
     }
     FMA_ASSERT(false);
     return FieldData();
@@ -1160,7 +1287,7 @@ inline FieldData ValueToFieldData(const Value& v, FieldType ft) {
 //===============================
 template <FieldType T>
 inline int ValueCompare(const void* p1, size_t s1, const void* p2, size_t s2) {
-    if (s1 == (size_t)32 || s2 == (size_t)32) abort();
+    if (s1 == (size_t)32 || s2 == (size_t)32) throw std::runtime_error("cannot compare");
     FMA_DBG_ASSERT(s1 == _detail::FieldTypeSizes[T] && s2 == _detail::FieldTypeSizes[T]);
     typename FieldType2StorageType<T>::type v1, v2;
     memcpy(&v1, p1, s1);
@@ -1202,6 +1329,12 @@ inline int ValueCompare<FieldType::POLYGON>(const void* p1, size_t s1, const voi
 template <>
 inline int ValueCompare<FieldType::SPATIAL>(const void* p1, size_t s1, const void* p2, size_t s2) {
     return ValueCompare<FieldType::STRING>(p1, s1, p2, s2);
+}
+
+template <>
+inline int ValueCompare<FieldType::FLOAT_VECTOR>(const void* p1, size_t s1, const void* p2,
+                                                 size_t s2) {
+    throw std::runtime_error("cannot compare vectors");
 }
 
 }  // namespace field_data_helper

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,6 +67,17 @@ enum OpType {
     TOPN,
     UNION,
     NODE_BY_ID_SEEK,
+    // TODO(lingsu): the operator and ast will be decoupled in the future, and ast will generate
+    // symbolic information and expression, then the operator will complete the calculation through
+    // the symbolic information and expression. and then the operator will be unified, without
+    // distinguishing gql or cypher
+    GQL_STANDALONE_CALL,
+    GQL_CREATE,
+    GQL_DELETE,
+    GQL_UPDATE,
+    GQL_INQUERY_CALL,
+    GQL_MERGE,
+    GQL_REMOVE
 };
 
 struct OpStats {
@@ -202,7 +213,9 @@ struct OpBase {
         return type == OpType::PROJECT ||
                type == OpType::AGGREGATE
                // TODO(anyone) replace create/delete/set with 'empty project'
-               || type == OpType::CREATE || type == OpType::DELETE_ || type == OpType::UPDATE;
+               || type == OpType::CREATE || type == OpType::DELETE_ || type == OpType::UPDATE ||
+               type == OpType::GQL_CREATE || type == OpType::GQL_DELETE ||
+               type == OpType::GQL_UPDATE;
     }
 
     // static methods

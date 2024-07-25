@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -455,6 +455,14 @@ inline web::json::value ValueToJson(const FieldData& fd) {
                     THROW_CODE(InputError, "unsupportted spatial srid");
             }
         }
+    case FieldType::FLOAT_VECTOR:
+        {
+            std::vector<web::json::value> json_vec;
+            for (float num : *fd.data.vp) {
+                json_vec.push_back(web::json::value::number(num));
+            }
+            return web::json::value::array(json_vec);
+        }
     }
     FMA_DBG_ASSERT(false);  // unhandled FieldData type
     return web::json::value::null();
@@ -618,10 +626,7 @@ inline web::json::value ValueToJson(const std::vector<lgraph::_detail::FieldExtr
                 js[_TU("unique")] = ValueToJson(false);
                 break;
             }
-        } else {
-            js[_TU("index")] = ValueToJson(false);
-        }
-        if (fields[idx].GetEdgeIndex()) {\
+        } else if (fields[idx].GetEdgeIndex()) {
             js[_TU("index")] = ValueToJson(true);
             switch (fields[idx].GetEdgeIndex()->GetType()) {
             case IndexType::NonuniqueIndex:

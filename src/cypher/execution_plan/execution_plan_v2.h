@@ -15,6 +15,7 @@
 #pragma once
 
 #include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/common/ObjectAllocator.h"
 #include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
@@ -22,12 +23,13 @@ class ExecutionPlanV2 {
  public:
     ExecutionPlanV2() = default;
     ~ExecutionPlanV2();
-    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode);
+    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, RTContext* ctx);
     int Execute(RTContext* ctx);
     std::string DumpPlan(int indent, bool statistics) const;
     std::string DumpGraph() const;
     std::string ErrorMsg();
     OpBase* Root();
+    void SetReadOnly(bool read_only) { read_only_ = read_only; }
 
  private:
     bool read_only_ = true;
@@ -35,6 +37,7 @@ class ExecutionPlanV2 {
     std::vector<PatternGraph> pattern_graphs_;
     OpBase* root_ = nullptr;
     std::string error_msg_;
+    geax::common::ObjectArenaAllocator obj_alloc_;
 
  private:
     DISABLE_COPY(ExecutionPlanV2);

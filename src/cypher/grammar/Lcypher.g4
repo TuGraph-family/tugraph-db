@@ -105,7 +105,7 @@ CREATE : ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'T' | 't' ) (
 
 oC_Create : CREATE SP? oC_Pattern ;
 
-oC_Set : SET SP? oC_SetItem ( ',' oC_SetItem )* ;
+oC_Set : SET SP? oC_SetItem ( SP? ',' SP? oC_SetItem )* ;
 
 SET : ( 'S' | 's' ) ( 'E' | 'e' ) ( 'T' | 't' )  ;
 
@@ -465,7 +465,7 @@ oC_DoubleLiteral : ExponentDecimalReal
                  | RegularDecimalReal
                  ;
 
-ExponentDecimalReal : ( ( Digit )+ | ( ( Digit )+ '.' ( Digit )+ ) | ( '.' ( Digit )+ ) ) ( ( 'E' | 'e' ) | ( 'E' | 'e' ) ) '-'? ( Digit )+ ;
+ExponentDecimalReal : ( ( Digit )+ | ( ( Digit )+ '.' ( Digit )+ ) | ( '.' ( Digit )+ ) ) ( 'E' | 'e' ) '-'? ( Digit )+ ;
 
 RegularDecimalReal : ( Digit )* '.' ( Digit )+ ;
 

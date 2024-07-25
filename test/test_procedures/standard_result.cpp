@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::stri
     using Vertex = lgraph_api::traversal::Vertex;
     using Edge = lgraph_api::traversal::Edge;
     lgraph_api::traversal::Path p(Vertex(vit.GetId()));
-    p.Append(Edge(0, 1, 1, 1, 1, true));
+    p.Append(Edge(0, 0, 0, 2, 0, true));
     for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
         auto it = vit.GetInEdgeIterator();
         if (it.IsValid()) vid1 = vit.GetId();

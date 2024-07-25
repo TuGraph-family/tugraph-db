@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,6 +128,9 @@ std::map<std::string, lgraph::FieldData> lgraph::GlobalConfig::ToFieldDataMap() 
         v["ha_node_join_group_s"] = FieldData(ha_node_join_group_s);
         v["ha_bootstrap_role"] = FieldData(ha_bootstrap_role);
     }
+    v["browser.credential_timeout"] = FieldData(browser_options.credential_timeout);
+    v["browser.retain_connection_credentials"] =
+        FieldData(browser_options.retain_connection_credentials);
     return v;
 }
 int lgraph::GlobalConfig::PrintVersion(std::string &config_file, std::string &cmd,
@@ -208,10 +211,13 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     ha_node_join_group_s = 10;
     ha_is_witness = false;
     ha_enable_witness_to_leader = false;
+    ha_first_snapshot_start_time = "";
 
     // bolt
     bolt_port = 0;
     bolt_io_thread_num = 1;
+    // default disable plugin load/delete
+    enable_plugin = false;
 
     // parse options
     fma_common::Configuration argparser;
@@ -317,9 +323,19 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
         .Comment("Node is witness (donot have data & can not apply request) or not.");
     argparser.Add(ha_enable_witness_to_leader, "ha_enable_witness_to_leader", true)
         .Comment("Node is witness (donot have data & can not apply request) or not.");
+    argparser.Add(ha_first_snapshot_start_time, "ha_first_snapshot_start_time", true)
+        .Comment(R"("First snapshot start time whose format is "HH:MM:SS", and the default value is "
+            "" indicating a random time.)");
     argparser.Add(bolt_port, "bolt_port", true)
         .Comment("Bolt protocol port.");
     argparser.Add(bolt_io_thread_num, "bolt_io_thread_num", true)
         .Comment("Number of bolt io threads.");
+    argparser.Add(enable_plugin, "enable_plugin", true)
+        .Comment("Enable load/delete procedure.");
+    argparser.Add(browser_options.credential_timeout, "browser.credential_timeout", true)
+        .Comment("Config the timeout of browser credentials stored in local storage.");
+    argparser.Add(browser_options.retain_connection_credentials,
+                  "browser.retain_connection_credentials", true)
+        .Comment("Config browser whether to store user credentials in local storage.");
     return argparser;
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,8 @@ typedef lgraph_api::FieldType FieldType;
 typedef lgraph_api::FieldData FieldData;
 typedef lgraph_api::IndexType IndexType;
 typedef lgraph_api::IndexSpec IndexSpec;
+typedef lgraph_api::CompositeIndexType CompositeIndexType;
+typedef lgraph_api::CompositeIndexSpec CompositeIndexSpec;
 typedef lgraph_api::FieldSpec FieldSpec;
 typedef lgraph_api::EdgeUid EdgeUid;
 typedef lgraph_api::Date Date;

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ static void CreateLargeSampleDB(const std::string& dir, bool detach_property) {
 
 class TestSchemaChange : public TuGraphTestWithParam<bool> {};
 
-INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false, true));
+INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false));
 
 TEST_P(TestSchemaChange, ModifyFields) {
     using namespace lgraph;

@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -670,6 +670,22 @@ inline std::string ToString(void* p) {
     char buf[24];
     int r = snprintf(buf, sizeof(buf), "%p", p);
     return std::string(buf, r);
+}
+
+inline std::string ToString(const std::vector<float>& fv) {
+    std::string vec_str;
+    for (size_t i = 0; i < fv.size(); i++) {
+        if (fv.at(i) > 999999) {
+            vec_str += std::to_string(fv.at(i)).substr(0, 7);
+        } else {
+            vec_str += std::to_string(fv.at(i)).substr(0, 8);
+        }
+        vec_str += ',';
+    }
+    if (!vec_str.empty()) {
+        vec_str.pop_back();
+    }
+    return vec_str;
 }
 
 inline std::string ToString(float n) { return _detail::PrintFloat(n); }

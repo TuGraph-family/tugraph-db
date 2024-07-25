@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,12 +57,7 @@ class OpSet : public OpBase {
     }
 
     void ExtractProperties(RTContext *ctx, const parser::Expression &p,
-                           std::vector<lgraph::FieldData> &values) {
-        ArithExprNode ae(p, *record->symbol_table);
-        auto val = ae.Evaluate(ctx, *record);
-        if (!val.IsScalar()) CYPHER_TODO();
-        values.emplace_back(val.constant.scalar);
-    }
+                           std::vector<lgraph::FieldData> &values);
 
     void SetVertex(RTContext *ctx,
                    const parser::Expression::EXPR_TYPE_PROPERTY &property_expression,

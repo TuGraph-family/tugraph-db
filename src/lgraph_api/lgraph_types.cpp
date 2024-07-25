@@ -1,5 +1,5 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
+* Copyright 2022 AntGroup CO., Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 */
 #include "lgraph/lgraph_types.h"
 #include "bolt/temporal.h"
+#include "fma-common/utils.h"
 
 namespace lgraph_api {
 
@@ -31,15 +32,21 @@ std::any FieldData::ToBolt() const {
     case FieldType::INT64:
         return data.int64;
     case FieldType::FLOAT:
-        return data.sp;
+        {
+            // bolt protocol does not have float type
+            return fma_common::DoubleDecimalPlaces(data.sp, 5);
+        }
     case FieldType::DOUBLE:
         return data.dp;
     case FieldType::STRING:
         return *data.buf;
     case FieldType::DATE:
         return bolt::Date{data.int32};
-    case FieldType::DATETIME:
-        return bolt::LocalTime({data.int64 * 1000});
+    case FieldType::DATETIME: {
+            int64_t sec = data.int64 / 1000000;
+            int64_t micro = data.int64 % 1000000;
+            return bolt::LocalDateTime{sec, micro*1000};
+        }
     default:
         throw std::runtime_error("ToBolt meet unsupported data type.");
     }

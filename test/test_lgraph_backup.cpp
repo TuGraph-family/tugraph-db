@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ TEST_F(TestLGraphBackupTool, LGraphBackupTool) {
     config_->http_port = 17173;
     config_->rpc_port = 19193;
     config_->verbose = 2;
+    config_->enable_plugin = true;
     std::string username = "admin";
     std::string password = "73@TuGraph";
     std::string plugin_name = "scan_graph";

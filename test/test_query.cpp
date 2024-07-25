@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -139,7 +139,7 @@ class TestQuery : public TuGraphTest {
             UT_DBG() << dumper.dump();
         }
         cypher::ExecutionPlanV2 execution_plan_v2;
-        ret = execution_plan_v2.Build(node);
+        ret = execution_plan_v2.Build(node, ctx_.get());
         if (ret != GEAXErrorCode::GEAX_SUCCEED) {
             UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
             result = execution_plan_v2.ErrorMsg();
@@ -167,11 +167,18 @@ class TestQuery : public TuGraphTest {
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
             parser::CypherBaseVisitor visitor(ctx_.get(), parser.oC_Cypher());
+            LOG_INFO() << "-----CLAUSE TO STRING-----";
+            LOG_INFO() << visitor.GetQuery().size();
+            for (const auto &sql_query : visitor.GetQuery()) {
+                LOG_INFO() << sql_query.ToString();
+            }
             cypher::ExecutionPlan execution_plan;
+            execution_plan.PreValidate(ctx_.get(), visitor.GetNodeProperty(),
+                                       visitor.GetRelProperty());
             execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx_.get());
             execution_plan.Validate(ctx_.get());
-            execution_plan.DumpGraph();
-            execution_plan.DumpPlan(0, false);
+            LOG_INFO() << execution_plan.DumpGraph();
+            LOG_INFO() << execution_plan.DumpPlan(0, false);
             execution_plan.Execute(ctx_.get());
             result = ctx_->result_->Dump(false);
             UT_LOG() << "-----result-----";
@@ -343,6 +350,13 @@ TEST_F(TestQuery, TestGqlSuite) {
     test_files(dir);
 }
 
+TEST_F(TestQuery, TestCypherSuite) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::CYPHER);
+    std::string dir = test_suite_dir_ + "/suite/cypher";
+    test_files(dir);
+}
+
 TEST_F(TestQuery, TestGqlFinbench) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::MINI_FINBENCH);
     set_query_type(lgraph::ut::QUERY_TYPE::GQL);
@@ -361,5 +375,6 @@ TEST_F(TestQuery, TestCypherFinbench) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::MINI_FINBENCH);
     set_query_type(lgraph::ut::QUERY_TYPE::CYPHER);
     std::string dir = test_suite_dir_ + "/finbench/cypher";
+    lgraph::AccessControlledDB::SetEnablePlugin(true);
     test_files(dir);
 }

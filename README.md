@@ -17,7 +17,7 @@
 
 [[中文版]](README_CN.md)
 
-:mega: **TuGraph-db [Free Trial](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-7b50ea3d20e643da95bf&ServiceVersion=1&isTrial=true) on Aliyun with [Guide](https://aliyun-computenest.github.io/quickstart-tugraph/)**.
+:mega: **TuGraph-db [Free Trial](https://computenest.console.aliyun.com/service/detail/cn-hangzhou/service-7b50ea3d20e643da95bf?type=user&isRecommend=true) on Aliyun with [Guide](https://aliyun-computenest.github.io/quickstart-tugraph/)**.
 
 ## 1. Introduction
 TuGraph is an efficient graph database that supports high data volume, low latency lookup and fast graph analytics.
@@ -45,7 +45,7 @@ You can find TuGraph's doc by [link](https://tugraph-db.readthedocs.io/en/latest
 An easy way to start is using docker to set up, which can be found in [DockerHub](https://hub.docker.com/u/tugraph), named `tugraph/tugraph-runtime-[os]:[tugraph version]`,
 for example, `tugraph/tugraph-runtime-centos7:3.3.0`.
 
-For more details, please refer to [quick start doc](docs/en-US/source/3.quick-start/1.preparation.md).
+For more details, please refer to [quick start doc](docs/en-US/source/3.quick-start/1.preparation.md) and [development guide](./docs/zh-CN/source/development_guide.md).
 
 ## 3. Build from Source
 
@@ -53,10 +53,9 @@ It's recommended to build TuGraph in linux system, and docker environment is a g
 
 Here are steps to compile TuGraph:
 1. run `deps/build_deps.sh` to build tugraph-web if you need. Skip this step otherwise.
-2. `cmake .. -DOURSYSTEM=centos` or `cmake .. -DOURSYSTEM=ubuntu`
-3. If support shell lgraph_cypher, use `-DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1`
-4. `make`
-5. `make package` or `cpack --config CPackConfig.cmake`
+2. `cmake .. -DOURSYSTEM=centos7` or `cmake .. -DOURSYSTEM=ubuntu`
+3. `make`
+4. `make package` or `cpack --config CPackConfig.cmake`
 
 Example:
 `tugraph/tugraph-compile-centos7`Docker environment
@@ -66,7 +65,7 @@ $ git clone --recursive https://github.com/TuGraph-family/tugraph-db.git
 $ cd tugraph-db
 $ deps/build_deps.sh
 $ mkdir build && cd build
-$ cmake .. -DOURSYSTEM=centos -DENABLE_PREDOWNLOAD_DEPENDS_PACKAGE=1
+$ cmake .. -DOURSYSTEM=centos7
 $ make
 $ make package
 ```
@@ -94,6 +93,9 @@ NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-
     <td height="80"><a href="http://www.whaleops.com/"><img src="docs/images/partners/whaleops.png" width="300" alt="WhaleOps" /></a></td>
     <td height="80"><a href="https://github.com/oceanbase/oceanbase"><img src="docs/images/partners/oceanbase.png" width="300" alt="OceanBase" /></a></td>
     <td height="80"><a href="https://github.com/secretflow/secretflow"><img src="docs/images/partners/secretflow.png" width="300" alt="SecretFlow" /></a></td>
+  </tr>
+  <tr>
+    <td height="80"><a href="https://hellogithub.com/repository/1816669a47354a158b49f8887f91bcf5" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=1816669a47354a158b49f8887f91bcf5&claim_uid=vC6zMAZ9So3YN01" alt="Featured｜HelloGitHub" width="300" /></a></td>
   </tr>
 </table>
 

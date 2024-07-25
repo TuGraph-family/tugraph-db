@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,7 @@
 // Created by wt on 6/12/18.
 //
 #pragma once
-
-#include "filter/iterator.h"
-
+#include "cypher/cypher_types.h"
 namespace cypher {
 
 typedef int64_t NodeID;

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,6 +73,7 @@ TEST_P(TestRestClient, RestClient) {
     gconfig->db_dir = db_dir;
     gconfig->server_key_file = key_path;
     gconfig->server_cert_file = cert_path;
+    gconfig->enable_plugin = true;
 
     auto StartEmptyServer = [&]() {
         std::unique_ptr<LGraphServer> server(new LGraphServer(gconfig));

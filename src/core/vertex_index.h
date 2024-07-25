@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,9 @@ namespace lgraph {
 class Transaction;
 class VertexIndex;
 class VertexIndexIterator;
+class Schema;
+class CompositeIndex;
+class CompositeIndexIterator;
 
 /**
  * An VertexIndexValue packs multiple vids into a single value.
@@ -46,6 +49,8 @@ class VertexIndexValue {
 
     friend class VertexIndex;
     friend class VertexIndexIterator;
+    friend class CompositeIndex;
+    friend class CompositeIndexIterator;
 
     Value v_;
 
@@ -243,8 +248,6 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
     void RefreshContentIfKvIteratorModified() override;
 };
 
-class Schema;
-
 /**
  * The indices
  */
@@ -336,9 +339,7 @@ class VertexIndex {
             case FieldType::STRING:
                 {
                     return VertexIndexIterator(this, &txn, *table_, std::forward<V1>(key_start),
-                                         CutKeyIfLong(std::forward<V2>(key_end)), vid,
-                                         type_);
-                    break;
+                        CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)), vid, type_);
                 }
             case FieldType::BLOB:
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
@@ -349,9 +350,9 @@ class VertexIndex {
             }
         } else {
             return VertexIndexIterator(this, &txn, *table_,
-                                       CutKeyIfLong(std::forward<V1>(key_start)),
-                                       CutKeyIfLong(std::forward<V2>(key_end)),
-                                       vid, type_);
+                   CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V1>(key_start)),
+                   CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)),
+                   vid, type_);
         }
     }
 
@@ -389,9 +390,8 @@ class VertexIndex {
             case FieldType::STRING:
                 {
                     return VertexIndexIterator(this, txn, *table_, std::forward<V1>(key_start),
-                                               CutKeyIfLong(std::forward<V2>(key_end)), vid,
-                                         type_);
-                    break;
+                           CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)),
+                                               vid, type_);
                 }
             case FieldType::BLOB:
                 FMA_ASSERT(false) << "Blob fields must not be indexed.";
@@ -402,9 +402,9 @@ class VertexIndex {
             }
         } else {
             return VertexIndexIterator(this, txn, *table_,
-                                       CutKeyIfLong(std::forward<V1>(key_start)),
-                                       CutKeyIfLong(std::forward<V2>(key_end)),
-                                                             vid, type_);
+                   CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V1>(key_start)),
+                   CutKeyIfLongOnlyForNonUniqueIndex(std::forward<V2>(key_end)),
+                   vid, type_);
         }
     }
 
@@ -472,9 +472,10 @@ class VertexIndex {
      */
     bool Add(KvTransaction& txn, const Value& k, int64_t vid);
 
+    bool UniqueIndexConflict(KvTransaction& txn, const Value& k);
 
-    size_t GetMaxEdgeIndexKeySize();
+    size_t GetMaxVertexIndexKeySize();
 
-    Value CutKeyIfLong(const Value& k);
+    Value CutKeyIfLongOnlyForNonUniqueIndex(const Value& k);
 };
 }  // namespace lgraph

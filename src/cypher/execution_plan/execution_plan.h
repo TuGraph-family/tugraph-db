@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,7 +102,9 @@ class ExecutionPlan {
 
     void Build(const std::vector<parser::SglQuery> &stmt, parser::CmdType cmd,
                cypher::RTContext *ctx);
-
+    void PreValidate(cypher::RTContext *ctx,
+                     const std::unordered_map<std::string, std::set<std::string>>& node,
+                     const std::unordered_map<std::string, std::set<std::string>>& edge);
     void Validate(cypher::RTContext *ctx);
 
     void Reset();

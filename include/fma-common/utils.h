@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -250,6 +250,12 @@ inline int ExecCmdThroughPopen(const std::string& cmd, std::ostream& os) {
 #else
     return wstatus;
 #endif
+}
+
+inline double DoubleDecimalPlaces(double d, int num) {
+    auto pow = std::pow(10, num);
+    auto i = std::round(d * pow);
+    return (i / pow);
 }
 
 namespace _detail {

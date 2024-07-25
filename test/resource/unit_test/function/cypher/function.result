@@ -1,0 +1,92 @@
+MATCH (n:Person) RETURN properties(n) LIMIT 2;
+[{"properties(n)":{"_LABEL_":"Person","_VID_":12,"birthyear":1970,"name":"Christopher Nolan"}},{"properties(n)":{"_LABEL_":"Person","_VID_":3,"birthyear":1939,"name":"Corin Redgrave"}}]
+MATCH p=(n:Person)-[e*..2]->(m) RETURN properties(p) LIMIT 2;
+[{"properties(p)":"[{\"_LABEL_\":\"Person\",\"_VID_\":12,\"birthyear\":1970,\"name\":\"Christopher Nolan\"},{\"_LABEL_\":\"BORN_IN\",\"_EID_\":\"12_14_2_0_0\",\"reg_time\":2023-05-01 12:00:00,\"weight\":19.930000},{\"_LABEL_\":\"City\",\"_VID_\":14,\"name\":\"London\"}]"},{"properties(p)":[{"_LABEL_":"Person","_VID_":12,"birthyear":1970,"name":"Christopher Nolan"},{"_EID_":"12_17_3_0_0","_LABEL_":"DIRECTED"},{"_LABEL_":"Film","_VID_":17,"title":"Batman Begins"}]}]
+MATCH (vanessa:Person {name:'Vanessa Redgrave'})-[relatedTo]-(n) RETURN id(vanessa),type(relatedTo),label(n);
+[{"id(vanessa)":2,"label(n)":"Person","type(relatedTo)":"HAS_CHILD"},{"id(vanessa)":2,"label(n)":"City","type(relatedTo)":"BORN_IN"},{"id(vanessa)":2,"label(n)":"Film","type(relatedTo)":"ACTED_IN"},{"id(vanessa)":2,"label(n)":"Person","type(relatedTo)":"HAS_CHILD"},{"id(vanessa)":2,"label(n)":"Person","type(relatedTo)":"HAS_CHILD"}]
+MATCH (vanessa:Person {name:'Vanessa Redgrave'})-[r]->() RETURN startNode(r),endNode(r);
+[{"endNode(r)":5,"startNode(r)":2},{"endNode(r)":14,"startNode(r)":2},{"endNode(r)":20,"startNode(r)":2}]
+MATCH (vanessa:Person {name:'Vanessa Redgrave'})-[r]->(n) RETURN properties(n);
+[{"properties(n)":{"_LABEL_":"Person","_VID_":5,"birthyear":1963,"name":"Natasha Richardson"}},{"properties(n)":{"_LABEL_":"City","_VID_":14,"name":"London"}},{"properties(n)":{"_LABEL_":"Film","_VID_":20,"title":"Camelot"}}]
+MATCH (vanessa:Person {name:'Vanessa Redgrave'})-[r]->(n) RETURN properties(r);
+[{"properties(r)":{"_EID_":"2_5_0_0_0","_LABEL_":"HAS_CHILD"}},{"properties(r)":"{\"_LABEL_\":\"BORN_IN\",\"_EID_\":\"2_14_2_0_0\",\"reg_time\":2023-05-01 10:00:00,\"weight\":20.209999}"},{"properties(r)":{"_EID_":"2_20_5_0_0","_LABEL_":"ACTED_IN","charactername":"Guenevere"}}]
+MATCH (a) WHERE a.name = 'Vanessa Redgrave' RETURN label(a), labels(a);
+[{"label(a)":"Person","labels(a)":"[Person]"}]
+MATCH (a) WHERE a.name = 'Vanessa Redgrave' RETURN keys(a);
+[{"keys(a)":"[birthyear,name]"}]
+MATCH (a:Person {name:'Vanessa Redgrave'}) RETURN a,-2,9.78,"im a string";
+[{"\"im a string\"":"im a string","-2":-2,"9.78":9.78,"a":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
+MATCH (a:Person {name:'Vanessa Redgrave'}) RETURN a,abs(-2),ceil(0.1),floor(0.9),tointeger(rand()),round(3.141592),sign(-17),sign(0.1);
+[{"a":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"abs(-2)":2,"ceil(0.1)":1.0,"floor(0.9)":0.0,"round(3.141592)":3.0,"sign(-17)":-1,"sign(0.1)":1,"tointeger(rand())":0}]
+RETURN toInteger(2.0),toInteger(2.3),toInteger('3');
+[{"toInteger('3')":3,"toInteger(2.0)":2,"toInteger(2.3)":2}]
+RETURN toBoolean(true),toBoolean('True');
+[{"toBoolean('True')":true,"toBoolean(true)":true}]
+RETURN toFloat(2),toFloat(2.3),toFloat('3'),toFloat('2.019');
+[{"toFloat('2.019')":2.019,"toFloat('3')":3.0,"toFloat(2)":2.0,"toFloat(2.3)":2.3}]
+RETURN toString(2),toString(2.3),toString(true),toString('haha');
+[{"toString('haha')":"haha","toString(2)":"2","toString(2.3)":"2.300000","toString(true)":"true"}]
+RETURN size('hello world!');
+[{"size('hello world!')":12}]
+MATCH (n:Person) WHERE size(n.name) > 15 RETURN n.name,size(n.name);
+[{"n.name":"Christopher Nolan","size(n.name)":17},{"n.name":"Michael Redgrave","size(n.name)":16},{"n.name":"Natasha Richardson","size(n.name)":18},{"n.name":"Vanessa Redgrave","size(n.name)":16}]
+WITH ['one','two','three'] AS coll RETURN size(coll);
+[{"size(coll)":3}]
+WITH ['one','two','three'] AS coll RETURN head(coll);
+[{"head(coll)":"one"}]
+WITH ['one','two','three'] AS coll RETURN last(coll);
+[{"last(coll)":"three"}]
+WITH ['one','two','three'] AS coll UNWIND coll AS x RETURN collect(x);
+[{"collect(x)":"[one,two,three]"}]
+WITH ['one','two','three'] AS coll UNWIND coll AS x WITH collect(x) AS reColl RETURN head(reColl);
+[{"head(reColl)":"one"}]
+MATCH (n:Person) RETURN sum(n.birthyear);
+[{"sum(n.birthyear)":25219.0}]
+MATCH (n:Person) RETURN label(n),sum(n.birthyear);
+[{"label(n)":"Person","sum(n.birthyear)":25219.0}]
+MATCH (n:Person) RETURN n.name,sum(n.birthyear);
+[{"n.name":"Roy Redgrave","sum(n.birthyear)":1873.0},{"n.name":"Richard Harris","sum(n.birthyear)":1930.0},{"n.name":"Rachel Kempson","sum(n.birthyear)":1910.0},{"n.name":"Michael Redgrave","sum(n.birthyear)":1908.0},{"n.name":"Lindsay Lohan","sum(n.birthyear)":1986.0},{"n.name":"Corin Redgrave","sum(n.birthyear)":1939.0},{"n.name":"Vanessa Redgrave","sum(n.birthyear)":1937.0},{"n.name":"Christopher Nolan","sum(n.birthyear)":1970.0},{"n.name":"John Williams","sum(n.birthyear)":1932.0},{"n.name":"Dennis Quaid","sum(n.birthyear)":1954.0},{"n.name":"Jemma Redgrave","sum(n.birthyear)":1965.0},{"n.name":"Natasha Richardson","sum(n.birthyear)":1963.0},{"n.name":"Liam Neeson","sum(n.birthyear)":1952.0}]
+MATCH (n:Person) RETURN n.name,label(n),sum(n.birthyear);
+[{"label(n)":"Person","n.name":"Vanessa Redgrave","sum(n.birthyear)":1937.0},{"label(n)":"Person","n.name":"Roy Redgrave","sum(n.birthyear)":1873.0},{"label(n)":"Person","n.name":"Corin Redgrave","sum(n.birthyear)":1939.0},{"label(n)":"Person","n.name":"Michael Redgrave","sum(n.birthyear)":1908.0},{"label(n)":"Person","n.name":"Christopher Nolan","sum(n.birthyear)":1970.0},{"label(n)":"Person","n.name":"Rachel Kempson","sum(n.birthyear)":1910.0},{"label(n)":"Person","n.name":"Natasha Richardson","sum(n.birthyear)":1963.0},{"label(n)":"Person","n.name":"Dennis Quaid","sum(n.birthyear)":1954.0},{"label(n)":"Person","n.name":"Richard Harris","sum(n.birthyear)":1930.0},{"label(n)":"Person","n.name":"Jemma Redgrave","sum(n.birthyear)":1965.0},{"label(n)":"Person","n.name":"John Williams","sum(n.birthyear)":1932.0},{"label(n)":"Person","n.name":"Lindsay Lohan","sum(n.birthyear)":1986.0},{"label(n)":"Person","n.name":"Liam Neeson","sum(n.birthyear)":1952.0}]
+MATCH (n:Person {name:'Natasha Richardson'})--(m:Person) RETURN m.name,sum(m.birthyear);
+[{"m.name":"Vanessa Redgrave","sum(m.birthyear)":1937.0},{"m.name":"Liam Neeson","sum(m.birthyear)":3904.0}]
+MATCH (n:Person) RETURN count(n);
+[{"count(n)":13}]
+MATCH (n:Person) RETURN avg(n.birthyear);
+[{"avg(n.birthyear)":1939.923076923077}]
+MATCH (n:Person) RETURN max(n.birthyear),min(n.birthyear),sum(n.birthyear);
+[{"max(n.birthyear)":1986.0,"min(n.birthyear)":1873.0,"sum(n.birthyear)":25219.0}]
+OPTIONAL MATCH (n:City {name:'London'})-[r]->() RETURN count(r);
+[{"count(r)":0}]
+OPTIONAL MATCH (n:City {name:'London'})-[r]->() RETURN count(*);
+[{"count(*)":0}]
+MATCH (n:Person) RETURN count(n) AS num_person;
+[{"num_person":13}]
+match (city:City {name:'New York'}) return id(city) as cityId, coalesce(city.name, city.cname) as cityName;
+[{"cityId":13,"cityName":"New York"}]
+RETURN coalesce(null);
+[{"coalesce(null)":null}]
+RETURN coalesce(2021);
+[{"coalesce(2021)":2021}]
+RETURN coalesce(2021, null);
+[{"coalesce(2021, null)":2021}]
+RETURN coalesce(null, null);
+[{"coalesce(null, null)":null}]
+MATCH (n) RETURN coalesce(n.birthyear, n.name);
+[{"coalesce(n.birthyear, n.name)":1910},{"coalesce(n.birthyear, n.name)":1908},{"coalesce(n.birthyear, n.name)":1937},{"coalesce(n.birthyear, n.name)":1939},{"coalesce(n.birthyear, n.name)":1952},{"coalesce(n.birthyear, n.name)":1963},{"coalesce(n.birthyear, n.name)":1930},{"coalesce(n.birthyear, n.name)":1954},{"coalesce(n.birthyear, n.name)":1986},{"coalesce(n.birthyear, n.name)":1965},{"coalesce(n.birthyear, n.name)":1873},{"coalesce(n.birthyear, n.name)":1932},{"coalesce(n.birthyear, n.name)":1970},{"coalesce(n.birthyear, n.name)":"New York"},{"coalesce(n.birthyear, n.name)":"London"},{"coalesce(n.birthyear, n.name)":"Houston"},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null},{"coalesce(n.birthyear, n.name)":null}]
+RETURN abs('haha');
+[CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function Abs.
+RETURN ceil('haha');
+[CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function Ceil.
+RETURN floor('haha');
+[CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function Floor.
+RETURN round('haha');
+[CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function Round.
+RETURN sign('haha');
+[CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function Sign.
+RETURN toboolean('haha');
+[CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function ToBoolean.
+RETURN tofloat('haha');
+[CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function ToFloat.
+RETURN tointeger('haha');
+[CypherException] CypherException: There are errors in the number of arguments or the type of arguments of function ToInteger.

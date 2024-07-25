@@ -258,6 +258,7 @@ class TestHABase : public TuGraphTest {
         config->rpc_port = rpc_port;
         config->enable_ha = true;
         config->verbose = 1;
+        config->enable_plugin = true;
         t.reset(new HaUnitTest(config, n_clients));
 
         fma_common::file_system::RemoveDir(t->config_->db_dir);

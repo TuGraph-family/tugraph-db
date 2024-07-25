@@ -1,6 +1,6 @@
 set(LGRAPH_VERSION_MAJOR 4)
-set(LGRAPH_VERSION_MINOR 1)
-set(LGRAPH_VERSION_PATCH 0)
+set(LGRAPH_VERSION_MINOR 3)
+set(LGRAPH_VERSION_PATCH 2)
 
 # options
 option(ENABLE_WALL "Enable all compiler's warning messages." ON)
@@ -180,9 +180,4 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     FOREACH (CXX_COMPILE_FLAG ${CMAKE_CXX_FLAG_LIST})
         ADD_COMPILE_OPTIONS($<$<COMPILE_LANGUAGE:CXX>:${CXX_COMPILE_FLAG}>)
     ENDFOREACH ()
-endif ()
-
-if (ENABLE_PREDOWNLOAD_DEPENDS_PACKAGE)
-    execute_process(COMMAND /bin/sh install.sh
-            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/src/python/FMA_shell/pkg)
 endif ()

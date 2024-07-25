@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ void LMDBKvStore::Open(bool create_if_not_exist) {
     }
     THROW_ON_ERR(mdb_env_create(&env_));
     THROW_ON_ERR(mdb_env_set_mapsize(env_, db_size_));
-    THROW_ON_ERR(mdb_env_set_maxdbs(env_, 5000));  // HENG: former value is 255
+    THROW_ON_ERR(mdb_env_set_maxdbs(env_, 10000));  // HENG: former value is 255
     THROW_ON_ERR(mdb_env_set_maxreaders(env_, 1200));
 #if LGRAPH_SHARE_DIR
     unsigned int flags = MDB_NOMEMINIT | MDB_NORDAHEAD | MDB_NOTLS | MDB_NOSYNC;

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "procedure/procedure.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
+#include "db/galaxy.h"
 
 cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
     auto &call = call_clause_;

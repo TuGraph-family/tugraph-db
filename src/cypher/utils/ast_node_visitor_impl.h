@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License") {}
  * you may not use this file except in compliance with the License.
@@ -128,6 +128,12 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::BMod* node) override {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::BSquare* node) override {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -754,6 +760,10 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::RemoveSingleProperty* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
     std::any visit(geax::frontend::SetSchemaClause* node) override {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->initExpr());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -920,7 +930,19 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::UnwindStatement* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
     std::any visit(geax::frontend::DummyNode* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ListComprehension* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -364,15 +364,16 @@ std::unique_ptr<KvTable> VertexIndex::OpenTable(KvTransaction& txn, KvStore& sto
 
 void VertexIndex::_AppendVertexIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
     FMA_DBG_ASSERT(type_ == IndexType::GlobalUniqueIndex);
-    Value key = CutKeyIfLong(k);
-    table_->AppendKv(txn, key, Value::ConstRef(vid));
+    if (k.Size() > GetMaxVertexIndexKeySize())
+        THROW_CODE(InputError, "Vertex unique index value [{}] is too long.", k.AsString());
+    table_->AppendKv(txn, Value::ConstRef(k), Value::ConstRef(vid));
 }
 
 void VertexIndex::_AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Value& k,
                                       const std::vector<VertexId>& vids) {
     FMA_DBG_ASSERT(type_ == IndexType::NonuniqueIndex);
     FMA_DBG_ASSERT(!vids.empty());
-    Value key = CutKeyIfLong(k);
+    Value key = CutKeyIfLongOnlyForNonUniqueIndex(k);
     size_t vid_per_idv = _detail::NODE_SPLIT_THRESHOLD / _detail::VID_SIZE;
     for (size_t i = 0; i < vids.size(); i += vid_per_idv) {
         size_t end = i + vid_per_idv;
@@ -415,7 +416,7 @@ void VertexIndex::Dump(KvTransaction& txn,
 }
 
 bool VertexIndex::Delete(KvTransaction& txn, const Value& k, int64_t vid) {
-    Value key = CutKeyIfLong(k);
+    Value key = type_ == IndexType::GlobalUniqueIndex ? k : CutKeyIfLongOnlyForNonUniqueIndex(k);
     VertexIndexIterator it = GetUnmanagedIterator(txn, key, key, vid);
     if (!it.IsValid() || it.KeyOutOfRange()) {
         // no such key_vid
@@ -462,15 +463,28 @@ bool VertexIndex::Update(KvTransaction& txn, const Value& old_key,
     return Add(txn, new_key, vid);
 }
 
+bool VertexIndex::UniqueIndexConflict(KvTransaction& txn, const Value& k) {
+    if (type_ != IndexType::GlobalUniqueIndex) {
+        THROW_CODE(InputError, "vertex UniqueIndexConflict only can be used in unique index.");
+    }
+    if (k.Size() > GetMaxVertexIndexKeySize()) {
+        return true;
+    }
+    Value v;
+    return table_->GetValue(txn, k, v);
+}
+
 bool VertexIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
-    Value key = CutKeyIfLong(k);
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
         {
-            return table_->AddKV(txn, key, Value::ConstRef(vid));
+            if (k.Size() > GetMaxVertexIndexKeySize())
+                THROW_CODE(InputError, "Vertex unique index value [{}] is too long.", k.AsString());
+            return table_->AddKV(txn, Value::ConstRef(k), Value::ConstRef(vid));
         }
     case IndexType::NonuniqueIndex:
         {
+            Value key = CutKeyIfLongOnlyForNonUniqueIndex(k);
             VertexIndexIterator it = GetUnmanagedIterator(txn, key, key, vid);
             if (!it.IsValid() || it.KeyOutOfRange()) {
                 if (!it.PrevKV() || !it.KeyEquals(key)) {
@@ -520,7 +534,7 @@ bool VertexIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     return false;
 }
 
-size_t VertexIndex::GetMaxEdgeIndexKeySize() {
+size_t VertexIndex::GetMaxVertexIndexKeySize() {
     size_t key_size = 0;
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
@@ -535,14 +549,16 @@ size_t VertexIndex::GetMaxEdgeIndexKeySize() {
         }
     case IndexType::PairUniqueIndex:
         {
-            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique type");
         }
     }
     return key_size;
 }
 
-Value VertexIndex::CutKeyIfLong(const Value& k) {
-    size_t key_size = GetMaxEdgeIndexKeySize();
+Value VertexIndex::CutKeyIfLongOnlyForNonUniqueIndex(const lgraph::Value& k) {
+    if (type_ != IndexType::NonuniqueIndex)
+        return Value::ConstRef(k);
+    size_t key_size = GetMaxVertexIndexKeySize();
     if (k.Size() < key_size) return Value::ConstRef(k);
     return Value(k.Data(), key_size);
 }

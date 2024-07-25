@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,6 +83,7 @@ void on_initialize_rpc_server() {
     sm_config.rpc_port = 19099;
 
     gconfig->ft_index_options.enable_fulltext_index = true;
+    lgraph::AccessControlledDB::SetEnablePlugin(true);
     ptr_state_machine = new lgraph::StateMachine(sm_config, gconfig);
     ptr_rpc_service = new RPCService(ptr_state_machine);
 
@@ -1109,6 +1110,14 @@ void test_label_field(lgraph::RpcClient& client) {
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(HasElement(json_val, "run", "name"), false);
     UT_EXPECT_EQ(HasElement(json_val, "jeep", "name"), false);
+    ret = client.CallCypher(str,
+                            "CALL db.alterLabelAddFields('vertex', 'animal', "
+                            "['null_string', string, null, true], "
+                            "['null_int8', int8, null, true])");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL db.alterLabelDelFields('vertex', 'animal', "
+                            "['null_string', 'null_int8'])");
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_procedure(lgraph::RpcClient& client) {
@@ -1749,6 +1758,23 @@ void test_cypher(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 6);
+    UT_EXPECT_TRUE(ret);
+}
+
+void test_float(lgraph::RpcClient& client) {
+    std::string str;
+    std::string test_str2;
+    bool ret = client.CallCypher(str,
+                                 "CALL db.createLabel('vertex', 'float_label', 'id', "
+                                 "['id', int32, false], ['float', float, true], "
+                                 "['double', double, true])");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CREATE (n:float_label{id:1,float:1.2,double:1.2}) RETURN n");
+    UT_EXPECT_TRUE(ret);
+    UT_EXPECT_EQ(str, R"!([{"n":{"identity":6,"label":"float_label","properties":{"double":1.2,"float":1.2,"id":1}}}])!"); // NOLINT
+    ret = client.CallCypher(str, "CALL db.deleteLabel('vertex', 'float_label')");
+    UT_EXPECT_TRUE(ret);
 }
 
 void test_gql(lgraph::RpcClient& client) {
@@ -1776,6 +1802,8 @@ void test_import_file(lgraph::RpcClient& client) {
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size() == 0, true);
     ret = client.ImportSchemaFromFile(str, conf_file);
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL dbms.graph.getGraphSchema()");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
@@ -1837,6 +1865,12 @@ void test_import_file(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["count(r)"].as_integer(), 8);
+
+    ret = client.CallCypher(str, "CALL db.dropAllVertex()");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "match (n) return count(n)");
+    json_val = web::json::value::parse(str);
+    UT_EXPECT_EQ(json_val[0]["count(n)"].as_integer(), 0);
 }
 
 void test_import_content(lgraph::RpcClient& client) {
@@ -1941,6 +1975,12 @@ void test_import_content(lgraph::RpcClient& client) {
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["schema"]["properties"].size(), 3);
+    for (auto item : json_val[0]["schema"]["properties"].as_array()) {
+        if (item["name"].as_string() == "phone") {
+            UT_EXPECT_EQ(item["index"].as_bool(), true);
+            UT_EXPECT_EQ(item["unique"].as_bool(), true);
+        }
+    }
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "label", "Person", "STRING"), true);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "primary", "name", "STRING"), true);
     UT_EXPECT_EQ(CheckObjectElementEqual(json_val, "schema", "type", "VERTEX", "STRING"), true);
@@ -1962,6 +2002,7 @@ void* test_rpc_client(void*) {
     UT_LOG() << "admin user login";
     {
         RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
+        test_float(client3);
         test_cypher(client3);
         test_gql(client3);
         test_label(client3);

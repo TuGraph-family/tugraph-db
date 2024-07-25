@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,46 @@ struct FieldDataHash {
             return std::hash<std::string>()(fd.AsString());
         case FieldType::BLOB:
             return std::hash<std::string>()(fd.AsBlob());
+        case FieldType::POINT: {
+            switch (fd.GetSRID()) {
+                case ::lgraph_api::SRID::WGS84:
+                    return std::hash<std::string>()(fd.AsWgsPoint().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return std::hash<std::string>()(fd.AsCartesianPoint().AsEWKB());
+                default:
+                    THROW_CODE(InputError, "unsupported spatial srid");
+            }
+        }
+        case FieldType::LINESTRING: {
+            switch (fd.GetSRID()) {
+                case ::lgraph_api::SRID::WGS84:
+                    return std::hash<std::string>()(fd.AsWgsLineString().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return std::hash<std::string>()(fd.AsCartesianLineString().AsEWKB());
+                default:
+                    THROW_CODE(InputError, "unsupported spatial srid");
+            }
+        }
+        case FieldType::POLYGON: {
+            switch (fd.GetSRID()) {
+                case ::lgraph_api::SRID::WGS84:
+                    return std::hash<std::string>()(fd.AsWgsPolygon().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return std::hash<std::string>()(fd.AsCartesianPolygon().AsEWKB());
+                default:
+                    THROW_CODE(InputError, "unsupported spatial srid");
+            }
+        }
+        case FieldType::SPATIAL: {
+            switch (fd.GetSRID()) {
+                case ::lgraph_api::SRID::WGS84:
+                    return std::hash<std::string>()(fd.AsWgsSpatial().AsEWKB());
+                case ::lgraph_api::SRID::CARTESIAN:
+                    return std::hash<std::string>()(fd.AsCartesianSpatial().AsEWKB());
+                default:
+                    THROW_CODE(InputError, "unsupported spatial srid");
+            }
+        }
         default:
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         }
@@ -145,9 +185,11 @@ class Filter {
         return clone;
     }
 
-    std::shared_ptr<Filter> Left() const { return _left; }
+    const std::shared_ptr<Filter>& Left() const { return _left; }
+    std::shared_ptr<Filter>& Left() { return _left; }
 
-    std::shared_ptr<Filter> Right() const { return _right; }
+    const std::shared_ptr<Filter>& Right() const { return _right; }
+    std::shared_ptr<Filter>& Right() { return _right; }
 
     Type Type() const { return _type; }
 
@@ -440,8 +482,8 @@ class RangeFilter : public Filter {
     }
 
     lgraph::CompareOp GetCompareOp() { return _compare_op; }
-    cypher::ArithExprNode GetAeLeft() { return _ae_left; }
-    cypher::ArithExprNode GetAeRight() { return _ae_right; }
+    const cypher::ArithExprNode& GetAeLeft() { return _ae_left; }
+    const cypher::ArithExprNode& GetAeRight() { return _ae_right; }
 
     static std::map<lgraph::CompareOp, std::string> _compare_name;
 

@@ -17,23 +17,25 @@
 #include "cypher/execution_plan/pattern_graph_maker.h"
 #include "cypher/execution_plan/optimization/locate_node_by_indexed_prop.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
+#include "cypher/execution_plan/clause_read_only_decider.h"
 
 namespace cypher {
 
 ExecutionPlanV2::~ExecutionPlanV2() { OpBase::FreeStream(root_); }
 
-geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* astNode) {
+geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* astNode,
+                                                     RTContext* ctx) {
     geax::frontend::GEAXErrorCode ret = geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     // build pattern graph
     PatternGraphMaker pattern_graph_maker(pattern_graphs_);
-    ret = pattern_graph_maker.Build(astNode);
+    ret = pattern_graph_maker.Build(astNode, ctx);
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         error_msg_ = pattern_graph_maker.ErrorMsg();
         return ret;
     }
     LOG_DEBUG() << DumpGraph();
     // build execution plan
-    ExecutionPlanMaker execution_plan_maker(pattern_graphs_);
+    ExecutionPlanMaker execution_plan_maker(pattern_graphs_, obj_alloc_);
     ret = execution_plan_maker.Build(astNode, root_);
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         error_msg_ = execution_plan_maker.ErrorMsg();
@@ -45,6 +47,10 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
     LocateNodeByIndexedProp locate_node_by_indexed_prop;
     locate_node_by_indexed_prop.Execute(Root());
     LOG_DEBUG() << DumpPlan(0, false);
+
+    ClauseReadOnlyDecider decider;
+    ret = decider.Build(astNode);
+    read_only_ = decider.IsReadOnly();
     return ret;
 }
 
@@ -129,7 +135,7 @@ std::string ExecutionPlanV2::DumpPlan(int indent, bool statistics) const {
 
 std::string ExecutionPlanV2::DumpGraph() const {
     std::string s;
-    for (auto &g : pattern_graphs_) s.append(g.DumpGraph());
+    for (auto& g : pattern_graphs_) s.append(g.DumpGraph());
     return s;
 }
 

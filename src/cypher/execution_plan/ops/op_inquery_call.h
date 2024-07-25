@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include "cypher/procedure/utils.h"
 #include "cypher/cypher_exception.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
 
 namespace cypher {
 class InQueryCall : public OpBase {

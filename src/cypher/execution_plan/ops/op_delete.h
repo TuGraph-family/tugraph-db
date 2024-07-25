@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -106,7 +106,8 @@ class OpDelete : public OpBase {
 
  public:
     OpDelete(const parser::QueryPart *stmt, PatternGraph *pattern_graph)
-        : OpBase(OpType::DELETE_, "Delete"), pattern_graph_(pattern_graph) {
+        : OpBase(OpType::DELETE_, "Delete")
+        , pattern_graph_(pattern_graph) {
         delete_data_ = *stmt->delete_clause;
         state = StreamUnInitialized;
     }

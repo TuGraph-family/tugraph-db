@@ -19,13 +19,16 @@
 #define GEAXFRONTEND_AST_CLAUSE_YIELDFIELD_H_
 
 #include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/ast/expr/Expr.h"
+#include <vector>
+#include <tuple>
 
 namespace geax {
 namespace frontend {
 
 class YieldField : public AstNode {
-public:
-    YieldField() : AstNode(AstNodeType::kYieldField) {}
+ public:
+    YieldField() : AstNode(AstNodeType::kYieldField), predicate_(nullptr) {}
     ~YieldField() = default;
 
     void appendItem(std::string&& name, std::string&& alias) {
@@ -36,10 +39,14 @@ public:
     }
     const std::vector<std::tuple<std::string, std::string>>& items() const { return items_; }
 
+    void setPredicate(Expr* predicate) { predicate_ = predicate; }
+    Expr* predicate() const { return predicate_; }
+
     std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
-private:
+ private:
     std::vector<std::tuple<std::string, std::string>> items_;
+    Expr* predicate_;
 };  // class YieldField
 
 }  // namespace frontend

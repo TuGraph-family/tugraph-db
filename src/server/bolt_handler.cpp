@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,28 +23,44 @@
 using namespace lgraph_api;
 namespace bolt {
 extern boost::asio::io_service workers;
-std::unordered_map<std::string, cypher::FieldData> ConvertParameters(
-    const std::unordered_map<std::string, std::any>& parameters) {
-    std::unordered_map<std::string, cypher::FieldData> ret;
-    for (auto& pair : parameters) {
-        if (pair.second.type() == typeid(std::string)) {
-            ret.emplace("$" + pair.first, lgraph_api::FieldData::String(
-                                              std::any_cast<const std::string&>(pair.second)));
-        } else if (pair.second.type() == typeid(int64_t)) {
-            ret.emplace("$" + pair.first, lgraph_api::FieldData::Int64(
-                                              std::any_cast<int64_t>(pair.second)));
-        } else if (pair.second.type() == typeid(double)) {
-            ret.emplace("$" + pair.first, lgraph_api::FieldData::Double(
-                                              std::any_cast<double>(pair.second)));
-        } else if (pair.second.type() == typeid(bool)) {
-            ret.emplace("$" + pair.first, lgraph_api::FieldData::Bool(
-                                              std::any_cast<bool>(pair.second)));
-        } else if (pair.second.type() == typeid(void)) {
-            ret.emplace("$" + pair.first, lgraph_api::FieldData());
-        } else {
-            THROW_CODE(InputError,
-                "Unexpected cypher parameter type, parameter: {}", pair.first);
+
+parser::Expression ConvertParameters(std::any data) {
+    parser::Expression ret;
+    if (data.type() == typeid(std::string)) {
+        ret.type = parser::Expression::STRING;
+        auto& str = std::any_cast<std::string&>(data);
+        ret.data = std::make_shared<std::string>(std::move(str));
+    } else if (data.type() == typeid(int64_t)) {
+        ret.type = parser::Expression::INT;
+        ret.data = std::any_cast<int64_t>(data);
+    } else if (data.type() == typeid(double)) {
+        ret.type = parser::Expression::DOUBLE;
+        ret.data = std::any_cast<double>(data);
+    } else if (data.type() == typeid(bool)) {
+        ret.type = parser::Expression::BOOL;
+        ret.data = std::any_cast<bool>(data);
+    } else if (data.type() == typeid(void)) {
+        ret.type = parser::Expression::NULL_;
+    } else if (data.type() == typeid(std::unordered_map<std::string, std::any>)) {
+        ret.type = parser::Expression::MAP;
+        std::map<std::string, parser::Expression> map_exp;
+        auto& map =  std::any_cast<std::unordered_map<std::string, std::any>&>(data);
+        for (auto& pair : map) {
+            map_exp.emplace(pair.first, ConvertParameters(std::move(pair.second)));
         }
+        ret.data = std::make_shared<std::map<
+            std::string, parser::Expression>>(std::move(map_exp));
+    } else if (data.type() == typeid(std::vector<std::any>)) {
+        ret.type = parser::Expression::LIST;
+        std::vector<parser::Expression> list_exp;
+        auto& list =  std::any_cast<std::vector<std::any>&>(data);
+        for (auto& item : list) {
+            list_exp.emplace_back(ConvertParameters(std::move(item)));
+        }
+        ret.data = std::make_shared<std::vector<parser::Expression>>(std::move(list_exp));
+    } else {
+        THROW_CODE(InputError,
+                   "Unexpected cypher parameter type : {}", data.type().name());
     }
     return ret;
 }
@@ -67,7 +83,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
         if (!msg) {  // msgs pop timeout
             continue;
         }
-        const auto& fields = msg.value().fields;
+        auto& fields = msg.value().fields;
         auto type = msg.value().type;
         if (session->state == SessionState::FAILED) {
             if (type == bolt::BoltMsg::Run ||
@@ -137,19 +153,22 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     auto& cypher = std::any_cast<const std::string&>(fields[0]);
                     auto& extra = std::any_cast<
                         const std::unordered_map<std::string, std::any>&>(fields[2]);
+                    std::string graph;
                     auto db_iter = extra.find("db");
-                    if (db_iter == extra.end()) {
-                        THROW_CODE(InputError,
-                            "Missing 'db' item in the 'extra' info of 'Run' msg");
+                    if (db_iter != extra.end()) {
+                        graph = std::any_cast<const std::string&>(db_iter->second);
                     }
-                    auto& graph = std::any_cast<const std::string&>(db_iter->second);
                     auto& field1 = std::any_cast<
-                        const std::unordered_map<std::string, std::any>&>(fields[1]);
-                    auto parameter = ConvertParameters(field1);
+                        std::unordered_map<std::string, std::any>&>(fields[1]);
                     auto sm = BoltServer::Instance().StateMachine();
                     cypher::RTContext ctx(sm, sm->GetGalaxy(), session->user, graph);
                     ctx.SetBoltConnection(conn.get());
-                    ctx.param_tab_ = std::move(parameter);
+                    ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
+                        std::string, parser::Expression>>();
+                    for (auto& pair : field1) {
+                        ctx.bolt_parameters_->emplace("$" + pair.first,
+                                                      ConvertParameters(std::move(pair.second)));
+                    }
                     session->streaming_msg.reset();
                     cypher::ElapsedTime elapsed;
                     LOG_DEBUG() << "Bolt run " << cypher;
@@ -200,6 +219,16 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         // Neo4j python client check that the returned server info must start with 'Neo4j/'
         meta["server"] = "Neo4j/tugraph-db";
         auto session = std::make_shared<BoltSession>();
+        if (val.count("user_agent")) {
+            auto& user_agent = std::any_cast<const std::string&>(val.at("user_agent"));
+            if (fma_common::StartsWith(user_agent, "neo4j-python", false)) {
+                session->python_driver = true;
+            }
+        }
+        if (principal == lgraph::_detail::DEFAULT_ADMIN_NAME &&
+            credentials == lgraph::_detail::DEFAULT_ADMIN_PASS) {
+            session->using_default_user_password = true;
+        }
         session->state = SessionState::READY;
         session->user = principal;
         session->fsm_thread = std::thread(BoltFSM, conn.shared_from_this());

@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,6 +86,8 @@ struct Entry {
 
     bool IsArray() const { return type == CONSTANT && constant.type == cypher::FieldData::ARRAY; }
 
+    bool IsMap() const { return type == CONSTANT && constant.type == cypher::FieldData::MAP; }
+
     bool IsScalar() const { return type == CONSTANT && constant.type == cypher::FieldData::SCALAR; }
 
     bool IsBool() const { return type == CONSTANT && constant.IsBool(); }
@@ -98,6 +100,14 @@ struct Entry {
 
     bool IsNode() const { return type == NODE && node; }
 
+    bool IsPoint() const { return type == CONSTANT && constant.IsPoint(); }
+
+    bool IsLineString() const { return type == CONSTANT && constant.IsLineString(); }
+
+    bool IsPolygon() const { return type == CONSTANT && constant.IsPolygon(); }
+
+    bool IsSpatial() const { return type == CONSTANT && constant.IsSpatial(); }
+
     bool IsRelationship() const { return type == RELATIONSHIP && relationship; }
 
     bool operator==(const Entry &rhs) const {
@@ -108,11 +118,13 @@ struct Entry {
             return (type == rhs.type && constant == rhs.constant) ||
                    (EqualNull() && rhs.EqualNull());
         case NODE:
-            // TODO(anyone) should be this.vid = rhs.vid?
-            return (type == rhs.type && node == rhs.node) || (EqualNull() && rhs.EqualNull());
+            return (EqualNull() && rhs.EqualNull()) ||
+                   (type == rhs.type && node && rhs.node && node->PullVid() == rhs.node->PullVid());
         case RELATIONSHIP:
-            return (type == rhs.type && relationship == rhs.relationship) ||
-                   (EqualNull() && rhs.EqualNull());
+            return (EqualNull() && rhs.EqualNull()) ||
+                   (type == rhs.type && relationship && rhs.relationship && relationship->ItRef() &&
+                    rhs.relationship->ItRef() &&
+                    relationship->ItRef()->GetUid() == rhs.relationship->ItRef()->GetUid());
         case VAR_LEN_RELP:
         case NODE_SNAPSHOT:
         case RELP_SNAPSHOT:

@@ -43,7 +43,7 @@
 namespace geax::frontend {
 
 class AstExprToString : public AstExprNodeVisitorImpl {
-public:
+ public:
     std::string dump(geax::frontend::Expr* node) {
         if (node) {
             node->accept(*this);
@@ -53,7 +53,7 @@ public:
         }
     }
 
-private:
+ private:
     std::any visit(geax::frontend::GetField* node) override {
         node->expr()->accept(*this);
         str_ += "." + node->fieldName();
@@ -65,9 +65,7 @@ private:
     }
     std::any visit(geax::frontend::Not* node) override { UNARY_EXPR_TOSTRING("!"); }
     std::any visit(geax::frontend::Neg* node) override { UNARY_EXPR_TOSTRING("-"); }
-    std::any visit(geax::frontend::Tilde* node) override {
-        UNARY_EXPR_TOSTRING("~");
-    }
+    std::any visit(geax::frontend::Tilde* node) override { UNARY_EXPR_TOSTRING("~"); }
     std::any visit(geax::frontend::VSome* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
@@ -85,6 +83,7 @@ private:
     std::any visit(geax::frontend::BDiv* node) override { BINARY_EXPR_TOSTRING("/"); }
     std::any visit(geax::frontend::BMul* node) override { BINARY_EXPR_TOSTRING("*"); }
     std::any visit(geax::frontend::BMod* node) override { BINARY_EXPR_TOSTRING("%"); }
+    std::any visit(geax::frontend::BSquare* node) override { BINARY_EXPR_TOSTRING("^"); }
     std::any visit(geax::frontend::BAnd* node) override { BINARY_EXPR_TOSTRING("and"); }
     std::any visit(geax::frontend::BOr* node) override { BINARY_EXPR_TOSTRING("or"); }
     std::any visit(geax::frontend::BXor* node) override { BINARY_EXPR_TOSTRING("xor"); }
@@ -156,8 +155,20 @@ private:
     std::any visit(geax::frontend::MkList* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
-    std::any visit(geax::frontend::MkMap* node) override {
+    std::any visit(geax::frontend::ListComprehension* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    std::any visit(geax::frontend::MkMap* node) override {
+        str_ += "{";
+        for (auto& pair : node->elems()) {
+            std::get<0>(pair)->accept(*this);
+            str_ += ":";
+            std::get<1>(pair)->accept(*this);
+            str_ += ",";
+        }
+        str_.pop_back();
+        str_ += "}";
+        return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(geax::frontend::MkRecord* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
@@ -169,7 +180,11 @@ private:
         return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     std::any visit(geax::frontend::VBool* node) override {
-        str_ += std::to_string(node->val());
+        if (node->val()) {
+            str_ += "true";
+        } else {
+            str_ += "false";
+        }
         return GEAXErrorCode::GEAX_SUCCEED;
     }
     std::any visit(geax::frontend::VInt* node) override {
@@ -212,7 +227,7 @@ private:
 
     std::any reportError() override { return error_msg_; }
 
-private:
+ private:
     std::string error_msg_;
     std::string str_;
 };
@@ -228,7 +243,7 @@ private:
 }
 
 class AstLabelTreeToString : public AstLabelTreeNodeVisitorImpl {
-public:
+ public:
     std::string dump(geax::frontend::LabelTree* node) {
         if (node) {
             node->accept(*this);
@@ -238,7 +253,7 @@ public:
         }
     }
 
-private:
+ private:
     std::any visit(geax::frontend::SingleLabel* node) override {
         str_ += node->label();
         return GEAXErrorCode::GEAX_SUCCEED;
@@ -248,7 +263,7 @@ private:
     std::any visit(geax::frontend::LabelNot* node) override { UNARY_EXPR_TOSTRING("not"); }
     std::any reportError() override { return error_msg_; }
 
-private:
+ private:
     std::string error_msg_;
     std::string str_;
 };

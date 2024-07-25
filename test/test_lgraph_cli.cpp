@@ -1,5 +1,5 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
+* Copyright 2022 AntGroup CO., Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -100,27 +100,28 @@ created 2 vertices, created 0 edges.
 <SUMMARY>
 created 0 vertices, created 1 edges.
 n
-(:person {int16:16,float:1.1100000143051147,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:1493632800000000000,date:17289})
+(:person {int16:16,float:1.11,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:"2017-05-01 10:00:00",date:"2017-05-03"})
 @plan
+ReadOnly:1
 Execution Plan:
 Produce Results
     Project [n]
         Expand(All) [n --> m ]
-            Node By Label Scan [n:person]
+            All Node Scan [n]
 
 r
 [:is_friend {message:"hi.."}]
 @profile
 Current Pattern Graph:
-N[0] n:person (MATCHED)
-N[1] m:person (MATCHED)
-R[0 --> 1] r:{<1>: is_friend} (MATCHED)
+N[0] n: (MATCHED)
+N[1] m: (MATCHED)
+R[0 --> 1] r:{<0>: } (MATCHED)
 Symbol: [n] type(NODE), scope(LOCAL), symbol_id(0)
 Symbol: [m] type(NODE), scope(LOCAL), symbol_id(2)
 Symbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(1)
 
 p
-(:person {int16:16,float:1.1100000143051147,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:1493632800000000000,date:17289})-[:is_friend {message:"hi.."}]->(:person {int16:116,float:11.109999656677246,double:1100.98,int8:18,string:"bar foo",int32:132,int64:164,bool:true,datetime:1525168800000000000,date:17654})
+(:person {int16:16,float:1.11,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:"2017-05-01 10:00:00",date:"2017-05-03"})-[:is_friend {message:"hi.."}]->(:person {int16:116,float:11.11,double:1100.98,int8:18,string:"bar foo",int32:132,int64:164,bool:true,datetime:"2018-05-01 10:00:00",date:"2018-05-03"})
 )";
 
         WriteFile(file, statements);
@@ -154,15 +155,15 @@ p
 ["<SUMMARY>"]
 ["created 0 vertices, created 1 edges."]
 ["n"]
-["(:person {int16:16,float:1.1100000143051147,double:100.98,int8:8,string:\"foo bar\",int32:32,int64:64,bool:true,datetime:1493632800000000000,date:17289})"]
+["(:person {int16:16,float:1.11,double:100.98,int8:8,string:\"foo bar\",int32:32,int64:64,bool:true,datetime:\"2017-05-01 10:00:00\",date:\"2017-05-03\"})"]
 ["@plan"]
-["Execution Plan:\nProduce Results\n    Project [n]\n        Expand(All) [n --> m ]\n            Node By Label Scan [n:person]\n"]
+["ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Expand(All) [n --> m ]\n            All Node Scan [n]\n"]
 ["r"]
 ["[:is_friend {message:\"hi..\"}]"]
 ["@profile"]
-["Current Pattern Graph:\nN[0] n:person (MATCHED)\nN[1] m:person (MATCHED)\nR[0 --> 1] r:{<1>: is_friend} (MATCHED)\nSymbol: [n] type(NODE), scope(LOCAL), symbol_id(0)\nSymbol: [m] type(NODE), scope(LOCAL), symbol_id(2)\nSymbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(1)\n"]
+["Current Pattern Graph:\nN[0] n: (MATCHED)\nN[1] m: (MATCHED)\nR[0 --> 1] r:{<0>: } (MATCHED)\nSymbol: [n] type(NODE), scope(LOCAL), symbol_id(0)\nSymbol: [m] type(NODE), scope(LOCAL), symbol_id(2)\nSymbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(1)\n"]
 ["p"]
-["(:person {int16:16,float:1.1100000143051147,double:100.98,int8:8,string:\"foo bar\",int32:32,int64:64,bool:true,datetime:1493632800000000000,date:17289})-[:is_friend {message:\"hi..\"}]->(:person {int16:116,float:11.109999656677246,double:1100.98,int8:18,string:\"bar foo\",int32:132,int64:164,bool:true,datetime:1525168800000000000,date:17654})"]
+["(:person {int16:16,float:1.11,double:100.98,int8:8,string:\"foo bar\",int32:32,int64:64,bool:true,datetime:\"2017-05-01 10:00:00\",date:\"2017-05-03\"})-[:is_friend {message:\"hi..\"}]->(:person {int16:116,float:11.11,double:1100.98,int8:18,string:\"bar foo\",int32:132,int64:164,bool:true,datetime:\"2018-05-01 10:00:00\",date:\"2018-05-03\"})"]
 )xx";
 
         WriteFile(file, statements);
@@ -217,23 +218,24 @@ p
 
 1 rows
 
-+---------------------------------------------------------------------------------------------------------------------------------------------------------+
-| n                                                                                                                                                       |
-+---------------------------------------------------------------------------------------------------------------------------------------------------------+
-| (:person {int16:16,float:1.1100000143051147,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:1493632800000000000,date:17289}) |
-+---------------------------------------------------------------------------------------------------------------------------------------------------------+
++----------------------------------------------------------------------------------------------------------------------------------------------------+
+| n                                                                                                                                                  |
++----------------------------------------------------------------------------------------------------------------------------------------------------+
+| (:person {int16:16,float:1.11,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:"2017-05-01 10:00:00",date:"2017-05-03"}) |
++----------------------------------------------------------------------------------------------------------------------------------------------------+
 
 1 rows
 
-+-------------------------------------------+
-| @plan                                     |
-+-------------------------------------------+
-| Execution Plan:                           |
-| Produce Results                           |
-| Project [n]                               |
-| Expand(All) [n --> m ]                    |
-| Node By Label Scan [n:person]             |
-+-------------------------------------------+
++--------------------------------+
+| @plan                          |
++--------------------------------+
+| ReadOnly:1                     |
+| Execution Plan:                |
+| Produce Results                |
+| Project [n]                    |
+| Expand(All) [n --> m ]         |
+| All Node Scan [n]              |
++--------------------------------+
 
 1 rows
 
@@ -249,9 +251,9 @@ p
 | @profile                                                   |
 +------------------------------------------------------------+
 | Current Pattern Graph:                                     |
-| N[0] n:person (MATCHED)                                    |
-| N[1] m:person (MATCHED)                                    |
-| R[0 --> 1] r:{<1>: is_friend} (MATCHED)                    |
+| N[0] n: (MATCHED)                                          |
+| N[1] m: (MATCHED)                                          |
+| R[0 --> 1] r:{<0>: } (MATCHED)                             |
 | Symbol: [n] type(NODE), scope(LOCAL), symbol_id(0)         |
 | Symbol: [m] type(NODE), scope(LOCAL), symbol_id(2)         |
 | Symbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(1) |
@@ -259,11 +261,11 @@ p
 
 1 rows
 
-+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| p                                                                                                                                                                                                                                                                                                                                                   |
-+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| (:person {int16:16,float:1.1100000143051147,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:1493632800000000000,date:17289})-[:is_friend {message:"hi.."}]->(:person {int16:116,float:11.109999656677246,double:1100.98,int8:18,string:"bar foo",int32:132,int64:164,bool:true,datetime:1525168800000000000,date:17654}) |
-+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| p                                                                                                                                                                                                                                                                                                                                          |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| (:person {int16:16,float:1.11,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:"2017-05-01 10:00:00",date:"2017-05-03"})-[:is_friend {message:"hi.."}]->(:person {int16:116,float:11.11,double:1100.98,int8:18,string:"bar foo",int32:132,int64:164,bool:true,datetime:"2018-05-01 10:00:00",date:"2018-05-03"}) |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 1 rows
 

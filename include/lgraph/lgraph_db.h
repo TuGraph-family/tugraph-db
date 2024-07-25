@@ -1,4 +1,4 @@
-//  Copyright 2024 AntGroup CO., Ltd.
+//  Copyright 2022 AntGroup CO., Ltd.
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
@@ -447,6 +447,10 @@ class GraphDB {
      */
     bool AddEdgeIndex(const std::string &label, const std::string &field, IndexType type);
 
+    bool AddVertexCompositeIndex(const std::string& label,
+                                 const std::vector<std::string>& fields,
+                                 CompositeIndexType type);
+
     /**
      * @brief   Check if this vertex_label:field is indexed.
      *
@@ -473,6 +477,9 @@ class GraphDB {
      */
     bool IsEdgeIndexed(const std::string &label, const std::string &field);
 
+    bool IsVertexCompositeIndexed(const std::string &label,
+                                  const std::vector<std::string> &field);
+
     /**
      * @brief   Deletes the index to 'vertex_label:field'
      *
@@ -487,6 +494,9 @@ class GraphDB {
      * @returns True if it succeeds, false if the index does not exists.
      */
     bool DeleteVertexIndex(const std::string &label, const std::string &field);
+
+    bool DeleteVertexCompositeIndex(const std::string& label,
+                                    const std::vector<std::string>& fields);
 
     /**
      * @brief   Deletes the index to 'edge_label:field'

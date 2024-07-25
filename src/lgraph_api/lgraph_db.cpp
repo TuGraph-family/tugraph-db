@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -200,6 +200,14 @@ bool GraphDB::AddEdgeIndex(const std::string& label, const std::string& field, I
     return db_->AddEdgeIndex(label, field, type);
 }
 
+bool GraphDB::AddVertexCompositeIndex(const std::string& label,
+                                      const std::vector<std::string>& fields,
+                                      lgraph_api::CompositeIndexType type) {
+    THROW_IF_INVALID();
+    THROW_IF_RO();
+    return db_->AddVertexCompositeIndex(label, fields, type);
+}
+
 bool GraphDB::IsVertexIndexed(const std::string& label, const std::string& field) {
     THROW_IF_INVALID();
     return db_->IsVertexIndexed(label, field);
@@ -214,6 +222,20 @@ bool GraphDB::DeleteVertexIndex(const std::string& label, const std::string& fie
     THROW_IF_INVALID();
     THROW_IF_RO();
     return db_->DeleteVertexIndex(label, field);
+}
+
+bool GraphDB::DeleteVertexCompositeIndex(const std::string& label,
+                                         const std::vector<std::string>& fields) {
+    THROW_IF_INVALID();
+    THROW_IF_RO();
+    return db_->DeleteVertexCompositeIndex(label, fields);
+}
+
+bool GraphDB::IsVertexCompositeIndexed(const std::string& label,
+                                       const std::vector<std::string>& field) {
+    THROW_IF_INVALID();
+    THROW_IF_RO();
+    return db_->IsVertexCompositeIndexed(label, field);
 }
 
 bool GraphDB::DeleteEdgeIndex(const std::string& label, const std::string& field) {

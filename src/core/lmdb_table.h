@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 2024 AntGroup CO., Ltd.
+ * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,7 +81,9 @@ class LMDBKvTable final : public KvTable {
      */
     Value GetValue(KvTransaction& txn, const Value& key, bool for_update = false) override;
 
-    /**
+    bool GetValue(KvTransaction& txn, const Value& key, Value& val) override;
+
+        /**
      * Gets number of k-v pairs in the table.
      *
      * \param [in,out]  txn The transaction.
