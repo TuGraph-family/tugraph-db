@@ -210,6 +210,14 @@ class VectorSizeTooLargeException : public LgraphException {
                           field, max_size, dsize) {}
 };
 
+class VectorIndexNotExistException : public LgraphException {
+ public:
+    VectorIndexNotExistException(const std::string& label, const std::string& field)
+        : LgraphException(ErrorCode::IndexNotExist,
+                          "VectorIndex [{}:{}] does not exist.", label, field) {}
+
+};
+
 class UserNotExistException : public LgraphException {
  public:
     explicit UserNotExistException(const std::string& user)

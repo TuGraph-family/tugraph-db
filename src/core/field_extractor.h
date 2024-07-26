@@ -19,6 +19,8 @@
 #include "core/vertex_index.h"
 #include "core/edge_index.h"
 #include "core/schema_common.h"
+#include "core/vector_index_layer.h"
+#include "core/Faiss_IVF_FLAT.h"
 
 namespace lgraph {
 class Schema;
@@ -53,9 +55,11 @@ class FieldExtractor {
     std::unique_ptr<EdgeIndex> edge_index_;
     // fulltext index
     bool fulltext_indexed_ = false;
+    // vector index
+    std::unique_ptr<VectorIndex> vector_index_;
 
  public:
-    FieldExtractor() : null_bit_off_(0), vertex_index_(nullptr), edge_index_(nullptr) {}
+    FieldExtractor() : null_bit_off_(0), vertex_index_(nullptr), edge_index_(nullptr), vector_index_(nullptr) {}
 
     ~FieldExtractor() {}
 
@@ -69,6 +73,16 @@ class FieldExtractor {
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
+        if (rhs.vector_index_ != nullptr) {
+            if (rhs.vector_index_->GetIndexType() == "IVF_FLAT") {
+                vector_index_.reset(new FaissIVFFlat(dynamic_cast<FaissIVFFlat&>(*rhs.vector_index_)));
+            } else {
+                vector_index_.reset(nullptr);
+            }
+        }
+        else {
+            vector_index_.reset(nullptr);
+        }
     }
 
     FieldExtractor& operator=(const FieldExtractor& rhs) {
@@ -82,6 +96,16 @@ class FieldExtractor {
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
+        if (rhs.vector_index_ != nullptr) {
+            if (rhs.vector_index_->GetIndexType() == "IVF_FLAT") {
+                vector_index_.reset(new FaissIVFFlat(dynamic_cast<FaissIVFFlat&>(*rhs.vector_index_)));
+            } else {
+                vector_index_.reset(nullptr);
+            }
+        }
+        else {
+            vector_index_.reset(nullptr);
+        }
         return *this;
     }
 
@@ -97,6 +121,8 @@ class FieldExtractor {
         rhs.vertex_index_ = nullptr;
         rhs.edge_index_ = nullptr;
         fulltext_indexed_ = rhs.fulltext_indexed_;
+        vector_index_ = std::move(rhs.vector_index_);
+        rhs.vector_index_ = nullptr;
     }
 
     FieldExtractor& operator=(FieldExtractor&& rhs) noexcept {
@@ -110,6 +136,7 @@ class FieldExtractor {
         vertex_index_ = std::move(rhs.vertex_index_);
         edge_index_ = std::move(rhs.edge_index_);
         fulltext_indexed_ = rhs.fulltext_indexed_;
+        vector_index_ = std::move(rhs.vector_index_);
         return *this;
     }
 
@@ -118,6 +145,7 @@ class FieldExtractor {
         is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         vertex_index_ = nullptr;
         edge_index_ = nullptr;
+        vector_index_ = nullptr;
         null_bit_off_ = 0;
         if (is_vfield_) SetVLayoutInfo(d.optional ? 1 : 0, 1, 0);
     }
@@ -267,12 +295,17 @@ class FieldExtractor {
 
     bool FullTextIndexed() const { return fulltext_indexed_; }
 
+    VectorIndex* GetVectorIndex() const { return vector_index_.get(); }
+
     size_t GetFieldId() const { return field_id_; }
 
  private:
     void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
 
     void SetEdgeIndex(EdgeIndex* edgeindex) { edge_index_.reset(edgeindex); }
+
+    void SetVectorIndex(VectorIndex* vectorindex) { vector_index_.reset(vectorindex); }
+
     void SetFullTextIndex(bool fulltext_indexed) { fulltext_indexed_ = fulltext_indexed; }
 
     void SetFixedLayoutInfo(size_t offset) {

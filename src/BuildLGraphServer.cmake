@@ -34,6 +34,9 @@ include_directories(${DEPS_INCLUDE_DIR})
 set(BRPC_LIB libbrpc.a)
 set(BRAFT_LIB libbraft.a)
 
+# faiss
+include_directories(${PROJECT_SOURCE_DIR}/faiss)
+
 ############### liblgraph_server_lib ######################
 
 set(TARGET_SERVER_LIB lgraph_server_lib)
@@ -51,6 +54,7 @@ add_library(${TARGET_SERVER_LIB} STATIC
         import/import_online.cpp
         import/import_v2.cpp
         import/import_v3.cpp
+        import/graphar_parser.cpp
         restful/server/rest_server.cpp
         restful/server/stdafx.cpp
         http/http_server.cpp
@@ -72,6 +76,9 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             lgraph_cypher_lib
             geax_isogql
             bolt
+            gar
+            faiss
+            faiss_env
             # begin static linking
             -Wl,-Bstatic
             cpprest
@@ -111,6 +118,7 @@ else ()
             cpprest
             boost_thread
             boost_chrono
+            gar
             profiler
             snappy
             pthread
@@ -129,6 +137,7 @@ add_executable(${TARGET_SERVER}
 
 target_link_libraries(${TARGET_SERVER}
         ${TARGET_SERVER_LIB}
-        librocksdb.a)
-
-
+        librocksdb.a
+        faiss
+        faiss_env
+)

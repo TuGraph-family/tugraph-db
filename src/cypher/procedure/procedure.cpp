@@ -30,7 +30,9 @@
 #include "cypher/monitor/memory_monitor_allocator.h"
 #include "fma-common/encrypt.h"
 #include "import/import_v3.h"
-#include "server/bolt_session.h"
+
+#include <regex>
+#include <tuple>
 
 namespace cypher {
 
@@ -525,7 +527,6 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
                      "need two parameters, e.g. db.upsertVertex(label_name, list_data)");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::LIST, "list_data type should be list")
-    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     const auto& list = args[1].List();
     lgraph_api::GraphDB db(ctx->ac_db_.get(), false);
@@ -620,7 +621,6 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
                      "list_data type should be json string")
-    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     nlohmann::json json_data = nlohmann::json::parse(args[1].String());
     if (!json_data.is_array()) {
@@ -719,7 +719,6 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
     CYPHER_ARG_CHECK(args[2].type == parser::Expression::MAP,
                      "end_spec type should be map")
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::LIST, "list_data type should be list")
-    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     const auto& start = args[1].Map();
     if (!start.count("type") || !start.count("key")) {
@@ -881,7 +880,6 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
                      "end_spec type should be json string")
     CYPHER_ARG_CHECK(args[3].type == parser::Expression::STRING,
                      "list_data type should be json string")
-    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     nlohmann::json json_data = nlohmann::json::parse(args[3].String());
     if (!json_data.is_array()) {
@@ -1645,25 +1643,6 @@ void BuiltinProcedure::DbmsMetaRefreshCount(RTContext *ctx, const Record *record
     if (ctx->txn_) ctx->txn_->Abort();
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     ac_db.RefreshCount();
-}
-
-void BuiltinProcedure::DbmsSecurityIsDefaultUserPassword(RTContext *ctx,
-                                                         const cypher::Record *record,
-                                                         const cypher::VEC_EXPR &args,
-                                                         const cypher::VEC_STR &yield_items,
-                                                         std::vector<Record> *records) {
-    CYPHER_ARG_CHECK(
-        args.size() == 0,
-        "need 0 parameters, e.g. dbms.security.isDefaultUserPassword()")
-    if (ctx->txn_) ctx->txn_->Abort();
-    bool is_default_user_password = false;
-    if (ctx->bolt_conn_) {
-        auto session = (bolt::BoltSession*)(ctx->bolt_conn_->GetContext());
-        is_default_user_password = session->using_default_user_password;
-    }
-    Record r;
-    r.AddConstant(lgraph::FieldData(is_default_user_password));
-    records->emplace_back(r.Snapshot());
 }
 
 void BuiltinProcedure::DbmsSecurityChangePassword(RTContext *ctx, const cypher::Record *record,
@@ -3899,4 +3878,192 @@ void SpatialFunc::Distance(RTContext *ctx, const cypher::Record *record,
     records->emplace_back(r.Snapshot());
 }
 
+void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK((args.size() >= 6 && args.size() <= 8), 
+                     "e.g. vector.addVectorIndex(label_name, field_name, index_type, vec_dimension, distance_type, index_spec);");
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string");
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string");
+    CYPHER_ARG_CHECK((args[2].String() == "IVF_FLAT"), 
+                      "Index type should be one of them : IVF_FLAT");
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
+    CYPHER_ARG_CHECK((args[4].String() == "L2" || args[4].String() == "IP"), 
+                      "Distance type should be one of them : L2, IP");
+    std::vector<int> index_spec;                  
+    switch(args.size()) {
+        case 6:
+            CYPHER_ARG_CHECK((args[5].type == parser::Expression::INT && args[5].Int() <= 65536 && args[5].Int() >= 1), 
+                      "Please check the parameter, nlist should be an integer in the range [1,65536]");
+            index_spec.emplace_back(args[5].Int());
+            break;
+        default:
+            throw lgraph::ReminderException("Please check the number of parameter!");
+    }
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].String();
+    auto field = args[1].String();
+    auto index_type = args[2].String();
+    auto vec_dimension = args[3].Int();
+    auto distance_type = args[4].String();
+    lgraph::IndexType type = lgraph::IndexType::GlobalUniqueIndex;
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    bool success = ac_db.AddVectorIndex(label, field, index_type, vec_dimension, distance_type, index_spec, type);
+    if (!success) {
+        throw lgraph::IndexExistException(label, field);
+    }
+}
+
+void VectorFunc::DeleteVectorIndex(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 5, 
+                     "e.g. vector.deleteVectorIndex(label_name, field_name, index_type, vec_dimension, distance_type);");
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string");
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string");
+    CYPHER_ARG_CHECK((args[2].String() == "IVF_FLAT"), 
+                      "Index type should be one of them : IVF_FLAT");
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
+    CYPHER_ARG_CHECK((args[4].String() == "L2" || args[4].String() == "IP"), 
+                      "Distance type should be one of them : L2, IP");
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].String();
+    auto field = args[1].String();
+    auto index_type = args[2].String();
+    auto vec_dimension = args[3].Int();
+    auto distance_type = args[4].String();
+    bool success = ctx->ac_db_->DeleteVectorIndex(label, field, index_type, vec_dimension, distance_type);
+    if (!success) {
+        throw lgraph::IndexNotExistException(label, field);
+    }
+   
+}
+
+void VectorFunc::ShowVectorIndex(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 0, 
+                     "e.g. vector.showVectorIndex();");             
+    auto raw_txn = ctx->txn_->GetTxn();
+    lgraph::Transaction& txn = *raw_txn;
+    std::vector<std::string> name_table;
+    if(ctx->ac_db_->GetLightningGraph()->GetIndextableName(txn.GetTxn(), name_table)) {
+        for (auto& name : name_table) { 
+            std::regex re(R"(_@lgraph@_|vector_index)"); 
+            auto words_begin = std::sregex_token_iterator(name.begin(), name.end(), re, -1, std::regex_constants::match_not_bol | std::regex_constants::match_not_eol);  
+            auto words_end = std::sregex_token_iterator();  
+            Record r;
+            for (std::sregex_token_iterator i = words_begin; i != words_end; ++i) {  
+                if (!i->str().empty()) {
+                    r.AddConstant(lgraph::FieldData(i->str()));  
+                }  
+            }
+            records->emplace_back(r.Snapshot());    
+        }
+    } else {
+        throw lgraph::ReminderException("There is no vector index!");
+    }
+}
+
+void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() >= 5, 
+                     "e.g. vector.VectorIndexQuery(label_name, field_name, vec, num_of_return, query_spec);");
+    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING, "label_name type should be string");
+    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING, "field_name type should be string");
+    CYPHER_ARG_CHECK(args[2].type == parser::Expression::LIST,  "Please check the vector you entered, e.g. [1, 2, 3]");
+    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "num_of_return should be integer");
+    CYPHER_ARG_CHECK(args[4].type == parser::Expression::INT, "query_spec should be integer");
+    std::vector<float> query_vector;
+    for (size_t i = 0; i < args[2].List().size(); ++i) {
+        float fltValue;
+        if (args[2].List().at(i).type == parser::Expression::INT) {
+            int dblValue = args[2].List().at(i).Int();
+            fltValue = static_cast<float>(dblValue);
+        } else {
+            double dblValue = args[2].List().at(i).Double();
+            fltValue = static_cast<float>(dblValue);
+        }
+        query_vector.emplace_back(fltValue);
+    }
+    auto raw_txn = ctx->txn_->GetTxn();
+    lgraph::Transaction& txn = *raw_txn;
+    auto SchemaInfo = ctx->txn_->GetTxn()->GetSchemaInfo();
+    //SchemaInfoGetSchema(args[0].String(), true);
+    ::lgraph::Schema* schema = SchemaInfo.v_schema_manager.GetSchema(args[0].String());
+    auto extr = schema->GetFieldExtractor(args[1].String());
+    if (!extr->GetVertexIndex()) {
+        throw lgraph::VectorIndexNotExistException(args[0].String(), args[1].String());
+    }
+    auto index_type = extr->GetVectorIndex()->GetIndexType();
+    if (index_type == "IVF_FLAT") {
+        CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT && args[4].Int() <= 65536 && args[4].Int() >= 1), 
+                         "Please check the parameter, nprobe should be an integer in the range [1,65536]");
+        std::vector<float> index_distances;
+        std::vector<int64_t> index_indices;
+        std::vector<float> Flat_distances;
+        std::vector<int64_t> Flat_indices;
+        std::vector<std::tuple<std::string, std::string, float>> SearchResult;
+        int64_t count = 0;
+        lgraph::VectorIndex* index = extr->GetVectorIndex();
+        if (index->GetWhetherRebuild()) {
+            auto success = index->SetSearchSpec(args[4].Int());
+            auto result = index->Search(query_vector, static_cast<size_t>(args[3].Int()), index_distances, index_indices);
+            if (result && success) {
+                auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+                for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                    auto prop = kv_iter->GetValue();
+                    if (extr->GetIsNull(prop)) {
+                        continue;
+                    }
+                    auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                    auto vector = extr->GetConstRef(prop).AsType<std::vector<float>>();
+                    for (size_t i = 0; i < index_distances.size(); ++i) {
+                        if (count == index_indices[i]) {
+                            SearchResult.emplace_back(make_tuple(std::to_string(vid), fma_common::ToString(vector), index_distances[i]));
+                        }
+                    }
+                    count++;
+                }
+            }
+        }
+        if (index->GetVectorIndexManager()->getCount() != 0) {
+            if (index->GetFlatSearchResult(txn.GetTxn(), query_vector, static_cast<size_t>(args[3].Int()), Flat_distances, Flat_indices)) {
+                auto kv_iter = index->GetTable()->GetIterator(txn.GetTxn());
+                for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                    auto prop = kv_iter->GetValue();
+                    auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                    auto vector = prop.AsType<std::vector<float>>();
+                    for (size_t i = 0; i < Flat_distances.size(); ++i) {
+                        if (count == Flat_indices[i]) {
+                            SearchResult.emplace_back(make_tuple(std::to_string(vid), fma_common::ToString(vector), Flat_distances[i]));
+                        }
+                    }
+                    count++;
+                }
+            }
+        }
+        auto compare_by_float = [](const std::tuple<std::string, std::string, float>& a,  
+                               const std::tuple<std::string, std::string, float>& b) {  
+            return std::get<2>(a) < std::get<2>(b);  
+        };
+        std::partial_sort(SearchResult.begin(), SearchResult.begin() + SearchResult.size(), SearchResult.end(), compare_by_float);
+        for (int i = 0; i < args[3].Int(); ++i) {
+            Record r;
+            r.AddConstant(::lgraph::FieldData(std::get<0>(SearchResult.at(i))));
+            r.AddConstant(::lgraph::FieldData(args[0].String()));
+            r.AddConstant(::lgraph::FieldData(args[1].String()));
+            r.AddConstant(::lgraph::FieldData(std::get<1>(SearchResult.at(i))));
+            r.AddConstant(::lgraph::FieldData(std::get<2>(SearchResult.at(i))));
+            records->emplace_back(r.Snapshot()); 
+        }
+    } else {
+        throw lgraph::ReminderException("Please check the number of parameter!");
+    }          
+}
 }  // namespace cypher
