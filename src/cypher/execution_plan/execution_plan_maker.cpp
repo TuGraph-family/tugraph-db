@@ -352,10 +352,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         ++filter_level_;
     }
     std::reverse(expand_ops.begin(), expand_ops.end());
-    // For the exists pattern query, SemiAllpy is simulated by combining Limit Optional and ExpandAll operators.
-    // e.g MATCH (n {name:'Rachel Kempson'}),(m:Person) RETURN exists((n)-[:MARRIED]->(m))
-    // The resulting execution plan is as follows
-    // Produce Results
+    // For the exists pattern query, SemiAllpy is simulated by combining Limit Optional and
+    // ExpandAll operators. e.g MATCH (n {name:'Rachel Kempson'}),(m:Person) RETURN
+    // exists((n)-[:MARRIED]->(m)) The resulting execution plan is as follows Produce Results
     //    Project [exists((n)-[:MARRIED]->(m))]
     //      Apply
     //          Limit [1]
