@@ -5,7 +5,7 @@ VectorIndex::VectorIndex(const std::string& label, const std::string& name, cons
     : label_(label), name_(name), distance_type_(distance_type), index_type_(index_type), 
       vec_dimension_(vec_dimension), index_spec_(index_spec),
       query_spec_(10),
-      vector_index_manager_(size_t(0), label, name), table_(std::move(table)), rebuild_(false) {}
+      vector_index_manager_(size_t(0)), table_(std::move(table)), rebuild_(false) {}
 
 VectorIndex::VectorIndex(const VectorIndex& rhs)
     : label_(rhs.label_), 

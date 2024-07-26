@@ -3,14 +3,11 @@
 
 namespace lgraph {
 
-VectorIndexManager::VectorIndexManager(size_t count, std::string label, std::string name)  
-    : label_(label), name_(name),
-      count_(count),  indexed_(false){}
+VectorIndexManager::VectorIndexManager(size_t count)  
+    : count_(count),  indexed_(false){}
 
 VectorIndexManager::VectorIndexManager(const VectorIndexManager& rhs)
-    : label_(rhs.label_), 
-      name_(rhs.name_),
-      count_(rhs.count_),
+    : count_(rhs.count_),
       indexed_(rhs.indexed_) {}
 
 
