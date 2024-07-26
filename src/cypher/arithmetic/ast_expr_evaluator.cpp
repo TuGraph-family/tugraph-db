@@ -324,7 +324,10 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
         // Evalute Mode
         if (visit_mode_ == VisitMode::EVALUATE) {
             if (agg_pos_ >= agg_ctxs_.size()) {
-                return Entry(cypher::FieldData(lgraph_api::FieldData(0)));
+                if (func_name == "count") {
+                    return Entry(cypher::FieldData(lgraph_api::FieldData(0)));
+                }
+                return Entry(cypher::FieldData(lgraph_api::FieldData()));
             }
             return agg_ctxs_[agg_pos_++]->result;
         } else if (visit_mode_ == VisitMode::AGGREGATE) {
@@ -362,7 +365,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BAggFunc* node) {
         // Evalute Mode
         if (visit_mode_ == VisitMode::EVALUATE) {
             if (agg_pos_ >= agg_ctxs_.size()) {
-                return Entry(cypher::FieldData(lgraph_api::FieldData(0)));
+                return Entry(cypher::FieldData(lgraph_api::FieldData()));
             }
             return agg_ctxs_[agg_pos_++]->result;
         } else if (visit_mode_ == VisitMode::AGGREGATE) {
