@@ -125,19 +125,19 @@ class NodeIndexSeekDynamic : public OpBase {
                 switch (node_->Prop().type) {
                 case Property::VARIABLE:
                 {
-                        if (map_field_name_ != "") {
-                            auto map = constant.map;
-                            if (map->find(map_field_name_) == map->end()) {
-                                throw lgraph::CypherException("Undefined property: "
+                    if (map_field_name_ != "") {
+                        auto map = constant.map;
+                        if (map->find(map_field_name_) == map->end()) {
+                            throw lgraph::CypherException("Undefined property: "
                                                             + map_field_name_);
-                            }
+                        }
                             value = map->at(map_field_name_).scalar;
                             break;
-                        } else {
+                    } else {
                             auto scalar = constant.scalar;
                             value = scalar;
                             break;
-                        }
+                    }
                 }
                 default:
                     CYPHER_INTL_ERR();
