@@ -401,7 +401,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MkList* node) {
     std::vector<::lgraph::FieldData> list;
     for (auto& e : elems) {
         auto entry = std::any_cast<Entry>(e->accept(*this));
-        if (!entry.IsScalar()) NOT_SUPPORT_AND_THROW();
+        if (!entry.IsConstant()) NOT_SUPPORT_AND_THROW();
         list.emplace_back(entry.constant.scalar);
     }
     return Entry(cypher::FieldData(list));
@@ -414,7 +414,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MkMap* node) {
         auto key = std::any_cast<Entry>(std::get<0>(pair)->accept(*this));
         auto val = std::any_cast<Entry>(std::get<1>(pair)->accept(*this));
         if (!key.IsString()) NOT_SUPPORT_AND_THROW();
-        if (!val.IsScalar()) NOT_SUPPORT_AND_THROW();
+        if (!val.IsConstant()) NOT_SUPPORT_AND_THROW();
         map.emplace(key.constant.ToString(), val.constant.scalar);
     }
     return Entry(cypher::FieldData(map));

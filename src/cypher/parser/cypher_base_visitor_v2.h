@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <vector>
 #include "antlr4-runtime/antlr4-runtime.h"
 #include "parser/generated/LcypherVisitor.h"
 #include "cypher/cypher_exception.h"
@@ -82,7 +83,8 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     static const std::unordered_map<std::string, geax::frontend::GeneralSetFunction> S_AGG_LIST;
     static const std::unordered_map<std::string, geax::frontend::BinarySetFunction> S_BAGG_LIST;
     geax::frontend::PathChain* path_chain_;
-    geax::frontend::FilterStatement* filter_in_with_clause_;
+    std::vector<geax::frontend::FilterStatement*> filter_in_with_clauses_;
+    size_t filter_in_with_idx_;
     parser::CmdType cmd_type_;
     std::unordered_map<std::string, std::stack<std::string>> list_comprehension_anonymous_symbols_;
     std::unordered_map<std::string, int32_t> list_comprehension_anonymous_idx_;
