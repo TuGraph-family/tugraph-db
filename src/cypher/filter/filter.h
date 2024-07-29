@@ -494,7 +494,7 @@ class RangeFilter : public Filter {
                     if (map_field_name != "") {
                         auto map = constant.map;
                         if (map->find(map_field_name) == map->end()) {
-                            throw lgraph::CypherException("Undefined property: " + map_field_name);
+                            throw lgraph::CypherException("Undefined map_field_name: " + map_field_name);
                         }
                         right = cypher::Entry(map->at(map_field_name).scalar);
                     } else {
