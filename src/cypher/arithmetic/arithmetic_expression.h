@@ -59,11 +59,7 @@ static cypher::FieldData Add(const cypher::FieldData &x, const cypher::FieldData
     if (x.IsNull() || y.IsNull()) return cypher::FieldData();
     cypher::FieldData ret;
     if (x.type == cypher::FieldData::ARRAY || y.type == cypher::FieldData::ARRAY) {
-<<<<<<< HEAD
-        ret.array = new std::vector<::cypher::FieldData>();
-=======
         ret.array = new std::vector<cypher::FieldData>();
->>>>>>> master
         ret.type = cypher::FieldData::ARRAY;
         AddList(ret, x);
         AddList(ret, y);

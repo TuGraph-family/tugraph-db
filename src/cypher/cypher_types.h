@@ -394,10 +394,7 @@ struct FieldData {
         }
         throw std::runtime_error("internal error: unhandled type: " + std::to_string((int)type));
     }
-<<<<<<< HEAD
-=======
-
->>>>>>> master
+    
     inline bool AsBool() const {
         return scalar.AsBool();
     }

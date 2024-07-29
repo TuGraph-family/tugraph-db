@@ -123,31 +123,6 @@ class NodeIndexSeekDynamic : public OpBase {
             if (value_rec_idx_ < 0) {
                 value = value_;
             } else {
-<<<<<<< HEAD
-                auto constant = record->values[value_rec_idx_].constant;
-                switch (node_->Prop().type) {
-                case Property::VARIABLE:
-                {
-                    if (hasMapFieldName) {
-                        auto map = constant.map;
-                        if (map->find(map_field_name_) == map->end()) {
-                            throw lgraph::CypherException("Undefined property: "
-                                                            + map_field_name_);
-                        }
-                            value = map->at(map_field_name_).scalar;
-                            break;
-                    } else {
-                            auto scalar = constant.scalar;
-                            value = scalar;
-                            break;
-                    }
-                }
-                default:
-                    CYPHER_INTL_ERR();
-                }
-            }
-
-=======
                 if (record->values[value_rec_idx_].constant.IsMap()) {
                     auto map_data = *(record->values[value_rec_idx_].constant.map);
                     value = map_data[node_->Prop().map_field_name].scalar;
@@ -157,7 +132,6 @@ class NodeIndexSeekDynamic : public OpBase {
                     value = record->values[value_rec_idx_].constant.scalar;
                 }
             }
->>>>>>> master
             if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
                 it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER,
                                 node_->Label(), field_, value, value);
