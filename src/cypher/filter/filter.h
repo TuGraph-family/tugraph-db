@@ -484,6 +484,7 @@ class RangeFilter : public Filter {
                     }
                     auto value_alias = _ae_right.operand.variable._value_alias;
                     auto map_field_name = _ae_right.operand.variable._map_field_name;
+                    auto hasMapFieldName = _ae_right.operand.variable.hasMapFieldName;
                     auto it = sym_tab_->symbols.find(value_alias);
                     if (it == sym_tab_->symbols.end()) {
                         throw lgraph::CypherException("Undefined variable: " + value_alias);
@@ -491,7 +492,7 @@ class RangeFilter : public Filter {
                     int value_rec_idx_ = it->second.id;
                     cypher::FieldData constant = record.values[value_rec_idx_].constant;
 
-                    if (map_field_name != "") {
+                    if (hasMapFieldName) {
                         auto map = constant.map;
                         if (map->find(map_field_name) == map->end()) {
                             throw lgraph::CypherException("Undefined map_field_name: "
