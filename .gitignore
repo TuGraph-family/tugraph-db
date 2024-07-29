@@ -67,6 +67,7 @@ build
 *.ttl
 release/doc/*.html
 src/restful/server/resource/
+src/restful/server/browser-resource/
 src/server/restful/server/resource/
 .idea
 .code-workspace

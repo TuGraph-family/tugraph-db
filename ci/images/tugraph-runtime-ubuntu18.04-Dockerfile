@@ -115,5 +115,3 @@ ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:$PATH
 
-ENV LANG     zh_CN.UTF-8
-ENV LC_ALL   zh_CN.UTF-8

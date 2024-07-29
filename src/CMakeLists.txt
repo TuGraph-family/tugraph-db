@@ -14,14 +14,14 @@ include(BuildClients.cmake)
 include(BuildCythonExtension.cmake)
 include(BuildBoltLib.cmake)
 
-install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_client_python lgraph_db_python
+install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_db_python
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib64)
 install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
         DESTINATION share/lgraph)
 install(DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/../deps/tugraph-db-browser
+        ${CMAKE_CURRENT_LIST_DIR}/restful/server/browser-resource
         DESTINATION share/lgraph)
 # install procedure demos
 install(DIRECTORY
@@ -31,6 +31,13 @@ install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v2_pagerank.cpp
         ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/scan_graph.py
         DESTINATION share/lgraph/resource/procedure_demo/)
+install(DIRECTORY
+        DESTINATION share/lgraph/browser-resource/procedure_demo/)
+install(FILES
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v1_scan_graph.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v2_pagerank.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/scan_graph.py
+        DESTINATION share/lgraph/browser-resource/procedure_demo/)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/python/lgraph_task_runner.py
         DESTINATION bin)
@@ -54,13 +61,13 @@ add_custom_command(TARGET lgraph_server
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
+        ${CMAKE_CURRENT_LIST_DIR}/restful/server/browser-resource
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource)
-add_custom_command(TARGET lgraph_server
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/)
+#add_custom_command(TARGET lgraph_server
+#        POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy_directory
+#        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/
+#        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink

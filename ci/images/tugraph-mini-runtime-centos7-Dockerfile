@@ -24,7 +24,4 @@ RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
 
 ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
 
-# set locale
-RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
-ENV LANG     zh_CN.utf8
-ENV LC_ALL   zh_CN.utf8
+CMD lgraph_server -d run
