@@ -431,12 +431,13 @@ struct ArithOperandNode {
         SetVariadic(alias);
         variadic.entity_prop = property;
     }
-    void SetVariable(const bool &hasMapFieldName = false, const std::string &value_alias = "", const std::string &map_field_name = "") {
+    void SetVariable(const bool &hasMapFieldName = false, const std::string &value_alias = "",
+                    const std::string &map_field_name = "") {
         type = AR_OPERAND_VARIABLE;
         variable.hasMapFieldName = hasMapFieldName;
         variable._value_alias = value_alias;
         variable._map_field_name = map_field_name;
-    };
+    }
 
     void SetEntity(const std::string &alias, const SymbolTable &sym_tab);
 
@@ -723,7 +724,8 @@ struct ArithExprNode {
     }
 
     void SetOperandVariable(ArithOperandNode::ArithOperandType operand_type,
-                    const bool &hasMapFieldName = false, const std::string &value_alias = "", const std::string &map_field_name = "") {
+                    const bool &hasMapFieldName = false, const std::string &value_alias = "",
+                    const std::string &map_field_name = "") {
         CYPHER_THROW_ASSERT(operand_type == ArithOperandNode::AR_OPERAND_VARIABLE);
         type = AR_EXP_OPERAND;
         operand.SetVariable(hasMapFieldName, value_alias, map_field_name);

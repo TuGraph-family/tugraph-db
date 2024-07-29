@@ -35,7 +35,7 @@ struct Property {
         NUL,        // empty
         PARAMETER,  // {name:$name}
         VALUE,      // {name:'Tom Hanks'}
-        VARIABLE,   // UNWIND [1,2] AS mid MATCH (n {id:mid}) || WITH {a: 1, b: 2} as pair MATCH (n {id: pair.a})
+        VARIABLE,   // UNWIND [1,2] AS mid MATCH (n {id:mid}) || WITH {a: 1, b: 2} as pair
     } type;
 
     Property() : type(NUL) {}
