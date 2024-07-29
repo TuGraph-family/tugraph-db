@@ -596,13 +596,32 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         p.type = Property::VARIABLE;
         p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
         if (is_end_path_) {
-            NOT_SUPPORT();
+            auto right = objAlloc_.allocate<geax::frontend::Ref>();
+            auto val = ((geax::frontend::Ref*)value)->name();
+            right->setName(std::move(val));
+            expr->setRight(right);
         }
     } else if (value->type() == geax::frontend::AstNodeType::kParam) {
         p.type = Property::PARAMETER;
         p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
         if (is_end_path_) {
-            NOT_SUPPORT();
+            auto right = objAlloc_.allocate<geax::frontend::Ref>();
+            auto val = ((geax::frontend::Param*)value)->name();
+            right->setName(std::move(val));
+            expr->setRight(right);
+        }
+    } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+        p.type = Property::VARIABLE;
+        p.value_alias = ((geax::frontend::Ref*)((
+                         (geax::frontend::GetField*)value)->expr()))->name();
+        p.value = lgraph::FieldData(p.value_alias);
+        p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
+        if (is_end_path_) {
+            auto right = objAlloc_.allocate<geax::frontend::GetField>();
+            auto field_name = ((geax::frontend::GetField*)value)->fieldName();
+            right->setFieldName(std::move(field_name));
+            right->setExpr(((geax::frontend::GetField*)value)->expr());
+            expr->setRight(right);
         }
     } else {
         NOT_SUPPORT();
@@ -1051,7 +1070,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
     }
 
-    auto p = global_ptable_v2.GetProcedureV2(name);
+    auto p = global_ptable.GetProcedure(name);
     if (p == nullptr) {
         result_info_.header.colums.emplace_back(name);
     } else {

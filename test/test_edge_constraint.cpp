@@ -138,13 +138,13 @@ TEST_F(TestEdgeConstraint, cypher) {
         lgraph::_detail::DEFAULT_ADMIN_NAME,
         "default");
 
-    eval_scripts(&db, {"CALL db.createVertexLabel('v1', 'id', 'id', STRING, false)"});
-    eval_scripts(&db, {"CALL db.createVertexLabel('v2', 'id', 'id', STRING, false)"});
-    eval_scripts(&db, {"CALL db.createVertexLabel('v3', 'id', 'id', STRING, false)"});
+    eval_scripts(&db, {"CALL db.createVertexLabel('v1', 'id', 'id', 'STRING', false)"});
+    eval_scripts(&db, {"CALL db.createVertexLabel('v2', 'id', 'id', 'STRING', false)"});
+    eval_scripts(&db, {"CALL db.createVertexLabel('v3', 'id', 'id', 'STRING', false)"});
     UT_EXPECT_THROW_MSG(
-        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v4", "v2"]]', 'weight', FLOAT, false))"}),
+        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v4", "v2"]]', 'weight', 'FLOAT', false))"}),
         "No such vertex label");
-    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v1", "v2"]]', 'weight', FLOAT, false))"});
+    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v1", "v2"]]', 'weight', 'FLOAT', false))"});
     eval_scripts(&db, {"CREATE (:v1 {id:'1'}), (:v2 {id:'2'}), (:v3 {id:'3'})"});
     eval_scripts(&db, {"MATCH (a:v1 {id:'1'}),(b:v2 {id:'2'}) CREATE (a)-[:v1_v2{weight:1}]->(b)"});
     std::string constraints_err_msg = "Does not meet the edge constraints";
@@ -163,9 +163,9 @@ TEST_F(TestEdgeConstraint, cypher) {
 
     // test exception
     UT_EXPECT_THROW_MSG(
-        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v4", "v2"],["v4", "v2"]]', 'weight', FLOAT, false))"}),
+        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v4", "v2"],["v4", "v2"]]', 'weight', 'FLOAT', false))"}),
         "Duplicate constraints");
-    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v2", "v3"]]', 'weight', FLOAT, false))"});
+    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v2", "v3"]]', 'weight', 'FLOAT', false))"});
     UT_EXPECT_THROW_MSG(
         eval_scripts(&db, {R"(CALL db.addEdgeConstraints('v2_v3', '[["v2", "v3"]]'))"}),
         "already exist");

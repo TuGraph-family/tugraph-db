@@ -41,7 +41,7 @@ MATCH (m:Person)-[r:BORN_IN]->(n:City) WHERE n.name = 'London' and r.weight >= 1
 MATCH (n:City) RETURN collect(n.name) + n.name;
 Variables cannot be used outside of the Agg function, for example: sum(n) + m
 MATCH (n:Person) RETURN NOT n.nam;
-[ParserException] ParserException: Type error
+[ParserException] Type error
 MATCH (n:Person) RETURN -n.name;
 [CypherException] CypherException: Type mismatch: expect Integer or Float in sub expr
 REMOVE a.name;
@@ -67,7 +67,7 @@ DELETE [x in [1, 2, 3] | x];
 DELETE TRUE;
 [InputError] Type mismatch: expected Node, Path or Relationship
 MERGE (n:null {id: 2909}) RETURN n;
-[CypherException] No such vertex label: null
+[CypherException] CypherException: cannot match node with given label and properties
 MATCH (n:Person {name:'Liam Neeson'}), (m:Person {name:'Liam Neeson'}), (o:Person {name:'Liam Neeson'}) WHERE custom.myadd('asd')='1' RETURN 1;
 [InputError] Plugin [custom.myadd] does not exist.
 MATCH (movie)<-[r]-(n) WITH n,n MATCH (n1) RETURN n1 LIMIT 1;

@@ -829,17 +829,19 @@ void test_label(lgraph::RpcClient& client) {
     // db.addLabel test
     bool ret = client.CallCypher(
         str,
-        "CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)");
+        "CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)");
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(
         str,
-        "CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)");
+        "CALL db.createVertexLabel('actor', 'name', 'name', 'string', "
+        "false, 'age', 'int8', true)");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(
         str,
-        "CALL db.createVertexLabel('dirctor', 'name', 'name', string, false, 'age', int8, true)");
+        "CALL db.createVertexLabel('dirctor', 'name', 'name', 'string', "
+        "false, 'age', 'int8', true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.vertexLabels()");
     UT_EXPECT_TRUE(ret);
@@ -860,7 +862,7 @@ void test_label(lgraph::RpcClient& client) {
     UT_EXPECT_FALSE(HasElement(json_val, "dirctor", "label"));
     ret = client.CallCypher(
         str,
-        "CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)");
+        "CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)");
     UT_EXPECT_TRUE(ret);
 }
 
@@ -868,39 +870,40 @@ void test_relationshipTypes(lgraph::RpcClient& client) {
     UT_LOG() << "test createEdgeLabel , deleteLabel , edgeLabels";
     std::string str;
     bool ret = client.CallCypher(str,
-                                 "CALL db.createEdgeLabel('followed', '[]', 'address', string, "
-                                 "false, 'date', int32, false)");
+                                 "CALL db.createEdgeLabel('followed', '[]', 'address', 'string', "
+                                 "false, 'date', 'int32', false)");
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str,
-                            "CALL db.createEdgeLabel('followed', '[]', 'address', string, false, "
-                            "'date', int32, false)");
+                            "CALL db.createEdgeLabel('followed', '[]', 'address', 'string', false, "
+                            "'date', 'int32', false)");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(
         str,
-        "CALL db.createEdgeLabel('followed', '[[\"df\",[\"wq\"]]]', 'address', string, false, "
-        "'date', int32, false)");
+        "CALL db.createEdgeLabel('followed', '[[\"df\",[\"wq\"]]]', 'address', 'string', false, "
+        "'date', 'int32', false)");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str,
-                            "CALL db.createLabel('edge', 'name', '[\"df\"]', ['zv', string, "
-                            "true], ['zz', int8, false])");
+                            "CALL db.createLabel('edge', 'name', '[\"df\"]', ['zv', 'string', "
+                            "true], ['zz', 'int8', false])");
     UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(
         str,
-        "CALL db.createLabel('edge', 'name', '[[\"df\",[\"wq\"]]]', ['zv', string, "
-        "true], ['zz', int8, false])");
+        "CALL db.createLabel('edge', 'name', '[[\"df\",[\"wq\"]]]', ['zv', 'string', "
+        "true], ['zz', 'int8', false])");
     UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(
         str,
-        "CALL db.createLabel('edge', 'followed', '[[\"df\",\"wq\"]]', ['zv', string, "
-        "true], ['zz', int8, false])");
+        "CALL db.createLabel('edge', 'followed', '[[\"df\",\"wq\"]]', ['zv', 'string', "
+        "true], ['zz', 'int8', false])");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(
         str,
-        "CALL db.createEdgeLabel('married', '[]', 'address', string, false, 'date', int32, false)");
+        "CALL db.createEdgeLabel('married', '[]', 'address', 'string', "
+        "false, 'date', 'int32', false)");
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.edgeLabels()");
@@ -921,7 +924,8 @@ void test_relationshipTypes(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(HasElement(json_val, "married", "label"), false);
     ret = client.CallCypher(
         str,
-        "CALL db.createEdgeLabel('married', '[]', 'address', string, false, 'date', int32, false)");
+        "CALL db.createEdgeLabel('married', '[]', 'address', 'string', "
+        "false, 'date', 'int32', false)");
     UT_EXPECT_TRUE(ret);
 }
 
@@ -932,7 +936,7 @@ void test_index(lgraph::RpcClient& client) {
     bool ret = client.CallCypher(str, "CALL db.addIndex('actor', 'age', false)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(
-        str, "CALL db.createEdgeLabel('index_edge', '[]', 'index_value', string, false)");
+        str, "CALL db.createEdgeLabel('index_edge', '[]', 'index_value', 'string', false)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.addIndex(true, 'actor', 'age')");
     UT_EXPECT_FALSE(ret);
@@ -968,7 +972,7 @@ void test_index(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(ElementCount(json_val, "actor", "label"), 2);
 
     ret = client.CallCypher(
-        str, "CALL db.createEdgeLabel('pair_edge', '[]', 'index_value', string, false)");
+        str, "CALL db.createEdgeLabel('pair_edge', '[]', 'index_value', 'string', false)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL db.addEdgeIndex('pair_edge','index_value',false,true)");
@@ -1027,8 +1031,9 @@ void test_createlabel(lgraph::RpcClient& client) {
     std::string str;
     std::string test_str2;
     bool ret = client.CallCypher(str,
-                                 "CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', string, "
-                                 "true], ['sleep', int8, false])");
+                                 "CALL db.createLabel('vertex', 'animal', "
+                                 "'sleep', ['eat', 'string', "
+                                 "true], ['sleep', 'int8', false])");
 
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(test_str2, "CALL db.createLabel('animal')");
@@ -1055,15 +1060,15 @@ void test_label_field(lgraph::RpcClient& client) {
     std::string str;
     bool ret = client.CallCypher(str,
                                  "CALL db.alterLabelAddFields('vertex', 'animal',"
-                                 "['run', string, '',true], ['jeep', int8, 10,false])");
+                                 "['run', 'string', '',true], ['jeep', 'int8', 10,false])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL db.alterLabelAddFields('vertex', 'animal_not_exist',"
-                            "['run', string, '',true], ['jeep', int8, 10,false])");
+                            "['run', 'string', '',true], ['jeep', 'int8', 10,false])");
     UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str,
                             "CALL db.alterLabelAddFields('vertex', 'animal',"
-                            "['run', string, '',true], ['jeep', int12, 10,false])");
+                            "['run', 'string', '',true], ['jeep', int12, 10,false])");
     UT_EXPECT_FALSE(ret);
     ret = client.CallCypher(str, "CALL db.alterLabelAddFields('vertex', 'animal')");
     UT_EXPECT_FALSE(ret);
@@ -1079,11 +1084,11 @@ void test_label_field(lgraph::RpcClient& client) {
 
     ret = client.CallCypher(str,
                             "CALL db.alterLabelModFields('vertex', 'animal',"
-                            "['run', int8, false], ['jeep', int32, true])");
+                            "['run', 'int8', false], ['jeep', 'int32', true])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL db.alterLabelModFields('vertex', 'animal_not_exist',['run', "
-                            "int8, false], ['jeep', int32, true])");
+                            "'int8', false], ['jeep', 'int32', true])");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.alterLabelModFields('vertex', 'animal')");
@@ -1112,8 +1117,8 @@ void test_label_field(lgraph::RpcClient& client) {
     UT_EXPECT_EQ(HasElement(json_val, "jeep", "name"), false);
     ret = client.CallCypher(str,
                             "CALL db.alterLabelAddFields('vertex', 'animal', "
-                            "['null_string', string, null, true], "
-                            "['null_int8', int8, null, true])");
+                            "['null_string', 'string', null, true], "
+                            "['null_int8', 'int8', null, true])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.alterLabelDelFields('vertex', 'animal', "
                             "['null_string', 'null_int8'])");
@@ -1766,8 +1771,8 @@ void test_float(lgraph::RpcClient& client) {
     std::string test_str2;
     bool ret = client.CallCypher(str,
                                  "CALL db.createLabel('vertex', 'float_label', 'id', "
-                                 "['id', int32, false], ['float', float, true], "
-                                 "['double', double, true])");
+                                 "['id', 'int32', false], ['float', 'float', true], "
+                                 "['double', 'double', true])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CREATE (n:float_label{id:1,float:1.2,double:1.2}) RETURN n");

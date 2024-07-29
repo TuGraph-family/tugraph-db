@@ -113,7 +113,7 @@ class LocateNodeByVid : public OptPass {
                 auto right_data = Entry(in_filter->ae_right_.operand.constant);
                 if (!right_data.IsArray()) CYPHER_TODO();
                 for (auto &r : *right_data.constant.array) {
-                    target_vids.emplace_back(r.integer());
+                    target_vids.emplace_back(r.scalar.integer());
                 }
                 return true;
             }

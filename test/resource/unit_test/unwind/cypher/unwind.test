@@ -1,3 +1,4 @@
+WITH [{s: "Michael Redgrave", e: "Vanessa Redgrave"},{s: "Michael Redgrave", e: "Corin Redgrave"}] AS pairs UNWIND pairs AS pair MATCH (n1:Person {name:pair.s})-[r]->(n2:Person{name:pair.e}) RETURN r;
 UNWIND [1, 2, 3] AS x RETURN x;
 WITH [1, 1, 2, 2] AS coll UNWIND coll AS x RETURN x;
 UNWIND $personIds AS personId RETURN personId;

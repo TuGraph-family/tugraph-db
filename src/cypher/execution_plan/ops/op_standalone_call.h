@@ -18,8 +18,8 @@
 #pragma once
 
 #include "server/state_machine.h"
-#include "procedure/procedure.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "cypher/procedure/procedure.h"
 
 namespace cypher {
 class StandaloneCall : public OpBase {

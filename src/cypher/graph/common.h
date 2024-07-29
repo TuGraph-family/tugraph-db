@@ -25,6 +25,7 @@ typedef int64_t RelpID;
 struct Property {
     std::string field;
     std::string value_alias;
+    std::string map_field_name;
     lgraph::FieldData value;
     enum {
         NUL,        // empty
