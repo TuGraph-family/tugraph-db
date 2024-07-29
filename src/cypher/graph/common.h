@@ -26,6 +26,7 @@ typedef int64_t NodeID;
 typedef int64_t RelpID;
 
 struct Property {
+    bool hasMapFieldName;
     std::string field;
     std::string value_alias;
     std::string map_field_name;

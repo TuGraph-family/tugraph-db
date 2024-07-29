@@ -30,6 +30,7 @@ class NodeIndexSeekDynamic : public OpBase {
     std::string alias_;            // also can be derived from node
     std::string field_;
     std::string map_field_name_;
+    bool hasMapFieldName;
     lgraph::FieldData value_;
     int value_rec_idx_;  // index of input variable
     int node_rec_idx_;   // index of node in record
@@ -51,6 +52,7 @@ class NodeIndexSeekDynamic : public OpBase {
             it_ = node->ItRef();
             alias_ = node->Alias();
             map_field_name_ = node->Prop().map_field_name;
+            hasMapFieldName = node->Prop().hasMapFieldName;
             modifies.emplace_back(alias_);
         }
         rec_length_ = sym_tab->symbols.size();
@@ -125,7 +127,7 @@ class NodeIndexSeekDynamic : public OpBase {
                 switch (node_->Prop().type) {
                 case Property::VARIABLE:
                 {
-                    if (map_field_name_ != "") {
+                    if (hasMapFieldName) {
                         auto map = constant.map;
                         if (map->find(map_field_name_) == map->end()) {
                             throw lgraph::CypherException("Undefined property: "

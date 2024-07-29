@@ -401,6 +401,7 @@ struct ArithOperandNode {
     } variadic;
     //};
     struct Variable {
+        bool hasMapFieldName;
         std::string _value_alias;
         std::string _map_field_name;
     } variable;
@@ -430,11 +431,12 @@ struct ArithOperandNode {
         SetVariadic(alias);
         variadic.entity_prop = property;
     }
-    void SetVariable(const std::string &value_alias = "", const std::string &map_field_name = "") {
+    void SetVariable(const bool &hasMapFieldName = false, const std::string &value_alias = "", const std::string &map_field_name = "") {
         type = AR_OPERAND_VARIABLE;
+        variable.hasMapFieldName = hasMapFieldName;
         variable._value_alias = value_alias;
         variable._map_field_name = map_field_name;
-    }
+    };
 
     void SetEntity(const std::string &alias, const SymbolTable &sym_tab);
 
@@ -495,7 +497,7 @@ struct ArithOperandNode {
         } else if (type == AR_OPERAND_PARAMETER) {
             str = variadic.alias;
         } else if (type == AR_OPERAND_VARIABLE) {
-            if (variable._map_field_name == "") {
+            if (!variable.hasMapFieldName) {
                 str.append(variable._value_alias);
             } else {
                 str.append(variable._value_alias)
@@ -721,10 +723,10 @@ struct ArithExprNode {
     }
 
     void SetOperandVariable(ArithOperandNode::ArithOperandType operand_type,
-                    const std::string &value_alias = "", const std::string &prop_alias = "") {
+                    const bool &hasMapFieldName = false, const std::string &value_alias = "", const std::string &map_field_name = "") {
         CYPHER_THROW_ASSERT(operand_type == ArithOperandNode::AR_OPERAND_VARIABLE);
         type = AR_EXP_OPERAND;
-        operand.SetVariable(value_alias, prop_alias);
+        operand.SetVariable(hasMapFieldName, value_alias, map_field_name);
     }
 
     void SetOperand(ArithOperandNode::ArithOperandType operand_type, const std::string &alias,
