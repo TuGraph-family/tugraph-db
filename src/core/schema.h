@@ -443,11 +443,10 @@ class Schema {
         fields_[field_idx].SetEdgeIndex(nullptr);
     }
 
-
     void UnVertexCompositeIndex(const std::vector<std::string> &fields) {
         composite_index_map.erase(GetCompositeIndexMapKey(fields));
     }
- 
+
     void UnVectorIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         indexed_fields_.erase(field_idx);

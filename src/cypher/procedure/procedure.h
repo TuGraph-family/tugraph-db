@@ -943,7 +943,7 @@ static std::vector<Procedure> global_procedures = {
                   {"distance_type", {4, lgraph_api::LGraphType::STRING}},
                   {"index_spec", {5, lgraph_api::LGraphType::STRING}},
               }),
-    
+
     Procedure("vector.VectorIndexQuery", VectorFunc::VectorIndexQuery,
               Procedure::SIG_SPEC{
                   {"label_name", {0, lgraph_api::LGraphType::STRING}},

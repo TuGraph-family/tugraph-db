@@ -215,7 +215,6 @@ class VectorIndexNotExistException : public LgraphException {
     VectorIndexNotExistException(const std::string& label, const std::string& field)
         : LgraphException(ErrorCode::IndexNotExist,
                           "VectorIndex [{}:{}] does not exist.", label, field) {}
-
 };
 
 class UserNotExistException : public LgraphException {

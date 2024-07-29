@@ -983,7 +983,7 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
     if (schema->DetachProperty()) {
         schema->SetDetachedVertexProperty(*txn_, vid, new_prop);
         schema->DeleteDetachedVectorIndex(*txn_, vid, old_prop);
-        schema->AddDetachedVectorToVectorIndex(*txn_, vid, new_prop);       
+        schema->AddDetachedVectorToVectorIndex(*txn_, vid, new_prop);
     } else {
         it.SetProperty(std::move(new_prop));
     }

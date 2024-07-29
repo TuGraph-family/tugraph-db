@@ -162,8 +162,8 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
             // update field index
             if (!index->Add(txn, fe.GetConstRef(record), vid)) {
                 THROW_CODE(InputError,
-                    "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
-                    vid, fe.Name(), fe.FieldToString(record));
+                "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
+                vid, fe.Name(), fe.FieldToString(record));
             }
         }
         created.push_back(idx);
@@ -331,14 +331,14 @@ void Schema::AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, co
                         if (fe.GetIsNull(prop)) {
                             continue;
                         }
-                        floatvector.emplace_back((fe.GetConstRef(prop)).AsType<std::vector<float>>());
+                        floatvector.emplace_back(
+                            (fe.GetConstRef(prop)).AsType<std::vector<float>>());
                         count++;
                     }
                     LOG_INFO() << FMA_FMT("start rebuilding vertex index in detached model");
                     fe.GetVectorIndex()->CleanVectorFromTable(txn);
                     fe.GetVectorIndex()->Build();
                     fe.GetVectorIndex()->Add(floatvector, count);
-                    //fe.GetVectorIndex()->Save();
                     LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
                 }
             }
@@ -364,14 +364,14 @@ void Schema::DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const V
                         if (fe.GetIsNull(prop)) {
                             continue;
                         }
-                        floatvector.emplace_back((fe.GetConstRef(prop)).AsType<std::vector<float>>());
+                        floatvector.emplace_back(
+                            (fe.GetConstRef(prop)).AsType<std::vector<float>>());
                         count++;
                     }
                     LOG_INFO() << FMA_FMT("start rebuilding vertex index in detached model");
                     fe.GetVectorIndex()->CleanVectorFromTable(txn);
                     fe.GetVectorIndex()->Build();
                     fe.GetVectorIndex()->Add(floatvector, count);
-                    //fe.GetVectorIndex()->Save();
                     LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
                 }
             }
@@ -793,7 +793,6 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
 
 // mod fields, assuming fields are already de-duplicated
 void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
-
     std::vector<size_t> mod_ids;
     for (auto& f : mod_fields) {
         auto it = name_to_idx_.find(f.name);

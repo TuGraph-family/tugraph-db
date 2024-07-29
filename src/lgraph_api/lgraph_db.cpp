@@ -208,11 +208,14 @@ bool GraphDB::AddVertexCompositeIndex(const std::string& label,
     return db_->AddVertexCompositeIndex(label, fields, type);
 }
 
-bool GraphDB::AddVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
-                             int vec_dimension, const std::string& distance_type, std::vector<int>& index_spec, IndexType type) {
+bool GraphDB::AddVectorIndex(const std::string& label, const std::string& field,
+                             const std::string& index_type, int vec_dimension,
+                             const std::string& distance_type,
+                             std::vector<int>& index_spec, IndexType type) {
     THROW_IF_INVALID();
     THROW_IF_RO();
-    return db_->AddVectorIndex(label, field, index_type, vec_dimension, distance_type, index_spec, type);
+    return db_->AddVectorIndex(label, field, index_type, vec_dimension,
+                               distance_type, index_spec, type);
 }
 
 bool GraphDB::IsVertexIndexed(const std::string& label, const std::string& field) {
@@ -245,8 +248,9 @@ bool GraphDB::IsVertexCompositeIndexed(const std::string& label,
     return db_->IsVertexCompositeIndexed(label, field);
 }
 
-bool GraphDB::DeleteVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
-                                int vec_dimension, const std::string& distance_type) {
+bool GraphDB::DeleteVectorIndex(const std::string& label, const std::string& field,
+                                const std::string& index_type, int vec_dimension,
+                                const std::string& distance_type) {
     THROW_IF_INVALID();
     THROW_IF_RO();
     return db_->DeleteVectorIndex(label, field, index_type, vec_dimension, distance_type);

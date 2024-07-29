@@ -30,7 +30,6 @@
 #include "core/schema.h"
 #include "core/schema_manager.h"
 #include "core/transaction.h"
-//#include "core/vector_index_layer.h"
 
 namespace lgraph {
 namespace _detail {
@@ -143,18 +142,21 @@ class IndexManager {
                (is_vertex ? _detail::VERTEX_FULLTEXT_INDEX : _detail::EDGE_FULLTEXT_INDEX);
     }
 
-    static std::string GetVectorIndexTableName(const std::string& label, const std::string& field, const std::string& index_type, 
-                                               int vec_dimension, const std::string& distance_type, std::vector<int>& index_spec) {
+    static std::string GetVectorIndexTableName(const std::string& label, const std::string& field,
+                                               const std::string& index_type, int vec_dimension,
+                                               const std::string& distance_type, std::vector<int>& index_spec) {
         std::string INDEX_SPEC;
         INDEX_SPEC += '[';
         for (auto spec : index_spec) {
             INDEX_SPEC += std::to_string(spec) + ',';
         }
         INDEX_SPEC.pop_back();
-        INDEX_SPEC += ']';    
-        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR + index_type + _detail::NAME_SEPARATOR + 
-               std::to_string(vec_dimension) + _detail::NAME_SEPARATOR + distance_type + _detail::NAME_SEPARATOR + INDEX_SPEC + _detail::NAME_SEPARATOR +
-               _detail::VECTOR_INDEX;
+        INDEX_SPEC += ']';
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR + index_type +
+               _detail::NAME_SEPARATOR + std::to_string(vec_dimension) +
+               _detail::NAME_SEPARATOR + distance_type +
+               _detail::NAME_SEPARATOR + INDEX_SPEC +
+               _detail::NAME_SEPARATOR + _detail::VECTOR_INDEX;
     }
 
     static void GetLabelAndFieldFromTableName(const std::string& table_name, std::string& label,
@@ -244,10 +246,12 @@ class IndexManager {
                                  CompositeIndexType type,
                                  std::shared_ptr<CompositeIndex>& index);
     
-    bool AddVectorIndex(KvTransaction& txn, const std::string& label, const std::string& field, const std::string& index_type, 
-                        int vec_dimension, const std::string& distance_type, 
+    bool AddVectorIndex(KvTransaction& txn, const std::string& label,
+                        const std::string& field, const std::string& index_type, 
+                        int vec_dimension, const std::string& distance_type,
                         std::vector<int>& index_spec, FieldType dt, IndexType type,
-                        std::unique_ptr<VertexIndex>& index, std::unique_ptr<VectorIndex>& vector_index);
+                        std::unique_ptr<VertexIndex>& index,
+                        std::unique_ptr<VectorIndex>& vector_index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
                       FieldType dt, IndexType type, std::unique_ptr<EdgeIndex>& index);
@@ -261,9 +265,10 @@ class IndexManager {
 
     bool DeleteVertexCompositeIndex(KvTransaction& txn, const std::string& label,
                                     const std::vector<std::string>& fields);
-  
-    bool DeleteVectorIndex(KvTransaction& txn, const std::string& label, const std::string& field, const std::string& index_type, 
-                                                   int vec_dimension, const std::string& distance_type);
+
+    bool DeleteVectorIndex(KvTransaction& txn, const std::string& label, 
+                           const std::string& field, const std::string& index_type,
+                           int vec_dimension, const std::string& distance_type);
 
     bool DeleteFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                              const std::string& field);

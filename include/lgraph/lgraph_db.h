@@ -470,9 +470,10 @@ class GraphDB {
      * 
      * @returns True if it succeeds, false if the index already exists.
      */
-    bool AddVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
-                        int vec_dimension, const std::string& distance_type, std::vector<int>& index_spec, IndexType type);
-
+    bool AddVectorIndex(const std::string& label, const std::string& field,
+                        const std::string& index_type, int vec_dimension,
+                        const std::string& distance_type, std::vector<int>& index_spec,
+                        IndexType type);
 
     /**
      * @brief   Check if this vertex_label:field is indexed.
@@ -551,8 +552,9 @@ class GraphDB {
      * 
      * @returns True if it succeeds, false if the index does not exists.
      */
-    bool DeleteVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
-                           int vec_dimension, const std::string& distance_type);
+    bool DeleteVectorIndex(const std::string& label, const std::string& field,
+                           const std::string& index_type, int vec_dimension,
+                           const std::string& distance_type);
 
     /**
      * @brief   Get graph description

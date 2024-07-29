@@ -2180,9 +2180,11 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     return true;
 }
 
-bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
-                                      int vec_dimension, const std::string& distance_type, std::vector<int>& index_spec, 
-                                      IndexType type, bool is_vertex, bool known_vid_range, VertexId start_vid, VertexId end_vid) {
+bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std::string& field,
+                                            const std::string& index_type, int vec_dimension,
+                                            const std::string& distance_type, std::vector<int>& index_spec,
+                                            IndexType type, bool is_vertex, bool known_vid_range,
+                                            VertexId start_vid, VertexId end_vid) {
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
@@ -2206,7 +2208,8 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
     if (is_vertex) {
         std::unique_ptr<VertexIndex> vertex_index;
         std::unique_ptr<VectorIndex> vector_index;
-        bool success = index_manager_->AddVectorIndex(txn.GetTxn(), label, field, index_type, vec_dimension, distance_type, index_spec,
+        bool success = index_manager_->AddVectorIndex(txn.GetTxn(), label, field, index_type,
+                                   vec_dimension, distance_type, index_spec,
                                    extractor->Type(), type, vertex_index, vector_index);
         if (!success)
             THROW_CODE(InputError, "build index {}-{} failed", label, field);
@@ -2237,17 +2240,21 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
                 floatvector.emplace_back(vector);
                 count++;
             }
-            LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
+            LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model",
+                                    label, field);
             if ((index->GetVectorIndexManager())->UpdateCount(count)) {
                 if ((index->GetVectorIndexManager())->WhetherUpdate()) {
                     index->CleanVectorFromTable(txn.GetTxn());
                     index->Build();
                     index->Add(floatvector, count);
-                    //vector_index->Save();
-                    LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model", label, field);
+                    LOG_INFO() <<
+                                FMA_FMT("end building vector index for {}:{} in detached model",
+                                        label, field);
                 } else {
-                    LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model", label, field);
-                }  
+                    LOG_INFO() <<
+                                FMA_FMT("end building vector index for {}:{} in detached model",
+                                        label, field);
+                }
             }
             kv_iter.reset();
             LOG_DEBUG() << "index count: " << count;
@@ -2257,7 +2264,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
         }
     }
     return false;
-        // TODO support non-detached models    
+        // support non-detached models
 }
 
 /**
@@ -2778,8 +2785,9 @@ bool LightningGraph::DeleteCompositeIndex(const std::string& label,
     return false;
 }
 
-bool LightningGraph::DeleteVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
-                                       int vec_dimension, const std::string& distance_type, bool is_vertex) {
+bool LightningGraph::DeleteVectorIndex(const std::string& label, const std::string& field,
+                                       const std::string& index_type, int vec_dimension,
+                                       const std::string& distance_type, bool is_vertex) {
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
@@ -2802,7 +2810,8 @@ bool LightningGraph::DeleteVectorIndex(const std::string& label, const std::stri
     if (is_vertex) {
         schema->UnVertexIndex(extractor->GetFieldId());
         schema->UnVectorIndex(extractor->GetFieldId());
-        deleted = index_manager_->DeleteVectorIndex(txn.GetTxn(), label, field, index_type, vec_dimension, distance_type);
+        deleted = index_manager_->DeleteVectorIndex(txn.GetTxn(), label, field,
+                                                index_type, vec_dimension, distance_type);
     } else {
         schema->UnEdgeIndex(extractor->GetFieldId());
         deleted = index_manager_->DeleteEdgeIndex(txn.GetTxn(), label, field);

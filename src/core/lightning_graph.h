@@ -199,10 +199,11 @@ class LightningGraph {
 
     // adds a vector index, blocks until the index is ready
     // returns true if success, false if index already exists.
-    bool BlockingAddVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
-                          int vec_dimension, const std::string& distance_type, std::vector<int>& index_spec, 
-                          IndexType type, bool is_vertex, bool known_vid_range = false,
-                          VertexId start_vid = 0, VertexId end_vid = 0);
+    bool BlockingAddVectorIndex(const std::string& label, const std::string& field,
+                                const std::string& index_type, int vec_dimension,
+                                const std::string& distance_type, std::vector<int>& index_spec,
+                                IndexType type, bool is_vertex, bool known_vid_range = false,
+                                VertexId start_vid = 0, VertexId end_vid = 0);
 
     // adds an index, blocks until the index is ready
     // returns true if success, false if index already exists.
@@ -266,8 +267,9 @@ class LightningGraph {
     bool IsCompositeIndexed(const std::string& label, const std::vector<std::string>& fields);
 
     bool DeleteIndex(const std::string& label, const std::string& field, bool is_vertex);
-    bool DeleteVectorIndex(const std::string& label, const std::string& field, const std::string& index_type, 
-                                       int vec_dimension, const std::string& distance_type, bool is_vertex);
+    bool DeleteVectorIndex(const std::string& label, const std::string& field,
+                           const std::string& index_type, int vec_dimension,
+                           const std::string& distance_type, bool is_vertex);
 
     bool DeleteCompositeIndex(const std::string& label,
                               const std::vector<std::string>& fields, bool is_vertex);
