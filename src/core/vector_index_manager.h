@@ -29,7 +29,7 @@ class VectorIndexManager {
   size_t count_;
   bool indexed_;
 
-public:
+ public:
   explicit VectorIndexManager(size_t count);
 
   VectorIndexManager(const VectorIndexManager& rhs);

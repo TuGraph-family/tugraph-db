@@ -15,10 +15,13 @@
 #include "core/Faiss_IVF_FLAT.h"
 
 namespace lgraph {
-FaissIVFFlat::FaissIVFFlat(const std::string& label, const std::string& name, const std::string& distance_type,
-                           const std::string& index_type, int vec_dimension, std::vector<int> index_spec,
+FaissIVFFlat::FaissIVFFlat(const std::string& label, const std::string& name,
+                           const std::string& distance_type,
+                           const std::string& index_type, int vec_dimension,
+                           std::vector<int> index_spec,
                            std::shared_ptr<KvTable> table)
-    : VectorIndex(label, name, distance_type, index_type, vec_dimension, index_spec, std::move(table)),
+    : VectorIndex(label, name, distance_type, index_type,
+                    vec_dimension, index_spec, std::move(table)),
       L2quantizer_(nullptr),
       IPquantizer_(nullptr),
       index_(nullptr) {}

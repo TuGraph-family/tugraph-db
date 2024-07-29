@@ -77,7 +77,7 @@ class VectorIndex {
     // get whether rebuild
     bool GetWhetherRebuild() { return rebuild_; }
 
-    //set search specification
+    // set search specification
     bool SetSearchSpec(int query_spec);
 
     // add vector to index and build index
@@ -106,6 +106,5 @@ class VectorIndex {
     virtual bool GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
                                      size_t num_results, std::vector<float>& distances,
                                      std::vector<int64_t>& indices) = 0;
-
 };
 }  // namespace lgraph

@@ -35,36 +35,36 @@ class FaissIVFFlat : public VectorIndex {
   faiss::IndexIVFFlat* index_;
 
  public:
-   FaissIVFFlat(const std::string& label, const std::string& name,
+  FaissIVFFlat(const std::string& label, const std::string& name,
                 const std::string& distance_type, const std::string& index_type,
                 int vec_dimension, std::vector<int> index_spec, std::shared_ptr<KvTable> table);
 
-   FaissIVFFlat(const FaissIVFFlat& rhs);
+  FaissIVFFlat(const FaissIVFFlat& rhs);
 
-   FaissIVFFlat(FaissIVFFlat&& rhs) = delete;
+  FaissIVFFlat(FaissIVFFlat&& rhs) = delete;
 
-   FaissIVFFlat& operator=(const FaissIVFFlat& rhs) = delete;
+  FaissIVFFlat& operator=(const FaissIVFFlat& rhs) = delete;
 
-   FaissIVFFlat& operator=(FaissIVFFlat&& rhs) = delete;
+  FaissIVFFlat& operator=(FaissIVFFlat&& rhs) = delete;
 
-   // add vector to index and build index
-   bool Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) override;
+  // add vector to index and build index
+  bool Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) override;
 
-   // build index
-   bool Build() override;
+  // build index
+  bool Build() override;
 
-   // serialize index
-   std::vector<uint8_t> Save() override;
+  // serialize index
+  std::vector<uint8_t> Save() override;
 
-   // load index form serialization
-   void Load(std::vector<uint8_t>& idx_bytes) override;
+  // load index form serialization
+  void Load(std::vector<uint8_t>& idx_bytes) override;
 
-   // search vector in index
-   bool Search(const std::vector<float> query, size_t num_results,
-               std::vector<float>& distances, std::vector<int64_t>& indices) override;
+  // search vector in index
+  bool Search(const std::vector<float> query, size_t num_results,
+              std::vector<float>& distances, std::vector<int64_t>& indices) override;
 
-   bool GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
-                            size_t num_results, std::vector<float>& distances,
-                            std::vector<int64_t>& indices) override;
+  bool GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
+                           size_t num_results, std::vector<float>& distances,
+                           std::vector<int64_t>& indices) override;
 };
 }  // namespace lgraph
