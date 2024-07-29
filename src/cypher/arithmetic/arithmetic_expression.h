@@ -498,11 +498,7 @@ struct ArithOperandNode {
         } else if (type == AR_OPERAND_PARAMETER) {
             str = variadic.alias;
         } else if (type == AR_OPERAND_VARIABLE) {
-<<<<<<< HEAD
             if (!variable.hasMapFieldName) {
-=======
-            if (variable._map_field_name == "") {
->>>>>>> 0c785d1... fix code format
                 str.append(variable._value_alias);
             } else {
                 str.append(variable._value_alias)
@@ -512,7 +508,7 @@ struct ArithOperandNode {
         }
         return str;
     }
-};
+}
 
 /* Op represents an operation applied to child args. */
 struct ArithOpNode {

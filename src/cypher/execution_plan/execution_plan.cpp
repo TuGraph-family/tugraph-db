@@ -607,11 +607,7 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
                                    cypher::FieldData(lgraph::FieldData(pf.value_alias)));
                 } else if (pf.type == Property::VARIABLE) {
                     ae2.SetOperandVariable(ArithOperandNode::AR_OPERAND_VARIABLE,
-<<<<<<< HEAD
                                         pf.hasMapFieldName, pf.value_alias, pf.map_field_name);
-=======
-                                        pf.value_alias, pf.map_field_name);
->>>>>>> 0c785d1... fix code format
                 } else {
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_CONSTANT,
                                    cypher::FieldData(pf.value));
