@@ -1,0 +1,5 @@
+CALL db.plugin.listPlugin('PY', 'any');
+CALL db.plugin.loadPlugin('PY','countPerson','ZGVmIFByb2Nlc3MoZGIsIGlucHV0KToKICAgIHR4biA9IGRiLkNyZWF0ZVJlYWRUeG4oKQogICAgaXQgPSB0eG4uR2V0VmVydGV4SXRlcmF0b3IoKQogICAgbiA9IDAKICAgIHdoaWxlIGl0LklzVmFsaWQoKToKICAgICAgICBpZiBpdC5HZXRMYWJlbCgpID09ICdQZXJzb24nOgogICAgICAgICAgICBuID0gbiArIDEKICAgICAgICBpdC5OZXh0KCkKICAgIHJldHVybiAoVHJ1ZSwgc3RyKG4pKQ==','PY','count person',true, 'v1');
+CALL db.plugin.listPlugin('PY', 'any');
+CALL db.plugin.getPluginInfo('PY','countPerson');
+CALL db.plugin.getPluginInfo('PY','countPerson',true);

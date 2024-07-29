@@ -17,7 +17,7 @@
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/pattern_graph_maker.h"
-#include "cypher/procedure/procedure_v2.h"
+#include "cypher/procedure/procedure.h"
 #include "db/galaxy.h"
 
 
@@ -318,6 +318,13 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
             p.type = Property::PARAMETER;
             p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
             p.value_alias = ((geax::frontend::Param*)value)->name();
+        } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+            p.type = Property::VARIABLE;
+            geax::frontend::Ref* ref;
+            checkedCast(((geax::frontend::GetField*)value)->expr(), ref);
+            p.value_alias = ref->name();
+            p.value = lgraph::FieldData(p.value_alias);
+            p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
         } else {
             NOT_SUPPORT();
         }
@@ -336,7 +343,7 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) {
-    auto p = global_ptable_v2.GetProcedureV2(curr_procedure_name_);
+    auto p = global_ptable.GetProcedure(curr_procedure_name_);
     if (p) {
         for (auto& pair : node->items()) {
             const std::string& name = std::get<0>(pair);
@@ -953,6 +960,15 @@ std::any PatternGraphMaker::visit(geax::frontend::CompositeQueryStatement* node)
 
 std::any PatternGraphMaker::visit(geax::frontend::AmbientLinearQueryStatement* node) {
     auto& query_stmts = node->queryStatements();
+    int match_count = 0;
+    for (auto &stat : query_stmts) {
+        if (stat->type() == geax::frontend::AstNodeType::kMatchStatement) {
+            match_count++;
+        }
+    }
+    if (match_count > 1) {
+        THROW_CODE(CypherException, "Not support more than one (optional) match clause.");
+    }
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
     }

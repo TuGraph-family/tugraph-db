@@ -1,15 +1,15 @@
 MATCH (n:Person) RETURN q;
-[CypherException] CypherException: Unknown variable: q
+[CypherException] Unknown variable: q
 MATCH (n:Person) RETURN n.name + q.name;
-[CypherException] CypherException: Unknown variable: q
+[CypherException] Unknown variable: q
 MATCH (n:Person) WITH q as m RETURN m;
-[CypherException] CypherException: Unknown variable: q
+[CypherException] Unknown variable: q
 MATCH (n:Person) WITH k RETURN n;
-[CypherException] CypherException: Unknown variable: k
+[CypherException] Unknown variable: k
 UNWIND k as n RETURN n;
-[CypherException] CypherException: Unknown variable: k
+[CypherException] Unknown variable: k
 MATCH (n:Person) WHERE n.name = k RETURN n;
-[CypherException] CypherException: Unknown variable: k
+[CypherException] Unknown variable: k
 MATCH (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) return v1.title,count(distinct v2) as cnt order by number;
 [InputError] Unknown order by field
 WITH [1,2,3] AS k RETURN [x in k | x + y] AS result;
@@ -19,9 +19,9 @@ REMOVE a.name;
 SET a :MyLabel;
 [InputError] Variable `a` not defined
 MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET z=m;
-[InputError] Variable `z` not defined
+[CypherException] Not support to update the entire vertex or edge in set clause.
 MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET n=z;
-[InputError] Variable `z` not defined
+[CypherException] Not support to update the entire vertex or edge in set clause.
 MATCH (n:Person {name:'X'}) SET z.name = "Y";
 [InputError] Variable `z` not defined
 MATCH(n:Person {name: 'D'}) DELETE k;
@@ -29,4 +29,4 @@ MATCH(n:Person {name: 'D'}) DELETE k;
 MATCH(n)-[r:REL]-(m) DELETE k;
 [InputError] Variable `k` not defined
 MATCH (v1:Film)<-[:ACTED_IN|DIRECTED]-(v2:Person) WITH v1, count(*) AS edge_num WHERE non_edge > 1 RETURN v1,edge_num;
-[CypherException] CypherException: Unknown variable: non_edge
+[CypherException] Unknown variable: non_edge
