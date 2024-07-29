@@ -508,7 +508,7 @@ struct ArithOperandNode {
         }
         return str;
     }
-}
+};
 
 /* Op represents an operation applied to child args. */
 struct ArithOpNode {

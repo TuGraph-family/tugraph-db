@@ -123,7 +123,6 @@ class NodeIndexSeekDynamic : public OpBase {
             if (value_rec_idx_ < 0) {
                 value = value_;
             } else {
-<<<<<<< HEAD
                 if (record->values[value_rec_idx_].constant.IsMap()) {
                     auto map_data = *(record->values[value_rec_idx_].constant.map);
                     value = map_data[node_->Prop().map_field_name].scalar;
@@ -131,28 +130,6 @@ class NodeIndexSeekDynamic : public OpBase {
                     THROW_CODE(CypherException, "Type error, do not support list as parameter.");
                 } else {
                     value = record->values[value_rec_idx_].constant.scalar;
-=======
-                auto constant = record->values[value_rec_idx_].constant;
-                switch (node_->Prop().type) {
-                case Property::VARIABLE:
-                {
-                        if (map_field_name_ != "") {
-                            auto map = constant.map;
-                            if (map->find(map_field_name_) == map->end()) {
-                                throw lgraph::CypherException("Undefined property: "
-                                                            + map_field_name_);
-                            }
-                            value = map->at(map_field_name_).scalar;
-                            break;
-                        } else {
-                            auto scalar = constant.scalar;
-                            value = scalar;
-                            break;
-                        }
-                }
-                default:
-                    CYPHER_INTL_ERR();
->>>>>>> 0c785d1... fix code format
                 }
             }
             if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
