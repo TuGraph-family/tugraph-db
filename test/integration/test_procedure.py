@@ -323,11 +323,11 @@ class TestProcedure:
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_vertex_label(self, server, client):
-        ret = client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0]
-        ret = client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0] == False
-        ret = client.callCypher("CALL db.createVertexLabel('dirctor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = client.callCypher("CALL db.createVertexLabel('dirctor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0]
         ret = client.callCypher("CALL db.vertexLabels()", "default")
         assert ret[0]
@@ -344,11 +344,11 @@ class TestProcedure:
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_edge_label(self, server, client):
-        ret = client.callCypher("CALL db.createEdgeLabel('followed', '[]', 'address', string, false, 'date', int32, false)", "default")
+        ret = client.callCypher("CALL db.createEdgeLabel('followed', '[]', 'address', 'string', false, 'date', 'int32', false)", "default")
         assert ret[0]
-        ret = client.callCypher("CALL db.createEdgeLabel('followed', '[]', 'address', string, false, 'date', int32, false)", "default")
+        ret = client.callCypher("CALL db.createEdgeLabel('followed', '[]', 'address', 'string', false, 'date', 'int32', false)", "default")
         assert ret[0] == False
-        ret = client.callCypher("CALL db.createEdgeLabel('married', '[]', 'address', string, false, 'date', int32, false)", "default")
+        ret = client.callCypher("CALL db.createEdgeLabel('married', '[]', 'address', 'string', false, 'date', 'int32', false)", "default")
         assert ret[0]
         ret = client.callCypher("CALL db.edgeLabels()", "default")
         assert ret[0]
@@ -366,9 +366,9 @@ class TestProcedure:
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_index(self, server, client):
-        ret = client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0]
-        ret = client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0] == False
         ret = client.callCypher("CALL db.indexes()", "default")
         assert ret[0]
@@ -402,9 +402,9 @@ class TestProcedure:
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_create_label(self, server, client):
-        ret = client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', string, true], ['sleep', int8, false])", "default")
+        ret = client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', 'string', true], ['sleep', 'int8', false])", "default")
         assert ret[0]
-        ret = client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', string, true], ['sleep', int8, false])", "default")
+        ret = client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', 'string', true], ['sleep', 'int8', false])", "default")
         assert ret[0] == False
         ret = client.callCypher("CALL db.vertexLabels()", "default")
         assert ret[0]
@@ -424,9 +424,9 @@ class TestProcedure:
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_label_field(self, server, client):
-        ret = client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', string, true], ['sleep', int8, false])", "default")
+        ret = client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', 'string', true], ['sleep', 'int8', false])", "default")
         assert ret[0]
-        ret = client.callCypher("CALL db.alterLabelAddFields('vertex', 'animal', ['run', string, '',true], ['jeep', int8, 10,false])", "default")
+        ret = client.callCypher("CALL db.alterLabelAddFields('vertex', 'animal', ['run', 'string', '',true], ['jeep', 'int8', 10,false])", "default")
         assert ret[0]
 
         ret = client.callCypher("CALL db.getLabelSchema('vertex', 'animal')", "default")
@@ -439,7 +439,7 @@ class TestProcedure:
             if field.get("name") == "jeep":
                 field.get("type") == "int8"
 
-        ret = client.callCypher("CALL db.alterLabelModFields('vertex', 'animal',['run', int8, false], ['jeep', int32, true])", "default")
+        ret = client.callCypher("CALL db.alterLabelModFields('vertex', 'animal',['run', 'int8', false], ['jeep', 'int32', true])", "default")
         assert ret[0]
 
         ret = client.callCypher("CALL db.getLabelSchema('vertex', 'animal')", "default")
@@ -471,7 +471,7 @@ class TestProcedure:
         procedures = json.loads(ret[1])
         #TODO when this assert failed , you should add the additional procedure test code or remove the deleted procedure test code
         log.info("procedures count : %s", len(procedures))
-        assert len(procedures) == 103
+        assert len(procedures) == 104
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)

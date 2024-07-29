@@ -41,6 +41,18 @@ lgraph::FieldData Entry::GetEntityField(RTContext *ctx, const std::string &fd) c
                 std::stoi(constant.scalar.string().substr(2, constant.scalar.string().size() - 3));
             return ctx->txn_->GetTxn()->GetVertexField(vid, fd);
         }
+    case CONSTANT:
+        {
+            if (constant.type != cypher::FieldData::MAP) {
+                THROW_CODE(CypherException, "Only support for map type");
+            }
+            auto it = constant.map->find(fd);
+            if (it == constant.map->end() ||
+                it->second.type != cypher::FieldData::SCALAR) {
+                THROW_CODE(CypherException, "Not found or type mismatch");
+            }
+            return it->second.scalar;
+        }
     case RELP_SNAPSHOT:
     default:
         CYPHER_TODO();

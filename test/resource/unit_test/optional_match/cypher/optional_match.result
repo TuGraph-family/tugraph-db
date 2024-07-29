@@ -1,4 +1,3 @@
-
 MATCH (n:Person {name:'NoOne'}) RETURN n;
 []
 OPTIONAL MATCH (n:Person {name:'NoOne'}) RETURN n;
@@ -14,8 +13,8 @@ MATCH (n:City) WITH n MATCH (n)-->(m) RETURN n,m;
 MATCH (n:City) WITH n OPTIONAL MATCH (n)-->(m) RETURN n,m;
 [{"m":"__null__","n":{"identity":15,"label":"City","properties":{"name":"Houston"}}},{"m":"__null__","n":{"identity":14,"label":"City","properties":{"name":"London"}}},{"m":"__null__","n":{"identity":13,"label":"City","properties":{"name":"New York"}}}]
 MATCH (n:City {name:'London'}) OPTIONAL MATCH (n)-[r]->(m) RETURN n.name, r, m ;
-[CypherException] CypherException: Function not implemented yet: AddClause at src/cypher/parser/clause.h:300
+[CypherException] Not support more than one (optional) match clause.
 MATCH (n:City {name:'London'}) OPTIONAL MATCH (m:NoLabel) RETURN n.name, m ;
-[CypherException] CypherException: Function not implemented yet: AddClause at src/cypher/parser/clause.h:300
+[CypherException] Not support more than one (optional) match clause.
 MATCH (n:Person {name:'Vanessa Redgrave'}) OPTIONAL MATCH (n)-[:ACTED_IN]->(m)-[:NoType]->(l) RETURN n, m, l;
-[CypherException] CypherException: Function not implemented yet: AddClause at src/cypher/parser/clause.h:300
+[CypherException] Not support more than one (optional) match clause.

@@ -34,13 +34,12 @@ RUN yum -x filesystem update -y && yum install -y \
     automake \
     libtoolize \
     texinfo \
-    java-1.8.0-openjdk* \
     perl-Digest-MD5 \
     libcurl-devel.x86_64 \
     kde-l10n-Chinese \
     glibc-common \
     which \
-    java-11-openjdk-devel
+    java-11-openjdk-devel && yum clean all
 
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below

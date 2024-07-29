@@ -49,7 +49,7 @@ target_link_libraries(${TARGET_LGRAPH_BACKUP} lgraph_server_lib)
 ############### lgraph_cli ######################
 
 set(TARGET_LGRAPH_CLI lgraph_cli)
-add_executable(${TARGET_LGRAPH_CLI} lgraph_cli.cpp ${LGRAPH_ROOT_DIR}/toolkits/linenoise/linenoise.c)
+add_executable(${TARGET_LGRAPH_CLI} lgraph_cli.cpp ${LGRAPH_ROOT_DIR}/src/core/lgraph_date_time.cpp ${LGRAPH_ROOT_DIR}/toolkits/linenoise/linenoise.c)
 target_link_libraries(${TARGET_LGRAPH_CLI} bolt ${Boost_LIBRARIES})
 
 ############### lgraph_warmup ###################

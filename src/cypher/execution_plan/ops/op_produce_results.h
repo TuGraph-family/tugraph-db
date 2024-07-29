@@ -160,7 +160,7 @@ static void RRecordToURecord(
                 record.Insert(header[index].first, path, txn);
                 continue;
             } else {
-                if (v.constant.array != nullptr) {
+                if (v.constant.array != nullptr || v.constant.map != nullptr) {
                     record.Insert(header[index].first, lgraph_api::FieldData(v.ToString()));
                 } else {
                     record.Insert(header[index].first, v.constant.scalar);
