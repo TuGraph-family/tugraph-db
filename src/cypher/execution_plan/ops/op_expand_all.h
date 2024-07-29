@@ -222,7 +222,7 @@ class ExpandAll : public OpBase {
          * */
         /* reset modifies */
         eit_->FreeIter();
-        neighbor_->PushVid(-1);
+        if (!expand_into_) neighbor_->PushVid(-1);
         pattern_graph_->VisitedEdges().Erase(*eit_);
         state_ = ExpandAllUninitialized;
         return OP_OK;
