@@ -70,7 +70,7 @@ class TestCypher:
     @pytest.mark.parametrize("server", [SERVEROPT_1], indirect=True)
     @pytest.mark.parametrize("client", [CLIENTOPT], indirect=True)
     def test_issue406(self, server, client):
-        client.callCypher("CALL db.createVertexLabel('person', 'id', 'id', INT64, false, 'name', STRING, true, 'born', INT32, true, 'poster_image', STRING, true)")
+        client.callCypher("CALL db.createVertexLabel('person', 'id', 'id', 'INT64', false, 'name', 'string', true, 'born', 'int32', true, 'poster_image', 'string', true)")
         client.callCypher("CREATE (n:person {id:1, name:'Tom Hanks', born:1956, poster_image:'http://image.com'})")
         client.callCypher("CREATE (n:person {id:2, name:'2', born:1962, poster_image:'http://image.com'})")
         client.callCypher("CREATE (n:person {id:3, name:'309485009821345068724781056', born:1962, poster_image:'http://image.com'})")

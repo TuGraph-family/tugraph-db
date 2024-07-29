@@ -19,9 +19,9 @@ REMOVE a.name;
 SET a :MyLabel;
 [InputError] Variable `a` not defined
 MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET z=m;
-[InputError] Variable `z` not defined
+[CypherException] Not support to update the entire vertex or edge in set clause.
 MATCH (n:Person {name:'D'}),(m:Person {name:'X'}) SET n=z;
-[InputError] Variable `z` not defined
+[CypherException] Not support to update the entire vertex or edge in set clause.
 MATCH (n:Person {name:'X'}) SET z.name = "Y";
 [InputError] Variable `z` not defined
 MATCH(n:Person {name: 'D'}) DELETE k;

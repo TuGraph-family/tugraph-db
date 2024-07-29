@@ -348,11 +348,11 @@ class TestHAProcedure:
 
     def test_vertex_label(self):
         ha_client = start_ha_client(self.host, "29092")
-        ret = ha_client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = ha_client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0]
-        ret = ha_client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = ha_client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0] == False
-        ret = ha_client.callCypher("CALL db.createVertexLabel('director', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = ha_client.callCypher("CALL db.createVertexLabel('director', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0]
         time.sleep(3)
         ret = ha_client.callCypher("CALL db.vertexLabels()", "default")
@@ -370,11 +370,11 @@ class TestHAProcedure:
 
     def test_edge_label(self):
         ha_client = start_ha_client(self.host, "29092")
-        ret = ha_client.callCypher("CALL db.createEdgeLabel('followed', '[]', 'address', string, false, 'date', int32, false)", "default")
+        ret = ha_client.callCypher("CALL db.createEdgeLabel('followed', '[]', 'address', 'string', false, 'date', 'int32', false)", "default")
         assert ret[0]
-        ret = ha_client.callCypher("CALL db.createEdgeLabel('followed', '[]', 'address', string, false, 'date', int32, false)", "default")
+        ret = ha_client.callCypher("CALL db.createEdgeLabel('followed', '[]', 'address', 'string', false, 'date', 'int32', false)", "default")
         assert ret[0] == False
-        ret = ha_client.callCypher("CALL db.createEdgeLabel('married', '[]', 'address', string, false, 'date', int32, false)", "default")
+        ret = ha_client.callCypher("CALL db.createEdgeLabel('married', '[]', 'address', 'string', false, 'date', 'int32', false)", "default")
         assert ret[0]
         time.sleep(3)
         ret = ha_client.callCypher("CALL db.edgeLabels()", "default")
@@ -394,9 +394,9 @@ class TestHAProcedure:
 
     def test_index(self):
         ha_client = start_ha_client(self.host, "29092")
-        ret = ha_client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = ha_client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0]
-        ret = ha_client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', string, false, 'age', int8, true)", "default")
+        ret = ha_client.callCypher("CALL db.createVertexLabel('actor', 'name', 'name', 'string', false, 'age', 'int8', true)", "default")
         assert ret[0] == False
         time.sleep(3)
         ret = ha_client.callCypher("CALL db.indexes()", "default")
@@ -432,9 +432,9 @@ class TestHAProcedure:
 
     def test_create_label(self):
         ha_client = start_ha_client(self.host, "29092")
-        ret = ha_client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', string, true], ['sleep', int8, false])", "default")
+        ret = ha_client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', 'string', true], ['sleep', 'int8', false])", "default")
         assert ret[0]
-        ret = ha_client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', string, true], ['sleep', int8, false])", "default")
+        ret = ha_client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', 'string', true], ['sleep', 'int8', false])", "default")
         assert ret[0] == False
         time.sleep(3)
         ret = ha_client.callCypher("CALL db.vertexLabels()", "default")
@@ -454,9 +454,9 @@ class TestHAProcedure:
 
     def test_label_field(self):
         ha_client = start_ha_client(self.host, "29092")
-        ret = ha_client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', string, true], ['sleep', int8, false])", "default")
+        ret = ha_client.callCypher("CALL db.createLabel('vertex', 'animal', 'sleep', ['eat', 'string', true], ['sleep', 'int8', false])", "default")
         assert ret[0]
-        ret = ha_client.callCypher("CALL db.alterLabelAddFields('vertex', 'animal', ['run', string, '',true], ['jeep', int8, 10,false])", "default")
+        ret = ha_client.callCypher("CALL db.alterLabelAddFields('vertex', 'animal', ['run', 'string', '',true], ['jeep', 'int8', 10,false])", "default")
         assert ret[0]
 
         time.sleep(3)
@@ -470,7 +470,7 @@ class TestHAProcedure:
             if field.get("name") == "jeep":
                 assert field.get("type") == "INT8"
 
-        ret = ha_client.callCypher("CALL db.alterLabelModFields('vertex', 'animal',['run', int8, false], ['jeep', int32, true])", "default")
+        ret = ha_client.callCypher("CALL db.alterLabelModFields('vertex', 'animal',['run', 'int8', false], ['jeep', 'int32', true])", "default")
         assert ret[0]
 
         time.sleep(3)
@@ -503,7 +503,7 @@ class TestHAProcedure:
         procedures = json.loads(ret[1])
         #TODO when this assert failed , you should add the additional procedure test code or remove the deleted procedure test code
         log.info("procedures count : %s", len(procedures))
-        assert len(procedures) == 103
+        assert len(procedures) == 104
         ha_client.logout()
 
     def test_graph(self):

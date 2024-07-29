@@ -32,13 +32,12 @@ RUN yum update -y && yum install -y \
     automake \
     perl-Digest-MD5 \
     perl.x86_64 \
-    java-1.8.0-openjdk* \
     libcurl-devel.x86_64 \
     glibc-common \
     langpacks-zh_CN \
     which \
     java-11-openjdk-devel \
-    openssh-server
+    openssh-server && yum clean all
 
 RUN rm /run/nologin && rm /usr/sbin/nologin
 

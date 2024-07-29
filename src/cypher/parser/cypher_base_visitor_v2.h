@@ -45,6 +45,7 @@ enum class VisitType {
     kUpdatingPattern,
     kMatchPattern,
     kSetVariable,
+    kSetLabel,
     kSetNull,
     kDeleteVariable,
     kWithClause,

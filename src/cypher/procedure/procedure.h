@@ -20,6 +20,7 @@
 #include <iostream>
 #include <utility>
 
+#include "arithmetic/arithmetic_expression.h"
 #include "parser/data_typedef.h"
 #include "execution_plan/runtime_context.h"
 #include "graph/graph.h"
@@ -65,7 +66,7 @@ static const std::unordered_map<std::string, lgraph::plugin::CodeType> ValidPlug
 
 static const int SPEC_MEMBER_SIZE = 3;
 
-typedef std::vector<parser::Expression> VEC_EXPR;
+typedef std::vector<Entry> VEC_EXPR;
 typedef std::vector<std::string> VEC_STR;
 // TODO(anyone) procedure context
 typedef std::function<void(RTContext *, const Record *, const VEC_EXPR &, const VEC_STR &,
@@ -182,6 +183,10 @@ class BuiltinProcedure {
                               const VEC_STR &yield_items, std::vector<Record> *records);
     static void DbmsMetaRefreshCount(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                      const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbmsSecurityIsDefaultUserPassword(RTContext *ctx, const Record *record,
+                                           const VEC_EXPR &args, const VEC_STR &yield_items,
+                                           std::vector<Record> *records);
 
     static void DbmsSecurityChangePassword(RTContext *ctx, const Record *record,
                                            const VEC_EXPR &args, const VEC_STR &yield_items,
@@ -728,6 +733,12 @@ static std::vector<Procedure> global_procedures = {
     Procedure("dbms.meta.refreshCount", BuiltinProcedure::DbmsMetaRefreshCount,
               Procedure::SIG_SPEC{}, Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}},
               false, true),
+    Procedure("dbms.security.isDefaultUserPassword",
+              BuiltinProcedure::DbmsSecurityIsDefaultUserPassword,
+              Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"isDefaultUserPassword", {0, lgraph_api::LGraphType::BOOLEAN}}
+              }, true, false),
     Procedure("dbms.security.changePassword", BuiltinProcedure::DbmsSecurityChangePassword,
               Procedure::SIG_SPEC{
                   {"current_password", {0, lgraph_api::LGraphType::STRING}},

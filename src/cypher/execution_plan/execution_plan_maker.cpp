@@ -158,14 +158,12 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
 
 std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statistics) const {
     std::string s = "Execution Plan Before Connect: \n";
-    if (lgraph_log::LoggerManager::GetInstance().GetLevel() == lgraph_log::severity_level::DEBUG) {
-        for (size_t i = 0; i < pattern_graph_root_.size(); i++) {
-            if (should_connect_[i]) {
-                OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
-            }
+    for (size_t i = 0; i < pattern_graph_root_.size(); i++) {
+        if (should_connect_[i]) {
+            OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
         }
-        LOG_DEBUG() << s;
     }
+    LOG_DEBUG() << s;
     return s;
 }
 
@@ -354,6 +352,18 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         ++filter_level_;
     }
     std::reverse(expand_ops.begin(), expand_ops.end());
+    // For the exists pattern query, SemiAllpy is simulated by combining Limit Optional and
+    // ExpandAll operators. e.g MATCH (n {name:'Rachel Kempson'}),(m:Person) RETURN
+    // exists((n)-[:MARRIED]->(m)) The resulting execution plan is as follows Produce Results
+    //    Project [exists((n)-[:MARRIED]->(m))]
+    //      Apply
+    //          Limit [1]
+    //              Optional
+    //                  Expand(Into) [n --> m ]
+    //                      Argument [n,m]
+    //          Cartesian Product
+    //              Node Index Seek [n]  IN []
+    //              Node By Label Scan [m:Person]
     if (ClauseGuard::InClause(geax::frontend::AstNodeType::kExists, cur_types_)) {
         auto& sym_tab = pattern_graphs_[cur_pattern_graph_].symbol_table;
         std::vector<OpBase*> rewriter;
@@ -586,13 +596,32 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         p.type = Property::VARIABLE;
         p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
         if (is_end_path_) {
-            NOT_SUPPORT();
+            auto right = objAlloc_.allocate<geax::frontend::Ref>();
+            auto val = ((geax::frontend::Ref*)value)->name();
+            right->setName(std::move(val));
+            expr->setRight(right);
         }
     } else if (value->type() == geax::frontend::AstNodeType::kParam) {
         p.type = Property::PARAMETER;
         p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
         if (is_end_path_) {
-            NOT_SUPPORT();
+            auto right = objAlloc_.allocate<geax::frontend::Ref>();
+            auto val = ((geax::frontend::Param*)value)->name();
+            right->setName(std::move(val));
+            expr->setRight(right);
+        }
+    } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+        p.type = Property::VARIABLE;
+        p.value_alias = ((geax::frontend::Ref*)((
+                         (geax::frontend::GetField*)value)->expr()))->name();
+        p.value = lgraph::FieldData(p.value_alias);
+        p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
+        if (is_end_path_) {
+            auto right = objAlloc_.allocate<geax::frontend::GetField>();
+            auto field_name = ((geax::frontend::GetField*)value)->fieldName();
+            right->setFieldName(std::move(field_name));
+            right->setExpr(((geax::frontend::GetField*)value)->expr());
+            expr->setRight(right);
         }
     } else {
         NOT_SUPPORT();
@@ -1041,7 +1070,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
     }
 
-    auto p = global_ptable_v2.GetProcedureV2(name);
+    auto p = global_ptable.GetProcedure(name);
     if (p == nullptr) {
         result_info_.header.colums.emplace_back(name);
     } else {

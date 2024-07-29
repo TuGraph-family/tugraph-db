@@ -1,0 +1,10 @@
+CALL db.plugin.listPlugin('PY', 'any');
+[]
+CALL db.plugin.loadPlugin('PY','countPerson','ZGVmIFByb2Nlc3MoZGIsIGlucHV0KToKICAgIHR4biA9IGRiLkNyZWF0ZVJlYWRUeG4oKQogICAgaXQgPSB0eG4uR2V0VmVydGV4SXRlcmF0b3IoKQogICAgbiA9IDAKICAgIHdoaWxlIGl0LklzVmFsaWQoKToKICAgICAgICBpZiBpdC5HZXRMYWJlbCgpID09ICdQZXJzb24nOgogICAgICAgICAgICBuID0gbiArIDEKICAgICAgICBpdC5OZXh0KCkKICAgIHJldHVybiAoVHJ1ZSwgc3RyKG4pKQ==','PY','count person',true, 'v1');
+[]
+CALL db.plugin.listPlugin('PY', 'any');
+[{"plugin_description":{"code_type":"python","description":"count person","name":"countPerson","read_only":true,"signature":"","version":"v1"}}]
+CALL db.plugin.getPluginInfo('PY','countPerson');
+[{"plugin_description":{"code_base64":"Not show code here.","code_type":"py","description":"count person","name":"countPerson","read_only":true,"version":""}}]
+CALL db.plugin.getPluginInfo('PY','countPerson',true);
+[{"plugin_description":{"code_base64":"ZGVmIFByb2Nlc3MoZGIsIGlucHV0KToKICAgIHR4biA9IGRiLkNyZWF0ZVJlYWRUeG4oKQogICAgaXQgPSB0eG4uR2V0VmVydGV4SXRlcmF0b3IoKQogICAgbiA9IDAKICAgIHdoaWxlIGl0LklzVmFsaWQoKToKICAgICAgICBpZiBpdC5HZXRMYWJlbCgpID09ICdQZXJzb24nOgogICAgICAgICAgICBuID0gbiArIDEKICAgICAgICBpdC5OZXh0KCkKICAgIHJldHVybiAoVHJ1ZSwgc3RyKG4pKQ==","code_type":"py","description":"count person","name":"countPerson","read_only":true,"version":""}}]

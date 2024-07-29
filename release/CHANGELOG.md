@@ -1,5 +1,26 @@
 # Change Log for TuGraph
 
+# 4.3.2 (2024-07-25)
+
+**Breaking Changes:**
+
+1. Optimize browser architecture and set as the default web.(#608)
+2. Add support for vector data type.(#475)
+
+**Improvements And Bug Fixes:**
+
+1. Fix cypher edge property filter does not work.(#559)
+2. Reduce the size of rpm package.(#556)
+3. Cypher performance optimization.(#570)(#575)
+4. Fix the issue that "orderby" variable is not in "return" clause.(#585)
+5. Allows to set empty graph in bolt client session.(#589)
+6. Documentation fixes.(#563)(#567)(#574)(#569)
+7. cypher and gql use the same ast node.(#561)(#581)(#577)
+
+**Interface Modification:**
+    
+1. Shortest path procedure support multiple edge filter.(#560)
+
 # 4.3.1 (2024-06-13)
 
 **Breaking Changes:**

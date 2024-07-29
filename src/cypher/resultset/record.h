@@ -159,7 +159,7 @@ struct Entry {
     /* Get field value of node or relationship. */
     lgraph::FieldData GetEntityField(RTContext *ctx, const std::string &fd) const;
 
-    bool GetEntityEfficient(RTContext *ctx) const;
+    bool CheckEntityEfficient(RTContext *ctx) const;
 
     static std::string ToString(const RecordEntryType &type) {
         switch (type) {
