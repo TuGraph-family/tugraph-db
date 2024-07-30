@@ -1,4 +1,3 @@
-
 MATCH (n:Person {name:'NoOne'}) RETURN n;
 OPTIONAL MATCH (n:Person {name:'NoOne'}) RETURN n;
 OPTIONAL MATCH (n:City {name:'London'})-[r]->(m) RETURN n.name, r, m;
