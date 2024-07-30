@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -144,7 +144,8 @@ class IndexManager {
 
     static std::string GetVectorIndexTableName(const std::string& label, const std::string& field,
                                                const std::string& index_type, int vec_dimension,
-                                               const std::string& distance_type, std::vector<int>& index_spec) {
+                                               const std::string& distance_type,
+                                               std::vector<int>& index_spec) {
         std::string INDEX_SPEC;
         INDEX_SPEC += '[';
         for (auto spec : index_spec) {
@@ -245,9 +246,9 @@ class IndexManager {
                                  const std::vector<FieldType>& types,
                                  CompositeIndexType type,
                                  std::shared_ptr<CompositeIndex>& index);
-    
+
     bool AddVectorIndex(KvTransaction& txn, const std::string& label,
-                        const std::string& field, const std::string& index_type, 
+                        const std::string& field, const std::string& index_type,
                         int vec_dimension, const std::string& distance_type,
                         std::vector<int>& index_spec, FieldType dt, IndexType type,
                         std::unique_ptr<VertexIndex>& index,
@@ -266,7 +267,7 @@ class IndexManager {
     bool DeleteVertexCompositeIndex(KvTransaction& txn, const std::string& label,
                                     const std::vector<std::string>& fields);
 
-    bool DeleteVectorIndex(KvTransaction& txn, const std::string& label, 
+    bool DeleteVectorIndex(KvTransaction& txn, const std::string& label,
                            const std::string& field, const std::string& index_type,
                            int vec_dimension, const std::string& distance_type);
 

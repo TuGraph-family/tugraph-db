@@ -2182,7 +2182,8 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
 
 bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std::string& field,
                                             const std::string& index_type, int vec_dimension,
-                                            const std::string& distance_type, std::vector<int>& index_spec,
+                                            const std::string& distance_type,
+                                            std::vector<int>& index_spec,
                                             IndexType type, bool is_vertex, bool known_vid_range,
                                             VertexId start_vid, VertexId end_vid) {
     _HoldWriteLock(meta_lock_);

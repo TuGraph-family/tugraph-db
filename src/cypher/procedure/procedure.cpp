@@ -3884,7 +3884,7 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record,
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK((args.size() >= 6 && args.size() <= 8),
-                        "e.g. vector.addVectorIndex(label_name, field_name, index_type," 
+                        "e.g. vector.addVectorIndex(label_name, field_name, index_type,"
                         " vec_dimension, distance_type, index_spec);");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                         "label_name type should be string");
@@ -3899,7 +3899,7 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record,
     switch (args.size()) {
         case 6:
             CYPHER_ARG_CHECK((args[5].type == parser::Expression::INT &&
-                              args[5].Int() <= 65536 && args[5].Int() >= 1), 
+                              args[5].Int() <= 65536 && args[5].Int() >= 1),
             "Please check the parameter, nlist should be an integer in the range [1,65536]");
             index_spec.emplace_back(args[5].Int());
             break;
@@ -3914,7 +3914,7 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record,
     auto distance_type = args[4].String();
     lgraph::IndexType type = lgraph::IndexType::GlobalUniqueIndex;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    bool success = ac_db.AddVectorIndex(label, field, index_type, 
+    bool success = ac_db.AddVectorIndex(label, field, index_type,
                             vec_dimension, distance_type, index_spec, type);
     if (!success) {
         throw lgraph::IndexExistException(label, field);
@@ -4080,7 +4080,7 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                                const std::tuple<std::string, std::string, float>& b) {
             return std::get<2>(a) < std::get<2>(b);
         };
-        std::partial_sort(SearchResult.begin(), 
+        std::partial_sort(SearchResult.begin(),
                 SearchResult.begin() + SearchResult.size(),
                 SearchResult.end(), compare_by_float);
         for (int i = 0; i < args[3].Int(); ++i) {

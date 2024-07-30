@@ -188,7 +188,7 @@ bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
 
 bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
                                   const std::string& field, const std::string& index_type,
-                                  int vec_dimension, const std::string& distance_type, 
+                                  int vec_dimension, const std::string& distance_type,
                                   std::vector<int>& index_spec, FieldType dt, IndexType type,
                                   std::unique_ptr<VertexIndex>& index,
                                   std::unique_ptr<VectorIndex>& vector_index) {
@@ -313,7 +313,7 @@ bool IndexManager::DeleteVectorIndex(KvTransaction& txn, const std::string& labe
                                      int vec_dimension, const std::string& distance_type) {
     std::string closest_table_name = label + _detail::NAME_SEPARATOR + field +
                _detail::NAME_SEPARATOR + index_type + _detail::NAME_SEPARATOR +
-               std::to_string(vec_dimension) + _detail::NAME_SEPARATOR;  
+               std::to_string(vec_dimension) + _detail::NAME_SEPARATOR;
     auto table_name = (index_list_table_->GetClosestIterator(txn,
                         Value::ConstRef(closest_table_name))->GetKey()).AsString();
     // delete the entry from index list table
