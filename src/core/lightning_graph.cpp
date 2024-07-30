@@ -17,7 +17,7 @@
 #include "core/lightning_graph.h"
 #include "import/import_config_parser.h"
 #include "fma-common/hardware_info.h"
-#include "core/vector_index_manager.h"
+#include "core/vector_index_counter.h"
 
 namespace lgraph {
 thread_local bool LightningGraph::in_transaction_ = false;

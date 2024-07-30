@@ -12,33 +12,33 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "vector_index_manager.h"
+#include "core/vector_index_counter.h"
 
 namespace lgraph {
 
-VectorIndexManager::VectorIndexManager(size_t count)
+VectorIndexCounter::VectorIndexCounter(size_t count)
     : count_(count),  indexed_(false) {}
 
-VectorIndexManager::VectorIndexManager(const VectorIndexManager& rhs)
+VectorIndexCounter::VectorIndexCounter(const VectorIndexCounter& rhs)
     : count_(rhs.count_),
       indexed_(rhs.indexed_) {}
 
 
-void VectorIndexManager::addCount() {
+void VectorIndexCounter::addCount() {
     count_++;
 }
 
-bool VectorIndexManager::MakeVectorIndex() {
+bool VectorIndexCounter::MakeVectorIndex() {
     indexed_ = true;
     return true;
 }
 
-bool VectorIndexManager::UpdateCount(size_t DataSize) {
+bool VectorIndexCounter::UpdateCount(size_t DataSize) {
     count_ = count_ + DataSize;
     return true;
 }
 
-bool VectorIndexManager::WhetherUpdate() {
+bool VectorIndexCounter::WhetherUpdate() {
     if (count_ >= 10000) {
         count_ = 0;
         return true;

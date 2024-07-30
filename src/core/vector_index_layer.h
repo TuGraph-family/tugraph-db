@@ -16,7 +16,7 @@
 
 #include <vector>
 #include <cstdint>
-#include "core/vector_index_manager.h"
+#include "core/vector_index_counter.h"
 #include "core/kv_store.h"
 #include "core/graph_data_pack.h"
 
@@ -36,7 +36,7 @@ class VectorIndex {
   int vec_dimension_;
   std::vector<int> index_spec_;
   int query_spec_;
-  VectorIndexManager vector_index_manager_;
+  VectorIndexCounter vector_index_manager_;
   std::shared_ptr<KvTable> table_;
   bool rebuild_;
 
@@ -71,8 +71,8 @@ class VectorIndex {
     // get the vector table
     std::shared_ptr<KvTable> GetTable() { return table_; }
 
-    // get vector_index_manager
-    VectorIndexManager* GetVectorIndexManager() { return &vector_index_manager_; }
+    // get vector_index_counter
+    VectorIndexCounter* GetVectorIndexManager() { return &vector_index_manager_; }
 
     // get whether rebuild
     bool GetWhetherRebuild() { return rebuild_; }
