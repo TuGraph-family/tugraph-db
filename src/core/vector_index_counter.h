@@ -25,20 +25,20 @@
 
 namespace lgraph {
 
-class VectorIndexManager {
+class VectorIndexCounter {
   size_t count_;
   bool indexed_;
 
  public:
-  explicit VectorIndexManager(size_t count);
+  explicit VectorIndexCounter(size_t count);
 
-  VectorIndexManager(const VectorIndexManager& rhs);
+  VectorIndexCounter(const VectorIndexCounter& rhs);
 
-  VectorIndexManager(VectorIndexManager&& rhs) = delete;
+  VectorIndexCounter(VectorIndexCounter&& rhs) = delete;
 
-  VectorIndexManager& operator=(const VectorIndexManager& rhs) = delete;
+  VectorIndexCounter& operator=(const VectorIndexCounter& rhs) = delete;
 
-  VectorIndexManager& operator=(VectorIndexManager&& rhs) = delete;
+  VectorIndexCounter& operator=(VectorIndexCounter&& rhs) = delete;
 
   size_t getCount() { return count_; }
 
