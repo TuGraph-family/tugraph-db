@@ -3884,8 +3884,8 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record,
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK((args.size() >= 6 && args.size() <= 8),
-                        "e.g. vector.addVectorIndex(label_name, field_name, index_type, 
-                         vec_dimension, distance_type, index_spec);");
+                        "e.g. vector.addVectorIndex(label_name, field_name, index_type," 
+                        " vec_dimension, distance_type, index_spec);");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                         "label_name type should be string");
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
@@ -3927,8 +3927,8 @@ void VectorFunc::DeleteVectorIndex(RTContext *ctx, const cypher::Record *record,
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() == 5,
-                     "e.g. vector.deleteVectorIndex(label_name, field_name,
-                     index_type, vec_dimension, distance_type);");
+                     "e.g. vector.deleteVectorIndex(label_name, field_name,"
+                     " index_type, vec_dimension, distance_type);");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                     "label_name type should be string");
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
@@ -3988,8 +3988,8 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() >= 5,
-                     "e.g. vector.VectorIndexQuery(label_name, field_name,
-                     vec, num_of_return, query_spec);");
+                     "e.g. vector.VectorIndexQuery(label_name, field_name,"
+                     " vec, num_of_return, query_spec);");
     CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
                     "label_name type should be string");
     CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
@@ -4024,8 +4024,8 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     if (index_type == "IVF_FLAT") {
         CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT &&
                           args[4].Int() <= 65536 && args[4].Int() >= 1),
-                         "Please check the parameter,
-                         nprobe should be an integer in the range [1,65536]");
+                         "Please check the parameter,"
+                         " nprobe should be an integer in the range [1,65536]");
         std::vector<float> index_distances;
         std::vector<int64_t> index_indices;
         std::vector<float> Flat_distances;
