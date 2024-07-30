@@ -2248,9 +2248,14 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
                     index->CleanVectorFromTable(txn.GetTxn());
                     index->Build();
                     index->Add(floatvector, count);
-                    LOG_INFO() <<
+                    bool success = index_manager_->SetVectorIndex(txn.GetTxn(), label, field, index_type,
+                                   vec_dimension, distance_type, index_spec,
+                                   extractor->Type(), type, index->Save());
+                    if (success) {
+                        LOG_INFO() <<
                                 FMA_FMT("end building vector index for {}:{} in detached model",
                                         label, field);
+                    }
                 } else {
                     LOG_INFO() <<
                                 FMA_FMT("end building vector index for {}:{} in detached model",

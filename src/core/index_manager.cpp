@@ -349,4 +349,22 @@ bool IndexManager::GetVectorIndexListTableName(KvTransaction& txn,
         return false;
     }
 }
+
+bool IndexManager::SetVectorIndex(KvTransaction& txn, const std::string& label,
+                                  const std::string& field, const std::string& index_type,
+                                  int vec_dimension, const std::string& distance_type, 
+                                  std::vector<int>& index_spec, FieldType dt, IndexType type,
+                                  std::vector<uint8_t> index_blob) {
+    _detail::IndexEntry idx;
+    idx.label = label;
+    idx.field = field;
+    idx.table_name = GetVectorIndexTableName(label, field, index_type,
+                                vec_dimension, distance_type, index_spec);
+    idx.type = type;
+
+    auto it = index_list_table_->GetIterator(txn, Value::ConstRef(idx.table_name));
+    Value idxv = Value(index_blob.data(), sizeof(index_blob));
+    it->SetValue(idxv);
+    return true;
+}
 }  // namespace lgraph

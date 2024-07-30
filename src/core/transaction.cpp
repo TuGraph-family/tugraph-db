@@ -479,7 +479,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
     graph_->DeleteVertex(*txn_, it, on_edge_deleted);
     if (schema->DetachProperty()) {
         schema->DeleteDetachedVertexProperty(*txn_, vid);
-        schema->DeleteDetachedVectorIndex(*txn_, vid, prop);
+        schema->DeleteDetachedVectorIndex(*txn_, vid, prop, index_manager_);
     }
     vertex_delta_count_[schema->GetLabelId()]--;
     // delete vertex fulltext index
@@ -982,8 +982,8 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
     }
     if (schema->DetachProperty()) {
         schema->SetDetachedVertexProperty(*txn_, vid, new_prop);
-        schema->DeleteDetachedVectorIndex(*txn_, vid, old_prop);
-        schema->AddDetachedVectorToVectorIndex(*txn_, vid, new_prop);
+        schema->DeleteDetachedVectorIndex(*txn_, vid, old_prop, index_manager_);
+        schema->AddDetachedVectorToVectorIndex(*txn_, vid, new_prop, index_manager_);
     } else {
         it.SetProperty(std::move(new_prop));
     }
@@ -1300,7 +1300,7 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     schema->AddVertexToCompositeIndex(*txn_, newvid, prop, created_composite_index);
     if (schema->DetachProperty()) {
         schema->AddDetachedVertexProperty(*txn_, newvid, prop);
-        schema->AddDetachedVectorToVectorIndex(*txn_, newvid, prop);
+        schema->AddDetachedVectorToVectorIndex(*txn_, newvid, prop, index_manager_);
     }
     if (fulltext_index_) {
         schema->AddVertexToFullTextIndex(newvid, prop, fulltext_buffers_);

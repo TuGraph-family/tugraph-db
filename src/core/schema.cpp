@@ -313,7 +313,8 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
     }
 }
 
-void Schema::AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+void Schema::AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                                            IndexManager* indexManager) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
@@ -339,14 +340,23 @@ void Schema::AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, co
                     fe.GetVectorIndex()->CleanVectorFromTable(txn);
                     fe.GetVectorIndex()->Build();
                     fe.GetVectorIndex()->Add(floatvector, count);
-                    LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
+                    bool success = indexManager->SetVectorIndex(txn, fe.GetVectorIndex()->GetLabel(),
+                                    fe.GetVectorIndex()->GetName(), fe.GetVectorIndex()->GetIndexType(),
+                                    fe.GetVectorIndex()->GetVecDimension(),
+                                    fe.GetVectorIndex()->GetDistanceType(),
+                                    fe.GetVectorIndex()->index_spec_ , fe.Type(),
+                                    IndexType::NonuniqueIndex, fe.GetVectorIndex()->Save());
+                    if (success) {
+                         LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
+                    }
                 }
             }
         }
     }
 }
 
-void Schema::DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+void Schema::DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const Value& record,
+                                       IndexManager* indexManager) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
@@ -372,7 +382,15 @@ void Schema::DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const V
                     fe.GetVectorIndex()->CleanVectorFromTable(txn);
                     fe.GetVectorIndex()->Build();
                     fe.GetVectorIndex()->Add(floatvector, count);
-                    LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
+                    bool success = indexManager->SetVectorIndex(txn, fe.GetVectorIndex()->GetLabel(),
+                                    fe.GetVectorIndex()->GetName(), fe.GetVectorIndex()->GetIndexType(),
+                                    fe.GetVectorIndex()->GetVecDimension(),
+                                    fe.GetVectorIndex()->GetDistanceType(),
+                                    fe.GetVectorIndex()->index_spec_ , fe.Type(),
+                                    IndexType::NonuniqueIndex, fe.GetVectorIndex()->Save());
+                    if (success) {
+                         LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
+                    }
                 }
             }
         }
