@@ -13,7 +13,7 @@
  */
 
 #include "procedure/utils.h"
-#include "cypher/procedure/procedure_v2.h"
+#include "cypher/procedure/procedure.h"
 #include "cypher/execution_plan/ops/op_gql_standalone_call.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
@@ -83,7 +83,7 @@ cypher::OpBase::OpResult cypher::GqlStandaloneCall::RealConsume(RTContext *ctx) 
 #endif
         }
     } else {
-        auto p = global_ptable_v2.GetProcedureV2(func_name_);
+        auto p = global_ptable.GetProcedure(func_name_);
         if (!p) {
             throw lgraph::EvaluationException("unregistered standalone function: " + func_name_);
         }

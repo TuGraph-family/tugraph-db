@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.13)
 project(TuGraph C CXX)
 
 ############### lgraph_import ######################
@@ -9,16 +9,14 @@ add_executable(${TARGET_LGRAPH_IMPORT}
         lgraph_import.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
-        ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp
-        ${LGRAPH_ROOT_DIR}/src/import/graphar_parser.cpp)
+        ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp)
 
 # TODO: break circular dependency between cypher and state machine
 target_link_libraries(${TARGET_LGRAPH_IMPORT}
         lgraph_server_lib
         lgraph_cypher_lib
         lgraph_server_lib
-        librocksdb.a
-        gar)
+        librocksdb.a)
 
 if (NOT ENABLE_ASAN)
     target_link_libraries(${TARGET_LGRAPH_IMPORT} libjemalloc.a)
@@ -51,7 +49,7 @@ target_link_libraries(${TARGET_LGRAPH_BACKUP} lgraph_server_lib)
 ############### lgraph_cli ######################
 
 set(TARGET_LGRAPH_CLI lgraph_cli)
-add_executable(${TARGET_LGRAPH_CLI} lgraph_cli.cpp ${LGRAPH_ROOT_DIR}/toolkits/linenoise/linenoise.c)
+add_executable(${TARGET_LGRAPH_CLI} lgraph_cli.cpp ${LGRAPH_ROOT_DIR}/src/core/lgraph_date_time.cpp ${LGRAPH_ROOT_DIR}/toolkits/linenoise/linenoise.c)
 target_link_libraries(${TARGET_LGRAPH_CLI} bolt ${Boost_LIBRARIES})
 
 ############### lgraph_warmup ###################

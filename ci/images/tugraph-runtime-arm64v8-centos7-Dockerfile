@@ -108,7 +108,3 @@ ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
 
-# set locale
-RUN localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
-ENV LANG     zh_CN.utf8
-ENV LC_ALL   zh_CN.utf8

@@ -1,6 +1,6 @@
 set(LGRAPH_VERSION_MAJOR 4)
 set(LGRAPH_VERSION_MINOR 3)
-set(LGRAPH_VERSION_PATCH 1)
+set(LGRAPH_VERSION_PATCH 2)
 
 # options
 option(ENABLE_WALL "Enable all compiler's warning messages." ON)

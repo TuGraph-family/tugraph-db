@@ -19,6 +19,7 @@
 #include "tools/lgraph_log.h"
 #include "bolt/record.h"
 #include "bolt/graph.h"
+#include "lgraph/lgraph_date_time.h"
 #pragma once
 
 namespace bolt {
@@ -53,10 +54,13 @@ nlohmann::json ToJsonObj(const std::any& item) {
         return ToJsonObj(path);
     } else if (item.type() == typeid(bolt::Date)) {
         const auto& date = std::any_cast<const bolt::Date&>(item);
-        return ToJsonObj(date.days);
-    } else if (item.type() == typeid(bolt::LocalTime)) {
-        const auto& localTime = std::any_cast<const bolt::LocalTime&>(item);
-        return ToJsonObj(localTime.nanoseconds);
+        lgraph_api::Date d(date.days);
+        return ToJsonObj(d.ToString());
+    } else if (item.type() == typeid(bolt::LocalDateTime)) {
+        const auto& localDateTime = std::any_cast<const bolt::LocalDateTime&>(item);
+        lgraph_api::DateTime dateTime(
+            localDateTime.seconds * 1000000 + localDateTime.nanoseconds/1000);
+        return ToJsonObj(dateTime.ToString());
     } else if (item.type() == typeid(std::vector<std::any>)) {
         const auto& vector = std::any_cast<const std::vector<std::any>&>(item);
         nlohmann::json ret = nlohmann::json::array();

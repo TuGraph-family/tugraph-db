@@ -21,6 +21,7 @@
 #include "cypher/resultset/record.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/arithmetic/ast_expr_evaluator.h"
+#include "lgraph/lgraph_exceptions.h"
 
 #ifndef DO_BINARY_EXPR
 #define DO_BINARY_EXPR(func)                                       \
@@ -54,6 +55,20 @@ cypher::FieldData doCallBuiltinFunc(const std::string& name, cypher::RTContext* 
     return data;
 }
 
+const std::string& getNodeOrEdgeName(geax::frontend::AstNode* ast_node) {
+    if (ast_node->type() == geax::frontend::AstNodeType::kNode) {
+        geax::frontend::Node* node = (geax::frontend::Node*)ast_node;
+        if (!node->filler()->v().has_value()) NOT_SUPPORT_AND_THROW();
+        return node->filler()->v().value();
+    } else if (ast_node->type() == geax::frontend::AstNodeType::kEdge) {
+        geax::frontend::Edge* edge = (geax::frontend::Edge*)ast_node;
+        if (!edge->filler()->v().has_value()) NOT_SUPPORT_AND_THROW();
+        return edge->filler()->v().value();
+    } else {
+        NOT_SUPPORT_AND_THROW();
+    }
+}
+
 namespace cypher {
 
 static cypher::FieldData And(const cypher::FieldData& x, const cypher::FieldData& y) {
@@ -63,7 +78,7 @@ static cypher::FieldData And(const cypher::FieldData& x, const cypher::FieldData
         ret.scalar = ::lgraph::FieldData(x.scalar.AsBool() && y.scalar.AsBool());
         return ret;
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(ParserException, "Type error");
 }
 
 static cypher::FieldData Or(const cypher::FieldData& x, const cypher::FieldData& y) {
@@ -73,7 +88,7 @@ static cypher::FieldData Or(const cypher::FieldData& x, const cypher::FieldData&
         ret.scalar = ::lgraph::FieldData(x.scalar.AsBool() || y.scalar.AsBool());
         return ret;
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(ParserException, "Type error");
 }
 
 static cypher::FieldData Xor(const cypher::FieldData& x, const cypher::FieldData& y) {
@@ -83,7 +98,7 @@ static cypher::FieldData Xor(const cypher::FieldData& x, const cypher::FieldData
         ret.scalar = ::lgraph::FieldData(!x.scalar.AsBool() != !y.scalar.AsBool());
         return ret;
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(ParserException, "Type error");
 }
 
 static cypher::FieldData Not(const cypher::FieldData& x) {
@@ -92,7 +107,7 @@ static cypher::FieldData Not(const cypher::FieldData& x) {
         ret.scalar = ::lgraph::FieldData(!x.scalar.AsBool());
         return ret;
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(ParserException, "Type error");
 }
 
 static cypher::FieldData Neg(const cypher::FieldData& x) {
@@ -234,7 +249,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BIn* node) {
     if (!l_val.IsScalar()) NOT_SUPPORT_AND_THROW();
     if (!r_val.IsArray()) NOT_SUPPORT_AND_THROW();
     for (auto& val : *r_val.constant.array) {
-        if (l_val.constant.scalar == val) {
+        if (l_val.constant.scalar == val.scalar) {
             return Entry(cypher::FieldData(lgraph::FieldData(true)));
         }
     }
@@ -257,7 +272,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Function* node) {
         }
         return Entry(it->second(ctx_, *record_, args));
     }
-    NOT_SUPPORT_AND_THROW();
+    THROW_CODE(InputError, FMA_FMT("Plugin [{}] does not exist.", func_name));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Case* node) {
@@ -322,8 +337,14 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
                 NOT_SUPPORT_AND_THROW();
             }
             std::vector<Entry> args;
-            args.emplace_back(Entry(cypher::FieldData(lgraph::FieldData(node->isDistinct()))));
-            args.emplace_back(std::any_cast<Entry>(node->expr()->accept(*this)));
+            if (func_name == "count" &&
+                node->expr()->type() == geax::frontend::AstNodeType::kVString &&
+                ((geax::frontend::VString*)node->expr())->val() == "*" && record_->Null()) {
+                args.emplace_back(Entry(cypher::FieldData()));
+            } else {
+                args.emplace_back(Entry(cypher::FieldData(lgraph::FieldData(node->isDistinct()))));
+                args.emplace_back(std::any_cast<Entry>(node->expr()->accept(*this)));
+            }
             agg_ctxs_[agg_pos_]->Step(args);
             return Entry(cypher::FieldData());
         }
@@ -375,26 +396,32 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::Windowing* node) {
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::MkList* node) {
     const auto& elems = node->elems();
-    std::vector<::lgraph::FieldData> fields;
-    fields.reserve(elems.size());
-    std::vector<::lgraph::FieldData> list;
+    std::vector<cypher::FieldData> list;
     for (auto& e : elems) {
         auto entry = std::any_cast<Entry>(e->accept(*this));
-        if (!entry.IsScalar()) NOT_SUPPORT_AND_THROW();
-        list.emplace_back(entry.constant.scalar);
+        if (!entry.IsMap() && !entry.IsScalar()) NOT_SUPPORT_AND_THROW();
+        if (entry.IsScalar()) {
+            list.emplace_back(entry.constant.scalar);
+        } else {
+            list.emplace_back(*entry.constant.map);
+        }
     }
     return Entry(cypher::FieldData(list));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::MkMap* node) {
     const auto& elems = node->elems();
-    std::unordered_map<std::string, ::lgraph::FieldData> map;
+    std::unordered_map<std::string, cypher::FieldData> map;
     for (const auto& pair : elems) {
         auto key = std::any_cast<Entry>(std::get<0>(pair)->accept(*this));
         auto val = std::any_cast<Entry>(std::get<1>(pair)->accept(*this));
         if (!key.IsString()) NOT_SUPPORT_AND_THROW();
-        if (!val.IsScalar()) NOT_SUPPORT_AND_THROW();
-        map.emplace(key.constant.ToString(), val.constant.scalar);
+        if (!val.IsScalar() && !val.IsArray()) NOT_SUPPORT_AND_THROW();
+        if (val.IsScalar()) {
+            map.emplace(key.constant.ToString(), val.constant.scalar);
+        } else {
+            map.emplace(key.constant.ToString(), *val.constant.array);
+        }
     }
     return Entry(cypher::FieldData(map));
 }
@@ -524,6 +551,58 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::IsNull* node) {
     return Entry(ret);
 }
 
+std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
+    auto path_chains = node->pathChains();
+    if (path_chains.size() > 1) NOT_SUPPORT_AND_THROW();
+    auto head = path_chains[0]->head();
+    const std::string head_name = getNodeOrEdgeName(head);
+    auto it_head = sym_tab_->symbols.find(head_name);
+    if (it_head == sym_tab_->symbols.end() || it_head->second.type != SymbolNode::NODE)
+        NOT_SUPPORT_AND_THROW();
+    if (!record_->values[it_head->second.id].CheckEntityEfficient(ctx_))
+        return Entry(cypher::FieldData(lgraph::FieldData(false)));
+
+    auto& tails = path_chains[0]->tails();
+    for (auto& tail : tails) {
+        auto relationship = std::get<0>(tail);
+        const std::string rel_name = getNodeOrEdgeName(relationship);
+        auto it_rel = sym_tab_->symbols.find(rel_name);
+        if (it_rel == sym_tab_->symbols.end() || it_rel->second.type != SymbolNode::RELATIONSHIP)
+            NOT_SUPPORT_AND_THROW();
+        if (!record_->values[it_rel->second.id].CheckEntityEfficient(ctx_))
+            return Entry(cypher::FieldData(lgraph::FieldData(false)));
+        auto neighbor = std::get<1>(tail);
+        const std::string ne_name = getNodeOrEdgeName(neighbor);
+        auto it_ne = sym_tab_->symbols.find(ne_name);
+        if (it_ne == sym_tab_->symbols.end() || it_ne->second.type != SymbolNode::NODE)
+            NOT_SUPPORT_AND_THROW();
+        if (!record_->values[it_ne->second.id].CheckEntityEfficient(ctx_))
+            return Entry(cypher::FieldData(lgraph::FieldData(false)));
+    }
+    return Entry(cypher::FieldData(lgraph::FieldData(true)));
+}
+
 std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }
+
+std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
+    geax::frontend::Ref *ref = nullptr;
+    geax::frontend::Expr *in_expr = nullptr, *op_expr = nullptr;
+    checkedCast(node->getVariable(), ref);
+    checkedCast(node->getInExpression(), in_expr);
+    checkedCast(node->getOpExpression(), op_expr);
+    Entry in_e;
+    checkedAnyCast(in_expr->accept(*this), in_e);
+    CYPHER_THROW_ASSERT(in_e.IsArray());
+    auto data_array = in_e.constant.array;
+    std::vector<::lgraph::FieldData> ret_data;
+    auto it = sym_tab_->symbols.find(ref->name());
+    for (auto &data : *data_array) {
+        const_cast<Record*>(record_)->values[it->second.id] = Entry(cypher::FieldData(data));
+        Entry one_result;
+        checkedAnyCast(op_expr->accept(*this), one_result);
+        ret_data.push_back(one_result.constant.scalar);
+    }
+    return Entry(cypher::FieldData(ret_data));
+}
 
 }  // namespace cypher

@@ -66,6 +66,7 @@
 #include "geax-front-end/ast/expr/MkRecord.h"
 #include "geax-front-end/ast/expr/MkSet.h"
 #include "geax-front-end/ast/expr/MkTuple.h"
+#include "geax-front-end/ast/expr/ListComprehension.h"
 #include "geax-front-end/ast/expr/MultiCount.h"
 #include "geax-front-end/ast/expr/Neg.h"
 #include "geax-front-end/ast/expr/Not.h"

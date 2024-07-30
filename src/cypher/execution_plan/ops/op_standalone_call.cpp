@@ -122,7 +122,13 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 }
             }
         }
-        procedure_->function(ctx, nullptr, parameters, _yield_items, &records);
+        std::vector<Entry> evaluate_parameters;
+        evaluate_parameters.reserve(parameters.size());
+        for (const auto& expr : parameters) {
+            ArithExprNode node(expr, {});
+            evaluate_parameters.emplace_back(node.Evaluate(ctx, *record));
+        }
+        procedure_->function(ctx, record.get(), evaluate_parameters, _yield_items, &records);
         auto &header = ctx->result_->Header();
         for (auto &r : records) {
             auto record = ctx->result_->MutableRecord();

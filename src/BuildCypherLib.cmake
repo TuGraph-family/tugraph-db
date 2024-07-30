@@ -54,6 +54,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/ops/op_gql_merge.cpp
         cypher/execution_plan/ops/op_node_by_id_seek.cpp
         cypher/execution_plan/ops/op_traversal.cpp
+        cypher/execution_plan/ops/op_gql_remove.cpp
         cypher/execution_plan/scheduler.cpp
         cypher/filter/filter.cpp
         cypher/filter/iterator.cpp
@@ -70,7 +71,6 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/parser/generated/LcypherParser.cpp
         cypher/parser/generated/LcypherVisitor.cpp
         cypher/procedure/procedure.cpp
-        cypher/procedure/procedure_v2.cpp
         cypher/procedure/utils.cpp
         cypher/resultset/record.cpp
         cypher/monitor/monitor_manager.cpp

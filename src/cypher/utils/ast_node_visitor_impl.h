@@ -549,7 +549,6 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::Exists* node) override {
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
         for (auto path_chain : node->pathChains()) {
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(path_chain);
         }
@@ -760,6 +759,10 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::RemoveSingleProperty* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
     std::any visit(geax::frontend::SetSchemaClause* node) override {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->initExpr());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -935,6 +938,10 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::DummyNode* node) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::ListComprehension* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 

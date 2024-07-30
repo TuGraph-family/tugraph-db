@@ -1,3 +1,5 @@
+WITH [{s: "Michael Redgrave", e: "Vanessa Redgrave"},{s: "Michael Redgrave", e: "Corin Redgrave"}] AS pairs UNWIND pairs AS pair MATCH (n1:Person {name:pair.s})-[r]->(n2:Person{name:pair.e}) RETURN r;
+[{"r":{"dst":2,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":1,"temporal_id":0}},{"r":{"dst":3,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":1,"temporal_id":0}}]
 UNWIND [1, 2, 3] AS x RETURN x;
 [{"x":1},{"x":2},{"x":3}]
 WITH [1, 1, 2, 2] AS coll UNWIND coll AS x RETURN x;

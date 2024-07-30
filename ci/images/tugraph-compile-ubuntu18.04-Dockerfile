@@ -37,7 +37,6 @@ RUN apt-get update && apt-get install -y \
     libjson-perl \
     libperlio-gzip-perl \
     libdigest-perl-md5-perl \
-    openjdk-8-jdk \
     language-pack-zh* \
     openjdk-11-jdk
 

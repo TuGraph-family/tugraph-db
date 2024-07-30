@@ -17,6 +17,7 @@
 #include "cypher/cypher_exception.h"
 #include "geax-front-end/ast/AstNodeVisitor.h"
 #include "cypher/parser/generated/LcypherParser.h"
+#include "lgraph/lgraph_exceptions.h"
 
 namespace parser {
 
@@ -53,16 +54,16 @@ void checkedCast(Base *b, Drive *&d) {
 }
 
 template <typename TargetType>
-void checkedAnyCast(const std::any& s, TargetType*& d) {
+void checkedAnyCast(const std::any &s, TargetType *&d) {
     try {
-        d = std::any_cast<TargetType*>(s);
+        d = std::any_cast<TargetType *>(s);
     } catch (...) {
         // TODO(lingsu): remove in future
         assert(false);
     }
 }
 template <typename TargetType>
-void checkedAnyCast(const std::any& s, TargetType& d) {
+void checkedAnyCast(const std::any &s, TargetType &d) {
     try {
         d = std::any_cast<TargetType>(s);
     } catch (...) {
@@ -133,15 +134,12 @@ std::string CypherBaseVisitorV2::GenAnonymousAlias(bool is_node) {
 std::any CypherBaseVisitorV2::visitOC_Statement(LcypherParser::OC_StatementContext *ctx) {
     geax::frontend::NormalTransaction *node = nullptr;
     checkedCast(node_, node);
-    if (ctx->EXPLAIN()) {
-        NOT_SUPPORT_AND_THROW();
-    } else if (ctx->PROFILE()) {
-        NOT_SUPPORT_AND_THROW();
-    } else {
-        auto body = ALLOC_GEAOBJECT(geax::frontend::ProcedureBody);
-        node->setProcedureBody(body);
-        SWITCH_CONTEXT_VISIT_CHILDREN(ctx, body);
-    }
+    cmd_type_ = ctx->EXPLAIN() ? parser::CmdType::EXPLAIN
+                : ctx->PROFILE() ? parser::CmdType::PROFILE
+                : parser::CmdType::QUERY;
+    auto body = ALLOC_GEAOBJECT(geax::frontend::ProcedureBody);
+    node->setProcedureBody(body);
+    SWITCH_CONTEXT_VISIT_CHILDREN(ctx, body);
     return 0;
 }
 
@@ -156,15 +154,20 @@ std::any CypherBaseVisitorV2::visitOC_Query(LcypherParser::OC_QueryContext *ctx)
 }
 
 std::any CypherBaseVisitorV2::visitOC_RegularQuery(LcypherParser::OC_RegularQueryContext *ctx) {
-    visit(ctx->oC_SingleQuery());
-    for (auto token : ctx->oC_Union()) {
-        visit(token);
+    geax::frontend::ProcedureBody *body = nullptr;
+    checkedCast(node_, body);
+    SWITCH_CONTEXT_VISIT(ctx->oC_SingleQuery(), body);
+    if (!ctx->oC_Union().empty()) {
+        VisitGuard guard(VisitType::kUnionClause, visit_types_);
+        for (auto token : ctx->oC_Union()) {
+            SWITCH_CONTEXT_VISIT(token, body);
+        }
     }
     return 0;
 }
 
 std::any CypherBaseVisitorV2::visitOC_Union(LcypherParser::OC_UnionContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
+    return visitChildren(ctx);
 }
 
 std::any CypherBaseVisitorV2::visitOC_SingleQuery(LcypherParser::OC_SingleQueryContext *ctx) {
@@ -180,18 +183,25 @@ std::any CypherBaseVisitorV2::visitOC_SinglePartQuery(
     if (ctx->oC_ReadingClause().size() > 2) NOT_SUPPORT_AND_THROW();
     geax::frontend::ProcedureBody *body = nullptr;
     checkedCast(node_, body);
-    auto node = ALLOC_GEAOBJECT(geax::frontend::StatementWithYield);
-    body->appendStatement(node);
+    geax::frontend::StatementWithYield* node;
     if (ctx->oC_UpdatingClause().empty()) {
         VisitGuard guard(VisitType::kReadingClause, visit_types_);
-        auto stmt = ALLOC_GEAOBJECT(geax::frontend::QueryStatement);
-        node->setStatement(stmt);
-        auto join = ALLOC_GEAOBJECT(geax::frontend::JoinQueryExpression);
-        stmt->setJoinQuery(join);
-        auto co = ALLOC_GEAOBJECT(geax::frontend::CompositeQueryStatement);
-        join->setHead(co);
         auto l = ALLOC_GEAOBJECT(geax::frontend::AmbientLinearQueryStatement);
-        co->setHead(l);
+        if (!VisitGuard::InClause(VisitType::kUnionClause, visit_types_)) {
+            node = ALLOC_GEAOBJECT(geax::frontend::StatementWithYield);
+            body->appendStatement(node);
+            auto stmt = ALLOC_GEAOBJECT(geax::frontend::QueryStatement);
+            node->setStatement(stmt);
+            auto join = ALLOC_GEAOBJECT(geax::frontend::JoinQueryExpression);
+            stmt->setJoinQuery(join);
+            auto co = ALLOC_GEAOBJECT(geax::frontend::CompositeQueryStatement);
+            join->setHead(co);
+            co->setHead(l);
+        } else {
+            node = body->statements().back();
+            auto stmt = (geax::frontend::QueryStatement*)node->statement();
+            stmt->joinQuery()->head()->appendBody(ALLOC_GEAOBJECT(geax::frontend::Union), l);
+        }
         SWITCH_CONTEXT_VISIT_CHILDREN(ctx, l);
         if (VisitGuard::InClause(VisitType::kSinglePartQuery, visit_types_) &&
             filter_in_with_clause_) {
@@ -199,6 +209,8 @@ std::any CypherBaseVisitorV2::visitOC_SinglePartQuery(
         }
     } else {
         VisitGuard guard(VisitType::kUpdatingClause, visit_types_);
+        node = ALLOC_GEAOBJECT(geax::frontend::StatementWithYield);
+        body->appendStatement(node);
         auto stmt = ALLOC_GEAOBJECT(geax::frontend::LinearDataModifyingStatement);
         node->setStatement(stmt);
         SWITCH_CONTEXT_VISIT_CHILDREN(ctx, stmt);
@@ -424,9 +436,10 @@ std::any CypherBaseVisitorV2::visitOC_SetItem(LcypherParser::OC_SetItemContext *
         update->setV(std::move(variable));
         if (ctx->oC_Expression()) {
             VisitGuard guard(VisitType::kSetVariable, visit_types_);
+            VisitGuard guardLabel(VisitType::kSetLabel, visit_types_);
             SWITCH_CONTEXT_VISIT(ctx->oC_Expression(), update);
         } else {
-            NOT_SUPPORT_AND_THROW();
+            THROW_CODE(InputError, FMA_FMT("Variable `{}` not defined", vstr->val()));
         }
     }
     return 0;
@@ -444,9 +457,10 @@ std::any CypherBaseVisitorV2::visitOC_Delete(LcypherParser::OC_DeleteContext *ct
             VisitGuard guard(VisitType::kDeleteVariable, visit_types_);
             geax::frontend::Expr *expr = nullptr;
             checkedAnyCast(visit(e), expr);
-            geax::frontend::VString *str;
-            checkedCast(expr, str);
-            std::string field = str->val();
+            if (expr->type() != geax::frontend::AstNodeType::kRef) {
+                THROW_CODE(InputError, "Type mismatch: expected Node, Path or Relationship");
+            }
+            std::string field = ((geax::frontend::Ref *)expr)->name();
             del->appendItem(std::move(field));
         }
     }
@@ -454,12 +468,39 @@ std::any CypherBaseVisitorV2::visitOC_Delete(LcypherParser::OC_DeleteContext *ct
 }
 
 std::any CypherBaseVisitorV2::visitOC_Remove(LcypherParser::OC_RemoveContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
+    VisitGuard::InClause(VisitType::kUpdatingClause, visit_types_);
+    geax::frontend::LinearDataModifyingStatement *node = nullptr;
+    checkedCast(node_, node);
+    for (auto &item : ctx->oC_RemoveItem()) {
+        auto stmt = ALLOC_GEAOBJECT(geax::frontend::RemoveStatement);
+        node->appendModifyStatement(stmt);
+        SWITCH_CONTEXT_VISIT(item, stmt);
+    }
     return 0;
 }
 
 std::any CypherBaseVisitorV2::visitOC_RemoveItem(LcypherParser::OC_RemoveItemContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
+    geax::frontend::RemoveStatement *node = nullptr;
+    checkedCast(node_, node);
+    if (ctx->oC_PropertyExpression()) {
+        geax::frontend::Expr *name_expr = nullptr, *property_expr = nullptr;
+        auto pe_ctx = ctx->oC_PropertyExpression();
+        checkedAnyCast(visit(ctx->oC_PropertyExpression()->oC_Atom()), name_expr);
+        if (pe_ctx->oC_PropertyLookup().empty())
+            CYPHER_TODO();
+        checkedAnyCast(visit(pe_ctx->oC_PropertyLookup(0)), property_expr);
+        geax::frontend::Ref *vstr = nullptr;
+        geax::frontend::VString *pstr = nullptr;
+        checkedCast(name_expr, vstr);
+        checkedCast(property_expr, pstr);
+        std::string variable = vstr->name(), property = pstr->val();
+        auto remove = ALLOC_GEAOBJECT(geax::frontend::RemoveSingleProperty);
+        node->appendItem(remove);
+        remove->setV(std::move(variable));
+        remove->setProperty(std::move(property));
+    } else {
+        CYPHER_TODO();
+    }
     return 0;
 }
 
@@ -508,7 +549,9 @@ std::any CypherBaseVisitorV2::visitOC_StandaloneCall(LcypherParser::OC_Standalon
 }
 
 std::any CypherBaseVisitorV2::visitOC_YieldItems(LcypherParser::OC_YieldItemsContext *ctx) {
-    if (ctx->oC_Where()) NOT_SUPPORT_AND_THROW();
+    if (ctx->oC_Where()) {
+        visit(ctx->oC_Where());
+    }
     for (auto &item : ctx->oC_YieldItem()) {
         visit(item);
     }
@@ -530,9 +573,9 @@ std::any CypherBaseVisitorV2::visitOC_With(LcypherParser::OC_WithContext *ctx) {
         auto result = ALLOC_GEAOBJECT(geax::frontend::PrimitiveResultStatement);
         result->setDistinct(ctx->DISTINCT() != nullptr);
         node->setResultStatement(result);
+        VisitGuard guard(VisitType::kWithClause, visit_types_);
         SWITCH_CONTEXT_VISIT(ctx->oC_ReturnBody(), result);
         if (ctx->oC_Where()) {
-            VisitGuard guard(VisitType::kWithClause, visit_types_);
             SWITCH_CONTEXT_VISIT(ctx->oC_Where(), node);
         }
     } else if (VisitGuard::InClause(VisitType::kUpdatingClause, visit_types_)) {
@@ -541,9 +584,9 @@ std::any CypherBaseVisitorV2::visitOC_With(LcypherParser::OC_WithContext *ctx) {
         auto result = ALLOC_GEAOBJECT(geax::frontend::PrimitiveResultStatement);
         result->setDistinct(ctx->DISTINCT() != nullptr);
         node->setResultStatement(result);
+        VisitGuard guard(VisitType::kWithClause, visit_types_);
         SWITCH_CONTEXT_VISIT(ctx->oC_ReturnBody(), result);
         if (ctx->oC_Where()) {
-            VisitGuard guard(VisitType::kWithClause, visit_types_);
             SWITCH_CONTEXT_VISIT(ctx->oC_Where(), node);
         }
     }
@@ -584,6 +627,10 @@ std::any CypherBaseVisitorV2::visitOC_ReturnBody(LcypherParser::OC_ReturnBodyCon
 }
 
 std::any CypherBaseVisitorV2::visitOC_ReturnItems(LcypherParser::OC_ReturnItemsContext *ctx) {
+    if (VisitGuard::InClause(VisitType::kWithClause, visit_types_)) {
+        if (ctx->children[0]->getText() == "*")
+            THROW_CODE(CypherException, "WITH * syntax is not implemented now");
+    }
     for (auto &item : ctx->oC_ReturnItem()) {
         visit(item);
     }
@@ -599,6 +646,13 @@ std::any CypherBaseVisitorV2::visitOC_ReturnItem(LcypherParser::OC_ReturnItemCon
     if (ctx->oC_Variable()) {
         variable = ctx->oC_Variable()->getText();
     } else {
+        if (VisitGuard::InClause(VisitType::kWithClause, visit_types_)) {
+            geax::frontend::Expr *with_expr = nullptr;
+            checkedAnyCast(visit(ctx->oC_Expression()), with_expr);
+            if (with_expr->type() != geax::frontend::AstNodeType::kRef) {
+                THROW_CODE(ParserException, "Non-variable expression in WITH must be aliased");
+            }
+        }
         variable = GetFullText(ctx->oC_Expression());
     }
     node->appendItem(std::move(variable), expr);
@@ -664,6 +718,12 @@ std::any CypherBaseVisitorV2::visitOC_Where(LcypherParser::OC_WhereContext *ctx)
         } else {
             NOT_SUPPORT_AND_THROW();
         }
+    } else if (VisitGuard::InClause(VisitType::kInQueryCall, visit_types_)) {
+        geax::frontend::YieldField *yield_fields = nullptr;
+        checkedCast(node_, yield_fields);
+        geax::frontend::Expr *expr = nullptr;
+        checkedAnyCast(visit(ctx->oC_Expression()), expr);
+        yield_fields->setPredicate(expr);
     } else {
         geax::frontend::GraphPattern *node = nullptr;
         checkedCast(node_, node);
@@ -1377,19 +1437,25 @@ std::any CypherBaseVisitorV2::visitOC_PropertyOrLabelsExpression(
 
 std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
     if (ctx->oC_Variable()) {
-        if (VisitGuard::InClause(VisitType::kSetVariable, visit_types_) ||
-            VisitGuard::InClause(VisitType::kDeleteVariable, visit_types_)) {
-            return visit(ctx->oC_Variable());
-        } else {
-            geax::frontend::Expr *name_expr = nullptr;
-            checkedAnyCast(visit(ctx->oC_Variable()), name_expr);
-            geax::frontend::VString *vstr = nullptr;
-            checkedCast(name_expr, vstr);
-            std::string name = vstr->val();
-            auto expr = ALLOC_GEAOBJECT(geax::frontend::Ref);
-            expr->setName(std::move(name));
-            return (geax::frontend::Expr *)expr;
+        if (VisitGuard::InClause(VisitType::kSetLabel, visit_types_)) {
+            // TODO(lpp) support update vertex or edge
+            THROW_CODE(CypherException, "Not support to update the entire vertex or "
+                       "edge in set clause.");
         }
+        geax::frontend::Expr *name_expr = nullptr;
+        checkedAnyCast(visit(ctx->oC_Variable()), name_expr);
+        geax::frontend::VString *vstr = nullptr;
+        checkedCast(name_expr, vstr);
+        std::string name = vstr->val();
+        auto expr = ALLOC_GEAOBJECT(geax::frontend::Ref);
+        if (list_comprehension_depth == 0 || list_comprehension_anonymous_symbols_.find(name) ==
+                                                 list_comprehension_anonymous_symbols_.end()) {
+            expr->setName(std::move(name));
+        } else {
+            auto list_comprehension_name = list_comprehension_anonymous_symbols_[name].top();
+            expr->setName(std::move(list_comprehension_name));
+        }
+        return (geax::frontend::Expr *)expr;
     } else if (ctx->oC_Literal()) {
         return visit(ctx->oC_Literal());
     } else if (ctx->oC_FunctionInvocation()) {
@@ -1509,18 +1575,37 @@ std::any CypherBaseVisitorV2::visitOC_ParenthesizedExpression(
 std::any CypherBaseVisitorV2::visitOC_RelationshipsPattern(
     LcypherParser::OC_RelationshipsPatternContext *ctx) {
     path_chain_ = ALLOC_GEAOBJECT(geax::frontend::PathChain);
-    NOT_SUPPORT_AND_THROW();
-    return 0;
+    auto node = ALLOC_GEAOBJECT(geax::frontend::Node);
+    path_chain_->setHead(node);
+    SWITCH_CONTEXT_VISIT(ctx->oC_NodePattern(), node);
+    for (auto &chain : ctx->oC_PatternElementChain()) {
+        SWITCH_CONTEXT_VISIT(chain, path_chain_);
+    }
+    return (geax::frontend::Expr *)node;
 }
 
 std::any CypherBaseVisitorV2::visitOC_FilterExpression(
     LcypherParser::OC_FilterExpressionContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
-    return 0;
+    return visitChildren(ctx);
 }
 
 std::any CypherBaseVisitorV2::visitOC_IdInColl(LcypherParser::OC_IdInCollContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
+    geax::frontend::ListComprehension *listComprehension = nullptr;
+    checkedCast(node_, listComprehension);
+    auto var = ctx->oC_Variable()->getText();
+    if (list_comprehension_anonymous_symbols_.find(var) ==
+        list_comprehension_anonymous_symbols_.end()) {
+        list_comprehension_anonymous_symbols_[var] = std::stack<std::string>();
+    }
+    auto anonymous_var = GenerateListComprehension(var);
+    list_comprehension_anonymous_symbols_[var].push(anonymous_var);
+    var = anonymous_var;
+    auto variable_ref = ALLOC_GEAOBJECT(geax::frontend::Ref);
+    variable_ref->setName(std::move(var));
+    listComprehension->setVariable(variable_ref);
+    geax::frontend::Expr *in_expr;
+    checkedAnyCast(visit(ctx->oC_Expression()), in_expr);
+    listComprehension->setInExpression(in_expr);
     return 0;
 }
 
@@ -1535,15 +1620,17 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
         if (ctx->oC_Expression().size() > 1) NOT_SUPPORT_AND_THROW();
         geax::frontend::Expr *expr = nullptr;
         checkedAnyCast(visit(ctx->oC_Expression(0)), expr);
-        if (typeid(*expr) == typeid(geax::frontend::Exists)) {
-            auto exists = ALLOC_GEAOBJECT(geax::frontend::Exists);
-            exists->appendPathChain(path_chain_);
-            res = exists;
-        } else {
+        if (typeid(*expr) == typeid(geax::frontend::GetField)) {
             auto func = ALLOC_GEAOBJECT(geax::frontend::Function);
             func->setName(std::move(name));
             func->appendArg(expr);
             res = func;
+        } else if (typeid(*expr) == typeid(geax::frontend::Node)) {
+            auto exists = ALLOC_GEAOBJECT(geax::frontend::Exists);
+            exists->appendPathChain(path_chain_);
+            res = exists;
+        } else {
+            NOT_SUPPORT_AND_THROW();
         }
     } else if (it != S_AGG_LIST.end()) {
         CYPHER_THROW_ASSERT(ctx->oC_Expression().size() == 1);
@@ -1660,8 +1747,20 @@ std::any CypherBaseVisitorV2::visitOC_Namespace(LcypherParser::OC_NamespaceConte
 
 std::any CypherBaseVisitorV2::visitOC_ListComprehension(
     LcypherParser::OC_ListComprehensionContext *ctx) {
-    NOT_SUPPORT_AND_THROW();
-    return 0;
+    list_comprehension_depth++;
+    auto listComprehension = ALLOC_GEAOBJECT(geax::frontend::ListComprehension);
+    SWITCH_CONTEXT_VISIT(ctx->oC_FilterExpression(), listComprehension);
+    geax::frontend::Expr *op_expr;
+    if (ctx->oC_Expression()) {
+        checkedAnyCast(visit(ctx->oC_Expression()), op_expr);
+    } else {
+        CYPHER_TODO();
+    }
+    listComprehension->setOpExpression(op_expr);
+    list_comprehension_depth--;
+    list_comprehension_anonymous_symbols_[ctx->oC_FilterExpression()->
+                                          oC_IdInColl()->oC_Variable()->getText()].pop();
+    return (geax::frontend::Expr*)listComprehension;
 }
 
 std::any CypherBaseVisitorV2::visitOC_PatternComprehension(
@@ -1774,7 +1873,8 @@ std::any CypherBaseVisitorV2::visitOC_MapLiteral(LcypherParser::OC_MapLiteralCon
             ps->appendProperty(std::move(name), expr);
         }
     } else if (VisitGuard::InClause(VisitType::kStandaloneCall, visit_types_) ||
-               VisitGuard::InClause(VisitType::kInQueryCall, visit_types_)) {
+               VisitGuard::InClause(VisitType::kInQueryCall, visit_types_) ||
+               VisitGuard::InClause(VisitType::kReadingClause, visit_types_)) {
         auto map = ALLOC_GEAOBJECT(geax::frontend::MkMap);
         if (ctx->oC_Expression().size() != ctx->oC_PropertyKeyName().size())
             NOT_SUPPORT_AND_THROW();
@@ -1807,9 +1907,9 @@ std::any CypherBaseVisitorV2::visitOC_PropertyExpression(
         checkedCast(node_, node);
         geax::frontend::Expr *name_expr = nullptr;
         checkedAnyCast(visit(ctx->oC_Atom()), name_expr);
-        geax::frontend::VString *vstr = nullptr;
-        checkedCast(name_expr, vstr);
-        std::string var = vstr->val();
+        geax::frontend::Ref *ref = nullptr;
+        checkedCast(name_expr, ref);
+        std::string var = ref->name();
         node->setV(std::move(var));
 
         auto ps = ALLOC_GEAOBJECT(geax::frontend::PropStruct);
@@ -1843,7 +1943,9 @@ std::any CypherBaseVisitorV2::visitOC_DoubleLiteral(LcypherParser::OC_DoubleLite
 
 std::any CypherBaseVisitorV2::visitOC_SchemaName(LcypherParser::OC_SchemaNameContext *ctx) {
     if (ctx->oC_ReservedWord()) {
-        NOT_SUPPORT_AND_THROW();
+        auto s = ALLOC_GEAOBJECT(geax::frontend::VString);
+        s->setVal(ctx->getText());
+        return (geax::frontend::Expr *)s;
     } else {
         return visitOC_SymbolicName(ctx->oC_SymbolicName());
     }

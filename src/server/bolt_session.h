@@ -46,6 +46,7 @@ struct BoltSession {
     BlockingQueue<BoltMsgDetail> msgs;
     std::thread fsm_thread;
     bool python_driver = false;
+    bool using_default_user_password = false;
 };
 
 }  // namespace bolt

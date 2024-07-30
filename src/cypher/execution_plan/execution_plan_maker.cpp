@@ -117,17 +117,38 @@ static OpBase* _Connect(OpBase* lhs, OpBase* rhs, PatternGraph* pattern_graph) {
     return rhs;
 }
 
+static bool CheckReturnElements(const std::vector<std::string>& last_ret,
+                                const std::vector<std::string>& now_ret) {
+    // some certain single query (e.g. MATCH(n) RETURN *) without no return items
+    // cannot be unioned.
+    if (last_ret.empty() || now_ret.empty()) {
+        return false;
+    }
+    // if two queries return different size of items, cannot be unioned
+    if (last_ret.size() != now_ret.size()) {
+        return false;
+    }
+    for (int j = 0; j < (int)last_ret.size(); j++) {
+        if (last_ret[j] != now_ret[j]) return false;
+    }
+    return true;
+}
+
 geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode* astNode,
                                                         OpBase*& root) {
     cur_types_.clear();
+    cur_pattern_graph_ = -1;
     auto ret = std::any_cast<geax::frontend::GEAXErrorCode>(astNode->accept(*this));
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         return ret;
     }
     _DumpPlanBeforeConnect(0, false);
+    LOG_DEBUG() << "Dump plan finished!";
     root = pattern_graph_root_[0];
     for (size_t i = 1; i < pattern_graph_root_.size(); i++) {
-        root = _Connect(root, pattern_graph_root_[i], &(pattern_graphs_[i]));
+        if (should_connect_[i]) {
+            root = _Connect(root, pattern_graph_root_[i], &(pattern_graphs_[i]));
+        }
     }
     if (op_filter_ != nullptr) {
         NOT_SUPPORT();
@@ -137,7 +158,11 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
 
 std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statistics) const {
     std::string s = "Execution Plan Before Connect: \n";
-    for (auto seg : pattern_graph_root_) OpBase::DumpStream(seg, 0, false, s);
+    for (size_t i = 0; i < pattern_graph_root_.size(); i++) {
+        if (should_connect_[i]) {
+            OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
+        }
+    }
     LOG_DEBUG() << s;
     return s;
 }
@@ -259,10 +284,13 @@ std::any ExecutionPlanMaker::visit(geax::frontend::GraphPattern* node) {
         NOT_SUPPORT();
     }
     if (node->where().has_value()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->where().value());
         auto expr_filter = std::make_shared<lgraph::GeaxExprFilter>(
             node->where().value(), pattern_graphs_[cur_pattern_graph_].symbol_table);
         auto op_filter = new OpFilter(expr_filter);
-        op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        if (pattern_graph_root_[cur_pattern_graph_]) {
+            op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        }
         pattern_graph_root_[cur_pattern_graph_] = op_filter;
     }
     if (node->yield().has_value()) {
@@ -324,6 +352,35 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         ++filter_level_;
     }
     std::reverse(expand_ops.begin(), expand_ops.end());
+    // For the exists pattern query, SemiAllpy is simulated by combining Limit Optional and
+    // ExpandAll operators. e.g MATCH (n {name:'Rachel Kempson'}),(m:Person) RETURN
+    // exists((n)-[:MARRIED]->(m)) The resulting execution plan is as follows Produce Results
+    //    Project [exists((n)-[:MARRIED]->(m))]
+    //      Apply
+    //          Limit [1]
+    //              Optional
+    //                  Expand(Into) [n --> m ]
+    //                      Argument [n,m]
+    //          Cartesian Product
+    //              Node Index Seek [n]  IN []
+    //              Node By Label Scan [m:Person]
+    if (ClauseGuard::InClause(geax::frontend::AstNodeType::kExists, cur_types_)) {
+        auto& sym_tab = pattern_graphs_[cur_pattern_graph_].symbol_table;
+        std::vector<OpBase*> rewriter;
+        if (ClauseGuard::InClause(geax::frontend::AstNodeType::kPrimitiveResultStatement,
+                                  cur_types_)) {
+            auto limit = new Limit(1);
+            rewriter.push_back(limit);
+            auto optional = new Optional();
+            rewriter.push_back(optional);
+        }
+        rewriter.insert(rewriter.end(), expand_ops.begin(), expand_ops.end());
+        auto argument = new Argument(&sym_tab);
+        rewriter.push_back(argument);
+        auto op = _SingleBranchConnect(rewriter);
+        pattern_graph_root_[cur_pattern_graph_] = op;
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
     // The handling here is for the Match Clause, other situations need to be considered.
     // The current design of the Visitor results in different logic for handling PathChain in
     // different Clauses (Match, Create, and even Exists), which makes the code overly complex and
@@ -450,7 +507,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::WhereClause* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::OrderByField* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::OrderByField* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::PathModePrefix* node) { NOT_SUPPORT(); }
 
@@ -537,13 +596,32 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         p.type = Property::VARIABLE;
         p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
         if (is_end_path_) {
-            NOT_SUPPORT();
+            auto right = objAlloc_.allocate<geax::frontend::Ref>();
+            auto val = ((geax::frontend::Ref*)value)->name();
+            right->setName(std::move(val));
+            expr->setRight(right);
         }
     } else if (value->type() == geax::frontend::AstNodeType::kParam) {
         p.type = Property::PARAMETER;
         p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
         if (is_end_path_) {
-            NOT_SUPPORT();
+            auto right = objAlloc_.allocate<geax::frontend::Ref>();
+            auto val = ((geax::frontend::Param*)value)->name();
+            right->setName(std::move(val));
+            expr->setRight(right);
+        }
+    } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+        p.type = Property::VARIABLE;
+        p.value_alias = ((geax::frontend::Ref*)((
+                         (geax::frontend::GetField*)value)->expr()))->name();
+        p.value = lgraph::FieldData(p.value_alias);
+        p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
+        if (is_end_path_) {
+            auto right = objAlloc_.allocate<geax::frontend::GetField>();
+            auto field_name = ((geax::frontend::GetField*)value)->fieldName();
+            right->setFieldName(std::move(field_name));
+            right->setExpr(((geax::frontend::GetField*)value)->expr());
+            expr->setRight(right);
         }
     } else {
         NOT_SUPPORT();
@@ -557,7 +635,16 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
     NOT_SUPPORT();
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::YieldField* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::YieldField* node) {
+    if (node->predicate()) {
+        auto expr_filter = std::make_shared<lgraph::GeaxExprFilter>(
+            node->predicate(), pattern_graphs_[cur_pattern_graph_].symbol_table);
+        auto op_filter = new OpFilter(expr_filter);
+        op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        pattern_graph_root_[cur_pattern_graph_] = op_filter;
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::TableFunctionClause* node) { NOT_SUPPORT(); }
 
@@ -595,49 +682,86 @@ std::any ExecutionPlanMaker::visit(geax::frontend::ResetGraph* node) { NOT_SUPPO
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ResetParam* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::GetField* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::GetField* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::TupleGet* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Not* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Not* node) {
+    if (node->expr()) ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Neg* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Neg* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Tilde* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::VSome* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BEqual* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BEqual* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BNotEqual* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BNotEqual* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BGreaterThan* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BGreaterThan* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BNotSmallerThan* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BNotSmallerThan* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BSmallerThan* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BSmallerThan* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BNotGreaterThan* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BNotGreaterThan* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BSafeEqual* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BAdd* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BAdd* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BSub* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BSub* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BDiv* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BDiv* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BMul* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BMul* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BMod* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BMod* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BSquare* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BSquare* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BAnd* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BAnd* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BOr* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BOr* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BXor* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BXor* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BBitAnd* node) { NOT_SUPPORT(); }
 
@@ -655,59 +779,95 @@ std::any ExecutionPlanMaker::visit(geax::frontend::BIndex* node) { NOT_SUPPORT()
 
 std::any ExecutionPlanMaker::visit(geax::frontend::BLike* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BIn* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BIn* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::If* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::If* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Function* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Function* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Case* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Case* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Cast* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::MatchCase* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::AggFunc* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::AggFunc* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::BAggFunc* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::BAggFunc* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::MultiCount* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::Windowing* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::MkList* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::MkList* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::MkMap* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::MkMap* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::MkRecord* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::MkSet* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::MkSet* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::MkTuple* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::VBool* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::VBool* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::VInt* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::VInt* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::VDouble* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::VDouble* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::VString* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::VString* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::VDate* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::VDate* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::VDatetime* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::VDatetime* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::VDuration* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::VTime* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::VNull* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::VNull* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::VNone* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Ref* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Ref* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
-std::any ExecutionPlanMaker::visit(geax::frontend::IsNull* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::IsNull* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::IsDirected* node) { NOT_SUPPORT(); }
 
@@ -728,7 +888,14 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Same* node) { NOT_SUPPORT(); 
 
 std::any ExecutionPlanMaker::visit(geax::frontend::AllDifferent* node) { NOT_SUPPORT(); }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::Exists* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::Exists* node) {
+    ++cur_pattern_graph_;
+    ClauseGuard cg(node->type(), cur_types_);
+    for (auto& path_chain : node->pathChains()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(path_chain);
+    }
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ExplainActivity* node) { NOT_SUPPORT(); }
 
@@ -760,10 +927,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::SessionSet* node) { NOT_SUPPO
 std::any ExecutionPlanMaker::visit(geax::frontend::SessionReset* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::ProcedureBody* node) {
-    pattern_graph_size_ = node->statements().size();
+    pattern_graph_size_ = pattern_graphs_.size();
     pattern_graph_root_.resize(pattern_graph_size_, nullptr);
+    should_connect_.resize(pattern_graph_size_, true);
+    cur_pattern_graph_ = -1;
     for (size_t i = 0; i < node->statements().size(); i++) {
-        cur_pattern_graph_ = i;
+        cur_pattern_graph_ += 1;
         // Build Argument
         auto& sym_tab = pattern_graphs_[cur_pattern_graph_].symbol_table;
         for (auto& symbol : sym_tab.symbols) {
@@ -820,6 +989,19 @@ std::any ExecutionPlanMaker::visit(geax::frontend::JoinRightPart* node) { NOT_SU
 std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node) {
     auto head = node->head();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
+    if (!node->body().empty()) {
+        auto op_union = new Union();
+        op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+        auto op_produce = new ProduceResults();
+        op_produce->AddChild(op_union);
+        pattern_graph_root_[cur_pattern_graph_] = op_produce;
+        for (auto statement : node->body()) {
+            cur_pattern_graph_ += 1;
+            should_connect_[cur_pattern_graph_] = false;
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(statement));
+            op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]->children[0]);
+        }
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -854,7 +1036,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::FilterStatement* node) {
     auto expr_filter = std::make_shared<lgraph::GeaxExprFilter>(
         node->predicate(), pattern_graphs_[cur_pattern_graph_].symbol_table);
     auto op_filter = new OpFilter(expr_filter);
-    op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+    if (pattern_graph_root_[cur_pattern_graph_]) {
+        op_filter->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+    }
     pattern_graph_root_[cur_pattern_graph_] = op_filter;
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
@@ -886,7 +1070,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
     }
 
-    auto p = global_ptable_v2.GetProcedureV2(name);
+    auto p = global_ptable.GetProcedure(name);
     if (p == nullptr) {
         result_info_.header.colums.emplace_back(name);
     } else {
@@ -916,18 +1100,31 @@ std::any ExecutionPlanMaker::visit(geax::frontend::ForStatement* node) { NOT_SUP
 std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* node) {
     auto& items = node->items();
     std::vector<OpBase*> ops;
-    if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
-        auto result = new ProduceResults();
-        ops.push_back(result);
-    }
     std::vector<std::tuple<ArithExprNode, std::string>> arith_items;
-    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    if (!should_connect_[cur_pattern_graph_]) {
+        std::vector<std::string> last_ret, now_ret;
+        for (auto& col : result_info_.header.colums) {
+            last_ret.push_back(col.alias);
+        }
+        for (auto& item : items) {
+            now_ret.push_back(std::get<0>(item));
+        }
+        std::sort(last_ret.begin(), last_ret.end());
+        std::sort(now_ret.begin(), now_ret.end());
+        if (!CheckReturnElements(last_ret, now_ret)) {
+            throw lgraph::CypherException(
+                "All sub queries in an UNION must have the same column names.");
+        }
+    }
     result_info_.header.colums.clear();
+    ClauseGuard cg(node->type(), cur_types_);
     for (auto& item : items) {
-        ArithExprNode ae(std::get<1>(item), pattern_graph.symbol_table);
+        auto expr = std::get<1>(item);
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(expr);
+        ArithExprNode ae(expr, pattern_graphs_[cur_pattern_graph_].symbol_table);
         auto alias = std::get<0>(item);
         arith_items.push_back(std::make_tuple(ae, alias));
-        AstAggExprDetector agg_expr_detector(std::get<1>(item));
+        AstAggExprDetector agg_expr_detector(expr);
         bool has_aggregation = false;
         if (agg_expr_detector.Validate()) {
             has_aggregation = agg_expr_detector.HasValidAggFunc();
@@ -936,10 +1133,10 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
             return geax::frontend::GEAXErrorCode::GEAX_ERROR;
         }
         // build header
-        if (std::get<1>(item)->type() == geax::frontend::AstNodeType::kRef) {
-            std::string& name = ((geax::frontend::Ref*)std::get<1>(item))->name();
-            auto it = pattern_graph.symbol_table.symbols.find(name);
-            if (it == pattern_graph.symbol_table.symbols.end()) {
+        if (expr->type() == geax::frontend::AstNodeType::kRef) {
+            std::string& name = ((geax::frontend::Ref*)expr)->name();
+            auto it = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.find(name);
+            if (it == pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.end()) {
                 error_msg_ = "Unknown variable: " + name;
                 return geax::frontend::GEAXErrorCode::GEAX_ERROR;
             }
@@ -967,6 +1164,10 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
                                                     lgraph_api::LGraphType::ANY);
         }
     }
+    if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
+        auto result = new ProduceResults();
+        ops.push_back(result);
+    }
     if (node->limit().has_value()) {
         ops.emplace_back(new Limit(std::get<0>(node->limit().value())));
     }
@@ -974,6 +1175,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         ops.emplace_back(new Skip(std::get<0>(node->offset().value())));
     }
     std::vector<std::pair<int, bool>> order_by_items;
+    // TODO(lingsu): check whether the orderby key appears in the symbol table or return items,
+    // and GetField type should complement the return items
     for (auto order_by_field : node->orderBys()) {
         for (size_t i = 0; i < items.size(); ++i) {
             if (auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(order_by_field->field())) {
@@ -1002,12 +1205,12 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         }
     }
     if (order_by_items.size() != node->orderBys().size()) {
-        NOT_SUPPORT_WITH_MSG("Unknown order by field");
+        THROW_CODE(InputError, FMA_FMT("Unknown order by field"));
     }
     if (!order_by_items.empty()) {
         ops.emplace_back(new Sort(
-            order_by_items, node->limit().has_value() ? std::get<0>(node->limit().value()) : -1,
-            node->offset().has_value() ? std::get<0>(node->offset().value()) : -1));
+            order_by_items, node->offset().has_value() ? std::get<0>(node->offset().value()) : -1,
+            node->limit().has_value() ? std::get<0>(node->limit().value()) : -1));
     }
     // AGGREGATE
     bool has_aggregation = false;
@@ -1019,7 +1222,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         std::vector<std::string> item_names;
         std::vector<ArithExprNode> arith_items;
         for (auto& item : items) {
-            ArithExprNode ae(std::get<1>(item), pattern_graph.symbol_table);
+            ArithExprNode ae(std::get<1>(item), pattern_graphs_[cur_pattern_graph_].symbol_table);
             auto alias = std::get<0>(item);
             if (ae.ContainsAggregation()) {
                 aggregated_expressions.push_back(ae);
@@ -1034,14 +1237,16 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         if (has_aggregation) {
             ops.emplace_back(new Aggregate(
                 aggregated_expressions, aggr_item_names, noneaggregated_expressions,
-                noneaggr_item_names, item_names, &pattern_graph.symbol_table, result_info_.header));
+                noneaggr_item_names, item_names, &pattern_graphs_[cur_pattern_graph_].symbol_table,
+                result_info_.header));
         }
     }
     if (!has_aggregation) {
         if (node->distinct()) {
             ops.emplace_back(new Distinct());
         }
-        ops.emplace_back(new Project(arith_items, &pattern_graph.symbol_table));
+        ops.emplace_back(
+            new Project(arith_items, &pattern_graphs_[cur_pattern_graph_].symbol_table));
     }
     if (auto op = _SingleBranchConnect(ops)) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
@@ -1092,7 +1297,20 @@ std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) { NOT_SUPPORT(); }
+std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) {
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    for (auto& item : node->items()) {
+        geax::frontend::RemoveSingleProperty* remove;
+        checkedCast(item, remove);
+        if (pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.find(remove->v()) ==
+            pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.end()) {
+            THROW_CODE(InputError, "Variable `{}` not defined", remove->v());
+        }
+    }
+    auto op = new OpGqlRemove(node->items(), &pattern_graph);
+    _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
@@ -1137,11 +1355,21 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InQueryProcedureCall* node) {
     if (auto op = _SingleBranchConnect(expand_ops)) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
     }
+    if (node->yield().has_value()) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->yield().value());
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::DummyNode* node) { NOT_SUPPORT(); }
 
 std::any ExecutionPlanMaker::reportError() { return error_msg_; }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::RemoveSingleProperty* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+std::any ExecutionPlanMaker::visit(geax::frontend::ListComprehension* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 }  // namespace cypher
