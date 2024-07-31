@@ -406,9 +406,9 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MkList* node) {
         if (entry.IsScalar()) {
             list.emplace_back(entry.constant.scalar);
         } else if (entry.IsArray()) {
-            list.emplace_back(entry.constant.array);
+            list.emplace_back(*entry.constant.array);
         } else if (entry.IsMap()) {
-             list.emplace_back(entry.constant.map);
+             list.emplace_back(*entry.constant.map);
         }
     }
     return Entry(cypher::FieldData(list));
@@ -425,9 +425,9 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MkMap* node) {
         if (val.IsScalar()) {
             map.emplace(key.constant.ToString(), val.constant.scalar);
         } else if (val.IsArray()) {
-            map.emplace(key.constant.ToString(), val.constant.array);
+            map.emplace(key.constant.ToString(), *val.constant.array);
         } else if (val.IsMap()) {
-            map.emplace(key.constant.ToString(), val.constant.map);
+            map.emplace(key.constant.ToString(), *val.constant.map);
         }
     }
     return Entry(cypher::FieldData(map));
