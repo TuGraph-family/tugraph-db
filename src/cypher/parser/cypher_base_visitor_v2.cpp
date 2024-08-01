@@ -351,6 +351,7 @@ std::any CypherBaseVisitorV2::visitOC_Match(LcypherParser::OC_MatchContext *ctx)
         checkedCast(node_, node);
         VisitGuard guard(VisitType::kMatchPattern, visit_types_);
         auto match = ALLOC_GEAOBJECT(geax::frontend::MatchStatement);
+        if (ctx->OPTIONAL_()) match->setStatementMode(geax::frontend::StatementMode::kOptional);
         node->appendQueryStatement(match);
         auto graph_pattern = ALLOC_GEAOBJECT(geax::frontend::GraphPattern);
         match->setGraphPattern(graph_pattern);
