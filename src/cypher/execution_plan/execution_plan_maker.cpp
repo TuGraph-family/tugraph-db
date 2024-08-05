@@ -614,7 +614,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
             p.type = Property::VARIABLE;
             p.value_alias = ((geax::frontend::Ref*)((
-                                                        (geax::frontend::GetField*)value)->expr()))->name();
+                             (geax::frontend::GetField*)value)->expr()))->name();
             p.value = lgraph::FieldData(p.value_alias);
             p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
             if (is_end_path_) {
@@ -1132,6 +1132,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
             error_msg_ = std::any_cast<std::string>(agg_expr_detector.reportError());
             return geax::frontend::GEAXErrorCode::GEAX_ERROR;
         }
+        if (std::get<2>(item)) {
+            continue;
+        }
         // build header
         if (expr->type() == geax::frontend::AstNodeType::kRef) {
             std::string& name = ((geax::frontend::Ref*)expr)->name();
@@ -1220,7 +1223,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         std::vector<ArithExprNode> noneaggregated_expressions;
         std::vector<std::string> noneaggr_item_names;
         std::vector<std::string> item_names;
-        std::vector<ArithExprNode> arith_items;
         for (auto& item : items) {
             ArithExprNode ae(std::get<1>(item), pattern_graphs_[cur_pattern_graph_].symbol_table);
             auto alias = std::get<0>(item);

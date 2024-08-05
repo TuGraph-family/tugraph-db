@@ -667,6 +667,31 @@ std::any CypherBaseVisitorV2::visitOC_ReturnBody(LcypherParser::OC_ReturnBodyCon
     visit(ctx->oC_ReturnItems());
     if (ctx->oC_Order()) {
         visit(ctx->oC_Order());
+        geax::frontend::PrimitiveResultStatement *node = nullptr;
+        checkedCast(node_, node);
+        auto items = node->items();
+        auto return_items = items;
+        std::vector<std::pair<int, bool>> order_by_items;
+        for (auto order_by_field : node->orderBys()) {
+            if (order_by_field->field()->type() != geax::frontend::AstNodeType::kGetField) continue;
+            auto field = dynamic_cast<geax::frontend::GetField*>(order_by_field->field());
+            auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(field->expr());
+            std::string field_name_str = order_by_ref->name();
+            field_name_str.append(".");
+            field_name_str.append(field->fieldName());
+            bool found = false;
+            for (auto & item : items) {
+                auto field_name = std::get<0>(item);
+                if (field_name_str == field_name) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return_items.emplace_back(field_name_str, order_by_field->field(), true);
+            }
+        }
+        node->setItems(std::move(return_items));
     }
     if (ctx->oC_Limit()) {
         visit(ctx->oC_Limit());

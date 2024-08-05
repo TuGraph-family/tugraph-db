@@ -70,7 +70,9 @@ class Relationship {
 
     const parser::Expression& Properties() { return properties_; }
 
-    const std::vector<std::tuple<std::string, geax::frontend::Expr*>>& GeaxProperties() { return geax_properties; }
+    const std::vector<std::tuple<std::string, geax::frontend::Expr*>>& GeaxProperties() {
+        return geax_properties;
+    }
 
     void SetProperties(parser::Expression props) {
         properties_ = std::move(props);
