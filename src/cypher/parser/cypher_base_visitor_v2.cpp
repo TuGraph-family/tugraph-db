@@ -1542,11 +1542,16 @@ std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
 std::any CypherBaseVisitorV2::visitOC_Literal(LcypherParser::OC_LiteralContext *ctx) {
     if (ctx->StringLiteral()) {
         std::string str = ctx->StringLiteral()->getText();
-        CYPHER_THROW_ASSERT(!str.empty() && (str[0] == '\'' || str[0] == '\"') &&
-                            (str[str.size() - 1] == '\'' || str[str.size() - 1] == '\"'));
-        str = str.substr(1, str.size() - 2);
+        std::string res;
+        // remove escape character
+        for (size_t i = 1; i < str.length() - 1; i++) {
+            if (str[i] == '\\') {
+                i++;
+            }
+            res.push_back(str[i]);
+        }
         auto expr = ALLOC_GEAOBJECT(geax::frontend::VString);
-        expr->setVal(std::move(str));
+        expr->setVal(std::move(res));
         return (geax::frontend::Expr *)expr;
     } else if (ctx->oC_NumberLiteral()) {
         return visit(ctx->oC_NumberLiteral());
