@@ -20,6 +20,7 @@
 #include <regex>
 #include "cypher/execution_plan/ops/op.h"
 #include "lgraph/lgraph_types.h"
+#include "lgraph_api/result_element.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
 #include "server/bolt_session.h"
@@ -28,7 +29,10 @@
 static void RRecordToURecord(
     lgraph_api::Transaction *txn,
     const std::vector<std::pair<std::string, lgraph_api::LGraphType>> &header,
-    const std::shared_ptr<cypher::Record> &record_ptr, lgraph_api::Record &record) {
+    const std::shared_ptr<cypher::Record> &record_ptr, lgraph_api::Record &record,
+    std::unordered_map<size_t, std::shared_ptr<lgraph_api::lgraph_result::Node>>& node_map,
+    std::unordered_map<lgraph_api::EdgeUid, std::shared_ptr<lgraph_api::lgraph_result::Relationship>, lgraph_api::EdgeUid::Hash>& relp_map
+    ) {
     if (header.empty()) {
         return;
     }
@@ -156,7 +160,7 @@ static void RRecordToURecord(
                     }
                     path.Append(Edge(start, lid, tid, end, eid, forward));
                 }
-                record.Insert(header[index].first, path, txn);
+                record.Insert(header[index].first, path, txn, node_map, relp_map);
                 continue;
             } else {
                 if (v.constant.array != nullptr || v.constant.map != nullptr) {
@@ -193,6 +197,8 @@ class ProduceResults : public OpBase {
         Consuming,
     } state_;
 
+    std::unordered_map<size_t, std::shared_ptr<lgraph_api::lgraph_result::Node>> node_map_;
+    std::unordered_map<lgraph_api::EdgeUid, std::shared_ptr<lgraph_api::lgraph_result::Relationship>, lgraph_api::EdgeUid::Hash> relp_map_;
  public:
     ProduceResults() : OpBase(OpType::PRODUCE_RESULTS, "Produce Results") {
         state_ = Uninitialized;
@@ -294,7 +300,7 @@ class ProduceResults : public OpBase {
             }
             if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                 auto record = ctx->result_->MutableRecord();
-                RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
+                RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record, node_map_, relp_map_);
                 session->ps.AppendRecords(ctx->result_->BoltRecords());
                 ctx->result_->ClearRecords();
                 bool sync = false;
@@ -327,7 +333,7 @@ class ProduceResults : public OpBase {
             auto res = child->Consume(ctx);
             if (res != OP_OK) return res;
             auto record = ctx->result_->MutableRecord();
-            RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
+            RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record, node_map_, relp_map_);
             return OP_OK;
         }
     }

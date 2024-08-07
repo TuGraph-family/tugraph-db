@@ -36,6 +36,15 @@ namespace lgraph_api {
 
 struct ResultElement;
 
+namespace lgraph_result {
+struct Node;
+struct Relationship;
+}
+
+typedef std::unordered_map<size_t, std::shared_ptr<lgraph_result::Node>> NODEMAP;
+typedef std::unordered_map<EdgeUid, std::shared_ptr<lgraph_result::Relationship>,
+        EdgeUid::Hash> RELPMAP;
+
 /**
  * @brief   You only initialize the class by Result instance. Record provide some insert method
  *          to insert data to the record. eg. Insert, InsertVertexByID, InsertEdgeByID.
@@ -156,6 +165,11 @@ class Record {
      */
     void Insert(const std::string &fname, const traversal::Path &path,
                 lgraph_api::Transaction* txn);
+
+    void Insert(const std::string &fname, const traversal::Path &path,
+                lgraph_api::Transaction* txn,
+                NODEMAP& node_map,
+                RELPMAP& relp_map);
 #endif
 
     /**

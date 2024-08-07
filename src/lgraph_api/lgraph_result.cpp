@@ -14,6 +14,7 @@
 
 #include "fma-common/string_formatter.h"
 #include "lgraph/lgraph_result.h"
+#include <memory>
 #include "lgraph_api/result_element.h"
 #include "server/json_convert.h"
 #include "core/transaction.h"
@@ -293,6 +294,61 @@ void Record::Insert(const std::string &key, const traversal::Path &path,
     node.label = core_txn->GetVertexLabel(vit);
     for (const auto &property : core_txn->GetVertexFields(vit)) {
         node.properties[property.first] = property.second;
+    }
+    result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
+    record[key] = std::shared_ptr<ResultElement>(new ResultElement(result_path));
+    length_++;
+}
+
+void Record::Insert(const std::string &key, const traversal::Path &path,
+                    lgraph_api::Transaction *txn, lgraph_api::NODEMAP& node_map,
+                    lgraph_api::RELPMAP& relp_map) {
+    auto core_txn = txn->GetTxn().get();
+    if (!HasKey(key) || header[key] != LGraphType::PATH) {
+        throw std::runtime_error(
+            FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
+    }
+    lgraph_result::Path result_path;
+    // if (path.Length() == 0) {
+    //     record[key] = std::shared_ptr<ResultElement>(new ResultElement(result_path));
+    // }
+    for (size_t i = 0; i < path.Length(); i++) {
+        std::shared_ptr<lgraph_result::Node> node = std::make_shared<lgraph_result::Node>();
+        auto vid = path.GetNthVertex(i).GetId();
+        auto vit = core_txn->GetVertexIterator(vid);
+        node->id = vid;
+        node->label = core_txn->GetVertexLabel(vit);
+        for (const auto &property : core_txn->GetVertexFields(vit)) {
+            node->properties[property.first] = property.second;
+        }
+        result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
+        auto edge = path.GetNthEdge(i);
+        std::shared_ptr<lgraph_result::Relationship> repl = std::make_shared<lgraph_result::Relationship>();
+        auto euid = lgraph::EdgeUid(edge.GetSrcVertex().GetId(), edge.GetDstVertex().GetId(),
+                                    edge.GetLabelId(), edge.GetTemporalId(), edge.GetEdgeId());
+        auto eit = core_txn->GetOutEdgeIterator(euid, false);
+        if (!eit.IsValid()) {
+            THROW_CODE(InternalError, "invalid euid {} for inserting path record", euid.ToString());
+        }
+        repl->id = euid.eid;
+        repl->src = euid.src;
+        repl->dst = euid.dst;
+        repl->label_id = euid.lid;
+        repl->tid = euid.tid;
+        repl->label = core_txn->GetEdgeLabel(eit);
+        repl->forward = ((int64_t)vid == euid.src);
+        for (const auto &property : core_txn->GetEdgeFields(eit)) {
+            repl->properties[property.first] = property.second;
+        }
+        result_path.emplace_back(lgraph_result::PathElement(std::move(repl)));
+    }
+    std::shared_ptr<lgraph_result::Node> node = std::make_shared<lgraph_result::Node>();
+    auto vid = path.GetEndVertex().GetId();
+    auto vit = core_txn->GetVertexIterator(vid);
+    node->id = vid;
+    node->label = core_txn->GetVertexLabel(vit);
+    for (const auto &property : core_txn->GetVertexFields(vit)) {
+        node->properties[property.first] = property.second;
     }
     result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
     record[key] = std::shared_ptr<ResultElement>(new ResultElement(result_path));
