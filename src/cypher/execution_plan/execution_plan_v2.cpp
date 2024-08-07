@@ -19,6 +19,7 @@
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "cypher/execution_plan/clause_read_only_decider.h"
 #include "cypher/execution_plan/validation/graph_name_checker.h"
+#include "cypher/execution_plan/optimization/pass_manager.h"
 
 namespace cypher {
 
@@ -45,13 +46,14 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
     result_info_ = execution_plan_maker.GetResultInfo();
     LOG_DEBUG() << DumpPlan(0, false);
     // optimize
-    LocateNodeByIndexedProp locate_node_by_indexed_prop;
-    locate_node_by_indexed_prop.Execute(Root());
+    PassManager pass_manager(root_, ctx);
+    pass_manager.ExecutePasses();
     LOG_DEBUG() << DumpPlan(0, false);
 
     ClauseReadOnlyDecider decider;
     ret = decider.Build(astNode);
     read_only_ = decider.IsReadOnly();
+
     return ret;
 }
 
