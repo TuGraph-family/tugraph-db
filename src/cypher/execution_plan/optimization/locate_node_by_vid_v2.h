@@ -76,7 +76,8 @@ class LocateNodeByVidV2 : public OptPass {
         }
     }
 
-    bool _CheckVidFilter(OpFilter *&op_filter, std::unordered_map<std::string, std::set<uint64_t>> &target_vids) {
+    bool _CheckVidFilter(OpFilter *&op_filter, std::unordered_map<std::string,
+                         std::set<uint64_t>> &target_vids) {
         LOG_INFO() << "------------into LocateNodeByVidV2::_CheckVidFilter";
         /**
          * @brief
@@ -90,7 +91,6 @@ class LocateNodeByVidV2 : public OptPass {
         auto filter = op_filter->Filter();
         CYPHER_THROW_ASSERT(filter->Type() == lgraph::Filter::GEAX_EXPR_FILTER);
         auto geax_filter = ((lgraph::GeaxExprFilter*)filter.get())->GetArithExpr();
-    
         geax::frontend::Expr* expr = geax_filter.expr_;
         LOG_INFO() << "____filter = " << AstExprToString().dump(expr);
         LOG_INFO() << "---------type = " << ToString(expr->type());
@@ -103,7 +103,7 @@ class LocateNodeByVidV2 : public OptPass {
                 s.append(std::to_string(v));
                 s.append(" ");
             }
-            LOG_INFO() << "-----------vids has symbol " << key << " in vids " << s; 
+            LOG_INFO() << "-----------vids has symbol " << key << " in vids " << s;
         }
         if (target_vids.empty()) return false;
         return true;

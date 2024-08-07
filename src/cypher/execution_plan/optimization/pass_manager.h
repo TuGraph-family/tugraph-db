@@ -36,7 +36,7 @@ class PassManager {
 
  public:
     explicit PassManager(OpBase *root, cypher::RTContext *ctx) : root_(root) {
-        //all_passes_.emplace_back(new OptRewriteWithSchemaInference(ctx));
+        // all_passes_.emplace_back(new OptRewriteWithSchemaInference(ctx));
         // all_passes_.emplace_back(new PassReduceCount());
         // all_passes_.emplace_back(new EdgeFilterPushdownExpand());
         // all_passes_.emplace_back(new LazyProjectTopN());
