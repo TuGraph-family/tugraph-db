@@ -148,13 +148,13 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
     auto t0 = fma_common::GetTime();
     thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlanV2>> tls_plan_cache;
     std::shared_ptr<ExecutionPlanV2> plan;
+    geax::common::ObjectArenaAllocator objAlloc_;
     if (!tls_plan_cache.Get(script, plan)) {
         antlr4::ANTLRInputStream input(script);
         parser::LcypherLexer lexer(&input);
         antlr4::CommonTokenStream tokens(&lexer);
         parser::LcypherParser parser(&tokens);
         parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
-        geax::common::ObjectArenaAllocator objAlloc_;
         parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
         geax::frontend::AstNode *node = visitor.result();
         cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
@@ -173,13 +173,15 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
             LOG_DEBUG() << "--- dumper.handle(node) dump ---";
             LOG_DEBUG() << dumper.dump();
         }
-        plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
+
+        plan = std::make_shared<ExecutionPlanV2>();
+        // plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
         ret = plan->Build(node, ctx);
         if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
             LOG_DEBUG() << "build execution_plan_v2 failed: " << plan->ErrorMsg();
             return;
         }
-        plan->Validate(ctx);
+        // plan->Validate(ctx);
         if (visitor.CommandType() != parser::CmdType::QUERY) {
             ctx->result_info_ = std::make_unique<cypher::ResultInfo>();
             ctx->result_ = std::make_unique<lgraph::Result>();
