@@ -254,9 +254,6 @@ void Record::Insert(const std::string &key, const traversal::Path &path,
             FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
     lgraph_result::Path result_path;
-    if (path.Length() == 0) {
-        record[key] = std::shared_ptr<ResultElement>(new ResultElement(result_path));
-    }
     for (size_t i = 0; i < path.Length(); i++) {
         lgraph_result::Node node;
         auto vid = path.GetNthVertex(i).GetId();
@@ -308,50 +305,65 @@ void Record::Insert(const std::string &key, const traversal::Path &path,
         throw std::runtime_error(
             FMA_FMT("[STANDARD RESULT ERROR] the variable {} is not exist", key));
     }
-    lgraph_result::Path result_path;
-    // if (path.Length() == 0) {
-    //     record[key] = std::shared_ptr<ResultElement>(new ResultElement(result_path));
-    // }
+    lgraph_result::Path* result_path = new lgraph_result::Path();
     for (size_t i = 0; i < path.Length(); i++) {
-        std::shared_ptr<lgraph_result::Node> node = std::make_shared<lgraph_result::Node>();
+        std::shared_ptr<lgraph_result::Node> node;
         auto vid = path.GetNthVertex(i).GetId();
         auto vit = core_txn->GetVertexIterator(vid);
-        node->id = vid;
-        node->label = core_txn->GetVertexLabel(vit);
-        for (const auto &property : core_txn->GetVertexFields(vit)) {
-            node->properties[property.first] = property.second;
+        if(node_map.find(vid) != node_map.end()){
+            node = node_map[vid];
+        } else {
+            node = std::make_shared<lgraph_result::Node>();
+            node->id = vid;
+            node->label = core_txn->GetVertexLabel(vit);
+            for (const auto &property : core_txn->GetVertexFields(vit)) {
+                node->properties[property.first] = property.second;
+            }
+            node_map[vid] = node;
         }
-        result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
+        result_path->emplace_back(lgraph_result::PathElement(std::move(node)));
         auto edge = path.GetNthEdge(i);
-        std::shared_ptr<lgraph_result::Relationship> repl = std::make_shared<lgraph_result::Relationship>();
+        std::shared_ptr<lgraph_result::Relationship> repl;
         auto euid = lgraph::EdgeUid(edge.GetSrcVertex().GetId(), edge.GetDstVertex().GetId(),
                                     edge.GetLabelId(), edge.GetTemporalId(), edge.GetEdgeId());
         auto eit = core_txn->GetOutEdgeIterator(euid, false);
         if (!eit.IsValid()) {
             THROW_CODE(InternalError, "invalid euid {} for inserting path record", euid.ToString());
         }
-        repl->id = euid.eid;
-        repl->src = euid.src;
-        repl->dst = euid.dst;
-        repl->label_id = euid.lid;
-        repl->tid = euid.tid;
-        repl->label = core_txn->GetEdgeLabel(eit);
-        repl->forward = ((int64_t)vid == euid.src);
-        for (const auto &property : core_txn->GetEdgeFields(eit)) {
-            repl->properties[property.first] = property.second;
+        if(relp_map.find(euid) != relp_map.end()){
+            repl = relp_map[euid];
+        } else {
+            repl = std::make_shared<lgraph_result::Relationship>();
+            repl->id = euid.eid;
+            repl->src = euid.src;
+            repl->dst = euid.dst;
+            repl->label_id = euid.lid;
+            repl->tid = euid.tid;
+            repl->label = core_txn->GetEdgeLabel(eit);
+            repl->forward = ((int64_t)vid == euid.src);
+            for (const auto &property : core_txn->GetEdgeFields(eit)) {
+                repl->properties[property.first] = property.second;
+            }
+            relp_map[euid] = repl;
         }
-        result_path.emplace_back(lgraph_result::PathElement(std::move(repl)));
+        result_path->emplace_back(lgraph_result::PathElement(std::move(repl)));
     }
-    std::shared_ptr<lgraph_result::Node> node = std::make_shared<lgraph_result::Node>();
+    std::shared_ptr<lgraph_result::Node> node;
     auto vid = path.GetEndVertex().GetId();
     auto vit = core_txn->GetVertexIterator(vid);
-    node->id = vid;
-    node->label = core_txn->GetVertexLabel(vit);
-    for (const auto &property : core_txn->GetVertexFields(vit)) {
-        node->properties[property.first] = property.second;
+    if(node_map.find(vid) != node_map.end()){
+        node = node_map[vid];
+    } else {
+        node = std::make_shared<lgraph_result::Node>();
+        node->id = vid;
+        node->label = core_txn->GetVertexLabel(vit);
+        for (const auto &property : core_txn->GetVertexFields(vit)) {
+            node->properties[property.first] = property.second;
+        }
+        node_map[vid] = node;
     }
-    result_path.emplace_back(lgraph_result::PathElement(std::move(node)));
-    record[key] = std::shared_ptr<ResultElement>(new ResultElement(result_path));
+    result_path->emplace_back(lgraph_result::PathElement(std::move(node)));
+    record[key] = std::shared_ptr<ResultElement>(new ResultElement(std::move(result_path)));
     length_++;
 }
 

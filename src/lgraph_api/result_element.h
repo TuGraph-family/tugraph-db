@@ -128,6 +128,17 @@ struct ResultElement {
         v.path = new lgraph_result::Path(data);
     }
 
+    explicit ResultElement(lgraph_result::Path &&data) {
+        type_ = LGraphType::PATH;
+        v.path = new lgraph_result::Path(data);
+    }
+
+    explicit ResultElement(lgraph_result::Path* &&data) {
+        type_ = LGraphType::PATH;
+        v.path = data;
+        data = nullptr;
+    }
+
     ResultElement(const ResultElement &);
     ResultElement(const ResultElement &&);
     inline ResultElement &operator=(const ResultElement &);
