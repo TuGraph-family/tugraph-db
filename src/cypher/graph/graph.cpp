@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <stack>
+#include <utility>
 #include "fma-common/utils.h"
 #include "parser/clause.h"
 #include "cypher/graph/graph.h"
@@ -133,20 +134,25 @@ NodeID PatternGraph::AddNode(const std::string &label, const std::string &alias,
 RelpID PatternGraph::AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,
                                      parser::LinkDirection direction, const std::string &alias,
                                      Relationship::Derivation derivation,
-                                     parser::Expression properties) {
+                                     parser::Expression properties,
+                                     std::vector<std::tuple<std::string, geax::frontend::Expr*>>
+                                     geax_properties) {
     return AddRelationship(types, lhs, rhs, direction, alias, -1, -1,
-                           derivation, std::move(properties));
+                           derivation, std::move(properties), std::move(geax_properties));
 }
 
 RelpID PatternGraph::AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,
                                      parser::LinkDirection direction, const std::string &alias,
                                      int min_hop, int max_hop,
                                      Relationship::Derivation derivation,
-                                     parser::Expression properties) {
+                                     parser::Expression properties,
+                                     std::vector<std::tuple<std::string, geax::frontend::Expr*>>
+                                     geax_properties) {
     RelpID rid = _next_rid;
     _relationships.emplace_back(rid, types, lhs, rhs, direction, alias, min_hop, max_hop,
                                 derivation);
     _relationships.back().SetProperties(std::move(properties));
+    _relationships.back().SetGeaxProperties(std::move(geax_properties));
     _relp_map.emplace(alias, rid);
     _next_rid++;
     auto r = GetNode(lhs).AddRelp(rid, true);

@@ -351,6 +351,7 @@ std::any CypherBaseVisitorV2::visitOC_Match(LcypherParser::OC_MatchContext *ctx)
         checkedCast(node_, node);
         VisitGuard guard(VisitType::kMatchPattern, visit_types_);
         auto match = ALLOC_GEAOBJECT(geax::frontend::MatchStatement);
+        if (ctx->OPTIONAL_()) match->setStatementMode(geax::frontend::StatementMode::kOptional);
         node->appendQueryStatement(match);
         auto graph_pattern = ALLOC_GEAOBJECT(geax::frontend::GraphPattern);
         match->setGraphPattern(graph_pattern);
@@ -666,6 +667,31 @@ std::any CypherBaseVisitorV2::visitOC_ReturnBody(LcypherParser::OC_ReturnBodyCon
     visit(ctx->oC_ReturnItems());
     if (ctx->oC_Order()) {
         visit(ctx->oC_Order());
+        geax::frontend::PrimitiveResultStatement *node = nullptr;
+        checkedCast(node_, node);
+        auto items = node->items();
+        auto return_items = items;
+        std::vector<std::pair<int, bool>> order_by_items;
+        for (auto order_by_field : node->orderBys()) {
+            if (order_by_field->field()->type() != geax::frontend::AstNodeType::kGetField) continue;
+            auto field = dynamic_cast<geax::frontend::GetField*>(order_by_field->field());
+            auto order_by_ref = dynamic_cast<geax::frontend::Ref*>(field->expr());
+            std::string field_name_str = order_by_ref->name();
+            field_name_str.append(".");
+            field_name_str.append(field->fieldName());
+            bool found = false;
+            for (auto & item : items) {
+                auto field_name = std::get<0>(item);
+                if (field_name_str == field_name) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return_items.emplace_back(field_name_str, order_by_field->field(), true);
+            }
+        }
+        node->setItems(std::move(return_items));
     }
     if (ctx->oC_Limit()) {
         visit(ctx->oC_Limit());
@@ -1541,11 +1567,16 @@ std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
 std::any CypherBaseVisitorV2::visitOC_Literal(LcypherParser::OC_LiteralContext *ctx) {
     if (ctx->StringLiteral()) {
         std::string str = ctx->StringLiteral()->getText();
-        CYPHER_THROW_ASSERT(!str.empty() && (str[0] == '\'' || str[0] == '\"') &&
-                            (str[str.size() - 1] == '\'' || str[str.size() - 1] == '\"'));
-        str = str.substr(1, str.size() - 2);
+        std::string res;
+        // remove escape character
+        for (size_t i = 1; i < str.length() - 1; i++) {
+            if (str[i] == '\\') {
+                i++;
+            }
+            res.push_back(str[i]);
+        }
         auto expr = ALLOC_GEAOBJECT(geax::frontend::VString);
-        expr->setVal(std::move(str));
+        expr->setVal(std::move(res));
         return (geax::frontend::Expr *)expr;
     } else if (ctx->oC_NumberLiteral()) {
         return visit(ctx->oC_NumberLiteral());

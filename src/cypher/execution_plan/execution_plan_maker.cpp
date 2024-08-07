@@ -544,9 +544,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         NOT_SUPPORT();
     }
     auto property = node->properties()[0];
-    Property p;
     auto [key, value] = property;
-    p.field = key;
 
     geax::frontend::BEqual* expr = nullptr;
     geax::frontend::GetField* field = nullptr;
@@ -559,78 +557,80 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         has_filter_per_level_[filter_level_] = true;
         equal_filter_[filter_level_] = expr;
     }
-    if (value->type() == geax::frontend::AstNodeType::kVString) {
-        p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VString*)value)->val());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::VString>();
-            std::string str = ((geax::frontend::VString*)value)->val();
-            right->setVal(std::move(str));
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
-        p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::VInt>();
-            right->setVal(((geax::frontend::VInt*)value)->val());
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
-        p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::VBool>();
-            right->setVal(((geax::frontend::VBool*)value)->val());
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
-        p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::VDouble>();
-            right->setVal(((geax::frontend::VDouble*)value)->val());
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kRef) {
-        p.type = Property::VARIABLE;
-        p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::Ref>();
-            auto val = ((geax::frontend::Ref*)value)->name();
-            right->setName(std::move(val));
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kParam) {
-        p.type = Property::PARAMETER;
-        p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::Ref>();
-            auto val = ((geax::frontend::Param*)value)->name();
-            right->setName(std::move(val));
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
-        p.type = Property::VARIABLE;
-        p.value_alias = ((geax::frontend::Ref*)((
-                         (geax::frontend::GetField*)value)->expr()))->name();
-        p.value = lgraph::FieldData(p.value_alias);
-        p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::GetField>();
-            auto field_name = ((geax::frontend::GetField*)value)->fieldName();
-            right->setFieldName(std::move(field_name));
-            right->setExpr(((geax::frontend::GetField*)value)->expr());
-            expr->setRight(right);
-        }
-    } else {
-        NOT_SUPPORT();
-    }
     if (ClauseGuard::InClause(geax::frontend::AstNodeType::kNode, cur_types_)) {
+        Property p;
+        p.field = key;
+        if (value->type() == geax::frontend::AstNodeType::kVString) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VString*)value)->val());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::VString>();
+                std::string str = ((geax::frontend::VString*)value)->val();
+                right->setVal(std::move(str));
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::VInt>();
+                right->setVal(((geax::frontend::VInt*)value)->val());
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::VBool>();
+                right->setVal(((geax::frontend::VBool*)value)->val());
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::VDouble>();
+                right->setVal(((geax::frontend::VDouble*)value)->val());
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kRef) {
+            p.type = Property::VARIABLE;
+            p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::Ref>();
+                auto val = ((geax::frontend::Ref*)value)->name();
+                right->setName(std::move(val));
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kParam) {
+            p.type = Property::PARAMETER;
+            p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::Ref>();
+                auto val = ((geax::frontend::Param*)value)->name();
+                right->setName(std::move(val));
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+            p.type = Property::VARIABLE;
+            p.value_alias = ((geax::frontend::Ref*)((
+                             (geax::frontend::GetField*)value)->expr()))->name();
+            p.value = lgraph::FieldData(p.value_alias);
+            p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::GetField>();
+                auto field_name = ((geax::frontend::GetField*)value)->fieldName();
+                right->setFieldName(std::move(field_name));
+                right->setExpr(((geax::frontend::GetField*)value)->expr());
+                expr->setRight(right);
+            }
+        } else {
+            NOT_SUPPORT();
+        }
         node_t_->SetProperty(p);
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_)) {
-        NOT_SUPPORT();
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
     NOT_SUPPORT();
 }
@@ -1132,6 +1132,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
             error_msg_ = std::any_cast<std::string>(agg_expr_detector.reportError());
             return geax::frontend::GEAXErrorCode::GEAX_ERROR;
         }
+        if (std::get<2>(item)) {
+            continue;
+        }
         // build header
         if (expr->type() == geax::frontend::AstNodeType::kRef) {
             std::string& name = ((geax::frontend::Ref*)expr)->name();
@@ -1220,7 +1223,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         std::vector<ArithExprNode> noneaggregated_expressions;
         std::vector<std::string> noneaggr_item_names;
         std::vector<std::string> item_names;
-        std::vector<ArithExprNode> arith_items;
         for (auto& item : items) {
             ArithExprNode ae(std::get<1>(item), pattern_graphs_[cur_pattern_graph_].symbol_table);
             auto alias = std::get<0>(item);

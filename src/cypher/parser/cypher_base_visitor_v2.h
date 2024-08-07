@@ -90,7 +90,7 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     std::unordered_map<std::string, std::stack<std::string>> list_comprehension_anonymous_symbols_;
     std::unordered_map<std::string, int32_t> list_comprehension_anonymous_idx_;
     int32_t list_comprehension_depth {0};
-    
+
     std::unordered_map<std::string, std::set<std::string>> node_property_;
     std::unordered_map<std::string, std::set<std::string>> rel_property_;
 
