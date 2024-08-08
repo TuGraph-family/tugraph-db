@@ -4033,67 +4033,71 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
         std::vector<std::tuple<std::string, std::string, float>> SearchResult;
         int64_t count = 0;
         lgraph::VectorIndex* index = extr->GetVectorIndex();
-        if (index->GetWhetherRebuild()) {
-            auto success = index->SetSearchSpec(args[4].Int());
-            auto result = index->Search(query_vector, static_cast<size_t>(args[3].Int()),
-                                        index_distances, index_indices);
-            if (result && success) {
-                auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
-                for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                    auto prop = kv_iter->GetValue();
-                    if (extr->GetIsNull(prop)) {
-                        continue;
-                    }
-                    auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
-                                                            kv_iter->GetKey());
-                    auto vector = extr->GetConstRef(prop).AsType<std::vector<float>>();
-                    for (size_t i = 0; i < index_distances.size(); ++i) {
-                        if (count == index_indices[i]) {
-                            SearchResult.emplace_back(make_tuple(std::to_string(vid),
-                                    fma_common::ToString(vector), index_distances[i]));
+        if (schema->DetachProperty()) {
+            if (index->GetWhetherRebuild()) {
+                auto success = index->SetSearchSpec(args[4].Int());
+                auto result = index->Search(query_vector, static_cast<size_t>(args[3].Int()),
+                                            index_distances, index_indices);
+                if (result && success) {
+                    auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                        auto prop = kv_iter->GetValue();
+                        if (extr->GetIsNull(prop)) {
+                            continue;
                         }
+                        auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
+                                                                kv_iter->GetKey());
+                        auto vector = extr->GetConstRef(prop).AsType<std::vector<float>>();
+                        for (size_t i = 0; i < index_distances.size(); ++i) {
+                            if (count == index_indices[i]) {
+                                SearchResult.emplace_back(make_tuple(std::to_string(vid),
+                                        fma_common::ToString(vector), index_distances[i]));
+                            }
+                        }
+                        count++;
                     }
-                    count++;
                 }
             }
-        }
-        if (index->GetVectorIndexManager()->getCount() != 0) {
-            if (index->GetFlatSearchResult(txn.GetTxn(), query_vector,
-                    static_cast<size_t>(args[3].Int()), Flat_distances, Flat_indices)) {
-                auto kv_iter = index->GetTable()->GetIterator(txn.GetTxn());
-                for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                    auto prop = kv_iter->GetValue();
-                    auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
-                                                            kv_iter->GetKey());
-                    auto vector = prop.AsType<std::vector<float>>();
-                    for (size_t i = 0; i < Flat_distances.size(); ++i) {
-                        if (count == Flat_indices[i]) {
-                            SearchResult.emplace_back(make_tuple(std::to_string(vid),
-                                fma_common::ToString(vector), Flat_distances[i]));
+            if (index->GetVectorIndexManager()->getCount() != 0) {
+                if (index->GetFlatSearchResult(txn.GetTxn(), query_vector,
+                        static_cast<size_t>(args[3].Int()), Flat_distances, Flat_indices)) {
+                    auto kv_iter = index->GetTable()->GetIterator(txn.GetTxn());
+                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                        auto prop = kv_iter->GetValue();
+                        auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
+                                                                kv_iter->GetKey());
+                        auto vector = prop.AsType<std::vector<float>>();
+                        for (size_t i = 0; i < Flat_distances.size(); ++i) {
+                            if (count == Flat_indices[i]) {
+                                SearchResult.emplace_back(make_tuple(std::to_string(vid),
+                                    fma_common::ToString(vector), Flat_distances[i]));
+                            }
                         }
+                        count++;
                     }
-                    count++;
                 }
             }
-        }
-        auto compare_by_float = [](const std::tuple<std::string, std::string, float>& a,
-                               const std::tuple<std::string, std::string, float>& b) {
-            return std::get<2>(a) < std::get<2>(b);
-        };
-        std::partial_sort(SearchResult.begin(),
-                SearchResult.begin() + SearchResult.size(),
-                SearchResult.end(), compare_by_float);
-        for (int i = 0; i < args[3].Int(); ++i) {
-            Record r;
-            r.AddConstant(::lgraph::FieldData(std::get<0>(SearchResult.at(i))));
-            r.AddConstant(::lgraph::FieldData(args[0].String()));
-            r.AddConstant(::lgraph::FieldData(args[1].String()));
-            r.AddConstant(::lgraph::FieldData(std::get<1>(SearchResult.at(i))));
-            r.AddConstant(::lgraph::FieldData(std::get<2>(SearchResult.at(i))));
-            records->emplace_back(r.Snapshot());
+        } else {
+
         }
     } else {
         throw lgraph::ReminderException("Please check the number of parameter!");
+    }
+    auto compare_by_float = [](const std::tuple<std::string, std::string, float>& a,
+                            const std::tuple<std::string, std::string, float>& b) {
+        return std::get<2>(a) < std::get<2>(b);
+    };
+    std::partial_sort(SearchResult.begin(),
+            SearchResult.begin() + SearchResult.size(),
+            SearchResult.end(), compare_by_float);
+    for (int i = 0; i < args[3].Int(); ++i) {
+        Record r;
+        r.AddConstant(::lgraph::FieldData(std::get<0>(SearchResult.at(i))));
+        r.AddConstant(::lgraph::FieldData(args[0].String()));
+        r.AddConstant(::lgraph::FieldData(args[1].String()));
+        r.AddConstant(::lgraph::FieldData(std::get<1>(SearchResult.at(i))));
+        r.AddConstant(::lgraph::FieldData(std::get<2>(SearchResult.at(i))));
+        records->emplace_back(r.Snapshot());
     }
 }
 }  // namespace cypher
