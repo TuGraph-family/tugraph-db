@@ -197,9 +197,9 @@ class ProduceResults : public OpBase {
         Resetted,
         Consuming,
     } state_;
+    lgraph_api::NODEMAP node_map_;
+    lgraph_api::RELPMAP relp_map_;
 
-    std::unordered_map<size_t, std::shared_ptr<lgraph_api::lgraph_result::Node>> node_map_;
-    std::unordered_map<lgraph_api::EdgeUid, std::shared_ptr<lgraph_api::lgraph_result::Relationship>, lgraph_api::EdgeUid::Hash> relp_map_;
  public:
     ProduceResults() : OpBase(OpType::PRODUCE_RESULTS, "Produce Results") {
         state_ = Uninitialized;
@@ -301,7 +301,8 @@ class ProduceResults : public OpBase {
             }
             if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                 auto record = ctx->result_->MutableRecord();
-                RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record, node_map_, relp_map_);
+                RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record,
+                                *record, node_map_, relp_map_);
                 session->ps.AppendRecords(ctx->result_->BoltRecords());
                 ctx->result_->ClearRecords();
                 bool sync = false;
@@ -334,7 +335,8 @@ class ProduceResults : public OpBase {
             auto res = child->Consume(ctx);
             if (res != OP_OK) return res;
             auto record = ctx->result_->MutableRecord();
-            RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record, node_map_, relp_map_);
+            RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(),
+                            child->record, *record, node_map_, relp_map_);
             return OP_OK;
         }
     }

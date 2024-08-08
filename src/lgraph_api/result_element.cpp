@@ -444,11 +444,13 @@ std::any ResultElement::ToBolt(int64_t* v_eid) {
                 path.nodes.push_back(std::get<std::shared_ptr<lgraph_result::Node>>(p.v)->ToBolt());
             } else {
                 // The neo4j python client checks the uniqueness of the edge id.
-                path.rels.push_back(std::get<std::shared_ptr<lgraph_result::Relationship>>(p.v)->ToBoltUnbound(v_eid));
+                path.rels.push_back(std::get<std::shared_ptr<lgraph_result::Relationship>>(p.v)
+                                    ->ToBoltUnbound(v_eid));
             }
             if (i >= 1) {
                 if (i%2 == 1) {
-                    if (std::get<std::shared_ptr<lgraph_result::Relationship>>(p.v)->src == path.nodes.back().id) {
+                    if (std::get<std::shared_ptr<lgraph_result::Relationship>>(p.v)->src
+                        == path.nodes.back().id) {
                         path.indices.push_back((int)path.rels.size());
                     } else {
                         path.indices.push_back(0-(int)path.rels.size());

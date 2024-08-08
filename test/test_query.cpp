@@ -61,8 +61,8 @@ class TestQuery : public TuGraphTest {
     inline static const std::string LOAD_PROCEDURE_CMD_PREFIX = "-- loadProcedure";
     inline static const std::string ERROR_CMD_PREFIX = "-- error";
     inline static const std::string LOAD_PROCEDURE_READ_ONLY = "read_only=true";
-    std::string db_dir_ = "./data.tinypace";
-    std::string graph_name_ = "test";
+    std::string db_dir_ = "./testdb";
+    std::string graph_name_ = "default";
     GraphFactory::GRAPH_DATASET_TYPE graph_type_ = GraphFactory::GRAPH_DATASET_TYPE::YAGO;
     lgraph::ut::QUERY_TYPE query_type_ = lgraph::ut::QUERY_TYPE::GQL;
 

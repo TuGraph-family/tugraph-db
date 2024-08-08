@@ -1,5 +1,0 @@
-match p=(st:app{graphId:"ebbc560820b141b1822a0fdc1c4cb2a6"})-[*1..]->(en:scene)
-return p
-UNION ALL
-match p=(st1:scene{graphId:"ebbc560820b141b1822a0fdc1c4cb2a6"})-[*1..]->(en:scene)
-return p

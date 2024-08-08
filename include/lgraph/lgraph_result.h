@@ -164,9 +164,6 @@ class Record {
      * @param  txn      Trasaction
      */
     void Insert(const std::string &fname, const traversal::Path &path,
-                lgraph_api::Transaction* txn);
-
-    void Insert(const std::string &fname, const traversal::Path &path,
                 lgraph_api::Transaction* txn,
                 NODEMAP& node_map,
                 RELPMAP& relp_map);
