@@ -180,9 +180,9 @@ class TestQuery : public TuGraphTest {
             LOG_INFO() << execution_plan.DumpGraph();
             LOG_INFO() << execution_plan.DumpPlan(0, false);
             execution_plan.Execute(ctx_.get());
-            // result = ctx_->result_->Dump(false);
+            result = ctx_->result_->Dump(false);
             UT_LOG() << "-----result-----";
-            // result = ctx_->result_->Dump(false);
+            result = ctx_->result_->Dump(false);
             UT_LOG() << result;
             return true;
         } catch (std::exception& e) {
