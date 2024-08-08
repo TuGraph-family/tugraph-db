@@ -266,8 +266,7 @@ bool Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
     RefreshAndReturn(txn_->UpsertEdge(src, dst, label_id, field_ids, field_values));
 }
 
-int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
-                            int64_t target_field_pos,
+int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id, int64_t target_field_pos,
                             const std::tuple<std::vector<size_t>, std::vector<size_t>>& unique_pos,
                             const std::vector<size_t>& field_ids,
                             const std::vector<FieldData>& field_values) {
@@ -325,7 +324,8 @@ int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
         auto iter = txn_->GetOutEdgeIterator(EdgeUid(src, dst, label_id, 0, 0), true);
         bool has_target_edge = false;
         EdgeUid target_uid;
-        while (iter.IsValid() && iter.GetSrc() == src && iter.GetDst() == dst && iter.GetLabelId() == label_id) {
+        while (iter.IsValid() && iter.GetSrc() == src && iter.GetDst() == dst &&
+               iter.GetLabelId() == label_id) {
             for (auto pos : std::get<0>(unique_pos)) {
                 auto tmp = txn_->GetEdgeIndexIterator(label_id, field_ids[pos], field_values[pos],
                                                       field_values[pos]);

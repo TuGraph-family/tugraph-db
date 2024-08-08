@@ -28,8 +28,6 @@
 #include "restful/server/json_convert.h"
 #include "cypher/graph/common.h"
 #include "cypher/procedure/procedure.h"
-#include <tuple>
-#include <vector>
 #include "cypher/procedure/utils.h"
 #include "butil/endpoint.h"
 #include "cypher/monitor/memory_monitor_allocator.h"
@@ -733,14 +731,7 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record, const 
     auto edge_fields = txn.GetEdgeSchema(args[0].constant.AsString());
     std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
     for (const auto &fd : edge_fields) {
-        size_t pos = txn.GetEdgeFieldId(label_id, fd.name);
-        fd_type[fd.name] = std::make_pair(pos, fd);
-        if (target_field == fd.name) {
-            target_field_pos = pos;
-        }
-    }
-    if (!target_field.empty() && target_field_pos == -1) {
-        throw lgraph::UniqueIndexNotExistException(args[0].constant.AsString(), target_field);
+        fd_type[fd.name] = std::make_pair(txn.GetEdgeFieldId(label_id, fd.name), fd);
     }
 
     auto index_fds = txn.GetTxn()->ListEdgeIndexByLabel(args[0].constant.AsString());
@@ -765,9 +756,8 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record, const 
     int64_t index_conflict = 0;
     int64_t insert = 0;
     int64_t update = 0;
-    std::vector<std::tuple<int64_t, int64_t, std::tuple<std::vector<size_t>, std::vector<size_t>>, std::vector<size_t>,
-                           std::vector<lgraph_api::FieldData>>>
-        lines;
+    std::vector<std::tuple<int64_t, int64_t, std::tuple<std::vector<size_t>, std::vector<size_t>>,
+                           std::vector<size_t>, std::vector<lgraph_api::FieldData>>> lines;
     for (auto &line : list) {
         int64_t start_vid = -1;
         int64_t end_vid = -1;
@@ -3691,8 +3681,8 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
             titles.emplace_back(item);
         }
     }
-    std::unordered_map<std::string, std::function<void(const cypher::FieldData &, Record &)>> lmap =
-        {
+    std::unordered_map<std::string, std::function<void(const cypher::FieldData &, Record &)>>
+        lmap = {
             {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
         };
     Record r;
