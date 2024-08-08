@@ -278,7 +278,8 @@ void Record::Insert(const std::string &key, const traversal::Path &path,
         if (!eit.IsValid()) {
             THROW_CODE(InternalError, "invalid euid {} for inserting path record", euid.ToString());
         }
-        if (relp_map.find(euid) != relp_map.end() && relp_map[euid]->forward == (((int64_t)vid == euid.src))) {
+        if (relp_map.find(euid) != relp_map.end() &&
+            relp_map[euid]->forward == (((int64_t)vid == euid.src))) {
             repl = relp_map[euid];
         } else {
             repl = std::make_shared<lgraph_result::Relationship>();
