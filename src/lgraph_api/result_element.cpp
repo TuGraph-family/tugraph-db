@@ -108,36 +108,17 @@ bolt::Relationship Relationship::ToBolt(int64_t* v_eid) {
 
 PathElement::PathElement(const PathElement &value) {
     type_ = value.type_;
-    // if (type_ == LGraphType::NODE) {
-    //     v.node = new lgraph_result::Node(*value.v.node);
-    // } else {
-    //     v.repl = new Relationship(*value.v.repl);
-    // }
     v = value.v;
 }
 
 PathElement::PathElement(PathElement &&value) {
     type_ = value.type_;
-    // if (type_ == LGraphType::NODE) {
-    //     v.node = value.v.node;
-    //     value.v.node = nullptr;
-    // } else {
-    //     v.repl = value.v.repl;
-    //     value.v.repl = nullptr;
-    // }
     v = value.v;
 }
 
 PathElement &PathElement::operator=(const PathElement &value) {
     if (this == &value) return *this;
     type_ = value.type_;
-    // if (type_ == LGraphType::NODE) {
-    //     delete v.node;
-    //     v.node = new Node(*value.v.node);
-    // } else {
-    //     delete v.repl;
-    //     v.repl = new Relationship(*value.v.repl);
-    // }
     v = value.v;
     return *this;
 }
@@ -145,13 +126,6 @@ PathElement &PathElement::operator=(const PathElement &value) {
 PathElement &PathElement::operator=(PathElement &&value) {
     if (this == &value) return *this;
     type_ = value.type_;
-    // if (type_ == LGraphType::NODE) {
-    //     v.node = value.v.node;
-    //     value.v.node = nullptr;
-    // } else {
-    //     v.repl = value.v.repl;
-    //     value.v.repl = nullptr;
-    // }
     v = value.v;
     return *this;
 }
@@ -165,11 +139,6 @@ nlohmann::json PathElement::ToJson() {
 }
 
 PathElement::~PathElement() {
-    // if (type_ == LGraphType::NODE) {
-    //     delete v.node;
-    // } else {
-    //     delete v.repl;
-    // }
 }
 
 }  // namespace lgraph_result
