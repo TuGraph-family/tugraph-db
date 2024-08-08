@@ -192,7 +192,6 @@ class TestCypherV2 : public TuGraphTest {
                 UT_DBG() << "--- dumper.handle(node) dump ---";
                 UT_DBG() << dumper.dump();
             }
-            LOG_INFO() << "------------------------- " << __FILE__ << " " << __LINE__;
             cypher::ExecutionPlanV2 execution_plan_v2;
             ret = execution_plan_v2.Build(node, ctx_.get());
             if (ret != GEAXErrorCode::GEAX_SUCCEED) {
@@ -432,12 +431,12 @@ TEST_F(TestCypherV2, TestFuncFilter) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestExpression) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/expression/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestExpression) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/expression/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestWith) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
