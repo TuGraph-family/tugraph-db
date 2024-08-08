@@ -17,6 +17,7 @@
 #include "fma-common/binary_read_write_helper.h"
 
 #include "core/data_type.h"
+#include "core/field_data_helper.h"
 
 namespace fma_common {
 template <typename StreamT>
@@ -178,7 +179,14 @@ class IndexNotExistException : public LgraphException {
  public:
     IndexNotExistException(const std::string& label, const std::string& field)
         : LgraphException(ErrorCode::IndexNotExist,
-                          "VertexIndex [{}:{}] does not exist.", label, field) {}
+                          "Index [{}:{}] does not exist.", label, field) {}
+};
+
+class UniqueIndexNotExistException : public LgraphException {
+ public:
+    UniqueIndexNotExistException(const std::string& label, const std::string& field)
+        : LgraphException(ErrorCode::UniqueIndexNotExist,
+                          "Unique Index [{}:{}] does not exist.", label, field) {}
 };
 
 class IndexExistException : public LgraphException {
