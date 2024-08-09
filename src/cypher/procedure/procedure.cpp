@@ -531,7 +531,7 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
         std::vector<size_t> field_ids;
         std::vector<lgraph_api::FieldData> fds;
         bool success = true;
-        if (line.IsMap()) {
+        if (!line.IsMap()) {
             THROW_CODE(InputError, "The type of the elements in the list must be map");
         }
         for (auto& item : *line.map) {

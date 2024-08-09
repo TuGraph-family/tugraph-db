@@ -366,7 +366,7 @@ struct FieldData {
 
     bool IsArray() const { return type == ARRAY; }
 
-    static FieldData Array(size_t n) { return FieldData(std::vector<::lgraph::FieldData>(n)); }
+    static FieldData Array(size_t n) { return FieldData(std::vector<cypher::FieldData>(n)); }
 
     bool IsMap() const { return type == MAP; }
 

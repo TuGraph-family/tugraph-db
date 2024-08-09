@@ -1355,8 +1355,13 @@ cypher::FieldData BuiltinFunction::_ToList(RTContext *ctx, const Record &record,
     auto ret = cypher::FieldData::Array(0);
     for (auto &arg : args) {
         auto r = arg.Evaluate(ctx, record);
-        // CYPHER_THROW_ASSERT(r.IsScalar());
-        ret.array->emplace_back(r.constant.scalar);
+        if (r.IsScalar()) {
+            ret.array->emplace_back(r.constant.scalar);
+        } else if (r.IsArray()) {
+            ret.array->emplace_back(*r.constant.array);
+        } else if (r.IsMap()) {
+            ret.array->emplace_back(*r.constant.map);
+        }
     }
     return ret;
 }
