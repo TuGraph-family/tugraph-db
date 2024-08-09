@@ -160,7 +160,7 @@ TEST_F(TestUpsert, upsert) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
+        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
@@ -186,7 +186,7 @@ TEST_F(TestUpsert, upsert) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
+        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
@@ -210,7 +210,7 @@ TEST_F(TestUpsert, upsert) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
+        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
@@ -426,7 +426,7 @@ TEST_F(TestUpsert, addLabelWithJson) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
+        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
@@ -452,7 +452,7 @@ TEST_F(TestUpsert, addLabelWithJson) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
+        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
@@ -476,7 +476,7 @@ TEST_F(TestUpsert, addLabelWithJson) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}')", start.dump(),
+        cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '', '{}')", start.dump(),
                          end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
