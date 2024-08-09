@@ -16,12 +16,10 @@
 // Created by wt on 19-1-10.
 //
 
-#include "core/schema_common.h"
 #include "import/import_online.h"
 #include "core/field_data_helper.h"
 #include "core/thread_id.h"
 #include "db/galaxy.h"
-#include "lgraph/lgraph_types.h"
 #include "parser/data_typedef.h"
 #include "resultset/record.h"
 #include "server/state_machine.h"
@@ -128,8 +126,9 @@ void BuiltinProcedure::DbSubgraph(RTContext *ctx, const Record *record, const VE
     records->push_back(r.Snapshot());
 }
 
-void BuiltinProcedure::DbVertexLabels(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                      const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbVertexLabels(RTContext *ctx, const Record *record,
+                                      const VEC_EXPR &args, const VEC_STR &yield_items,
+                                      std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.vertexLabels()",
                                            args.size()))
@@ -297,13 +296,15 @@ void BuiltinProcedure::DbListLabelIndexes(RTContext *ctx, const Record *record,
         records->emplace_back(r.Snapshot());
     }
 }
-void BuiltinProcedure::DbPropertyKeys(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                      const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbPropertyKeys(RTContext *ctx, const Record *record,
+                                      const VEC_EXPR &args, const VEC_STR &yield_items,
+                                      std::vector<Record> *records) {
     CYPHER_TODO();
 }
 
 void BuiltinProcedure::DbWarmUp(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                const VEC_STR &yield_items, std::vector<cypher::Record> *records) {
+                                const VEC_STR &yield_items,
+                                std::vector<cypher::Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.warmup()",
                                            args.size()))
@@ -318,8 +319,8 @@ void BuiltinProcedure::DbWarmUp(RTContext *ctx, const Record *record, const VEC_
     records->emplace_back(r.Snapshot());
 }
 
-void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                      const VEC_STR &yield_items,
+void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record,
+                                      const VEC_EXPR &args, const VEC_STR &yield_items,
                                       std::vector<cypher::Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.procedures()",
@@ -350,8 +351,8 @@ void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record, cons
     }
 }
 
-void BuiltinProcedure::_ExtractFds(const VEC_EXPR &args, std::string &label, std::string &extra,
-                                   std::vector<lgraph::FieldSpec> &fds) {
+void BuiltinProcedure::_ExtractFds(const VEC_EXPR &args, std::string &label,
+                                   std::string &extra, std::vector<lgraph::FieldSpec> &fds) {
     using namespace parser;
     CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 2,
                      "Not enough arguments. This function takes 2 or more arguments.")
@@ -403,7 +404,8 @@ void BuiltinProcedure::_ExtractAccessLevel(
     std::swap(leves, temp_levels);
 }
 
-static ::std::vector<::lgraph::FieldSpec> ParseFieldSpecs(const VEC_EXPR &args, size_t start_from) {
+static ::std::vector<::lgraph::FieldSpec> ParseFieldSpecs(const VEC_EXPR &args,
+                                                          size_t start_from) {
     using namespace parser;
     std::vector<lgraph::FieldSpec> ret;
     for (size_t i = start_from; i < args.size(); i++) {
@@ -446,8 +448,8 @@ static std::string ParseStringArg(const Entry &entry, const std::string &param_n
     return entry.constant.scalar.AsString();
 }
 
-std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json &j_object,
-                                                     const lgraph_api::FieldSpec &fs) {
+std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json& j_object,
+                                                     const lgraph_api::FieldSpec& fs) {
     if (j_object.is_null()) {
         if (fs.optional) {
             return lgraph_api::FieldData();
@@ -485,27 +487,28 @@ std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json &j_obj
     }
 }
 
-void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                      const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
+                                      const VEC_EXPR &args, const VEC_STR &yield_items,
+                                      std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.upsertVertex(label_name, list_data)");
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].IsArray(), "list_data type should be list")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
-    const auto &list = args[1].constant.array;
+    const auto& list = args[1].constant.array;
     lgraph_api::GraphDB db(ctx->ac_db_.get(), false);
     auto txn = db.CreateReadTxn();
     auto label_id = txn.GetVertexLabelId(args[0].constant.AsString());
     auto vertex_fields = txn.GetVertexSchema(args[0].constant.AsString());
     std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
-    for (const auto &fd : vertex_fields) {
+    for (const auto& fd : vertex_fields) {
         fd_type[fd.name] = std::make_pair(txn.GetVertexFieldId(label_id, fd.name), fd);
     }
     std::string pf = txn.GetVertexPrimaryField(args[0].constant.AsString());
     auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].constant.AsString());
     std::unordered_map<size_t, bool> unique_indexs;
-    for (auto &index : index_fds) {
+    for (auto& index : index_fds) {
         if (index.label == pf) {
             continue;
         }
@@ -521,9 +524,8 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record, cons
     int64_t insert = 0;
     int64_t update = 0;
     std::vector<std::tuple<int, std::vector<size_t>, std::vector<size_t>,
-                           std::vector<lgraph_api::FieldData>>>
-        lines;
-    for (auto &line : *list) {
+                           std::vector<lgraph_api::FieldData>>> lines;
+    for (auto& line : *list) {
         int primary_pos = -1;
         std::vector<size_t> unique_pos;
         std::vector<size_t> field_ids;
@@ -532,7 +534,7 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record, cons
         if (line.IsMap()) {
             THROW_CODE(InputError, "The type of the elements in the list must be map");
         }
-        for (auto &item : *line.map) {
+        for (auto& item : *line.map) {
             auto iter = fd_type.find(item.first);
             if (iter != fd_type.end()) {
                 auto fd = item.second.scalar;
@@ -551,16 +553,16 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record, cons
             }
         }
         if (success && primary_pos >= 0) {
-            lines.emplace_back(primary_pos, std::move(unique_pos), std::move(field_ids),
-                               std::move(fds));
+            lines.emplace_back(primary_pos, std::move(unique_pos),
+                               std::move(field_ids), std::move(fds));
         } else {
             data_error++;
         }
     }
     txn = db.CreateWriteTxn();
-    for (auto &l : lines) {
-        int ret = txn.UpsertVertex(label_id, std::get<0>(l), std::get<1>(l), std::get<2>(l),
-                                   std::get<3>(l));
+    for (auto& l : lines) {
+        int ret = txn.UpsertVertex(label_id, std::get<0>(l),
+                                   std::get<1>(l), std::get<2>(l), std::get<3>(l));
         if (ret == 0) {
             index_conflict++;
         } else if (ret == 1) {
@@ -585,7 +587,8 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.upsertVertexByJson(label_name, list_data)");
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
-    CYPHER_ARG_CHECK(args[1].IsString(), "list_data type should be json string")
+    CYPHER_ARG_CHECK(args[1].IsString(),
+                     "list_data type should be json string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     nlohmann::json json_data = nlohmann::json::parse(args[1].constant.AsString());
@@ -597,13 +600,13 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     auto label_id = txn.GetVertexLabelId(args[0].constant.AsString());
     auto vertex_fields = txn.GetVertexSchema(args[0].constant.AsString());
     std::unordered_map<std::string, std::pair<size_t, lgraph_api::FieldSpec>> fd_type;
-    for (const auto &fd : vertex_fields) {
+    for (const auto& fd : vertex_fields) {
         fd_type[fd.name] = std::make_pair(txn.GetVertexFieldId(label_id, fd.name), fd);
     }
     std::string pf = txn.GetVertexPrimaryField(args[0].constant.AsString());
     auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].constant.AsString());
     std::unordered_map<size_t, bool> unique_indexs;
-    for (auto &index : index_fds) {
+    for (auto& index : index_fds) {
         if (index.label == pf) {
             continue;
         }
@@ -619,15 +622,14 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     int64_t insert = 0;
     int64_t update = 0;
     std::vector<std::tuple<int, std::vector<size_t>, std::vector<size_t>,
-                           std::vector<lgraph_api::FieldData>>>
-        lines;
-    for (auto &line : json_data) {
+                           std::vector<lgraph_api::FieldData>>> lines;
+    for (auto& line : json_data) {
         int primary_pos = -1;
         std::vector<size_t> unique_pos;
         std::vector<size_t> field_ids;
         std::vector<lgraph_api::FieldData> fds;
         bool success = true;
-        for (auto &item : line.items()) {
+        for (auto& item : line.items()) {
             auto iter = fd_type.find(item.key());
             if (iter != fd_type.end()) {
                 auto fd = JsonToFieldData(item.value(), iter->second.second);
@@ -646,16 +648,16 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
             }
         }
         if (success && primary_pos >= 0) {
-            lines.emplace_back(primary_pos, std::move(unique_pos), std::move(field_ids),
-                               std::move(fds));
+            lines.emplace_back(primary_pos, std::move(unique_pos),
+                               std::move(field_ids), std::move(fds));
         } else {
             json_error++;
         }
     }
     txn = db.CreateWriteTxn();
-    for (auto &l : lines) {
-        int ret = txn.UpsertVertex(label_id, std::get<0>(l), std::get<1>(l), std::get<2>(l),
-                                   std::get<3>(l));
+    for (auto& l : lines) {
+        int ret = txn.UpsertVertex(label_id, std::get<0>(l),
+                                   std::get<1>(l), std::get<2>(l), std::get<3>(l));
         if (ret == 0) {
             index_conflict++;
         } else if (ret == 1) {
@@ -674,8 +676,9 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     records->emplace_back(r.Snapshot());
 }
 
-void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                    const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
+                                    const VEC_EXPR &args, const VEC_STR &yield_items,
+                                    std::vector<Record> *records) {
     CYPHER_ARG_CHECK(
         args.size() == 5,
         "need 4 parameters, "
@@ -1050,7 +1053,8 @@ void BuiltinProcedure::DbCreateVertexLabel(RTContext *ctx, const Record *record,
 }
 
 void BuiltinProcedure::DbCreateEdgeLabelByJson(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
                      "e.g. db.createEdgeLabelByJson(json_data)");
@@ -1066,11 +1070,12 @@ void BuiltinProcedure::DbCreateEdgeLabelByJson(RTContext *ctx, const Record *rec
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     std::vector<lgraph_api::FieldSpec> fds;
-    const auto &ld = schema_desc.label_desc[0];
+    const auto& ld = schema_desc.label_desc[0];
     if (ld.is_vertex) {
         THROW_CODE(InputError, "is not edge json schema");
     }
-    for (auto &p : ld.GetSchemaDef()) fds.emplace_back(p.second);
+    for (auto& p : ld.GetSchemaDef())
+        fds.emplace_back(p.second);
     lgraph_api::EdgeOptions eo;
     if (ld.HasTemporalField()) {
         auto tf = ld.GetTemporalField();
@@ -1081,21 +1086,23 @@ void BuiltinProcedure::DbCreateEdgeLabelByJson(RTContext *ctx, const Record *rec
     eo.detach_property = ld.detach_property;
     bool ok = ctx->ac_db_->AddLabel(ld.is_vertex, ld.name, fds, eo);
     if (ok) {
-        LOG_INFO() << FMA_FMT("Add {} label:{}", ld.is_vertex ? "vertex" : "edge", ld.name);
+        LOG_INFO() << FMA_FMT("Add {} label:{}", ld.is_vertex ? "vertex" : "edge",
+                              ld.name);
     } else {
         throw lgraph::LabelExistException(ld.name, false);
     }
-    for (auto &spec : ld.columns) {
+    for (auto& spec : ld.columns) {
         if (spec.index) {
             ctx->ac_db_->AddEdgeIndex(ld.name, spec.name, spec.idxType);
-            LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]", ld.name,
-                                  spec.name, static_cast<int>(spec.idxType));
+            LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
+                                  ld.name, spec.name, static_cast<int>(spec.idxType));
         }
     }
 }
 
 void BuiltinProcedure::DbCreateVertexLabelByJson(RTContext *ctx, const Record *record,
-                                                 const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                 const VEC_EXPR &args,
+                                                 const VEC_STR &yield_items,
                                                  std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() % SPEC_MEMBER_SIZE == 1,
                      "e.g. db.createVertexLabelByJson(json_data)");
@@ -1111,33 +1118,36 @@ void BuiltinProcedure::DbCreateVertexLabelByJson(RTContext *ctx, const Record *r
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     std::vector<lgraph_api::FieldSpec> fds;
-    const auto &ld = schema_desc.label_desc[0];
+    const auto& ld = schema_desc.label_desc[0];
     if (!ld.is_vertex) {
         THROW_CODE(InputError, "is not vertex json schema");
     }
-    for (auto &p : ld.GetSchemaDef()) fds.emplace_back(p.second);
+    for (auto& p : ld.GetSchemaDef())
+        fds.emplace_back(p.second);
     lgraph_api::VertexOptions vo;
     vo.primary_field = ld.GetPrimaryField().name;
     vo.detach_property = ld.detach_property;
     bool ok = ctx->ac_db_->AddLabel(ld.is_vertex, ld.name, fds, vo);
     if (ok) {
-        LOG_INFO() << FMA_FMT("Add {} label:{}", ld.is_vertex ? "vertex" : "edge", ld.name);
+        LOG_INFO() << FMA_FMT("Add {} label:{}", ld.is_vertex ? "vertex" : "edge",
+                              ld.name);
     } else {
         throw lgraph::LabelExistException(ld.name, true);
     }
-    for (auto &spec : ld.columns) {
+    for (auto& spec : ld.columns) {
         if (spec.index && !spec.primary) {
             ctx->ac_db_->AddVertexIndex(ld.name, spec.name, spec.idxType);
-            LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]", ld.name,
-                                  spec.name, static_cast<int>(spec.idxType));
+            LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
+                                  ld.name, spec.name, static_cast<int>(spec.idxType));
         }
     }
 }
 
 // params: vertex, label, primary_field,  [fieldspec1], [fieldspec2]...
 // params: edge, label, edge_constraints, [fieldspec1], [fieldspec2]...
-void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                     const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record,
+                                     const VEC_EXPR &args, const VEC_STR &yield_items,
+                                     std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
@@ -1182,8 +1192,9 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record, const
 }
 
 // params: vertex/edge, label
-void BuiltinProcedure::DbGetLabelSchema(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                        const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbGetLabelSchema(RTContext *ctx, const Record *record,
+                                        const VEC_EXPR &args, const VEC_STR &yield_items,
+                                        std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (args.size() != 2)
         THROW_CODE(InputError,
@@ -1200,8 +1211,9 @@ void BuiltinProcedure::DbGetLabelSchema(RTContext *ctx, const Record *record, co
     }
 }
 
-void BuiltinProcedure::DbGetVertexSchema(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                         const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbGetVertexSchema(RTContext *ctx, const Record *record,
+                                         const VEC_EXPR &args, const VEC_STR &yield_items,
+                                         std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. db.getVertexSchema(label)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -1216,8 +1228,9 @@ void BuiltinProcedure::DbGetVertexSchema(RTContext *ctx, const Record *record, c
     records->emplace_back(r.Snapshot());
 }
 
-void BuiltinProcedure::DbGetEdgeSchema(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                       const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbGetEdgeSchema(RTContext *ctx, const Record *record,
+                                       const VEC_EXPR &args, const VEC_STR &yield_items,
+                                       std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 1, "need one parameters, e.g. db.getEdgeSchema(label)");
     CYPHER_ARG_CHECK(args[0].IsString(), "label type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -1233,8 +1246,9 @@ void BuiltinProcedure::DbGetEdgeSchema(RTContext *ctx, const Record *record, con
 }
 
 // params: vertex/edge, label
-void BuiltinProcedure::DbDeleteLabel(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                     const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbDeleteLabel(RTContext *ctx, const Record *record,
+                                     const VEC_EXPR &args, const VEC_STR &yield_items,
+                                     std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.deleteLabel(label_type, label_name)");
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -1252,7 +1266,8 @@ void BuiltinProcedure::DbDeleteLabel(RTContext *ctx, const Record *record, const
 
 // params: vertex/edge, label, field_names
 void BuiltinProcedure::DbAlterLabelDelFields(RTContext *ctx, const Record *record,
-                                             const VEC_EXPR &args, const VEC_STR &yield_items,
+                                             const VEC_EXPR &args,
+                                             const VEC_STR &yield_items,
                                              std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     /* close the previous txn first, in case of nested transaction */
@@ -1277,7 +1292,8 @@ void BuiltinProcedure::DbAlterLabelDelFields(RTContext *ctx, const Record *recor
 
 // params: vertex/edge, label, [field_spec_value_1], [field_spec_value_2]...
 void BuiltinProcedure::DbAlterLabelAddFields(RTContext *ctx, const Record *record,
-                                             const VEC_EXPR &args, const VEC_STR &yield_items,
+                                             const VEC_EXPR &args,
+                                             const VEC_STR &yield_items,
                                              std::vector<Record> *records) {
     using namespace parser;
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -1320,7 +1336,8 @@ void BuiltinProcedure::DbAlterLabelAddFields(RTContext *ctx, const Record *recor
 
 // params: vertex/edge, label, [field_spec_1], [field_spec_2],...
 void BuiltinProcedure::DbAlterLabelModFields(RTContext *ctx, const Record *record,
-                                             const VEC_EXPR &args, const VEC_STR &yield_items,
+                                             const VEC_EXPR &args,
+                                             const VEC_STR &yield_items,
                                              std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     /* close the previous txn first, in case of nested transaction */
@@ -1343,8 +1360,9 @@ void BuiltinProcedure::DbAlterLabelModFields(RTContext *ctx, const Record *recor
     }
 }
 
-void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                         const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record,
+                                         const VEC_EXPR &args, const VEC_STR &yield_items,
+                                         std::vector<Record> *records) {
     CYPHER_ARG_CHECK(
         args.size() % SPEC_MEMBER_SIZE == 2,
         "e.g. db.createEdgeLabel(label_name, extra, field_name, field_type, is_optional)")
@@ -1367,8 +1385,9 @@ void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record, c
     }
 }
 
-void BuiltinProcedure::DbAddVertexIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                        const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbAddVertexIndex(RTContext *ctx, const Record *record,
+                                        const VEC_EXPR &args, const VEC_STR &yield_items,
+                                        std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 3,
                      "need 3 parameters, e.g. db.addIndex(label_name, field_name, unique)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
@@ -1409,8 +1428,8 @@ void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
         fields.push_back(arg.AsString());
     }
     auto unique = args[2].constant.AsBool();
-    lgraph::CompositeIndexType type = unique ? lgraph::CompositeIndexType::UniqueIndex
-                                             : lgraph::CompositeIndexType::NonUniqueIndex;
+    lgraph::CompositeIndexType type = unique ? lgraph::CompositeIndexType::UniqueIndex :
+                                             lgraph::CompositeIndexType::NonUniqueIndex;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     bool success = ac_db.AddVertexCompositeIndex(label, fields, type);
     if (!success) {
@@ -1419,8 +1438,9 @@ void BuiltinProcedure::DbAddVertexCompositeIndex(cypher::RTContext *ctx,
     }
 }
 
-void BuiltinProcedure::DbAddEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                      const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbAddEdgeIndex(RTContext *ctx, const Record *record,
+                                      const VEC_EXPR &args, const VEC_STR &yield_items,
+                                      std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 4,
                      "need 3 parameters, e.g. "
                      "db.addEdgeIndex(label_name, field_name, unique, pair_unique)")
@@ -1476,7 +1496,8 @@ void BuiltinProcedure::DbAddFullTextIndex(RTContext *ctx, const Record *record,
 }
 
 void BuiltinProcedure::DbDeleteFullTextIndex(RTContext *ctx, const Record *record,
-                                             const VEC_EXPR &args, const VEC_STR &yield_items,
+                                             const VEC_EXPR &args,
+                                             const VEC_STR &yield_items,
                                              std::vector<Record> *records) {
     CYPHER_ARG_CHECK(
         args.size() == 3,
@@ -1498,7 +1519,8 @@ void BuiltinProcedure::DbDeleteFullTextIndex(RTContext *ctx, const Record *recor
 }
 
 void BuiltinProcedure::DbRebuildFullTextIndex(RTContext *ctx, const Record *record,
-                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              const VEC_EXPR &args,
+                                              const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need 2 parameters, e.g. db.rebuildFullTextIndex(vertex_labels, edge_labels)");
@@ -1525,8 +1547,9 @@ void BuiltinProcedure::DbRebuildFullTextIndex(RTContext *ctx, const Record *reco
     db.RebuildFullTextIndex(v_labels, e_labels);
 }
 
-void BuiltinProcedure::DbFullTextIndexes(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                         const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbFullTextIndexes(RTContext *ctx, const Record *record,
+                                         const VEC_EXPR &args, const VEC_STR &yield_items,
+                                         std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.FullTextIndexes()",
                                            args.size()))
@@ -1542,7 +1565,8 @@ void BuiltinProcedure::DbFullTextIndexes(RTContext *ctx, const Record *record, c
 }
 
 void BuiltinProcedure::DbClearEdgeConstraints(RTContext *ctx, const Record *record,
-                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              const VEC_EXPR &args,
+                                              const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 1,
                      "need 1 parameters, e.g. db.clearEdgeConstraints(label_name)")
@@ -1556,7 +1580,8 @@ void BuiltinProcedure::DbClearEdgeConstraints(RTContext *ctx, const Record *reco
 }
 
 void BuiltinProcedure::DbAddEdgeConstraints(RTContext *ctx, const Record *record,
-                                            const VEC_EXPR &args, const VEC_STR &yield_items,
+                                            const VEC_EXPR &args,
+                                            const VEC_STR &yield_items,
                                             std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need 2 parameters, e.g. db.addEdgeConstraints(label_name, constraints)")
@@ -1593,8 +1618,9 @@ void BuiltinProcedure::DbmsMetaCountDetail(RTContext *ctx, const Record *record,
     }
 }
 
-void BuiltinProcedure::DbmsMetaCount(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                     const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbmsMetaCount(RTContext *ctx, const Record *record,
+                                     const VEC_EXPR &args, const VEC_STR &yield_items,
+                                     std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.meta.count()",
                                            args.size()))
@@ -1624,7 +1650,8 @@ void BuiltinProcedure::DbmsMetaCount(RTContext *ctx, const Record *record, const
 }
 
 void BuiltinProcedure::DbmsMetaRefreshCount(RTContext *ctx, const Record *record,
-                                            const VEC_EXPR &args, const VEC_STR &yield_items,
+                                            const VEC_EXPR &args,
+                                            const VEC_STR &yield_items,
                                             std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.meta.refreshCount()",
@@ -1640,12 +1667,13 @@ void BuiltinProcedure::DbmsSecurityIsDefaultUserPassword(RTContext *ctx,
                                                          const cypher::VEC_EXPR &args,
                                                          const cypher::VEC_STR &yield_items,
                                                          std::vector<Record> *records) {
-    CYPHER_ARG_CHECK(args.size() == 0,
-                     "need 0 parameters, e.g. dbms.security.isDefaultUserPassword()")
+    CYPHER_ARG_CHECK(
+        args.size() == 0,
+        "need 0 parameters, e.g. dbms.security.isDefaultUserPassword()")
     if (ctx->txn_) ctx->txn_->Abort();
     bool is_default_user_password = false;
     if (ctx->bolt_conn_) {
-        auto session = (bolt::BoltSession *)(ctx->bolt_conn_->GetContext());
+        auto session = (bolt::BoltSession*)(ctx->bolt_conn_->GetContext());
         is_default_user_password = session->using_default_user_password;
     }
     Record r;
@@ -1670,7 +1698,8 @@ void BuiltinProcedure::DbmsSecurityChangePassword(RTContext *ctx, const cypher::
     }
 }
 
-void BuiltinProcedure::DbmsSecurityChangeUserPassword(RTContext *ctx, const cypher::Record *record,
+void BuiltinProcedure::DbmsSecurityChangeUserPassword(RTContext *ctx,
+                                                      const cypher::Record *record,
                                                       const cypher::VEC_EXPR &args,
                                                       const cypher::VEC_STR &yield_items,
                                                       std::vector<Record> *records) {
@@ -1687,7 +1716,8 @@ void BuiltinProcedure::DbmsSecurityChangeUserPassword(RTContext *ctx, const cyph
     }
 }
 
-void BuiltinProcedure::DbmsSecuritySetUserMemoryLimit(RTContext *ctx, const cypher::Record *record,
+void BuiltinProcedure::DbmsSecuritySetUserMemoryLimit(RTContext *ctx,
+                                                      const cypher::Record *record,
                                                       const cypher::VEC_EXPR &args,
                                                       const cypher::VEC_STR &yield_items,
                                                       std::vector<Record> *records) {
@@ -1935,7 +1965,8 @@ void BuiltinProcedure::DbmsGraphListUserGraphs(RTContext *ctx, const cypher::Rec
 }
 
 void BuiltinProcedure::DbmsGraphGetGraphInfo(RTContext *ctx, const Record *record,
-                                             const VEC_EXPR &args, const VEC_STR &yield_items,
+                                             const VEC_EXPR &args,
+                                             const VEC_STR &yield_items,
                                              std::vector<cypher::Record> *records) {
     if (ctx->txn_) ctx->txn_->Abort();
     CYPHER_ARG_CHECK(args.size() == 1, FMA_FMT("This function takes exactly 1 arguments, but {} "
@@ -1951,7 +1982,8 @@ void BuiltinProcedure::DbmsGraphGetGraphInfo(RTContext *ctx, const Record *recor
 }
 
 void BuiltinProcedure::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<cypher::Record> *records) {
     if (ctx->txn_) ctx->txn_->Abort();
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("This function takes exactly 0 arguments, but {} "
@@ -1961,14 +1993,14 @@ void BuiltinProcedure::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *rec
     auto txn = db.CreateReadTxn();
     nlohmann::json graph_schema;
     graph_schema["schema"] = nlohmann::json::array();
-    for (auto &name : txn.GetAllLabels(true)) {
+    for (auto& name : txn.GetAllLabels(true)) {
         nlohmann::json node;
         node["label"] = name;
         node["type"] = "VERTEX";
         auto s = txn.GetSchema(name, true);
         node["primary"] = s->GetPrimaryField();
         node["detach_property"] = s->DetachProperty();
-        for (auto &fd : s->GetFields()) {
+        for (auto& fd : s->GetFields()) {
             nlohmann::json property;
             property["name"] = fd.Name();
             property["type"] = lgraph_api::to_string(fd.Type());
@@ -1982,17 +2014,17 @@ void BuiltinProcedure::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *rec
         }
         graph_schema["schema"].push_back(node);
     }
-    for (auto &name : txn.GetAllLabels(false)) {
+    for (auto& name : txn.GetAllLabels(false)) {
         nlohmann::json edge;
         edge["label"] = name;
         edge["type"] = "EDGE";
         auto s = txn.GetSchema(name, false);
         edge["detach_property"] = s->DetachProperty();
         edge["constraints"] = nlohmann::json::array();
-        for (auto &pairs : s->GetEdgeConstraints()) {
+        for (auto& pairs : s->GetEdgeConstraints()) {
             edge["constraints"].push_back(std::vector<std::string>{pairs.first, pairs.second});
         }
-        for (auto &fd : s->GetFields()) {
+        for (auto& fd : s->GetFields()) {
             nlohmann::json property;
             property["name"] = fd.Name();
             property["type"] = lgraph_api::to_string(fd.Type());
@@ -2063,19 +2095,19 @@ void BuiltinProcedure::DbmsConfigUpdate(RTContext *ctx, const cypher::Record *re
                                         const cypher::VEC_EXPR &args,
                                         const cypher::VEC_STR &yield_items,
                                         std::vector<cypher::Record> *records) {
-    ctx->txn_.reset();
-    ctx->ac_db_.reset();
-    CYPHER_ARG_CHECK(args.size() == 1,
-                     "need exactly one parameter. "
-                     "e.g. dbms.config.update({durable: false, enable_audit_log: false})")
-    CYPHER_ARG_CHECK(args[0].IsMap(), "role type should be map")
-    std::map<std::string, lgraph::FieldData> kvs;
-    for (auto &kv : *args[0].constant.map) {
-        kvs[kv.first] = kv.second.scalar;
-    }
-    bool need_reload = ctx->galaxy_->UpdateConfig(ctx->user_, kvs);
-    // restart galaxy in a separate thread
-    if (need_reload) ctx->galaxy_->ReloadFromDisk();
+     ctx->txn_.reset();
+     ctx->ac_db_.reset();
+     CYPHER_ARG_CHECK(args.size() == 1,
+                      "need exactly one parameter. "
+                      "e.g. dbms.config.update({durable: false, enable_audit_log: false})")
+     CYPHER_ARG_CHECK(args[0].IsMap(), "role type should be map")
+     std::map<std::string, lgraph::FieldData> kvs;
+     for (auto &kv : *args[0].constant.map) {
+         kvs[kv.first] = kv.second.scalar;
+     }
+     bool need_reload = ctx->galaxy_->UpdateConfig(ctx->user_, kvs);
+     // restart galaxy in a separate thread
+     if (need_reload) ctx->galaxy_->ReloadFromDisk();
 }
 
 void BuiltinProcedure::DbmsListBackupLogFiles(RTContext *ctx, const cypher::Record *record,
@@ -2139,7 +2171,8 @@ void BuiltinProcedure::DbmsSecurityListRoles(RTContext *ctx, const cypher::Recor
 }
 
 void BuiltinProcedure::DbmsSecurityCreateRole(RTContext *ctx, const Record *record,
-                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              const VEC_EXPR &args,
+                                              const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         THROW_CODE(Unauthorized, "Admin access right required.");
@@ -2156,7 +2189,8 @@ void BuiltinProcedure::DbmsSecurityCreateRole(RTContext *ctx, const Record *reco
 }
 
 void BuiltinProcedure::DbmsSecurityDeleteRole(RTContext *ctx, const Record *record,
-                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              const VEC_EXPR &args,
+                                              const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         THROW_CODE(Unauthorized, "Admin access right required.");
@@ -2170,7 +2204,8 @@ void BuiltinProcedure::DbmsSecurityDeleteRole(RTContext *ctx, const Record *reco
 }
 
 void BuiltinProcedure::DbmsSecurityGetUserInfo(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         THROW_CODE(Unauthorized, "Admin access right required.");
@@ -2215,7 +2250,8 @@ void BuiltinProcedure::DbmsSecurityGetUserMemoryUsage(RTContext *ctx, const Reco
 }
 
 void BuiltinProcedure::DbmsSecurityGetRoleInfo(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         THROW_CODE(Unauthorized, "Admin access right required.");
@@ -2229,7 +2265,8 @@ void BuiltinProcedure::DbmsSecurityGetRoleInfo(RTContext *ctx, const Record *rec
 }
 
 void BuiltinProcedure::DbmsSecurityDisableRole(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         THROW_CODE(Unauthorized, "Admin access right required.");
@@ -2246,7 +2283,8 @@ void BuiltinProcedure::DbmsSecurityDisableRole(RTContext *ctx, const Record *rec
 }
 
 void BuiltinProcedure::DbmsSecurityModRoleDesc(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         THROW_CODE(Unauthorized, "Admin access right required.");
@@ -2320,7 +2358,8 @@ void BuiltinProcedure::DbmsSecurityModRoleFieldAccessLevel(RTContext *ctx, const
     CYPHER_ARG_CHECK(args[3].IsString(), "field type should be string")
     CYPHER_ARG_CHECK(args[4].IsString(), "label_type type should be string")
     CYPHER_ARG_CHECK(args[5].IsString(), "field_access_level type should be string")
-    cypher::VEC_STR titles = ProcedureTitles("dbms.security.modRoleFieldAccessLevel", yield_items);
+    cypher::VEC_STR titles =
+        ProcedureTitles("dbms.security.modRoleFieldAccessLevel", yield_items);
     std::string role = args[0].constant.scalar.AsString();
     std::string graph = args[1].constant.scalar.AsString();
     std::string label = args[2].constant.scalar.AsString();
@@ -2349,7 +2388,8 @@ void BuiltinProcedure::DbmsSecurityModRoleFieldAccessLevel(RTContext *ctx, const
 }
 
 void BuiltinProcedure::DbmsSecurityDisableUser(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.disableUser(user, disable)");
@@ -2365,7 +2405,8 @@ void BuiltinProcedure::DbmsSecurityDisableUser(RTContext *ctx, const Record *rec
 }
 
 void BuiltinProcedure::DbmsSecuritySetCurrentDesc(RTContext *ctx, const Record *record,
-                                                  const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                  const VEC_EXPR &args,
+                                                  const VEC_STR &yield_items,
                                                   std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 1,
                      "need one parameters, e.g. dbms.security.setCurrentDesc(description)")
@@ -2383,7 +2424,8 @@ void BuiltinProcedure::DbmsSecuritySetCurrentDesc(RTContext *ctx, const Record *
 }
 
 void BuiltinProcedure::DbmsSecuritySetUserDesc(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. dbms.security.setUserDesc(user, description)")
@@ -2402,7 +2444,8 @@ void BuiltinProcedure::DbmsSecuritySetUserDesc(RTContext *ctx, const Record *rec
 }
 
 void BuiltinProcedure::DbmsSecurityDeleteUserRoles(RTContext *ctx, const Record *record,
-                                                   const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                   const VEC_EXPR &args,
+                                                   const VEC_STR &yield_items,
                                                    std::vector<Record> *records) {
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         THROW_CODE(Unauthorized, "Admin access right required.");
@@ -2449,7 +2492,8 @@ void BuiltinProcedure::DbmsSecurityRebuildUserRoles(RTContext *ctx, const Record
 }
 
 void BuiltinProcedure::DbmsSecurityAddUserRoles(RTContext *ctx, const Record *record,
-                                                const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                const VEC_EXPR &args,
+                                                const VEC_STR &yield_items,
                                                 std::vector<Record> *records) {
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
         THROW_CODE(Unauthorized, "Admin access right required.");
@@ -2527,7 +2571,8 @@ void BuiltinProcedure::DbPluginLoadPlugin(RTContext *ctx, const Record *record,
 }
 
 void BuiltinProcedure::DbPluginDeletePlugin(RTContext *ctx, const Record *record,
-                                            const VEC_EXPR &args, const VEC_STR &yield_items,
+                                            const VEC_EXPR &args,
+                                            const VEC_STR &yield_items,
                                             std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.plugin.deletePlugin(plugin_type, plugin_name)")
@@ -2547,7 +2592,8 @@ void BuiltinProcedure::DbPluginDeletePlugin(RTContext *ctx, const Record *record
 }
 
 void BuiltinProcedure::DbPluginGetPluginInfo(RTContext *ctx, const Record *record,
-                                             const VEC_EXPR &args, const VEC_STR &yield_items,
+                                             const VEC_EXPR &args,
+                                             const VEC_STR &yield_items,
                                              std::vector<cypher::Record> *records) {
     CYPHER_ARG_CHECK((args.size() == 2 || args.size() == 3),
                      "need two or three parameters, e.g. db.plugin.getPluginInfo(plugin_type, "
@@ -2611,7 +2657,8 @@ void BuiltinProcedure::DbPluginListPlugin(RTContext *ctx, const Record *record,
 }
 
 void BuiltinProcedure::DbPluginListUserPlugins(RTContext *ctx, const Record *record,
-                                               const VEC_EXPR &args, const VEC_STR &yield_items,
+                                               const VEC_EXPR &args,
+                                               const VEC_STR &yield_items,
                                                std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
@@ -2667,7 +2714,8 @@ void BuiltinProcedure::DbPluginCallPlugin(RTContext *ctx, const Record *record,
 }
 
 void BuiltinProcedure::DbImportorDataImportor(RTContext *ctx, const Record *record,
-                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              const VEC_EXPR &args,
+                                              const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 5,
                      "need five parameters, e.g. db.importor.dataImportor"
@@ -2695,7 +2743,8 @@ void BuiltinProcedure::DbImportorDataImportor(RTContext *ctx, const Record *reco
 }
 
 void BuiltinProcedure::DbImportorFullImportor(RTContext *ctx, const Record *record,
-                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              const VEC_EXPR &args,
+                                              const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
     ctx->txn_.reset();
     ctx->ac_db_.reset();
@@ -2821,7 +2870,8 @@ void BuiltinProcedure::DbImportorFullImportor(RTContext *ctx, const Record *reco
 }
 
 void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *record,
-                                                  const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                  const VEC_EXPR &args,
+                                                  const VEC_STR &yield_items,
                                                   std::vector<Record> *records) {
     ctx->txn_.reset();
     ctx->ac_db_.reset();
@@ -2866,7 +2916,8 @@ void BuiltinProcedure::DbImportorFullFileImportor(RTContext *ctx, const Record *
 }
 
 void BuiltinProcedure::DbImportorSchemaImportor(RTContext *ctx, const Record *record,
-                                                const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                const VEC_EXPR &args,
+                                                const VEC_STR &yield_items,
                                                 std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 1,
                      "need one parameters, e.g. db.importor.schemaImportor(description)")
@@ -2882,8 +2933,9 @@ void BuiltinProcedure::DbImportorSchemaImportor(RTContext *ctx, const Record *re
     std::string log = ::lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::move(desc), db);
 }
 
-void BuiltinProcedure::DbDeleteIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                     const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbDeleteIndex(RTContext *ctx, const Record *record,
+                                     const VEC_EXPR &args, const VEC_STR &yield_items,
+                                     std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.deleteIndex(label_name, field_name)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
@@ -2898,8 +2950,9 @@ void BuiltinProcedure::DbDeleteIndex(RTContext *ctx, const Record *record, const
     }
 }
 
-void BuiltinProcedure::DbDeleteEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                         const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbDeleteEdgeIndex(RTContext *ctx, const Record *record,
+                                         const VEC_EXPR &args, const VEC_STR &yield_items,
+                                         std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.deleteIndex(label_name, field_name)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
@@ -2915,7 +2968,8 @@ void BuiltinProcedure::DbDeleteEdgeIndex(RTContext *ctx, const Record *record, c
 }
 
 void BuiltinProcedure::DbDeleteCompositeIndex(RTContext *ctx, const Record *record,
-                                              const VEC_EXPR &args, const VEC_STR &yield_items,
+                                              const VEC_EXPR &args,
+                                              const VEC_STR &yield_items,
                                               std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2,
                      "need two parameters, e.g. db.deleteIndex(label_name, field_name)")
@@ -2957,8 +3011,10 @@ void BuiltinProcedure::DbDropDB(RTContext *ctx, const Record *record, const VEC_
     ctx->ac_db_->DropAllData();
 }
 
-void BuiltinProcedure::DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                       const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbDropAllVertex(RTContext *ctx, const Record *record,
+                                       const VEC_EXPR &args,
+                                       const VEC_STR &yield_items,
+                                       std::vector<Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     if (!ctx->galaxy_->IsAdmin(ctx->user_))
@@ -2969,8 +3025,8 @@ void BuiltinProcedure::DbDropAllVertex(RTContext *ctx, const Record *record, con
     ctx->ac_db_->DropAllVertex();
 }
 
-void BuiltinProcedure::DbTaskListTasks(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                       const VEC_STR &yield_items,
+void BuiltinProcedure::DbTaskListTasks(RTContext *ctx, const Record *record,
+                                       const VEC_EXPR &args, const VEC_STR &yield_items,
                                        std::vector<cypher::Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.task.listTasks()",
@@ -3034,7 +3090,8 @@ void BuiltinProcedure::DbMonitorServerInfo(RTContext *ctx, const Record *record,
 }
 
 void BuiltinProcedure::DbMonitorTuGraphInfo(RTContext *ctx, const Record *record,
-                                            const VEC_EXPR &args, const VEC_STR &yield_items,
+                                            const VEC_EXPR &args,
+                                            const VEC_STR &yield_items,
                                             std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.monitor.tuGraphInfo()",
@@ -3045,8 +3102,9 @@ void BuiltinProcedure::DbMonitorTuGraphInfo(RTContext *ctx, const Record *record
     records->emplace_back(r.Snapshot());
 }
 
-void BuiltinProcedure::DbmsHaClusterInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
-                                         const VEC_STR &yield_items, std::vector<Record> *records) {
+void BuiltinProcedure::DbmsHaClusterInfo(RTContext *ctx, const Record *record,
+                                         const VEC_EXPR &args, const VEC_STR &yield_items,
+                                         std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: dbms.ha.clusterInfo()",
                                            args.size()))
@@ -3109,7 +3167,7 @@ struct EdgeFilter {
 };
 
 static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgraph::VertexId vid,
-                                                   const std::vector<EdgeFilter> &edge_filters,
+                                                   const std::vector<EdgeFilter>& edge_filters,
                                                    const parser::LinkDirection &direction,
                                                    std::optional<size_t> per_node_limit) {
     auto vit = txn.GetVertexIterator(vid);
@@ -3136,11 +3194,11 @@ static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgr
     } else {
         if (direction == parser::LinkDirection::LEFT_TO_RIGHT ||
             direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
-            for (auto &edge_filter : edge_filters) {
+            for (auto& edge_filter : edge_filters) {
                 size_t count = 0;
                 auto edge_lid = txn.GetLabelId(false, edge_filter.label);
-                for (auto eit =
-                         vit.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
+                for (auto eit = vit.GetOutEdgeIterator(
+                         lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
                      eit.IsValid(); eit.Next()) {
                     if (eit.GetLabelId() != edge_lid) break;
                     count += 1;
@@ -3154,11 +3212,11 @@ static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgr
         }
         if (direction == parser::LinkDirection::RIGHT_TO_LEFT ||
             direction == parser::LinkDirection::DIR_NOT_SPECIFIED) {
-            for (auto &edge_filter : edge_filters) {
+            for (auto& edge_filter : edge_filters) {
                 size_t count = 0;
                 auto edge_lid = txn.GetLabelId(false, edge_filter.label);
-                for (auto eit =
-                         vit.GetInEdgeIterator(lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
+                for (auto eit = vit.GetInEdgeIterator(
+                         lgraph::EdgeUid(0, vid, edge_lid, 0, 0), true);
                      eit.IsValid(); eit.Next()) {
                     if (eit.GetLabelId() != edge_lid) break;
                     count += 1;
@@ -3183,8 +3241,9 @@ static std::vector<lgraph::VertexId> _GetNeighbors(lgraph::Transaction &txn, lgr
  */
 static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexId start_vid,
                                        lgraph::VertexId end_vid,
-                                       const std::vector<EdgeFilter> &edge_filters, size_t max_hops,
-                                       cypher::Path &path, parser::LinkDirection &dir,
+                                       const std::vector<EdgeFilter> &edge_filters,
+                                       size_t max_hops, cypher::Path &path,
+                                       parser::LinkDirection &dir,
                                        std::optional<size_t> per_node_limit) {
     path.Clear();
     path.SetStart(start_vid);
@@ -3205,7 +3264,8 @@ static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexI
         if (forward_q.size() <= backward_q.size()) {
             // search forward
             for (auto vid : forward_q) {
-                auto nbrs = _GetNeighbors(txn, vid, edge_filters, forward_dir, per_node_limit);
+                auto nbrs =
+                    _GetNeighbors(txn, vid, edge_filters, forward_dir, per_node_limit);
                 for (auto nbr : nbrs) {
                     if (child.find(nbr) != child.end()) {
                         // found the path
@@ -3223,7 +3283,8 @@ static void _P2PUnweightedShortestPath(lgraph::Transaction &txn, lgraph::VertexI
             forward_q = std::move(next_q);
         } else {
             for (auto vid : backward_q) {
-                auto nbrs = _GetNeighbors(txn, vid, edge_filters, backward_dir, per_node_limit);
+                auto nbrs =
+                    _GetNeighbors(txn, vid, edge_filters, backward_dir, per_node_limit);
                 for (auto nbr : nbrs) {
                     if (parent.find(nbr) != parent.end()) {
                         // found the path
@@ -3304,7 +3365,8 @@ static void _EmplaceBackwardNeighbor(
 void _EnumeratePartialPaths(lgraph::Transaction &txn,
                             const std::unordered_map<int64_t, int> &hop_info, const int64_t vid,
                             const int depth, const std::vector<std::string> &edge_labels,
-                            cypher::Path &path, std::vector<cypher::Path> &paths) {
+                            cypher::Path &path,
+                            std::vector<cypher::Path> &paths) {
     if (depth != 0) {
         if (edge_labels.empty()) {
             for (auto eit = txn.GetOutEdgeIterator(vid); eit.IsValid(); eit.Next()) {
@@ -3312,7 +3374,8 @@ void _EnumeratePartialPaths(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path, paths);
+                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels,
+                                              path, paths);
                     path.PopBack();
                 }
             }
@@ -3321,12 +3384,13 @@ void _EnumeratePartialPaths(lgraph::Transaction &txn,
                 auto it = hop_info.find(nbr);
                 if (it != hop_info.end() && it->second == depth - 1) {
                     path.Append(eit.GetUid());
-                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path, paths);
+                    _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels,
+                                              path, paths);
                     path.PopBack();
                 }
             }
         } else {
-            for (auto &edge_label : edge_labels) {
+            for (auto& edge_label : edge_labels) {
                 auto edge_lid = txn.GetLabelId(false, edge_label);
                 for (auto eit =
                          txn.GetOutEdgeIterator(lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
@@ -3350,7 +3414,7 @@ void _EnumeratePartialPaths(lgraph::Transaction &txn,
                     if (it != hop_info.end() && it->second == depth - 1) {
                         path.Append(eit.GetUid());
                         _EnumeratePartialPaths(txn, hop_info, nbr, depth - 1, edge_labels, path,
-                                               paths);
+                                                  paths);
                         path.PopBack();
                     }
                 }
@@ -3394,7 +3458,7 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
                         _EmplaceForwardNeighbor(eit, fhop, child, parent, hits, next_q);
                     }
                 } else {
-                    for (auto &edge_label : edge_labels) {
+                    for (auto& edge_label : edge_labels) {
                         auto edge_lid = txn.GetLabelId(false, edge_label);
                         for (auto eit = txn.GetOutEdgeIterator(
                                  lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
@@ -3424,7 +3488,7 @@ static void _P2PUnweightedAllShortestPaths(lgraph::Transaction &txn, lgraph::Ver
                         _EmplaceBackwardNeighbor(eit, bhop, parent, child, hits, next_q);
                     }
                 } else {
-                    for (auto &edge_label : edge_labels) {
+                    for (auto& edge_label : edge_labels) {
                         auto edge_lid = txn.GetLabelId(false, edge_label);
                         for (auto eit = txn.GetOutEdgeIterator(
                                  lgraph::EdgeUid(vid, 0, edge_lid, 0, 0), true);
@@ -3491,7 +3555,7 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
                 e_filter.label = iter->second.AsString();
                 edge_filters.emplace_back(std::move(e_filter));
             } else {
-                for (auto &item : *iter->second.array) {
+                for (auto& item : *iter->second.array) {
                     if (!item.IsMap()) CYPHER_TODO();
                     auto edge_filter = item.map;
                     auto label_iter = edge_filter->find("label");
@@ -3504,7 +3568,7 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
                         for (auto &kv : *property_filter_iter->second.map) {
                             if (!kv.second.IsMap()) CYPHER_TODO();
                             std::unordered_map<std::string, lgraph::FieldData> filter_t;
-                            for (auto &filter_pair : *kv.second.map) {
+                            for (auto& filter_pair : *kv.second.map) {
                                 filter_t.emplace(filter_pair.first, filter_pair.second.scalar);
                             }
                             e_filter.property_filter.emplace(kv.first, filter_t);
@@ -3539,8 +3603,9 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     auto end_vid = args[1].node->PullVid();
     cypher::Path path;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid, edge_filters, max_hops,
-                               path, direction, std::nullopt);
+    _P2PUnweightedShortestPath(*ctx->txn_->GetTxn(), start_vid, end_vid,
+                               edge_filters, max_hops, path,
+                                direction, std::nullopt);
 
     auto pp = global_ptable.GetProcedure("algo.shortestPath");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
@@ -3562,7 +3627,8 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     records->emplace_back(r.Snapshot());
 }
 
-void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cypher::VEC_EXPR &args,
+void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record,
+                                const cypher::VEC_EXPR &args,
                                 const cypher::VEC_STR &yield_items,
                                 std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
@@ -3632,7 +3698,8 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record, const cyph
 }
 
 void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
-                             const cypher::VEC_EXPR &args, const cypher::VEC_STR &yield_items,
+                             const cypher::VEC_EXPR &args,
+                             const cypher::VEC_STR &yield_items,
                              struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
@@ -3681,8 +3748,8 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
             titles.emplace_back(item);
         }
     }
-    std::unordered_map<std::string, std::function<void(const cypher::FieldData &, Record &)>>
-        lmap = {
+    std::unordered_map<std::string, std::function<
+        void(const cypher::FieldData &, Record &)>> lmap = {
             {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
         };
     Record r;
@@ -3692,8 +3759,8 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
     records->emplace_back(r.Snapshot());
 }
 
-void AlgoFunc::PageRank(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
-                        const cypher::VEC_STR &yield_items,
+void AlgoFunc::PageRank(RTContext *ctx, const cypher::Record *record,
+                        const cypher::VEC_EXPR &args, const cypher::VEC_STR &yield_items,
                         struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() == 1, "args number should be 1");
@@ -3754,8 +3821,8 @@ void AlgoFunc::PageRank(RTContext *ctx, const cypher::Record *record, const cyph
     }
 }
 
-void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record, const cypher::VEC_EXPR &args,
-                       const cypher::VEC_STR &yield_items,
+void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record,
+                       const cypher::VEC_EXPR &args, const cypher::VEC_STR &yield_items,
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() == 2, "args number should be 2");
@@ -3792,12 +3859,17 @@ void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record, const cyphe
     }
 }
 
-void SpatialFunc::Distance(RTContext *ctx, const Record *record, const cypher::VEC_EXPR &args,
+void SpatialFunc::Distance(RTContext *ctx, const Record *record,
+                           const cypher::VEC_EXPR &args,
                            const cypher::VEC_STR &yield_items,
                            struct std::vector<Record> *records) {
     CYPHER_ARG_CHECK(args.size() == 2, "wrong arguments number");
-    CYPHER_ARG_CHECK(args[0].IsSpatial(), FMA_FMT("{} has to be spatial data", args[0].ToString()));
-    CYPHER_ARG_CHECK(args[1].IsSpatial(), FMA_FMT("{} has to be spatial data", args[1].ToString()));
+    CYPHER_ARG_CHECK(args[0].IsSpatial(),
+                     FMA_FMT("{} has to be spatial data",
+                             args[0].ToString()));
+    CYPHER_ARG_CHECK(args[1].IsSpatial(),
+                     FMA_FMT("{} has to be spatial data",
+                             args[1].ToString()));
 
     ::lgraph_api::SRID srid1 = args[0].constant.scalar.GetSRID();
     ::lgraph_api::SRID srid2 = args[1].constant.scalar.GetSRID();

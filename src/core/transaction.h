@@ -87,7 +87,8 @@ class Transaction {
     std::set<LabelId> edge_label_delete_;
     void ThrowIfReadOnlyTxn() const {
         if (read_only_)
-            THROW_CODE(WriteNotAllowed, "Write operation not allowed in read-only transaction.");
+            THROW_CODE(WriteNotAllowed,
+                "Write operation not allowed in read-only transaction.");
     }
 
     DISABLE_COPY(Transaction);
@@ -493,8 +494,8 @@ class Transaction {
             is_vertex ? curr_schema_->v_schema_manager : curr_schema_->e_schema_manager;
         Schema* schema = sm.GetSchema(label);
         if (!schema)
-            THROW_CODE(InputError, "{} Label \"{}\" does not exist.", is_vertex ? "vertex" : "edge",
-                       label);
+            THROW_CODE(InputError, "{} Label \"{}\" does not exist.",
+                                  is_vertex ? "vertex" : "edge", label);
         return schema->GetFieldSpecs();
     }
 
@@ -502,31 +503,36 @@ class Transaction {
         SchemaManager& sm =
             is_vertex ? curr_schema_->v_schema_manager : curr_schema_->e_schema_manager;
         Schema* schema = sm.GetSchema(label);
-        if (!schema) THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
+        if (!schema)
+            THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
         return schema->GetFieldSpecsAsMap();
     }
 
     const std::string& GetVertexPrimaryField(const std::string& label) {
         Schema* schema = curr_schema_->v_schema_manager.GetSchema(label);
-        if (!schema) THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
+        if (!schema)
+            THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
         return schema->GetPrimaryField();
     }
 
     bool HasTemporalField(const std::string& label) {
         Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
-        if (!schema) THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
+        if (!schema)
+            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
         return schema->HasTemporalField();
     }
 
     const std::string& GetEdgeTemporalField(const std::string& label) {
         Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
-        if (!schema) THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
+        if (!schema)
+            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
         return schema->GetTemporalField();
     }
 
     const EdgeConstraints& GetEdgeConstraints(const std::string& label) {
         Schema* schema = curr_schema_->e_schema_manager.GetSchema(label);
-        if (!schema) THROW_CODE(InputError, "Edge Label \"{}\" does not exist.", label);
+        if (!schema)
+            THROW_CODE(InputError, "Edge Label \"{}\" does not exist.", label);
         return schema->GetEdgeConstraints();
     }
 
@@ -924,16 +930,15 @@ class Transaction {
                                                const std::string& key_end);
 
     EdgeIndexIterator GetEdgeIndexIterator(const std::string& label, const std::string& field,
-                                           const FieldData& key_start = FieldData(),
-                                           const FieldData& key_end = FieldData());
+                                   const FieldData& key_start = FieldData(),
+                                   const FieldData& key_end = FieldData());
 
     EdgeIndexIterator GetEdgeIndexIterator(size_t label_id, size_t field_id,
-                                           const FieldData& key_start = FieldData(),
-                                           const FieldData& key_end = FieldData());
+                                   const FieldData& key_start = FieldData(),
+                                   const FieldData& key_end = FieldData());
 
     EdgeIndexIterator GetEdgeIndexIterator(const std::string& label, const std::string& field,
-                                           const std::string& key_start,
-                                           const std::string& key_end);
+                                   const std::string& key_start, const std::string& key_end);
 
     EdgeIndexIterator GetEdgeIndexIterator(const std::string& label, const std::string& field,
                                            VertexId src, VertexId dst,
@@ -949,18 +954,20 @@ class Transaction {
                                            const std::string& key_end);
 
     CompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
-                                                           const std::vector<std::string>& fields,
-                                                           const std::vector<FieldData>& key_start,
-                                                           const std::vector<FieldData>& key_end);
+                                   const std::vector<std::string>& fields,
+                                   const std::vector<FieldData>& key_start,
+                                   const std::vector<FieldData>& key_end);
 
     CompositeIndexIterator GetVertexCompositeIndexIterator(const size_t& label,
-                                                           const std::vector<size_t>& field_ids,
-                                                           const std::vector<FieldData>& key_start,
-                                                           const std::vector<FieldData>& key_end);
+                                   const std::vector<size_t>& field_ids,
+                                   const std::vector<FieldData>& key_start,
+                                   const std::vector<FieldData>& key_end);
 
-    CompositeIndexIterator GetVertexCompositeIndexIterator(
-        const std::string& label, const std::vector<std::string>& fields,
-        const std::vector<std::string>& key_start, const std::vector<std::string>& key_end);
+    CompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
+                                   const std::vector<std::string>& fields,
+                                   const std::vector<std::string>& key_start,
+                                   const std::vector<std::string>& key_end);
+
 
     /**
      * Gets the string representation of the vertex.
@@ -1075,13 +1082,21 @@ class Transaction {
         }
     }
 
-    std::unordered_map<LabelId, int64_t>& GetVertexDeltaCount() { return vertex_delta_count_; }
+    std::unordered_map<LabelId, int64_t>& GetVertexDeltaCount() {
+        return vertex_delta_count_;
+    }
 
-    std::unordered_map<LabelId, int64_t>& GetEdgeDeltaCount() { return edge_delta_count_; }
+    std::unordered_map<LabelId, int64_t>& GetEdgeDeltaCount() {
+        return edge_delta_count_;
+    }
 
-    std::set<LabelId>& GetVertexLabelDelete() { return vertex_label_delete_; }
+    std::set<LabelId>& GetVertexLabelDelete() {
+        return vertex_label_delete_;
+    }
 
-    std::set<LabelId>& GetEdgeLabelDelete() { return edge_label_delete_; }
+    std::set<LabelId>& GetEdgeLabelDelete() {
+        return edge_label_delete_;
+    }
 
     size_t GetLooseNumVertex() { return graph_->GetLooseNumVertex(*txn_); }
 
