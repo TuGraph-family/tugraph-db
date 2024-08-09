@@ -420,8 +420,8 @@ class Transaction {
      *           1: the vertex is inserted
      *           2: the vertex is updated
      */
-    int UpsertEdge(int64_t src, int64_t dst, size_t label_id,
-                   const std::vector<size_t>& unique_pos,
+    int UpsertEdge(int64_t src, int64_t dst, size_t label_id, int64_t target_field_pos,
+                   const std::tuple<std::vector<size_t>, std::vector<size_t>>& unique_pos,
                    const std::vector<size_t>& field_ids,
                    const std::vector<FieldData>& field_values);
 
@@ -694,7 +694,6 @@ class Transaction {
      * @returns The primary field.
      */
     const std::string& GetVertexPrimaryField(const std::string& label);
-
 
     /**
      * @brief   Get the total number of vertex and edge

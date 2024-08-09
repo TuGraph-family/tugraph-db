@@ -627,7 +627,8 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"start_spec", {1, lgraph_api::LGraphType::STRING}},
                                   {"end_spec", {2, lgraph_api::LGraphType::STRING}},
-                                  {"list_data", {3, lgraph_api::LGraphType::STRING}}},
+                                  {"target_field", {3, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {4, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{
                   {"total", {0, lgraph_api::LGraphType::INTEGER}},
                   {"data_error", {1, lgraph_api::LGraphType::INTEGER}},
@@ -641,7 +642,8 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"start_spec", {1, lgraph_api::LGraphType::STRING}},
                                   {"end_spec", {2, lgraph_api::LGraphType::STRING}},
-                                  {"list_data", {3, lgraph_api::LGraphType::STRING}}},
+                                  {"target_field", {3, lgraph_api::LGraphType::STRING}},
+                                  {"list_data", {4, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{
                   {"total", {0, lgraph_api::LGraphType::INTEGER}},
                   {"data_error", {1, lgraph_api::LGraphType::INTEGER}},

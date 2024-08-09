@@ -17,6 +17,7 @@
 
 #include "lgraph/lgraph_txn.h"
 #include "lgraph/lgraph_edge_iterator.h"
+#include "lgraph/lgraph_types.h"
 #include "lgraph/lgraph_vertex_index_iterator.h"
 #include "lgraph/lgraph_edge_index_iterator.h"
 #include "lgraph/lgraph_vertex_iterator.h"
@@ -182,8 +183,7 @@ int64_t Transaction::AddVertex(size_t label_id, const std::vector<size_t>& field
     RefreshAndReturn(txn_->AddVertex(label_id, field_ids, field_values));
 }
 
-int Transaction::UpsertVertex(size_t label_id,
-                              size_t primary_pos,
+int Transaction::UpsertVertex(size_t label_id, size_t primary_pos,
                               const std::vector<size_t>& unique_pos,
                               const std::vector<size_t>& field_ids,
                               const std::vector<FieldData>& field_values) {
@@ -196,14 +196,14 @@ int Transaction::UpsertVertex(size_t label_id,
             THROW_CODE(InputError, "unique_pos is out of the field_ids's range");
         }
     }
-    auto iiter = txn_->GetVertexIndexIterator(
-        label_id, field_ids[primary_pos], field_values[primary_pos], field_values[primary_pos]);
+    auto iiter = txn_->GetVertexIndexIterator(label_id, field_ids[primary_pos],
+                                              field_values[primary_pos], field_values[primary_pos]);
     if (iiter.IsValid()) {
         auto current_vid = iiter.GetVid();
         iiter.Close();
         for (auto pos : unique_pos) {
-            auto tmp = txn_->GetVertexIndexIterator(
-                label_id, field_ids[pos], field_values[pos], field_values[pos]);
+            auto tmp = txn_->GetVertexIndexIterator(label_id, field_ids[pos], field_values[pos],
+                                                    field_values[pos]);
             if (tmp.IsValid() && tmp.GetVid() != current_vid) {
                 return 0;
             }
@@ -213,8 +213,8 @@ int Transaction::UpsertVertex(size_t label_id,
     } else {
         iiter.Close();
         for (auto pos : unique_pos) {
-            auto tmp = txn_->GetVertexIndexIterator(
-                label_id, field_ids[pos], field_values[pos], field_values[pos]);
+            auto tmp = txn_->GetVertexIndexIterator(label_id, field_ids[pos], field_values[pos],
+                                                    field_values[pos]);
             if (tmp.IsValid()) {
                 return 0;
             }
@@ -266,37 +266,101 @@ bool Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
     RefreshAndReturn(txn_->UpsertEdge(src, dst, label_id, field_ids, field_values));
 }
 
-int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
-                            const std::vector<size_t>& unique_pos,
+int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id, int64_t target_field_pos,
+                            const std::tuple<std::vector<size_t>, std::vector<size_t>>& unique_pos,
                             const std::vector<size_t>& field_ids,
                             const std::vector<FieldData>& field_values) {
     ThrowIfInvalid();
-    for (auto pos : unique_pos) {
+    for (auto pos : std::get<0>(unique_pos)) {
         if (pos >= field_ids.size()) {
-            THROW_CODE(InputError, "unique_pos is out of the field_ids's range");
+            THROW_CODE(InputError, "global_unique_pos is out of the field_ids's range");
         }
     }
-    auto iter = txn_->GetOutEdgeIterator(EdgeUid(src, dst, label_id, 0, 0), false);
-    if (iter.IsValid()) {
-        for (auto pos : unique_pos) {
-            auto tmp = txn_->GetEdgeIndexIterator(
-                label_id, field_ids[pos], field_values[pos], field_values[pos]);
-            if (tmp.IsValid() && (tmp.GetUid() != iter.GetUid())) {
-                return 0;
-            }
+    for (auto pos : std::get<1>(unique_pos)) {
+        if (pos >= field_ids.size()) {
+            THROW_CODE(InputError, "pair_unique_pos is out of the field_ids's range");
         }
-        txn_->SetEdgeProperty(iter, field_ids, field_values);
-        return 2;
+    }
+
+    // unspecified target field
+    if (target_field_pos == -1) {
+        auto iter = txn_->GetOutEdgeIterator(EdgeUid(src, dst, label_id, 0, 0), false);
+        if (iter.IsValid()) {
+            for (auto pos : std::get<0>(unique_pos)) {
+                auto tmp = txn_->GetEdgeIndexIterator(label_id, field_ids[pos], field_values[pos],
+                                                      field_values[pos]);
+                if (tmp.IsValid() && (tmp.GetUid() != iter.GetUid())) {
+                    return 0;
+                }
+            }
+            for (auto pos : std::get<1>(unique_pos)) {
+                auto tmp = txn_->GetEdgeIndexIterator(label_id, field_ids[pos], src, dst,
+                                                      field_values[pos], field_values[pos]);
+                if (tmp.IsValid() && (tmp.GetUid() != iter.GetUid())) {
+                    return 0;
+                }
+            }
+            txn_->SetEdgeProperty(iter, field_ids, field_values);
+            return 2;
+        } else {
+            for (auto pos : std::get<0>(unique_pos)) {
+                auto tmp = txn_->GetEdgeIndexIterator(label_id, field_ids[pos], field_values[pos],
+                                                      field_values[pos]);
+                if (tmp.IsValid()) {
+                    return 0;
+                }
+            }
+            for (auto pos : std::get<1>(unique_pos)) {
+                auto tmp = txn_->GetEdgeIndexIterator(label_id, field_ids[pos], src, dst,
+                                                      field_values[pos], field_values[pos]);
+                if (tmp.IsValid()) {
+                    return 0;
+                }
+            }
+            txn_->AddEdge(src, dst, label_id, field_ids, field_values);
+            return 1;
+        }
     } else {
-        for (auto pos : unique_pos) {
-            auto tmp = txn_->GetEdgeIndexIterator(
-                label_id, field_ids[pos], field_values[pos], field_values[pos]);
-            if (tmp.IsValid()) {
-                return 0;
+        auto iter = txn_->GetOutEdgeIterator(EdgeUid(src, dst, label_id, 0, 0), true);
+        bool has_target_edge = false;
+        EdgeUid target_uid;
+        while (iter.IsValid() && iter.GetSrc() == src && iter.GetDst() == dst &&
+               iter.GetLabelId() == label_id) {
+            for (auto pos : std::get<0>(unique_pos)) {
+                auto tmp = txn_->GetEdgeIndexIterator(label_id, field_ids[pos], field_values[pos],
+                                                      field_values[pos]);
+                if (tmp.IsValid()) {
+                    if ((int64_t)pos != target_field_pos) {
+                        return 0;
+                    } else {
+                        has_target_edge = true;
+                        target_uid = iter.GetUid();
+                    }
+                }
             }
+            for (auto pos : std::get<1>(unique_pos)) {
+                auto tmp = txn_->GetEdgeIndexIterator(label_id, field_ids[pos], src, dst,
+                                                      field_values[pos], field_values[pos]);
+                if (tmp.IsValid()) {
+                    if ((int64_t)pos != target_field_pos) {
+                        return 0;
+                    } else {
+                        has_target_edge = true;
+                        target_uid = iter.GetUid();
+                    }
+                }
+            }
+            iter.Next();
         }
-        txn_->AddEdge(src, dst, label_id, field_ids, field_values);
-        return 1;
+
+        if (has_target_edge) {
+            auto iter = txn_->GetOutEdgeIterator(target_uid, false);
+            txn_->SetEdgeProperty(iter, field_ids, field_values);
+            return 2;
+        } else {
+            txn_->AddEdge(src, dst, label_id, field_ids, field_values);
+            return 1;
+        }
     }
 }
 
@@ -324,11 +388,11 @@ VertexIndexIterator Transaction::GetVertexIndexIterator(size_t label_id, size_t 
 }
 
 VertexCompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
-    size_t label_id, const std::vector<size_t>& field_id,
-    const std::vector<FieldData>& key_start, const std::vector<FieldData>& key_end) {
+    size_t label_id, const std::vector<size_t>& field_id, const std::vector<FieldData>& key_start,
+    const std::vector<FieldData>& key_end) {
     ThrowIfInvalid();
-    return VertexCompositeIndexIterator(txn_->GetVertexCompositeIndexIterator(
-                                            label_id, field_id, key_start, key_end), txn_);
+    return VertexCompositeIndexIterator(
+        txn_->GetVertexCompositeIndexIterator(label_id, field_id, key_start, key_end), txn_);
 }
 
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t field_id,
@@ -352,8 +416,8 @@ VertexCompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
     const std::string& label, const std::vector<std::string>& field,
     const std::vector<FieldData>& key_start, const std::vector<FieldData>& key_end) {
     ThrowIfInvalid();
-    return VertexCompositeIndexIterator(txn_->GetVertexCompositeIndexIterator(
-                                            label, field, key_start, key_end), txn_);
+    return VertexCompositeIndexIterator(
+        txn_->GetVertexCompositeIndexIterator(label, field, key_start, key_end), txn_);
 }
 
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
@@ -377,8 +441,8 @@ VertexCompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
     const std::string& label, const std::vector<std::string>& field,
     const std::vector<std::string>& key_start, const std::vector<std::string>& key_end) {
     ThrowIfInvalid();
-    return VertexCompositeIndexIterator(txn_->GetVertexCompositeIndexIterator(
-                                            label, field, key_start, key_end), txn_);
+    return VertexCompositeIndexIterator(
+        txn_->GetVertexCompositeIndexIterator(label, field, key_start, key_end), txn_);
 }
 
 EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
@@ -413,9 +477,9 @@ VertexIterator Transaction::GetVertexByUniqueIndex(const std::string& label_name
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
-VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& label_name,
-                            const std::vector<std::string>& field_name,
-                            const std::vector<std::string>& field_value_string) {
+VertexIterator Transaction::GetVertexByUniqueCompositeIndex(
+    const std::string& label_name, const std::vector<std::string>& field_name,
+    const std::vector<std::string>& field_value_string) {
     ThrowIfInvalid();
     lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
         label_name, field_name, field_value_string, field_value_string);
@@ -424,12 +488,12 @@ VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& l
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
-VertexIterator Transaction::GetVertexByUniqueCompositeIndex(const std::string& label_name,
-                            const std::vector<std::string>& field_name,
-                            const std::vector<FieldData>& field_value) {
+VertexIterator Transaction::GetVertexByUniqueCompositeIndex(
+    const std::string& label_name, const std::vector<std::string>& field_name,
+    const std::vector<FieldData>& field_value) {
     ThrowIfInvalid();
-    lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
-        label_name, field_name, field_value, field_value);
+    lgraph::CompositeIndexIterator iit =
+        txn_->GetVertexCompositeIndexIterator(label_name, field_name, field_value, field_value);
     if (!iit.IsValid())
         throw std::runtime_error("No vertex found with specified composite index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
@@ -479,12 +543,12 @@ VertexIterator Transaction::GetVertexByUniqueIndex(size_t label_id, size_t field
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);
 }
 
-VertexIterator Transaction::GetVertexByUniqueCompositeIndex(size_t label_id,
-                                                  const std::vector<size_t>& field_id,
-                                                  const std::vector<FieldData>& field_value) {
+VertexIterator Transaction::GetVertexByUniqueCompositeIndex(
+    size_t label_id, const std::vector<size_t>& field_id,
+    const std::vector<FieldData>& field_value) {
     ThrowIfInvalid();
-    lgraph::CompositeIndexIterator iit = txn_->GetVertexCompositeIndexIterator(
-        label_id, field_id, field_value, field_value);
+    lgraph::CompositeIndexIterator iit =
+        txn_->GetVertexCompositeIndexIterator(label_id, field_id, field_value, field_value);
     if (!iit.IsValid())
         throw std::runtime_error("No vertex found with specified composite index value.");
     return VertexIterator(txn_->GetVertexIterator(iit.GetVid()), txn_);

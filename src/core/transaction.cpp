@@ -698,12 +698,64 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
     return index->GetIterator(this, std::move(ks), std::move(ke), 0);
 }
 
-CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const std::string& label,
-                                    const std::vector<std::string>& fields,
-                                    const std::vector<FieldData>& key_start,
-                                    const std::vector<FieldData>& key_end) {
-    std::string fields_name = curr_schema_->v_schema_manager.GetSchema(label)
-                                  ->GetCompositeIndexMapKey(fields);
+EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
+                                                    const std::string& field, VertexId src,
+                                                    VertexId dst, const FieldData& key_start,
+                                                    const FieldData& key_end) {
+    EdgeIndex* index = GetEdgeIndex(label, field);
+    if (!index || !index->IsReady()) {
+        THROW_CODE(InputError, "EdgeIndex is not created for {}:{}", label, field);
+    }
+    Value ks, ke;
+    if (!key_start.IsNull()) {
+        ks = field_data_helper::FieldDataToValueOfFieldType(key_start, index->KeyType());
+    }
+    if (!key_end.IsNull()) {
+        ke = field_data_helper::FieldDataToValueOfFieldType(key_end, index->KeyType());
+    }
+    return index->GetIterator(this, std::move(ks), std::move(ke), src, dst);
+}
+
+EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t field_id, VertexId src,
+                                                    VertexId dst, const FieldData& key_start,
+                                                    const FieldData& key_end) {
+    EdgeIndex* index = GetEdgeIndex(label_id, field_id);
+    if (!index || !index->IsReady()) {
+        THROW_CODE(InputError, "EdgeIndex is not created for this field");
+    }
+    Value ks, ke;
+    if (!key_start.IsNull()) {
+        ks = field_data_helper::FieldDataToValueOfFieldType(key_start, index->KeyType());
+    }
+    if (!key_end.IsNull()) {
+        ke = field_data_helper::FieldDataToValueOfFieldType(key_end, index->KeyType());
+    }
+    return index->GetIterator(this, std::move(ks), std::move(ke), src, dst);
+}
+
+EdgeIndexIterator Transaction::GetEdgeIndexIterator(const std::string& label,
+                                                    const std::string& field, VertexId src,
+                                                    VertexId dst, const std::string& key_start = "",
+                                                    const std::string& key_end = "") {
+    EdgeIndex* index = GetEdgeIndex(label, field);
+    if (!index || !index->IsReady()) {
+        THROW_CODE(InputError, "EdgeIndex is not created for {}:{}", label, field);
+    }
+    Value ks, ke;
+    if (!key_start.empty()) {
+        ks = field_data_helper::ParseStringToValueOfFieldType(key_start, index->KeyType());
+    }
+    if (!key_end.empty()) {
+        ke = field_data_helper::ParseStringToValueOfFieldType(key_end, index->KeyType());
+    }
+    return index->GetIterator(this, std::move(ks), std::move(ke), 0, src, dst);
+}
+
+CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
+    const std::string& label, const std::vector<std::string>& fields,
+    const std::vector<FieldData>& key_start, const std::vector<FieldData>& key_end) {
+    std::string fields_name =
+        curr_schema_->v_schema_manager.GetSchema(label)->GetCompositeIndexMapKey(fields);
     CompositeIndex* index = GetVertexCompositeIndex(label, fields);
     if (!index || !index->IsReady()) {
         THROW_CODE(InputError, "VertexIndex is not created for {}:{}", label, fields_name);
@@ -727,12 +779,11 @@ CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const std::s
                               composite_index_helper::GenerateCompositeIndexKey(key_end_values));
 }
 
-CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const size_t& label_id,
-                                    const std::vector<size_t>& field_ids,
-                                    const std::vector<FieldData>& key_start,
-                                    const std::vector<FieldData>& key_end) {
-    std::string fields_name = curr_schema_->v_schema_manager.GetSchema(label_id)
-                                  ->GetCompositeIndexMapKey(field_ids);
+CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
+    const size_t& label_id, const std::vector<size_t>& field_ids,
+    const std::vector<FieldData>& key_start, const std::vector<FieldData>& key_end) {
+    std::string fields_name =
+        curr_schema_->v_schema_manager.GetSchema(label_id)->GetCompositeIndexMapKey(field_ids);
     CompositeIndex* index = GetVertexCompositeIndex(label_id, field_ids);
     if (!index || !index->IsReady()) {
         THROW_CODE(InputError, "VertexIndex is not created for {}:{}", label_id, fields_name);
@@ -741,14 +792,14 @@ CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const size_t
     int num = field_ids.size();
     if (!key_start.empty()) {
         for (int i = 0; i < num; ++i) {
-            key_start_values.push_back(field_data_helper::FieldDataToValueOfFieldType(
-                key_start[i], index->key_types[i]));
+            key_start_values.push_back(
+                field_data_helper::FieldDataToValueOfFieldType(key_start[i], index->key_types[i]));
         }
     }
     if (!key_end.empty()) {
         for (int i = 0; i < num; ++i) {
-            key_end_values.push_back(field_data_helper::FieldDataToValueOfFieldType(
-                key_end[i], index->key_types[i]));
+            key_end_values.push_back(
+                field_data_helper::FieldDataToValueOfFieldType(key_end[i], index->key_types[i]));
         }
     }
     return index->GetIterator(this,
@@ -756,12 +807,11 @@ CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const size_t
                               composite_index_helper::GenerateCompositeIndexKey(key_end_values));
 }
 
-CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const std::string& label,
-                                    const std::vector<std::string>& fields,
-                                    const std::vector<std::string>& key_start,
-                                    const std::vector<std::string>& key_end) {
-    std::string fields_name = curr_schema_->v_schema_manager.GetSchema(label)
-                                  ->GetCompositeIndexMapKey(fields);
+CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
+    const std::string& label, const std::vector<std::string>& fields,
+    const std::vector<std::string>& key_start, const std::vector<std::string>& key_end) {
+    std::string fields_name =
+        curr_schema_->v_schema_manager.GetSchema(label)->GetCompositeIndexMapKey(fields);
     CompositeIndex* index = GetVertexCompositeIndex(label, fields);
     if (!index || !index->IsReady()) {
         THROW_CODE(InputError, "VertexIndex is not created for {}:{}", label, fields_name);
@@ -776,13 +826,13 @@ CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(const std::s
     }
     if (!key_end.empty()) {
         for (int i = 0; i < num; ++i) {
-            key_end_values.push_back(field_data_helper::ParseStringToValueOfFieldType(
-                key_end[i], index->key_types[i]));
+            key_end_values.push_back(
+                field_data_helper::ParseStringToValueOfFieldType(key_end[i], index->key_types[i]));
         }
     }
     return index->GetIterator(this,
-                  composite_index_helper::GenerateCompositeIndexKey(key_start_values),
-                  composite_index_helper::GenerateCompositeIndexKey(key_end_values));
+                              composite_index_helper::GenerateCompositeIndexKey(key_start_values),
+                              composite_index_helper::GenerateCompositeIndexKey(key_end_values));
 }
 
 std::string Transaction::VertexToString(const VertexIterator& vit) {
@@ -794,9 +844,8 @@ std::string Transaction::VertexToString(const VertexIterator& vit) {
         prop = schema->GetDetachedVertexProperty(*txn_, vit.GetId());
     }
     std::string line;
-    fma_common::StringFormatter::Append(
-        line, "V[{}]:{} {}\n", vit.GetId(), schema->GetLabel(),
-        curr_schema_->v_schema_manager.DumpRecord(prop));
+    fma_common::StringFormatter::Append(line, "V[{}]:{} {}\n", vit.GetId(), schema->GetLabel(),
+                                        curr_schema_->v_schema_manager.DumpRecord(prop));
     for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
         auto s = curr_schema_->e_schema_manager.GetSchema(eit.GetLabelId());
         FMA_DBG_ASSERT(s);
@@ -953,15 +1002,14 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                     bool r = index->Update(*txn_, old_v, new_v, vid);
                     if (!r)
                         THROW_CODE(InputError,
-                            "failed to update vertex index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop));
+                                   "failed to update vertex index, {}:[{}] already exists",
+                                   fe->Name(), fe->FieldToString(new_prop));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(*txn_, fe->GetConstRef(new_prop), vid);
                     if (!r)
-                        THROW_CODE(InputError,
-                            "failed to add vertex index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop));
+                        THROW_CODE(InputError, "failed to add vertex index, {}:[{}] already exists",
+                                   fe->Name(), fe->FieldToString(new_prop));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
                     bool r = index->Delete(*txn_, fe->GetConstRef(old_prop), vid);
@@ -1139,15 +1187,14 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
                     bool r = index->Update(*txn_, old_v, new_v, euid);
                     if (!r)
                         THROW_CODE(InputError,
-                            "failed to update edge index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop));
+                                   "failed to update edge index, {}:[{}] already exists",
+                                   fe->Name(), fe->FieldToString(new_prop));
                 } else if (oldnull && !newnull) {
                     // set to non-null, add index
                     bool r = index->Add(*txn_, fe->GetConstRef(new_prop), euid);
                     if (!r)
-                        THROW_CODE(InputError,
-                            "failed to add edge index, {}:[{}] already exists", fe->Name(),
-                                                 fe->FieldToString(new_prop));
+                        THROW_CODE(InputError, "failed to add edge index, {}:[{}] already exists",
+                                   fe->Name(), fe->FieldToString(new_prop));
                 } else if (!oldnull && newnull) {
                     // set to null, delete index
                     bool r = index->Delete(*txn_, fe->GetConstRef(old_prop), euid);
@@ -1284,8 +1331,7 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     Value prop = schema->HasBlob()
                      ? schema->CreateRecordWithBlobs(
                            n_fields, fields, values,
-                           [this](const Value& blob) {
-                               return blob_manager_->Add(*txn_, blob); })
+                           [this](const Value& blob) { return blob_manager_->Add(*txn_, blob); })
                      : schema->CreateRecord(n_fields, fields, values);
     VertexId newvid = graph_->AddVertex(
         *txn_, schema->DetachProperty() ? schema->CreateRecordWithLabelId() : prop);
@@ -1362,9 +1408,8 @@ Transaction::AddEdge(VertexId src, VertexId dst, const LabelT& label, size_t n_f
         }
     }
     const auto& constraints = schema->GetEdgeConstraintsLids();
-    EdgeUid euid = graph_->AddEdge(
-        *txn_, EdgeSid(src, dst, schema->GetLabelId(), tid),
-        schema->DetachProperty() ? Value() : prop, constraints);
+    EdgeUid euid = graph_->AddEdge(*txn_, EdgeSid(src, dst, schema->GetLabelId(), tid),
+                                   schema->DetachProperty() ? Value() : prop, constraints);
     if (schema->DetachProperty()) {
         schema->AddDetachedEdgeProperty(*txn_, euid, prop);
     }
