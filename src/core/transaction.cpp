@@ -43,7 +43,7 @@ std::vector<IndexSpec> Transaction::ListEdgeIndexByLabel(const std::string& labe
 }
 
 std::vector<CompositeIndexSpec> Transaction::ListVertexCompositeIndexByLabel(
-                                const std::string& label) {
+    const std::string& label) {
     return curr_schema_->v_schema_manager.ListVertexCompositeIndexByLabel(label);
 }
 
@@ -106,9 +106,9 @@ bool Transaction::IsIndexed(const std::string& label, const std::string& field) 
 void Transaction::EnterTxn() {
     if (LightningGraph::InTransaction()) {
         THROW_CODE(InternalError,
-            "Nested transaction is forbidden. "
-            "Note that db.AddLabel/AddVertexIndex should NOT be used inside a "
-            "transaction.");
+                   "Nested transaction is forbidden. "
+                   "Note that db.AddLabel/AddVertexIndex should NOT be used inside a "
+                   "transaction.");
     }
     LightningGraph::InTransaction() = true;
 }
@@ -241,8 +241,7 @@ std::vector<std::pair<std::string, FieldData>> Transaction::GetVertexFields(
     std::vector<std::pair<std::string, FieldData>> values;
     for (size_t i = 0; i < schema->GetNumFields(); i++) {
         auto fe = schema->GetFieldExtractor(i);
-        values.emplace_back(
-            fe->Name(), GetField(schema, prop, i, blob_manager_, *txn_));
+        values.emplace_back(fe->Name(), GetField(schema, prop, i, blob_manager_, *txn_));
     }
     return values;
 }
@@ -421,7 +420,7 @@ void Transaction::DeleteVertex(graph::VertexIterator& it, size_t* n_in, size_t* 
     if (schema->HasBlob()) DeleteBlobs(prop, schema, blob_manager_, *txn_);
     schema->DeleteVertexIndex(*txn_, vid, prop);
     schema->DeleteVertexCompositeIndex(*txn_, vid, prop);
-    auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value){
+    auto on_edge_deleted = [&](bool is_out_edge, const graph::EdgeValue& edge_value) {
         if (is_out_edge) {
             if (n_out) {
                 *n_out += edge_value.GetEdgeCount();
@@ -764,14 +763,14 @@ CompositeIndexIterator Transaction::GetVertexCompositeIndexIterator(
     int num = fields.size();
     if (!key_start.empty()) {
         for (int i = 0; i < num; ++i) {
-            key_start_values.push_back(field_data_helper::FieldDataToValueOfFieldType(
-                key_start[i], index->key_types[i]));
+            key_start_values.push_back(
+                field_data_helper::FieldDataToValueOfFieldType(key_start[i], index->key_types[i]));
         }
     }
     if (!key_end.empty()) {
         for (int i = 0; i < num; ++i) {
-            key_end_values.push_back(field_data_helper::FieldDataToValueOfFieldType(
-                key_end[i], index->key_types[i]));
+            key_end_values.push_back(
+                field_data_helper::FieldDataToValueOfFieldType(key_end[i], index->key_types[i]));
         }
     }
     return index->GetIterator(this,
