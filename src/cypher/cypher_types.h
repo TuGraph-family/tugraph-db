@@ -89,6 +89,7 @@ struct FieldData {
         }
     }
 
+
     explicit FieldData(const CYPHER_FIELD_DATA_LIST& rhs) {
         type = ARRAY;
         array = new CYPHER_FIELD_DATA_LIST(rhs);
@@ -102,6 +103,7 @@ struct FieldData {
         }
     }
 
+
     explicit FieldData(CYPHER_FIELD_DATA_LIST&& rhs) {
         type = ARRAY;
         array = new CYPHER_FIELD_DATA_LIST(std::move(rhs));
@@ -114,7 +116,6 @@ struct FieldData {
             map->emplace(kv);
         }
     }
-
     explicit FieldData(const CYPHER_FIELD_DATA_MAP& rhs) {
         type = MAP;
         map = new CYPHER_FIELD_DATA_MAP(rhs);
@@ -133,7 +134,7 @@ struct FieldData {
         map = new CYPHER_FIELD_DATA_MAP(std::move(rhs));
     }
 
-    ~FieldData() {
+        ~FieldData() {
         switch (type) {
         case ARRAY:
             delete array;
@@ -393,7 +394,6 @@ struct FieldData {
         }
         throw std::runtime_error("internal error: unhandled type: " + std::to_string((int)type));
     }
-
     inline bool AsBool() const {
         return scalar.AsBool();
     }
