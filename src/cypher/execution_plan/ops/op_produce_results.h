@@ -23,6 +23,7 @@
 #include "resultset/record.h"
 #include "server/json_convert.h"
 #include "server/bolt_session.h"
+#include "boost/regex.hpp"
 
 /* Runtime Record to User Record */
 static void RRecordToURecord(
@@ -127,21 +128,21 @@ static void RRecordToURecord(
                 using Vertex = lgraph_api::traversal::Vertex;
                 using Path = lgraph_api::traversal::Path;
                 using Edge = lgraph_api::traversal::Edge;
-                std::regex regex_word("(E|V)\\[([0-9]+|([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+))\\]");
-                std::smatch match_group;
+                boost::regex regex_word("(E|V)\\[([0-9]+|([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+))\\]");
+                boost::smatch match_group;
                 auto node_str = v.constant.array->at(0).ToString();
-                CYPHER_THROW_ASSERT(std::regex_match(node_str, match_group, regex_word));
+                CYPHER_THROW_ASSERT(boost::regex_match(node_str, match_group, regex_word));
                 auto start = static_cast<size_t>(std::stoll(match_group[2].str()));
                 Path path{Vertex(start)};
-                std::regex split_word("_");
+                boost::regex split_word("_");
                 for (auto &path_pattern : *v.constant.array) {
                     auto path_pattern_str = path_pattern.ToString();
                     CYPHER_THROW_ASSERT(
-                        std::regex_match(path_pattern_str, match_group, regex_word));
+                        boost::regex_match(path_pattern_str, match_group, regex_word));
                     auto type = match_group[1].str();
                     if (type == "V") continue;
                     auto ids = match_group[2].str();
-                    std::sregex_token_iterator id(ids.begin(), ids.end(), split_word, -1);
+                    boost::sregex_token_iterator id(ids.begin(), ids.end(), split_word, -1);
                     auto start = static_cast<size_t>(std::stoll(id++->str()));
                     auto end = static_cast<size_t>(std::stoll(id++->str()));
                     auto lid = static_cast<uint16_t>(std::stoll(id++->str()));

@@ -21,6 +21,7 @@
 #include <utility>
 #include "fma-common/utils.h"
 #include "parser/clause.h"
+#include "parser/expression.h"
 #include "cypher/graph/graph.h"
 
 namespace cypher {
@@ -181,7 +182,14 @@ static void ExtractNodePattern(const parser::TUP_NODE_PATTERN &node_pattern, std
                 prop.value_alias = m.second.String();
             } else if (m.second.type == parser::Expression::VARIABLE) {
                 prop.type = Property::VARIABLE;
+                prop.hasMapFieldName = false;
                 prop.value_alias = m.second.String();
+            } else if (m.second.type == parser::Expression::PROPERTY) {
+                prop.type = Property::VARIABLE;  // {name.a}
+                prop.hasMapFieldName = true;
+                auto curExpr_prop = m.second.Property();
+                prop.value_alias = curExpr_prop.first.String();  // name
+                prop.map_field_name = curExpr_prop.second;  // a
             } else {
                 prop.type = Property::VALUE;
                 prop.value = MakeFieldData(m.second);

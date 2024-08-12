@@ -20,6 +20,8 @@
 #include <random>
 #include <stack>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <regex>
 #include "cypher/cypher_exception.h"
@@ -1353,8 +1355,13 @@ cypher::FieldData BuiltinFunction::_ToList(RTContext *ctx, const Record &record,
     auto ret = cypher::FieldData::Array(0);
     for (auto &arg : args) {
         auto r = arg.Evaluate(ctx, record);
-        CYPHER_THROW_ASSERT(r.IsScalar());
-        ret.array->emplace_back(r.constant.scalar);
+        if (r.IsScalar()) {
+            ret.array->emplace_back(r.constant.scalar);
+        } else if (r.IsArray()) {
+            ret.array->emplace_back(*r.constant.array);
+        } else if (r.IsMap()) {
+            ret.array->emplace_back(*r.constant.map);
+        }
     }
     return ret;
 }
@@ -1633,10 +1640,13 @@ void ArithExprNode::Set(const parser::Expression &expr, const SymbolTable &sym_t
         {
             /* We treat:
              * [1, 2, 'three'] as operand
+             * [{a: "Christopher Nolan", b: "Dennis Quaid"}] as operand
              * [n.name, n.age] as op  */
             bool is_operand = true;
-            for (auto &e : expr.List())
+            for (auto &e : expr.List()) {
                 if (!e.IsLiteral()) is_operand = false;
+                if (e.type == parser::Expression::MAP) is_operand = true;
+            }
             if (!is_operand) {
                 type = AR_EXP_OP;
                 op.SetFunc(BuiltinFunction::INTL_TO_LIST);
