@@ -249,6 +249,7 @@ CALL db.upsertEdge('edge1',{type:'node1',key:'node1_id'}, {type:'node2',key:'nod
 https://github.com/ljcui/DataX/tree/bolt 自行编译。
 
 这个DataX实现的 tugraph writer 内部调用的是上面描述的`db.upsertVertex`和`db.upsertEdge`。
+这个DataX实现的 tugraph reader 内部调用的是TuGraph 的 bolt client，支持流式读取
 
 ### 离线脱机导入数据
 如果你有子图的schema以及子图里面所有的点边数据（csv或者json格式），可以利用`lgraph_import`工具离线将这些数据生成图数据。
