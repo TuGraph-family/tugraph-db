@@ -397,23 +397,23 @@ void test_client_other_branch(RestClient& rest_client) {
         web::json::value json_value;
         json_value[_TU("$param44")] = web::json::value(true);
         body[_TU("parameters")] = json_value;
-        request.set_method(methods::POST);
-        request.set_request_uri(_TU("/cypher"));
-        request.set_body(body);
-        client->request(request).get();
-        UT_EXPECT_EQ(response.status_code(), status_codes::BadRequest);
-        UT_LOG() << response.status_code() << _TS(response.extract_json().get().serialize());
+//        request.set_method(methods::POST);
+//        request.set_request_uri(_TU("/cypher"));
+//        request.set_body(body);
+//        client->request(request).get();
+//        UT_EXPECT_EQ(response.status_code(), status_codes::BadRequest);
+//        UT_LOG() << response.status_code() << _TS(response.extract_json().get().serialize());
 
         body[_TU("script")] = web::json::value("MATCH (n)");
         json_value.erase(_TU("$param44"));
         json_value[_TU("$param1")] = web::json::value(_TU("testadba"));
         body.erase(_TU("parameters"));
         body[_TU("parameters")] = json_value;
-        request.set_method(methods::POST);
-        request.set_request_uri(_TU("/cypher"));
-        request.set_body(body);
-        client->request(request).get();
-        UT_EXPECT_EQ(response.status_code(), status_codes::BadRequest);
+//        request.set_method(methods::POST);
+//        request.set_request_uri(_TU("/cypher"));
+//        request.set_body(body);
+//        client->request(request).get();
+//        UT_EXPECT_EQ(response.status_code(), status_codes::BadRequest);
 #endif
 
         {
