@@ -17,6 +17,7 @@
 //
 #pragma once
 
+#include <memory>
 #include "core/lightning_graph.h"
 #include "resultset/record.h"
 #include "arithmetic/arithmetic_expression.h"
@@ -60,46 +61,50 @@ struct FieldDataHash {
             return std::hash<std::string>()(fd.AsString());
         case FieldType::BLOB:
             return std::hash<std::string>()(fd.AsBlob());
-        case FieldType::POINT: {
-            switch (fd.GetSRID()) {
+        case FieldType::POINT:
+            {
+                switch (fd.GetSRID()) {
                 case ::lgraph_api::SRID::WGS84:
                     return std::hash<std::string>()(fd.AsWgsPoint().AsEWKB());
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianPoint().AsEWKB());
                 default:
                     THROW_CODE(InputError, "unsupported spatial srid");
+                }
             }
-        }
-        case FieldType::LINESTRING: {
-            switch (fd.GetSRID()) {
+        case FieldType::LINESTRING:
+            {
+                switch (fd.GetSRID()) {
                 case ::lgraph_api::SRID::WGS84:
                     return std::hash<std::string>()(fd.AsWgsLineString().AsEWKB());
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianLineString().AsEWKB());
                 default:
                     THROW_CODE(InputError, "unsupported spatial srid");
+                }
             }
-        }
-        case FieldType::POLYGON: {
-            switch (fd.GetSRID()) {
+        case FieldType::POLYGON:
+            {
+                switch (fd.GetSRID()) {
                 case ::lgraph_api::SRID::WGS84:
                     return std::hash<std::string>()(fd.AsWgsPolygon().AsEWKB());
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianPolygon().AsEWKB());
                 default:
                     THROW_CODE(InputError, "unsupported spatial srid");
+                }
             }
-        }
-        case FieldType::SPATIAL: {
-            switch (fd.GetSRID()) {
+        case FieldType::SPATIAL:
+            {
+                switch (fd.GetSRID()) {
                 case ::lgraph_api::SRID::WGS84:
                     return std::hash<std::string>()(fd.AsWgsSpatial().AsEWKB());
                 case ::lgraph_api::SRID::CARTESIAN:
                     return std::hash<std::string>()(fd.AsCartesianSpatial().AsEWKB());
                 default:
                     THROW_CODE(InputError, "unsupported spatial srid");
+                }
             }
-        }
         default:
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         }
@@ -185,11 +190,11 @@ class Filter {
         return clone;
     }
 
-    const std::shared_ptr<Filter>& Left() const { return _left; }
-    std::shared_ptr<Filter>& Left() { return _left; }
+    const std::shared_ptr<Filter> &Left() const { return _left; }
+    std::shared_ptr<Filter> &Left() { return _left; }
 
-    const std::shared_ptr<Filter>& Right() const { return _right; }
-    std::shared_ptr<Filter>& Right() { return _right; }
+    const std::shared_ptr<Filter> &Right() const { return _right; }
+    std::shared_ptr<Filter> &Right() { return _right; }
 
     Type Type() const { return _type; }
 
@@ -354,6 +359,7 @@ class Filter {
     lgraph::LogicalOp _logical_op;
     std::shared_ptr<Filter> _left = nullptr;  // also used for unary operation
     std::shared_ptr<Filter> _right = nullptr;
+    const cypher::SymbolTable *sym_tab_ = nullptr;
 };
 
 static std::set<std::string> ExtractAlias(const cypher::ArithExprNode &ae) {
@@ -397,6 +403,7 @@ class RangeFilter : public Filter {
     lgraph::CompareOp _compare_op;    // < <= > >= = !=
     cypher::ArithExprNode _ae_left;   // can be: n, n.name, id(n), etc.
     cypher::ArithExprNode _ae_right;  // value to compare against
+    const cypher::SymbolTable *sym_tab_;
 
  public:
     RangeFilter() { _type = RANGE_FILTER; }
@@ -405,8 +412,14 @@ class RangeFilter : public Filter {
                 const cypher::ArithExprNode &ae_right)
         : _compare_op(compare_op), _ae_left(ae_left), _ae_right(ae_right) {
         _type = RANGE_FILTER;
+        sym_tab_ = nullptr;
     }
 
+    RangeFilter(lgraph::CompareOp compare_op, const cypher::ArithExprNode &ae_left,
+                const cypher::ArithExprNode &ae_right, const cypher::SymbolTable *sym_tab)
+        : _compare_op(compare_op), _ae_left(ae_left), _ae_right(ae_right), sym_tab_(sym_tab) {
+        _type = RANGE_FILTER;
+    }
     RangeFilter(RangeFilter &&rhs) noexcept
         : _compare_op(rhs._compare_op),
           _ae_left(std::move(rhs._ae_left)),
@@ -461,7 +474,45 @@ class RangeFilter : public Filter {
 
     bool DoFilter(cypher::RTContext *ctx, const cypher::Record &record) override {
         auto left = _ae_left.Evaluate(ctx, record);
-        auto right = _ae_right.Evaluate(ctx, record);
+        cypher::Entry right;
+        if (_ae_right.type == cypher::ArithExprNode::AR_EXP_OPERAND) {
+            switch (_ae_right.operand.type) {
+            case cypher::ArithOperandNode::AR_OPERAND_VARIABLE:
+                {
+                    if (sym_tab_ == nullptr) {
+                        throw lgraph::CypherException("Filter sym_tab is nullptr");
+                    }
+                    auto value_alias = _ae_right.operand.variable._value_alias;
+                    auto map_field_name = _ae_right.operand.variable._map_field_name;
+                    auto hasMapFieldName = _ae_right.operand.variable.hasMapFieldName;
+                    auto it = sym_tab_->symbols.find(value_alias);
+                    if (it == sym_tab_->symbols.end()) {
+                        throw lgraph::CypherException("Undefined variable: " + value_alias);
+                    }
+                    int value_rec_idx_ = it->second.id;
+                    cypher::FieldData constant = record.values[value_rec_idx_].constant;
+
+                    if (hasMapFieldName) {
+                        auto map = constant.map;
+                        if (map->find(map_field_name) == map->end()) {
+                            throw lgraph::CypherException("Undefined map_field_name: "
+                                                        + map_field_name);
+                        }
+                        right = cypher::Entry(map->at(map_field_name).scalar);
+                    } else {
+                        right = cypher::Entry(constant);
+                    }
+                    break;
+                }
+            default:
+                {
+                    right = _ae_right.Evaluate(ctx, record);
+                    break;
+                }
+            }
+        } else {
+            right = _ae_right.Evaluate(ctx, record);
+        }
         if (left.type != right.type) return false;
         switch (_compare_op) {
         case lgraph::LBR_EQ:
@@ -482,8 +533,8 @@ class RangeFilter : public Filter {
     }
 
     lgraph::CompareOp GetCompareOp() { return _compare_op; }
-    const cypher::ArithExprNode& GetAeLeft() { return _ae_left; }
-    const cypher::ArithExprNode& GetAeRight() { return _ae_right; }
+    const cypher::ArithExprNode &GetAeLeft() { return _ae_left; }
+    const cypher::ArithExprNode &GetAeRight() { return _ae_right; }
 
     static std::map<lgraph::CompareOp, std::string> _compare_name;
 
@@ -623,8 +674,7 @@ class TestInFilter : public Filter {
                 }
                 timestamp++;
 #ifndef NDEBUG
-                LOG_DEBUG() << "[" << __FILE__ << "] "
-                          << "reset set: ";
+                LOG_DEBUG() << "[" << __FILE__ << "] " << "reset set: ";
                 for (auto it = right_set_.begin(); it != right_set_.end(); ++it) {
                     LOG_DEBUG() << (*it).ToString();
                 }
@@ -635,8 +685,7 @@ class TestInFilter : public Filter {
             }
         } else {
             // only process argument in a loop
-            LOG_WARN() << "[" << __FILE__ << "] "
-                       << "do not use unordered_set";
+            LOG_WARN() << "[" << __FILE__ << "] " << "do not use unordered_set";
             for (auto &r : *right.constant.array) {
                 if (left.constant.scalar == r.scalar) return true;
             }
@@ -863,13 +912,9 @@ class GeaxExprFilter : public Filter {
 
     cypher::ArithExprNode &GetArithExpr() { return arith_expr_; }
 
-    std::shared_ptr<Filter> Clone() const override {
-        NOT_SUPPORT_AND_THROW();
-    }
+    std::shared_ptr<Filter> Clone() const override { NOT_SUPPORT_AND_THROW(); }
 
-    std::set<std::string> Alias() const override {
-        NOT_SUPPORT_AND_THROW();
-    }
+    std::set<std::string> Alias() const override { NOT_SUPPORT_AND_THROW(); }
 
     std::set<std::pair<std::string, std::string>> VisitedFields() const override {
         NOT_SUPPORT_AND_THROW();
@@ -879,9 +924,7 @@ class GeaxExprFilter : public Filter {
         NOT_SUPPORT_AND_THROW();
     }
 
-    void RealignAliasId(const cypher::SymbolTable &sym_tab) override {
-        NOT_SUPPORT_AND_THROW();
-    }
+    void RealignAliasId(const cypher::SymbolTable &sym_tab) override { NOT_SUPPORT_AND_THROW(); }
 
     bool DoFilter(cypher::RTContext *ctx, const cypher::Record &record) override {
         auto res = arith_expr_.Evaluate(ctx, record);
@@ -891,9 +934,7 @@ class GeaxExprFilter : public Filter {
         NOT_SUPPORT_AND_THROW();
     }
 
-    const std::string ToString() const override {
-        return arith_expr_.ToString();
-    }
+    const std::string ToString() const override { return arith_expr_.ToString(); }
 };
 
 }  // namespace lgraph

@@ -45,7 +45,8 @@ class LocateNodeByIndexedPropV2 : public OptPass {
     void _AdjustNodePropFilter(OpBase *root) {
         OpFilter *op_filter = nullptr;
         std::unordered_map<std::string,
-                           std::unordered_map<std::string, std::set<lgraph::FieldData>>> target_value_datas;
+                           std::unordered_map<std::string,
+                           std::set<lgraph::FieldData>>> target_value_datas;
 
         if (FindNodePropFilter(root, op_filter, target_value_datas)) {
             auto op_post = op_filter->parent;
@@ -84,7 +85,8 @@ class LocateNodeByIndexedPropV2 : public OptPass {
     }
 
     bool _CheckPropFilter(OpFilter *&op_filter, std::unordered_map<std::string,
-                           std::unordered_map<std::string, std::set<lgraph::FieldData>>> &target_value_datas) {
+                          std::unordered_map<std::string,
+                          std::set<lgraph::FieldData>>> &target_value_datas) {
         /**
          * @brief
          *  Check if Filter is filters to filter prop values
@@ -108,7 +110,8 @@ class LocateNodeByIndexedPropV2 : public OptPass {
                     s.append(f.ToString());
                     s.append(" ");
                 }
-                LOG_INFO() << "-----------properties has symbol " << key << " has field " << k << " in " << s;
+                LOG_INFO() << "-----------properties has symbol " << key
+                           << " has field " << k << " in " << s;
             }
         }
         if (target_value_datas.empty()) return false;
@@ -117,7 +120,8 @@ class LocateNodeByIndexedPropV2 : public OptPass {
 
     bool FindNodePropFilter(OpBase *root, OpFilter *&op_filter,
                             std::unordered_map<std::string,
-                           std::unordered_map<std::string, std::set<lgraph::FieldData>>> &target_value_datas) {
+                            std::unordered_map<std::string,
+                            std::set<lgraph::FieldData>>> &target_value_datas) {
         auto op = root;
         if (op->type == OpType::FILTER && op->children.size() == 1 &&
             (op->children[0]->type == OpType::ALL_NODE_SCAN ||

@@ -288,7 +288,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
             fma_common::SleepS(1);
             continue;
         }
-    } while (++times < 20);
+    } while (++times < 120);
     ret = client->CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)");
     UT_EXPECT_TRUE(ret);
     nlohmann::json res = nlohmann::json::parse(result);

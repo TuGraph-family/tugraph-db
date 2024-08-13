@@ -16,13 +16,17 @@
 // Created by wt on 6/12/18.
 //
 #pragma once
+#include <string>
+#include <unordered_set>
 #include "cypher/cypher_types.h"
+#include "parser/expression.h"
 namespace cypher {
 
 typedef int64_t NodeID;
 typedef int64_t RelpID;
 
 struct Property {
+    bool hasMapFieldName;
     std::string field;
     std::string value_alias;
     std::string map_field_name;
@@ -31,7 +35,7 @@ struct Property {
         NUL,        // empty
         PARAMETER,  // {name:$name}
         VALUE,      // {name:'Tom Hanks'}
-        VARIABLE,   // UNWIND [1,2] AS mid MATCH (n {id:mid})
+        VARIABLE,   // UNWIND [1,2] AS mid MATCH (n {id:mid}) || WITH {a: 1, b: 2} as pair
     } type;
 
     Property() : type(NUL) {}
