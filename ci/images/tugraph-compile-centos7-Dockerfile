@@ -345,11 +345,11 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-d
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
-# install epel
-RUN yum install -y epel-release && yum makecache
-
 # install openblas
-RUN yum install -y openblas-devel
+RUN git clone https://github.com/OpenMathLib/OpenBLAS.git \
+    && cd OpenBLAS \
+    && make && make install && cd .. \
+    && rm -rf OpenBLAS
 
 # install swig
 RUN wget https://sourceforge.net/projects/swig/files/swig/swig-4.0.2/swig-4.0.2.tar.gz \
@@ -362,7 +362,7 @@ ENV PATH=$PATH:/usr/local/bin
 # install faiss
 RUN git clone https://github.com/facebookresearch/faiss.git \
     && cd faiss \
-    && cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFAISS_ENABLE_GPU=OFF -DFAISS_OPT_LEVEL=avx2 -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib -DOpenMP_CXX_FLAGS="-fopenmp" -DOpenMP_CXX_LIB_NAMES="gomp" -DOpenMP_gomp_LIBRARY="/usr/lib64/libgomp.so.1" . \
+    && cmake -B build -DCMAKE_BUILD_TYPE=Debug -DFAISS_ENABLE_GPU=OFF -DFAISS_OPT_LEVEL=avx2 -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib -DOpenMP_CXX_FLAGS="-fopenmp" -DOpenMP_CXX_LIB_NAMES="gomp" -DOpenMP_gomp_LIBRARY="/usr/lib64/libgomp.so.1" -DBLAS_LIBRARIES=/opt/OpenBLAS/lib/libopenblas.so . \
     && make -C build -j$(nproc) && make -C build install \
     && cd .. && rm -rf faiss \
     && ldconfig
