@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <utility>
+#include <vector>
+#include "execution_plan/ops/op_node_index_seek_byrange.h"
 #include "tools/lgraph_log.h"
 #include "core/data_type.h"
 #include "cypher/execution_plan/ops/op_filter.h"
@@ -54,9 +57,11 @@ class LocateNodeByIndexedProp : public OptPass {
         OpFilter *op_filter = nullptr;
         std::string field;
         lgraph::FieldData value;
+        lgraph::CompareOp cmpOp;
         std::vector<lgraph::FieldData> target_value_datas;
+        std::vector<std::pair<lgraph::CompareOp, lgraph::FieldData>> target_op_value_datas;
 
-        if (FindNodePropFilter(root, op_filter, field, value, target_value_datas)) {
+        if (FindNodePropFilter(root, op_filter, field, value, target_value_datas, cmpOp)) {
             auto op_post = op_filter->parent;
 
             Node *node;
@@ -75,17 +80,26 @@ class LocateNodeByIndexedProp : public OptPass {
             // Here implemention of NodeIndexSeek is tweaked to support multiple static values
             // Reason that not to build unwind：unwind needs one more symbol in symbol table
             if (target_value_datas.empty()) target_value_datas.emplace_back(value);
-            auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, target_value_datas);
-            op_node_index_seek->parent = op_post;
-            op_post->RemoveChild(op_filter);
-            OpBase::FreeStream(op_filter);
-            op_filter = nullptr;
-            op_post->AddChild(op_node_index_seek);
+            if (cmpOp == lgraph::CompareOp::LBR_EQ) {
+                auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, target_value_datas);
+                op_node_index_seek->parent = op_post;
+                op_post->RemoveChild(op_filter);
+                OpBase::FreeStream(op_filter);
+                op_filter = nullptr;
+                op_post->AddChild(op_node_index_seek);
+            } else if (cmpOp == lgraph::CompareOp::LBR_GT || cmpOp == lgraph::CompareOp::LBR_LT) {
+                auto op_node_index_seek_byrange = new NodeIndexSeekByRange(node, symtab, field, target_value_datas, cmpOp);
+                op_node_index_seek_byrange->parent = op_post;
+                op_post->RemoveChild(op_filter);
+                OpBase::FreeStream(op_filter);
+                op_filter = nullptr;
+                op_post->AddChild(op_node_index_seek_byrange);
+            }
         }
     }
 
     bool getValueFromRangeFilter(const std::shared_ptr<lgraph::Filter> &filter, std::string &field,
-                                 lgraph::FieldData &value) {
+                                 lgraph::FieldData &value, lgraph::CompareOp& cmpOp) {
         if (filter->Type() != lgraph::Filter::Type::RANGE_FILTER) {
             return false;
         }
@@ -93,8 +107,7 @@ class LocateNodeByIndexedProp : public OptPass {
         if (range_filter->GetAeLeft().type == ArithExprNode::AR_EXP_OPERAND &&
             range_filter->GetAeLeft().operand.type == ArithOperandNode::AR_OPERAND_VARIADIC &&
             !range_filter->GetAeLeft().operand.variadic.entity_prop.empty() &&
-            range_filter->GetCompareOp() == lgraph::LBR_EQ &&
-            range_filter->GetAeRight().operand.type == ArithOperandNode::AR_OPERAND_CONSTANT) {
+            range_filter->GetAeRight().operand.type == ArithOperandNode::AR_OPERAND_CONSTANT ) {
             if (field.empty()) {
                 // right value may not be constant? need to process when it is para type.
                 field = range_filter->GetAeLeft().operand.variadic.entity_prop;
@@ -104,6 +117,7 @@ class LocateNodeByIndexedProp : public OptPass {
             }
             // assume the operand is scalar by default. Array will be supported later
             value = range_filter->GetAeRight().operand.constant.scalar;
+            cmpOp = range_filter->GetCompareOp();
             return true;
         }
         return false;
@@ -142,7 +156,8 @@ class LocateNodeByIndexedProp : public OptPass {
     }
 
     bool _CheckPropFilter(OpFilter *&op_filter, std::string &field, lgraph::FieldData &value,
-                          std::vector<lgraph::FieldData> &target_value_datas) {
+                          std::vector<lgraph::FieldData> &target_value_datas,
+                          lgraph::CompareOp &cmpOP) {
         /**
          * @brief
          *  Check if Filter is filters to filter prop values
@@ -152,7 +167,7 @@ class LocateNodeByIndexedProp : public OptPass {
 
         auto filter = op_filter->Filter();
         if (filter->Type() == lgraph::Filter::RANGE_FILTER) {
-            return getValueFromRangeFilter(filter, field, value);
+            return getValueFromRangeFilter(filter, field, value, cmpOP);
         } else if (filter->Type() == lgraph::Filter::TEST_IN_FILTER) {
             auto in_filter = std::dynamic_pointer_cast<lgraph::TestInFilter>(filter);
 
@@ -167,7 +182,7 @@ class LocateNodeByIndexedProp : public OptPass {
             }
         } else if ((filter->Type() == lgraph::Filter::BINARY &&
                     filter->LogicalOp() == lgraph::LBR_OR)) {
-            if (!getValueFromRangeFilter(filter->Right(), field, value)) return false;
+            if (!getValueFromRangeFilter(filter->Right(), field, value, cmpOP)) return false;
             target_value_datas.emplace_back(value);
             while (!filter->Left()->IsLeaf()) {
                 filter = filter->Left();
@@ -175,10 +190,10 @@ class LocateNodeByIndexedProp : public OptPass {
                     filter->LogicalOp() != lgraph::LBR_OR) {
                     return false;
                 }
-                if (!getValueFromRangeFilter(filter->Right(), field, value)) return false;
+                if (!getValueFromRangeFilter(filter->Right(), field, value, cmpOP)) return false;
                 target_value_datas.emplace_back(value);
             }
-            if (!getValueFromRangeFilter(filter->Left(), field, value)) return false;
+            if (!getValueFromRangeFilter(filter->Left(), field, value, cmpOP)) return false;
             target_value_datas.emplace_back(value);
             std::reverse(target_value_datas.begin(), target_value_datas.end());
             return true;
@@ -190,19 +205,20 @@ class LocateNodeByIndexedProp : public OptPass {
 
     bool FindNodePropFilter(OpBase *root, OpFilter *&op_filter, std::string &field,
                             lgraph::FieldData &value,
-                            std::vector<lgraph::FieldData> &target_value_datas) {
+                            std::vector<lgraph::FieldData> &target_value_datas,
+                            lgraph::CompareOp &cmpOp) {
         auto op = root;
         if (op->type == OpType::FILTER && op->children.size() == 1 &&
             (op->children[0]->type == OpType::ALL_NODE_SCAN ||
              op->children[0]->type == OpType::NODE_BY_LABEL_SCAN)) {
             op_filter = dynamic_cast<OpFilter *>(op);
-            if (_CheckPropFilter(op_filter, field, value, target_value_datas)) {
+            if (_CheckPropFilter(op_filter, field, value, target_value_datas, cmpOp)) {
                 return true;
             }
         }
 
         for (auto child : op->children) {
-            if (FindNodePropFilter(child, op_filter, field, value, target_value_datas)) return true;
+            if (FindNodePropFilter(child, op_filter, field, value, target_value_datas, cmpOp)) return true;
         }
 
         return false;

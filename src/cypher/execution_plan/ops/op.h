@@ -45,6 +45,7 @@ enum OpType {
     NODE_BY_LABEL_SCAN,
     NODE_INDEX_SEEK,
     NODE_INDEX_SEEK_DYNAMIC,
+    NODE_INDEX_SEEK_BYRANGE,
     PRODUCE_RESULTS,
     PROJECT,
     DISTINCT,
@@ -201,7 +202,7 @@ struct OpBase {
 
     bool IsScan() const {
         return type == OpType::ALL_NODE_SCAN || type == OpType::NODE_BY_LABEL_SCAN ||
-               type == OpType::NODE_INDEX_SEEK || type == OpType::ARGUMENT;
+               type == OpType::NODE_INDEX_SEEK || type == OpType::ARGUMENT || type == OpType::NODE_INDEX_SEEK_BYRANGE;
     }
 
     bool IsDynamicScan() const {

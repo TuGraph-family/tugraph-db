@@ -55,6 +55,7 @@ class GraphNameCheckerVisitor : public Visitor {
     void Visit(const NodeByLabelScanDynamic &op) override{};
     void Visit(const NodeIndexSeek &op) override{};
     void Visit(const NodeIndexSeekDynamic &op) override{};
+    void Visit(const NodeIndexSeekByRange &op) override{};
     void Visit(const Optional &op) override{};
     void Visit(const ProduceResults &op) override{};
     void Visit(const Project &op) override{};

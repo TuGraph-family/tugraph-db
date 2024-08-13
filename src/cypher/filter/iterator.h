@@ -17,10 +17,13 @@
 //
 #pragma once
 
+#include "core/data_type.h"
 #include "core/lightning_graph.h"
+#include "core/value.h"
 #include "cypher/cypher_types.h"
 #include "cypher/cypher_exception.h"
 #include "cypher/graph/common.h"
+#include "lgraph/lgraph_types.h"
 
 namespace lgraph {
 
@@ -99,13 +102,23 @@ class WeakIndexIterator {
     std::string _label;
     std::string _field_name;
     FieldData _value;
+    FieldData _startVal;
+    FieldData _endVal;
+    bool range = false;
     bool _valid = false;
 
     void SeekIndex(const std::string &l) {
         if (_txn->IsIndexed(l, _field_name)) {
-            auto iit = _txn->GetVertexIndexIterator(l, _field_name, _value, _value);
-            if (iit.IsValid()) {
-                _iit.emplace_back(new lgraph::VertexIndexIterator(std::move(iit)));
+            if(!range) {
+                auto iit = _txn->GetVertexIndexIterator(l, _field_name, _value, _value);
+                if (iit.IsValid()) {
+                    _iit.emplace_back(new lgraph::VertexIndexIterator(std::move(iit)));
+                } else {
+                    auto iit = _txn->GetVertexIndexIterator(l, _field_name, _startVal, _endVal);
+                    if (iit.IsValid()) {
+                        _iit.emplace_back(new lgraph::VertexIndexIterator(std::move(iit)));
+                    }
+                }
             }
         }
     }
@@ -113,7 +126,7 @@ class WeakIndexIterator {
  public:
     WeakIndexIterator(lgraph::Transaction *txn, const std::string &label, const std::string &field,
                       const FieldData &value)
-        : _txn(txn), _label(label), _field_name(field), _value(value) {
+        : _txn(txn), _label(label), _field_name(field), _value(value), range(false) {
         if (!_label.empty()) {
             SeekIndex(_label);
         } else {
@@ -131,6 +144,47 @@ class WeakIndexIterator {
                     _txn->GetVertexField(*_it, _field_name) == value) {
                     _valid = true;
                     break;
+                }
+                _it->Next();
+            }
+        }
+    }
+
+        WeakIndexIterator(lgraph::Transaction *txn, const std::string &label, const std::string &field,
+                      const FieldData &startVal, const FieldData &endVal)
+        : _txn(txn), _label(label), _field_name(field), _startVal(startVal), _endVal(endVal), range(true) {
+        if (!_label.empty()) {
+            SeekIndex(_label);
+        } else {
+            auto v_labels = _txn->GetAllLabels(true);
+            for (auto &l : v_labels) SeekIndex(l);
+        }
+        if (!_iit.empty()) {
+            _iit_idx = 0;
+            _valid = true;
+        } else {
+            // TODO(anyone) optimize, use label iterator
+            _it = new lgraph::graph::VertexIterator(_txn->GetVertexIterator());
+            while (_it->IsValid()) {
+                if(endVal.type == lgraph_api::NUL) {
+                    if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                        _txn->GetVertexField(*_it, _field_name) > startVal) {
+                            _valid = true;
+                            break;
+                    }
+                } else if (startVal.type == lgraph_api::NUL) {
+                        if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                        _txn->GetVertexField(*_it, _field_name) < endVal) {
+                            _valid = true;
+                            break;
+                    }
+                } else {
+                        if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                        _txn->GetVertexField(*_it, _field_name) > startVal &&
+                        _txn->GetVertexField(*_it, _field_name) < endVal) {
+                            _valid = true;
+                            break;
+                    }
                 }
                 _it->Next();
             }
@@ -167,20 +221,66 @@ class WeakIndexIterator {
         if (_it) {
             while (_it->IsValid()) {
                 _it->Next();
-                if (_it->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
-                    _txn->GetVertexField(*_it, _field_name) == _value) {
-                    _valid = true;
-                    break;
+                if(!range){
+                    if (_it->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                        _txn->GetVertexField(*_it, _field_name) == _value) {
+                        _valid = true;
+                        break;
+                    }
+                } else {
+                    if(_endVal.type == lgraph_api::NUL) {
+                        if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                            _txn->GetVertexField(*_it, _field_name) > _startVal) {
+                                _valid = true;
+                                break;
+                        }
+                    } else if (_startVal.type == lgraph_api::NUL) {
+                            if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                            _txn->GetVertexField(*_it, _field_name) < _endVal) {
+                                _valid = true;
+                                break;
+                        }
+                    } else {
+                            if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                            _txn->GetVertexField(*_it, _field_name) > _startVal &&
+                            _txn->GetVertexField(*_it, _field_name) < _endVal) {
+                                _valid = true;
+                                break;
+                        }
+                    }
                 }
             }
         } else {
             auto iit = _iit[_iit_idx];
             while (iit->IsValid()) {
                 iit->Next();
-                if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
-                    _txn->GetVertexField(iit->GetVid(), _field_name) == _value) {
-                    _valid = true;
-                    break;
+                if(!range) {
+                    if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                        _txn->GetVertexField(iit->GetVid(), _field_name) == _value) {
+                        _valid = true;
+                        break;
+                    }
+                } else {
+                    if(_endVal.type == lgraph_api::NUL) {
+                        if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                            _txn->GetVertexField(iit->GetVid(), _field_name) > _startVal) {
+                                _valid = true;
+                                break;
+                        }
+                    } else if (_startVal.type == lgraph_api::NUL) {
+                            if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                            _txn->GetVertexField(iit->GetVid(), _field_name) < _endVal) {
+                                _valid = true;
+                                break;
+                        }
+                    } else {
+                            if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                            _txn->GetVertexField(iit->GetVid(), _field_name) > _startVal &&
+                            _txn->GetVertexField(iit->GetVid(), _field_name) < _endVal) {
+                                _valid = true;
+                                break;
+                        }
+                    }
                 }
             }
             if (!_valid) {
@@ -306,6 +406,16 @@ class VIter {
         _wit = new lgraph::WeakIndexIterator(_txn, label, field, value);
         _field = field;
         _key_start = value;
+    }
+
+    void Initialize(lgraph::Transaction *txn, const std::string &label, const std::string &field,
+                    const FieldData &startVal, const FieldData &endVal) {
+        FreeIter();
+        _txn = txn;
+        _type = WEAK_INDEX_ITER;
+        _wit = new lgraph::WeakIndexIterator(_txn, label, field, startVal, endVal);
+        _field = field;
+        _key_start = startVal;
     }
 
     void Initialize(lgraph::Transaction *txn, IteratorType type, const std::string &label) {
