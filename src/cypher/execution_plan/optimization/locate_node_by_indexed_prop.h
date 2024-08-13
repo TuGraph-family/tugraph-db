@@ -170,7 +170,6 @@ class LocateNodeByIndexedProp : public OptPass {
             return getValueFromRangeFilter(filter, field, value, cmpOP);
         } else if (filter->Type() == lgraph::Filter::TEST_IN_FILTER) {
             auto in_filter = std::dynamic_pointer_cast<lgraph::TestInFilter>(filter);
-
             if (in_filter->ae_left_.type == ArithExprNode::AR_EXP_OPERAND &&
                 in_filter->ae_left_.operand.type == ArithOperandNode::AR_OPERAND_VARIADIC &&
                 !in_filter->ae_left_.operand.variadic.entity_prop.empty()) {
@@ -183,6 +182,7 @@ class LocateNodeByIndexedProp : public OptPass {
         } else if ((filter->Type() == lgraph::Filter::BINARY &&
                     filter->LogicalOp() == lgraph::LBR_OR)) {
             if (!getValueFromRangeFilter(filter->Right(), field, value, cmpOP)) return false;
+            if(cmpOP != lgraph::CompareOp::LBR_EQ) return false;
             target_value_datas.emplace_back(value);
             while (!filter->Left()->IsLeaf()) {
                 filter = filter->Left();
@@ -191,9 +191,11 @@ class LocateNodeByIndexedProp : public OptPass {
                     return false;
                 }
                 if (!getValueFromRangeFilter(filter->Right(), field, value, cmpOP)) return false;
+                if(cmpOP != lgraph::CompareOp::LBR_EQ) return false;
                 target_value_datas.emplace_back(value);
             }
             if (!getValueFromRangeFilter(filter->Left(), field, value, cmpOP)) return false;
+            if(cmpOP != lgraph::CompareOp::LBR_EQ) return false;
             target_value_datas.emplace_back(value);
             std::reverse(target_value_datas.begin(), target_value_datas.end());
             return true;
