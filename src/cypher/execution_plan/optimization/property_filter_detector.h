@@ -18,6 +18,7 @@
 #include "core/data_type.h"
 #include "cypher/utils/ast_node_visitor_impl.h"
 #include "geax-front-end/ast/expr/BIn.h"
+#include "geax-front-end/ast/expr/BNotEqual.h"
 #include "geax-front-end/ast/expr/GetField.h"
 #include "geax-front-end/ast/expr/MkList.h"
 #include "geax-front-end/ast/expr/Ref.h"
@@ -82,6 +83,11 @@ class PropertyFilterDetector : public cypher::AstNodeVisitorImpl {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::BNotEqual* node) override {
+        LOG_INFO() << "-----------FilterDetector BNotEqual";
+        return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+    }
+
     std::any visit(geax::frontend::BEqual* node) override {
         LOG_INFO() << "-----------FilterDetector BEqual";
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
@@ -137,6 +143,7 @@ class PropertyFilterDetector : public cypher::AstNodeVisitorImpl {
         if (isValidDetector) cur_properties_.insert(lgraph::FieldData(node->val()));
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
+
 };
 
 }  // namespace cypher

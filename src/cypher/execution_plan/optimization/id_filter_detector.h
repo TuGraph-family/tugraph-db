@@ -73,6 +73,11 @@ class IDFilterDetector : public cypher::AstNodeVisitorImpl {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::BNotEqual* node) override {
+        LOG_INFO() << "-----------FilterDetector BNotEqual";
+        return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+    }
+
     std::any visit(geax::frontend::BEqual* node) override {
         LOG_INFO() << "-----------FilterDetector BEqual";
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->left());
