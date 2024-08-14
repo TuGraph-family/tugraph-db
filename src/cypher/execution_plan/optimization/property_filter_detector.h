@@ -143,7 +143,6 @@ class PropertyFilterDetector : public cypher::AstNodeVisitorImpl {
         if (isValidDetector) cur_properties_.insert(lgraph::FieldData(node->val()));
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
-
 };
 
 }  // namespace cypher
