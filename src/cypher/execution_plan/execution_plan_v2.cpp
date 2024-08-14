@@ -90,6 +90,18 @@ int ExecutionPlanV2::Execute(RTContext* ctx) {
         header.emplace_back(column);
     }
     ctx->result_ = std::make_unique<lgraph_api::Result>(lgraph_api::Result(header));
+
+    if (ctx->bolt_conn_) {
+        std::unordered_map<std::string, std::any> meta;
+        meta["fields"] = ctx->result_->BoltHeader();
+        bolt::PackStream ps;
+        ps.AppendSuccess(meta);
+        ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+        auto session = (bolt::BoltSession*)ctx->bolt_conn_->GetContext();
+        session->state = bolt::SessionState::STREAMING;
+        ctx->result_->MarkPythonDriver(session->python_driver);
+    }
+
     try {
         OpBase::OpResult res;
         do {
@@ -131,7 +143,9 @@ int ExecutionPlanV2::Execute(RTContext* ctx) {
 }
 
 std::string ExecutionPlanV2::DumpPlan(int indent, bool statistics) const {
-    std::string s = statistics ? "Profile statistics:\n" : "Execution Plan:\n";
+    std::string s;
+    s.append(FMA_FMT("ReadOnly:{}\n", ReadOnly()));
+    s.append(statistics ? "Profile statistics:\n" : "Execution Plan:\n");
     OpBase::DumpStream(root_, indent, statistics, s);
     return s;
 }
