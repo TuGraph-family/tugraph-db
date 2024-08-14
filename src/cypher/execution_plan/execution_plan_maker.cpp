@@ -1281,7 +1281,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto op = new OpGqlCreate(node->paths(), &pattern_graph);
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
-    CYPHER_THROW_ASSERT(result_info_.header.colums.empty());
+    result_info_.header.colums.clear();
     result_info_.header.colums.emplace_back(
         "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -1293,7 +1293,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto op = new OpGqlSet(node->items(), &pattern_graph);
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
-    CYPHER_THROW_ASSERT(result_info_.header.colums.empty());
+    result_info_.header.colums.clear();
     result_info_.header.colums.emplace_back(
         "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -1302,7 +1302,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) {
 std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
     auto op = new OpGqlDelete(node->items());
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
-    CYPHER_THROW_ASSERT(result_info_.header.colums.empty());
+    result_info_.header.colums.clear();
     result_info_.header.colums.emplace_back(
         "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -1328,7 +1328,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) {
     auto op =
         new OpGqlMerge(node->onMatch(), node->onCreate(), node->pathPattern(), &pattern_graph);
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
-    CYPHER_THROW_ASSERT(result_info_.header.colums.empty());
+    result_info_.header.colums.clear();
     result_info_.header.colums.emplace_back(
         "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
