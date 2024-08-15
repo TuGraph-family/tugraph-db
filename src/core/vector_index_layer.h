@@ -72,7 +72,7 @@ class VectorIndex {
     std::shared_ptr<KvTable> GetTable() { return table_; }
 
     // get vector_index_counter
-    VectorIndexCounter* GetVectorIndexManager() { return &vector_index_manager_; }
+    VectorIndexCounter* GetVectorIndexCounter() { return &vector_index_manager_; }
 
     // get whether rebuild
     bool GetWhetherRebuild() { return rebuild_; }

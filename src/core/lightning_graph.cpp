@@ -2219,7 +2219,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
         schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
         schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
 
-        if ((extractor->GetVectorIndex()->GetVectorIndexManager())->MakeVectorIndex()) {
+        if ((extractor->GetVectorIndex()->GetVectorIndexCounter())->MakeVectorIndex()) {
             LOG_INFO() <<
                 FMA_FMT("set the vector index for {}:{}", label, field);
         }
@@ -2243,23 +2243,35 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             }
             LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model",
                                     label, field);
-            if ((index->GetVectorIndexManager())->UpdateCount(count)) {
-                if ((index->GetVectorIndexManager())->WhetherUpdate()) {
-                    index->CleanVectorFromTable(txn.GetTxn());
-                    index->Build();
-                    index->Add(floatvector, count);
-                    bool success = index_manager_->SetVectorIndex(txn.GetTxn(), label, field, index_type,
+            if (index->GetIndexType() == "HNSW") {
+                index->Build();
+                index->Add(floatvector, count);
+                bool success = index_manager_->SetVectorIndex(txn.GetTxn(), label, field, index_type,
                                    vec_dimension, distance_type, index_spec,
                                    extractor->Type(), type, index->Save());
-                    if (success) {
+                if (success) { LOG_INFO() <<
+                                FMA_FMT("end building vector index for {}:{} in detached model",
+                                        label, field);
+                }
+            } else {
+                if ((index->GetVectorIndexCounter())->UpdateCount(count)) {
+                    if ((index->GetVectorIndexCounter())->WhetherUpdate()) {
+                        index->CleanVectorFromTable(txn.GetTxn());
+                        index->Build();
+                        index->Add(floatvector, count);
+                        bool success = index_manager_->SetVectorIndex(txn.GetTxn(), label, field, index_type,
+                                   vec_dimension, distance_type, index_spec,
+                                   extractor->Type(), type, index->Save());
+                        if (success) {
+                            LOG_INFO() <<
+                                FMA_FMT("end building vector index for {}:{} in detached model",
+                                        label, field);
+                        }
+                    } else {
                         LOG_INFO() <<
                                 FMA_FMT("end building vector index for {}:{} in detached model",
                                         label, field);
                     }
-                } else {
-                    LOG_INFO() <<
-                                FMA_FMT("end building vector index for {}:{} in detached model",
-                                        label, field);
                 }
             }
             kv_iter.reset();

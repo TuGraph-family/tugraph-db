@@ -320,34 +320,40 @@ void Schema::AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, co
         if (fe.GetIsNull(record)) continue;
         if (fe.Type() == FieldType::FLOAT_VECTOR) {
             // count++ and update vector index
-            if (fe.GetVectorIndex()->GetVectorIndexManager()->isIndexed()) {
-                fe.GetVectorIndex()->GetVectorIndexManager()->addCount();
-                fe.GetVectorIndex()->AddVectorInTable(txn, fe.GetConstRef(record), vid);
-                if (fe.GetVectorIndex()->GetVectorIndexManager()->WhetherUpdate()) {
-                    uint64_t count = 0;
+            if (fe.GetVectorIndex()->GetVectorIndexCounter()->isIndexed()) {
+                if (fe.GetVectorIndex()->GetIndexType() == "HNSW") {
                     std::vector<std::vector<float>> floatvector;
-                    auto kv_iter = GetPropertyTable().GetIterator(txn);
-                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                        auto prop = kv_iter->GetValue();
-                        if (fe.GetIsNull(prop)) {
-                            continue;
-                        }
-                        floatvector.emplace_back(
+                    floatvector.emplace_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+                    fe.GetVectorIndex()->Add(floatvector, 1);
+                } else {
+                    fe.GetVectorIndex()->GetVectorIndexCounter()->addCount();
+                    fe.GetVectorIndex()->AddVectorInTable(txn, fe.GetConstRef(record), vid);
+                    if (fe.GetVectorIndex()->GetVectorIndexCounter()->WhetherUpdate()) {
+                        uint64_t count = 0;
+                        std::vector<std::vector<float>> floatvector;
+                        auto kv_iter = GetPropertyTable().GetIterator(txn);
+                        for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                            auto prop = kv_iter->GetValue();
+                            if (fe.GetIsNull(prop)) {
+                                continue;
+                            }
+                            floatvector.emplace_back(
                             (fe.GetConstRef(prop)).AsType<std::vector<float>>());
-                        count++;
-                    }
-                    LOG_INFO() << FMA_FMT("start rebuilding vertex index in detached model");
-                    fe.GetVectorIndex()->CleanVectorFromTable(txn);
-                    fe.GetVectorIndex()->Build();
-                    fe.GetVectorIndex()->Add(floatvector, count);
-                    bool success = indexManager->SetVectorIndex(txn, fe.GetVectorIndex()->GetLabel(),
+                            count++;
+                        }
+                        LOG_INFO() << FMA_FMT("start rebuilding vertex index in detached model");
+                        fe.GetVectorIndex()->CleanVectorFromTable(txn);
+                        fe.GetVectorIndex()->Build();
+                        fe.GetVectorIndex()->Add(floatvector, count);
+                        bool success = indexManager->SetVectorIndex(txn, fe.GetVectorIndex()->GetLabel(),
                                     fe.GetVectorIndex()->GetName(), fe.GetVectorIndex()->GetIndexType(),
                                     fe.GetVectorIndex()->GetVecDimension(),
                                     fe.GetVectorIndex()->GetDistanceType(),
                                     fe.GetVectorIndex()->index_spec_ , fe.Type(),
                                     IndexType::NonuniqueIndex, fe.GetVectorIndex()->Save());
-                    if (success) {
-                         LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
+                        if (success) {
+                            LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
+                        }
                     }
                 }
             }
@@ -362,34 +368,40 @@ void Schema::DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const V
         if (fe.GetIsNull(record)) continue;
         if (fe.Type() == FieldType::FLOAT_VECTOR) {
             // count++ and update vector index
-            if (fe.GetVectorIndex()->GetVectorIndexManager()->isIndexed()) {
-                fe.GetVectorIndex()->GetVectorIndexManager()->addCount();
-                fe.GetVectorIndex()->AddVectorInTable(txn, fe.GetConstRef(record), vid);
-                if (fe.GetVectorIndex()->GetVectorIndexManager()->WhetherUpdate()) {
-                    uint64_t count = 0;
+            if (fe.GetVectorIndex()->GetVectorIndexCounter()->isIndexed()) {
+                if (fe.GetVectorIndex()->GetIndexType() == "HNSW") {
                     std::vector<std::vector<float>> floatvector;
-                    auto kv_iter = GetPropertyTable().GetIterator(txn);
-                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                        auto prop = kv_iter->GetValue();
-                        if (fe.GetIsNull(prop)) {
-                            continue;
-                        }
-                        floatvector.emplace_back(
+                    floatvector.emplace_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+                    fe.GetVectorIndex()->Add(floatvector, -1);
+                } else {
+                    fe.GetVectorIndex()->GetVectorIndexCounter()->addCount();
+                    fe.GetVectorIndex()->AddVectorInTable(txn, fe.GetConstRef(record), vid);
+                    if (fe.GetVectorIndex()->GetVectorIndexCounter()->WhetherUpdate()) {
+                        uint64_t count = 0;
+                        std::vector<std::vector<float>> floatvector;
+                        auto kv_iter = GetPropertyTable().GetIterator(txn);
+                        for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                            auto prop = kv_iter->GetValue();
+                            if (fe.GetIsNull(prop)) {
+                                continue;
+                            }
+                            floatvector.emplace_back(
                             (fe.GetConstRef(prop)).AsType<std::vector<float>>());
-                        count++;
-                    }
-                    LOG_INFO() << FMA_FMT("start rebuilding vertex index in detached model");
-                    fe.GetVectorIndex()->CleanVectorFromTable(txn);
-                    fe.GetVectorIndex()->Build();
-                    fe.GetVectorIndex()->Add(floatvector, count);
-                    bool success = indexManager->SetVectorIndex(txn, fe.GetVectorIndex()->GetLabel(),
+                            count++;
+                        }
+                        LOG_INFO() << FMA_FMT("start rebuilding vertex index in detached model");
+                        fe.GetVectorIndex()->CleanVectorFromTable(txn);
+                        fe.GetVectorIndex()->Build();
+                        fe.GetVectorIndex()->Add(floatvector, count);
+                        bool success = indexManager->SetVectorIndex(txn, fe.GetVectorIndex()->GetLabel(),
                                     fe.GetVectorIndex()->GetName(), fe.GetVectorIndex()->GetIndexType(),
                                     fe.GetVectorIndex()->GetVecDimension(),
                                     fe.GetVectorIndex()->GetDistanceType(),
                                     fe.GetVectorIndex()->index_spec_ , fe.Type(),
                                     IndexType::NonuniqueIndex, fe.GetVectorIndex()->Save());
-                    if (success) {
-                         LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
+                        if (success) {
+                            LOG_INFO() << FMA_FMT("end rebuilding vertex index in detached model");
+                        }
                     }
                 }
             }
