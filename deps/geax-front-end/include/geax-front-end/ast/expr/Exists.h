@@ -19,14 +19,14 @@
 #define GEAXFRONTEND_AST_EXPR_EXISTS_H_
 
 #include "geax-front-end/ast/clause/PathChain.h"
-#include "geax-front-end/ast/expr/UnaryOp.h"
+#include "geax-front-end/ast/expr/Expr.h"
 
 namespace geax {
 namespace frontend {
 
-class Exists : public UnaryOp {
+class Exists : public Expr {
 public:
-    Exists() : UnaryOp(AstNodeType::kExists) {}
+    Exists() : Expr(AstNodeType::kExists) {}
     ~Exists() = default;
 
     void appendPathChain(PathChain* pathChain) { pathChains_.emplace_back(pathChain); }
@@ -46,7 +46,7 @@ private:
 inline bool Exists::equals(const Expr& other) const {
     const auto& expr = static_cast<const Exists&>(other);
     // TODO(ljr): PathChain equals
-    bool ret = UnaryOp::equals(other) && pathChains_.size() == expr.pathChains_.size();
+    bool ret = pathChains_.size() == expr.pathChains_.size();
     return ret;
 }
 

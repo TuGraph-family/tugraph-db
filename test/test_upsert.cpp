@@ -35,20 +35,20 @@ TEST_F(TestUpsert, upsert) {
     std::string str;
 
     bool ret = client.CallCypher(str, "CALL db.createVertexLabel('node1', 'id' , "
-                            "'id' ,INT32, false, "
-                            "'name' ,STRING, false, "
-                            "'num', INT32, false, 'desc', STRING, true)");
+                            "'id' ,'INT32', false, "
+                            "'name' ,'STRING', false, "
+                            "'num', 'INT32', false, 'desc', 'STRING', true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL db.createVertexLabel('node2', 'id' , "
-                            "'id' ,INT32, false, "
-                            "'name' ,STRING, false, "
-                            "'num', INT32, false, 'desc', STRING, true)");
+                            "'id' ,'INT32', false, "
+                            "'name' ,'STRING', false, "
+                            "'num', 'INT32', false, 'desc', 'STRING', true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             R"(CALL db.createEdgeLabel('edge1','[["node1","node2"]]',
-                'id' ,INT32, false,
-                'name' ,STRING, false,
-                'num', INT32, false, 'desc', STRING, true))");
+                'id' ,'INT32', false,
+                'name' ,'STRING', false,
+                'num', 'INT32', false, 'desc', 'STRING', true))");
     UT_EXPECT_TRUE(ret);
 
     ret = client.CallCypher(str, "CALL db.addIndex('node1', 'name', false)");

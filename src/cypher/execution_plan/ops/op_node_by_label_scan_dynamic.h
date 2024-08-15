@@ -75,7 +75,7 @@ class NodeByLabelScanDynamic : public OpBase {
         node_->SetVid(-1);
         if (!it_ || !it_->IsValid()) return OP_DEPLETED;
         auto child = children[0];
-        if (child->type != OpType::ARGUMENT) CYPHER_TODO();
+        if (child->type != OpType::ARGUMENT && child->type != OpType::UNWIND) CYPHER_TODO();
         if (!consuming_) {
             // call child->Consume first time
             if (child->Consume(ctx) != OP_OK) {

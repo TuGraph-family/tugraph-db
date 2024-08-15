@@ -13,3 +13,13 @@ MATCH (n:Person)-[r:ACTED_IN {charactername:'Henri Ducard'}]->(m) RETURN r;
 MATCH (n:Person)<-[r:ACTED_IN {charactername:'Henri Ducard'}]-(m) RETURN r;
 MATCH (p:Person) RETURN p.name ORDER BY p.birthyear DESC LIMIT 5;
 MATCH (p:Person) RETURN p ORDER BY p.birthyear DESC LIMIT 5;
+WITH [
+    {a: 'Camelot', b: 'Vanessa Redgrave'},
+    {a: "Batman Begins", b: "Liam Neeson"},
+    {a: "Batman Begins", b: "Christopher Nolan"}
+] AS pairs
+UNWIND pairs AS pair
+MATCH (n1:Film {title: pair.a})<-[r]-(n2:Person {name: pair.b})
+RETURN r;
+WITH 'Vanessa Redgrave' as names, 'Camelot' as films MATCH (n1:Film {title: films})<-[r]-(n2:Person {name: names}) RETURN r;
+WITH {a: 'Camelot', b: 'Vanessa Redgrave'} as pair MATCH (n1:Film {title: pair.a})<-[r]-(n2:Person {name: pair.b}) RETURN r;

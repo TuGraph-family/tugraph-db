@@ -24,14 +24,58 @@
 namespace cypher {
 
 struct FieldData {
+    typedef std::unordered_map<std::string, cypher::FieldData> CYPHER_FIELD_DATA_MAP;
+    typedef std::vector<cypher::FieldData> CYPHER_FIELD_DATA_LIST;
     // TODO(lingsu) : a default state should be added
     enum FieldType { SCALAR, ARRAY, MAP } type;
 
-    ::lgraph::FieldData scalar;
-    std::vector<::lgraph::FieldData>* array = nullptr;
-    std::unordered_map<std::string, lgraph::FieldData>* map = nullptr;
+    lgraph::FieldData scalar;
+    CYPHER_FIELD_DATA_LIST* array = nullptr;
+    CYPHER_FIELD_DATA_MAP* map = nullptr;
 
     FieldData() : type(SCALAR) {}
+
+    explicit FieldData(bool rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(int8_t rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(int16_t rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(int32_t rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(int64_t rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(float rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(double rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::Date& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::DateTime& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const std::string& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(std::string&& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const char* rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const char* rhs, size_t s) : type(SCALAR), scalar(rhs, s) {}
+
+    explicit FieldData(const lgraph::PointCartesian& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::PointWgs84& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::LineStringCartesian& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::LineStringWgs84& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::PolygonCartesian& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::PolygonWgs84& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::SpatialCartesian& rhs) : type(SCALAR), scalar(rhs) {}
+
+    explicit FieldData(const lgraph::SpatialWgs84& rhs) : type(SCALAR), scalar(rhs) {}
 
     explicit FieldData(const ::lgraph::FieldData& rhs) : type(SCALAR), scalar(rhs) {}
 
@@ -39,25 +83,58 @@ struct FieldData {
 
     explicit FieldData(const std::vector<::lgraph::FieldData>& rhs) {
         type = ARRAY;
-        array = new std::vector<::lgraph::FieldData>(rhs);
+        array = new CYPHER_FIELD_DATA_LIST();
+        for (auto& item : rhs) {
+            array->emplace_back(item);
+        }
+    }
+
+
+    explicit FieldData(const CYPHER_FIELD_DATA_LIST& rhs) {
+        type = ARRAY;
+        array = new CYPHER_FIELD_DATA_LIST(rhs);
     }
 
     explicit FieldData(std::vector<::lgraph::FieldData>&& rhs) {
         type = ARRAY;
-        array = new std::vector<::lgraph::FieldData>(std::move(rhs));
+        array = new CYPHER_FIELD_DATA_LIST();
+        for (auto& item : rhs) {
+            array->emplace_back(std::move(item));
+        }
+    }
+
+
+    explicit FieldData(CYPHER_FIELD_DATA_LIST&& rhs) {
+        type = ARRAY;
+        array = new CYPHER_FIELD_DATA_LIST(std::move(rhs));
     }
 
     explicit FieldData(const std::unordered_map<std::string, lgraph::FieldData>& rhs) {
         type = MAP;
-        map = new std::unordered_map<std::string, lgraph::FieldData>(rhs);
+        map = new CYPHER_FIELD_DATA_MAP();
+        for (auto& kv : rhs) {
+            map->emplace(kv);
+        }
+    }
+    explicit FieldData(const CYPHER_FIELD_DATA_MAP& rhs) {
+        type = MAP;
+        map = new CYPHER_FIELD_DATA_MAP(rhs);
     }
 
     explicit FieldData(std::unordered_map<std::string, lgraph::FieldData>&& rhs) {
         type = MAP;
-        map = new std::unordered_map<std::string, lgraph::FieldData>(std::move(rhs));
+        map = new CYPHER_FIELD_DATA_MAP();
+        for (auto& kv : rhs) {
+            map->emplace(std::move(kv));
+        }
     }
 
-    ~FieldData() {
+    explicit FieldData(CYPHER_FIELD_DATA_MAP&& rhs) {
+        type = MAP;
+        map = new CYPHER_FIELD_DATA_MAP(std::move(rhs));
+    }
+
+        ~FieldData() {
         switch (type) {
         case ARRAY:
             delete array;
@@ -74,10 +151,10 @@ struct FieldData {
         type = rhs.type;
         switch (type) {
         case ARRAY:
-            array = new std::vector<::lgraph::FieldData>(*rhs.array);
+            array = new CYPHER_FIELD_DATA_LIST(*rhs.array);
             break;
         case MAP:
-            map = new std::unordered_map<std::string, lgraph::FieldData>(*rhs.map);
+            map = new CYPHER_FIELD_DATA_MAP(*rhs.map);
             break;
         case SCALAR:
             scalar = rhs.scalar;
@@ -151,10 +228,10 @@ struct FieldData {
 
         switch (type) {
         case ARRAY:
-            array = new std::vector<::lgraph::FieldData>(*rhs.array);
+            array = new CYPHER_FIELD_DATA_LIST(*rhs.array);
             break;
         case MAP:
-            map = new std::unordered_map<std::string, lgraph::FieldData>(*rhs.map);
+            map = new CYPHER_FIELD_DATA_MAP(*rhs.map);
             break;
         case SCALAR:
             scalar = rhs.scalar;
@@ -289,7 +366,7 @@ struct FieldData {
 
     bool IsArray() const { return type == ARRAY; }
 
-    static FieldData Array(size_t n) { return FieldData(std::vector<::lgraph::FieldData>(n)); }
+    static FieldData Array(size_t n) { return FieldData(std::vector<cypher::FieldData>(n)); }
 
     bool IsMap() const { return type == MAP; }
 
@@ -305,9 +382,8 @@ struct FieldData {
         case MAP: {
             std::string str("{");
             for (auto& pair : *map) {
-                str.append("{");
-                str.append(pair.first).append(",").append(pair.second.ToString(null_value));
-                str.append("},");
+                str.append(pair.first).append(":").append(pair.second.ToString(null_value));
+                str.append(",");
             }
             if (str.size() > 1) str.pop_back();
             str.append("}");
@@ -317,6 +393,93 @@ struct FieldData {
             return scalar.ToString(null_value);
         }
         throw std::runtime_error("internal error: unhandled type: " + std::to_string((int)type));
+    }
+    inline bool AsBool() const {
+        return scalar.AsBool();
+    }
+
+    inline int8_t AsInt8() const {
+        return scalar.AsInt8();
+    }
+
+    inline int16_t AsInt16() const {
+        return scalar.AsInt16();
+    }
+
+    inline int32_t AsInt32() const {
+        return scalar.AsInt32();
+    }
+
+    inline int64_t AsInt64() const {
+        return scalar.AsInt64();
+    }
+
+    inline float AsFloat() const {
+        return scalar.AsFloat();
+    }
+
+    inline double AsDouble() const {
+        return scalar.AsDouble();
+    }
+
+    inline lgraph::Date AsDate() const {
+        return scalar.AsDate();
+    }
+
+    inline lgraph::DateTime AsDateTime() const {
+        return scalar.AsDateTime();
+    }
+
+    inline std::string AsString() const {
+        return scalar.AsString();
+    }
+
+    inline std::string AsBlob() const {
+        return scalar.AsBlob();
+    }
+
+    inline std::string AsBase64Blob() const {
+        return scalar.AsBase64Blob();
+    }
+
+    inline lgraph::PointWgs84 AsWgsPoint() const {
+        return scalar.AsWgsPoint();
+    }
+
+    inline lgraph::PointCartesian AsCartesianPoint() const {
+        return scalar.AsCartesianPoint();
+    }
+
+    inline lgraph::LineStringWgs84 AsWgsLineString()
+        const {
+        return scalar.AsWgsLineString();
+    }
+
+    inline lgraph::LineStringCartesian AsCartesianLineString()
+        const {
+        return scalar.AsCartesianLineString();
+    }
+
+    inline lgraph::PolygonWgs84 AsWgsPolygon() const {
+        return scalar.AsWgsPolygon();
+    }
+
+    inline lgraph::PolygonCartesian AsCartesianPolygon() const {
+        return scalar.AsCartesianPolygon();
+    }
+
+    inline std::vector<lgraph::FieldData> AsConstantArray() const {
+        if (type == ARRAY) {
+            std::vector<lgraph::FieldData> ans;
+            for (auto& item : *array) {
+                if (item.IsMap() || item.IsArray()) {
+                    throw std::bad_cast();
+                }
+                ans.emplace_back(item.scalar);
+            }
+            return ans;
+        }
+        throw std::bad_cast();
     }
 };
 

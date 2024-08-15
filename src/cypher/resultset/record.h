@@ -17,7 +17,9 @@
 //
 #pragma once
 
+#include <utility>
 #include "core/data_type.h"  // lgraph::FieldData
+#include "cypher/cypher_types.h"
 #include "parser/data_typedef.h"
 #include "graph/node.h"
 #include "graph/relationship.h"
@@ -50,6 +52,10 @@ struct Entry {
     explicit Entry(const cypher::FieldData &v) : constant(v), type(CONSTANT) {}
 
     explicit Entry(cypher::FieldData &&v) : constant(std::move(v)), type(CONSTANT) {}
+
+    explicit Entry(const lgraph::FieldData &v) : constant(v), type(CONSTANT) {}
+
+    explicit Entry(lgraph::FieldData &&v) : constant(std::move(v)), type(CONSTANT) {}
 
     explicit Entry(Node *v) : node(v), type(NODE) {}
 
@@ -156,6 +162,8 @@ struct Entry {
 
     /* Get field value of node or relationship. */
     lgraph::FieldData GetEntityField(RTContext *ctx, const std::string &fd) const;
+
+    bool CheckEntityEfficient(RTContext *ctx) const;
 
     static std::string ToString(const RecordEntryType &type) {
         switch (type) {
