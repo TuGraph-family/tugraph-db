@@ -15,7 +15,7 @@
 #include "core/Faiss_IVF_FLAT.h"
 
 namespace lgraph {
-FaissIVFFlat::FaissIVFFlat(const std::string& label, const std::string& name,
+IVFFlat::IVFFlat(const std::string& label, const std::string& name,
                            const std::string& distance_type,
                            const std::string& index_type, int vec_dimension,
                            std::vector<int> index_spec,
@@ -26,14 +26,14 @@ FaissIVFFlat::FaissIVFFlat(const std::string& label, const std::string& name,
       IPquantizer_(nullptr),
       index_(nullptr) {}
 
-FaissIVFFlat::FaissIVFFlat(const FaissIVFFlat& rhs)
+IVFFlat::IVFFlat(const IVFFlat& rhs)
     : VectorIndex(rhs),
       L2quantizer_(rhs.L2quantizer_),
       IPquantizer_(rhs.IPquantizer_),
       index_(rhs.index_) {}
 
 // add vector to index
-bool FaissIVFFlat::Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) {
+bool IVFFlat::Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) {
     // reduce dimension
     std::vector<float> index_vectors;
     index_vectors.reserve(num_vectors * vec_dimension_);
@@ -53,7 +53,7 @@ bool FaissIVFFlat::Add(const std::vector<std::vector<float>>& vectors, size_t nu
 }
 
 // build index
-bool FaissIVFFlat::Build() {
+bool IVFFlat::Build() {
     if (distance_type_ == "L2") {
         L2quantizer_ = new faiss::IndexFlatL2(vec_dimension_);
         index_ = new faiss::IndexIVFFlat(L2quantizer_, vec_dimension_, index_spec_[0]);
@@ -67,21 +67,21 @@ bool FaissIVFFlat::Build() {
 }
 
 // serialize index
-std::vector<uint8_t> FaissIVFFlat::Save() {
+std::vector<uint8_t> IVFFlat::Save() {
     faiss::VectorIOWriter writer;
     faiss::write_index(index_, &writer, 0);
     return writer.data;
 }
 
 // load index form serialization
-void FaissIVFFlat::Load(std::vector<uint8_t>& idx_bytes) {
+void IVFFlat::Load(std::vector<uint8_t>& idx_bytes) {
     faiss::VectorIOReader reader;
     reader.data = idx_bytes;
     index_ = dynamic_cast<faiss::IndexIVFFlat*>(faiss::read_index(&reader));
 }
 
 // search vector in index
-bool FaissIVFFlat::Search(const std::vector<float> query, size_t num_results,
+bool IVFFlat::Search(const std::vector<float> query, size_t num_results,
                           std::vector<float>& distances, std::vector<int64_t>& indices) {
     if (query.empty() || num_results == 0) {
         return false;
@@ -93,7 +93,7 @@ bool FaissIVFFlat::Search(const std::vector<float> query, size_t num_results,
     return !indices.empty();
 }
 
-bool FaissIVFFlat::GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
+bool IVFFlat::GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
                                        size_t num_results, std::vector<float>& distances,
                                        std::vector<int64_t>& indices) {
     std::vector<std::vector<float>> floatvector;

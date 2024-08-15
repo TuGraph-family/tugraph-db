@@ -17,35 +17,28 @@
 #include <vector>
 #include <cstdint>
 #include "core/vector_index_layer.h"
-#include "faiss/index_io.h"
-#include "faiss/impl/io.h"
-#include "faiss/IndexFlat.h"
-#include "faiss/IndexIVFFlat.h"
 
 namespace lgraph {
 
-class IVFFlat : public VectorIndex {
+class HNSW : public VectorIndex {
   friend class Schema;
   friend class LightningGraph;
   friend class Transaction;
   friend class IndexManager;
 
-  faiss::IndexFlatL2* L2quantizer_;
-  faiss::IndexFlatIP* IPquantizer_;
-  faiss::IndexIVFFlat* index_;
 
  public:
-  IVFFlat(const std::string& label, const std::string& name,
+  HNSW(const std::string& label, const std::string& name,
                 const std::string& distance_type, const std::string& index_type,
                 int vec_dimension, std::vector<int> index_spec, std::shared_ptr<KvTable> table);
 
-  IVFFlat(const IVFFlat& rhs);
+  HNSW(const HNSW& rhs);
 
-  IVFFlat(IVFFlat&& rhs) = delete;
+  HNSW(HNSW&& rhs) = delete;
 
-  IVFFlat& operator=(const IVFFlat& rhs) = delete;
+  HNSW& operator=(const HNSW& rhs) = delete;
 
-  IVFFlat& operator=(IVFFlat&& rhs) = delete;
+  HNSW& operator=(HNSW&& rhs) = delete;
 
   // add vector to index and build index
   bool Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) override;

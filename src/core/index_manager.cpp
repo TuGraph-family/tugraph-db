@@ -133,13 +133,17 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 VectorIndex::OpenTable(txn, db_->GetStore(), index_name, fe->Type(), idx.type);
             VectorIndex* vector_index;
             if (index_type == "IVF_FLAT") {
-                vector_index = new FaissIVFFlat(label, field, distance_type,
+                vector_index = new IVFFlat(label, field, distance_type,
+                                   index_type, vec_dimension,
+                                   index_spec, std::move(tbl));
+            } else if (index_type == "HNSW") {
+                vector_index = new HNSW(label, field, distance_type,
                                    index_type, vec_dimension,
                                    index_spec, std::move(tbl));
             }
             index->SetReady();
             schema->GetFieldExtractor(field)->GetVectorIndex()
-                            ->GetVectorIndexManager()->MakeVectorIndex();
+                            ->GetVectorIndexCounter()->MakeVectorIndex();
             schema->MarkVertexIndexed(fe->GetFieldId(), index);
             schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
         } else {
@@ -210,7 +214,10 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
 
     auto tbl = VectorIndex::OpenTable(txn, db_->GetStore(), idx.table_name, dt, type);
     if (index_type == "IVF_FLAT") {
-        vector_index.reset(new FaissIVFFlat(label, field, distance_type,
+        vector_index.reset(new IVFFlat(label, field, distance_type,
+                            index_type, vec_dimension, index_spec, std::move(tbl)));
+    } else if (index_type == "HNSW") {
+        vector_index.reset(new HNSW(label, field, distance_type,
                             index_type, vec_dimension, index_spec, std::move(tbl)));
     }
     return true;
