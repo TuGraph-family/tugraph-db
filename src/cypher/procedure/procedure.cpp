@@ -679,13 +679,17 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
 void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                                     const VEC_EXPR &args, const VEC_STR &yield_items,
                                     std::vector<Record> *records) {
-    CYPHER_ARG_CHECK(args.size() == 4,
-                     "need 4 parameters, "
-                     "e.g. db.upsertEdge(label_name, start_spec, end_spec, list_data)")
+    CYPHER_ARG_CHECK(args.size() == 4 || args.size() == 5,
+                     "need 4 or 5 parameters, "
+                     "e.g. db.upsertEdge(label_name, start_spec, end_spec, list_data) or "
+                     "db.upsertEdge(label_name, start_spec, end_spec, list_data, pair_unique_field)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].IsMap(), "start_spec type should be map")
     CYPHER_ARG_CHECK(args[2].IsMap(), "end_spec type should be map")
     CYPHER_ARG_CHECK(args[3].IsArray(), "list_data type should be list")
+    if (args.size() == 5) {
+        CYPHER_ARG_CHECK(args[4].IsString(), "pair_unique_field type should be string")
+    }
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     const auto& start = *args[1].constant.map;
@@ -695,6 +699,10 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
     const auto& end = *args[2].constant.map;
     if (!end.count("type") || !end.count("key")) {
         THROW_CODE(InputError, "end_spec missing 'type' or 'key'");
+    }
+    std::string pair_unique_field;
+    if (args.size() == 5) {
+        pair_unique_field = args[4].constant.AsString();
     }
     std::string start_type = start.at("type").AsString();
     std::string start_json_key = start.at("key").AsString();
@@ -736,10 +744,19 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
 
     auto index_fds = txn.GetTxn()->ListEdgeIndexByLabel(args[0].constant.AsString());
     std::unordered_map<size_t, bool> unique_indexs;
+    bool pair_unique_configured = false;
     for (auto& index : index_fds) {
         if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
             unique_indexs[txn.GetEdgeFieldId(label_id, index.field)] = true;
+        } else if (index.type == lgraph_api::IndexType::PairUniqueIndex) {
+            if (!pair_unique_field.empty() && index.field == pair_unique_field) {
+                pair_unique_configured = true;
+            }
         }
+    }
+    if (!pair_unique_field.empty() && !pair_unique_configured) {
+        THROW_CODE(InputError, "No edge pair unique index is configured for this field: {}",
+                   pair_unique_field);
     }
 
     const auto& list = *args[3].constant.array;
@@ -749,16 +766,23 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
     int64_t insert = 0;
     int64_t update = 0;
     std::vector<std::tuple<int64_t , int64_t, std::vector<size_t>, std::vector<size_t>,
-                           std::vector<lgraph_api::FieldData>>> lines;
+                           std::vector<lgraph_api::FieldData>, std::optional<size_t> >> lines;
     for (auto& line : list) {
         int64_t start_vid = -1;
         int64_t end_vid = -1;
         std::vector<size_t> unique_pos;
+        std::optional<size_t> pair_unique_pos;
         std::vector<size_t> field_ids;
         std::vector<lgraph_api::FieldData> fds;
         bool success = true;
         if (!line.IsMap()) {
             THROW_CODE(InputError, "The type of the elements in the list must be map");
+        }
+        if (!pair_unique_field.empty()) {
+            if (!line.map->count(pair_unique_field)) {
+                json_error++;
+                continue;
+            }
         }
         for (auto& item : *line.map) {
             if (item.first == start_json_key) {
@@ -801,13 +825,17 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                     field_ids.push_back(iter->second.first);
                     if (unique_indexs.count(iter->second.first)) {
                         unique_pos.push_back(field_ids.size() - 1);
+                    } else {
+                        if (!pair_unique_field.empty() && pair_unique_field == item.first) {
+                            pair_unique_pos = field_ids.size() - 1;
+                        }
                     }
                 }
             }
         }
         if (success && start_vid >= 0 && end_vid >= 0) {
             lines.emplace_back(start_vid, end_vid, std::move(unique_pos),
-                               std::move(field_ids), std::move(fds));
+                               std::move(field_ids), std::move(fds), pair_unique_pos);
         } else {
             json_error++;
         }
@@ -816,7 +844,7 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
     txn = db.CreateWriteTxn();
     for (auto& l : lines) {
         int ret = txn.UpsertEdge(std::get<0>(l), std::get<1>(l),
-                                 label_id, std::get<2>(l), std::get<3>(l), std::get<4>(l));
+                                 label_id, std::get<2>(l), std::get<3>(l), std::get<4>(l), std::get<5>(l));
         if (ret == 0) {
             index_conflict++;
         } else if (ret == 1) {
@@ -838,13 +866,17 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
 void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
                                           const VEC_EXPR &args, const VEC_STR &yield_items,
                                           std::vector<Record> *records) {
-    CYPHER_ARG_CHECK(args.size() == 4,
-                     "need 4 parameters, "
-                     "e.g. db.upsertEdgeByJson(label_name, start_spec, end_spec, list_data)")
+    CYPHER_ARG_CHECK(args.size() == 4 || args.size() == 5,
+                     "need 4 or 5 parameters, "
+                     "e.g. db.upsertEdgeByJson(label_name, start_spec, end_spec, list_data) or "
+                     "db.upsertEdgeByJson(label_name, start_spec, end_spec, list_data, pair_unique_field)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].IsString(), "start_spec type should be json string")
     CYPHER_ARG_CHECK(args[2].IsString(), "end_spec type should be json string")
     CYPHER_ARG_CHECK(args[3].IsString(), "list_data type should be json string")
+    if (args.size() == 5) {
+        CYPHER_ARG_CHECK(args[4].IsString(), "pair_unique_field type should be json string")
+    }
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     if (ctx->txn_) ctx->txn_->Abort();
     nlohmann::json json_data = nlohmann::json::parse(args[3].constant.AsString());
@@ -858,6 +890,11 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
     nlohmann::json end = nlohmann::json::parse(args[2].constant.AsString());
     if (!end.contains("type") || !end.contains("key")) {
         THROW_CODE(InputError, "end_spec missing 'type' or 'key'");
+    }
+
+    std::string pair_unique_field;
+    if (args.size() == 5) {
+        pair_unique_field = args[4].constant.AsString();
     }
 
     std::string start_type = start["type"].get<std::string>();
@@ -900,10 +937,19 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
 
     auto index_fds = txn.GetTxn()->ListEdgeIndexByLabel(args[0].constant.AsString());
     std::unordered_map<size_t, bool> unique_indexs;
+    bool pair_unique_configured = false;
     for (auto& index : index_fds) {
         if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
             unique_indexs[txn.GetEdgeFieldId(label_id, index.field)] = true;
+        } else if (index.type == lgraph_api::IndexType::PairUniqueIndex) {
+            if (!pair_unique_field.empty() && index.field == pair_unique_field) {
+                pair_unique_configured = true;
+            }
         }
+    }
+    if (!pair_unique_field.empty() && !pair_unique_configured) {
+        THROW_CODE(InputError, "No edge pair unique index is configured for this field: {}",
+                   pair_unique_field);
     }
 
     int64_t json_total = json_data.size();
@@ -912,14 +958,21 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
     int64_t insert = 0;
     int64_t update = 0;
     std::vector<std::tuple<int64_t , int64_t, std::vector<size_t>, std::vector<size_t>,
-                           std::vector<lgraph_api::FieldData>>> lines;
+                           std::vector<lgraph_api::FieldData>, std::optional<size_t>>> lines;
     for (auto& line : json_data) {
         int64_t start_vid = -1;
         int64_t end_vid = -1;
+        std::optional<size_t> pair_unique_pos;
         std::vector<size_t> unique_pos;
         std::vector<size_t> field_ids;
         std::vector<lgraph_api::FieldData> fds;
         bool success = true;
+        if (!pair_unique_field.empty()) {
+            if (!line.count(pair_unique_field)) {
+                json_error++;
+                continue;
+            }
+        }
         for (auto& item : line.items()) {
             if (item.key() == start_json_key) {
                 auto fd = JsonToFieldData(item.value(), start_pf_fs);
@@ -961,13 +1014,17 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
                     field_ids.push_back(iter->second.first);
                     if (unique_indexs.count(iter->second.first)) {
                         unique_pos.push_back(field_ids.size() - 1);
+                    } else {
+                        if (!pair_unique_field.empty() && pair_unique_field == item.key()) {
+                            pair_unique_pos = field_ids.size() - 1;
+                        }
                     }
                 }
             }
         }
         if (success && start_vid >= 0 && end_vid >= 0) {
             lines.emplace_back(start_vid, end_vid, std::move(unique_pos),
-                               std::move(field_ids), std::move(fds));
+                               std::move(field_ids), std::move(fds), pair_unique_pos);
         } else {
             json_error++;
         }
@@ -975,8 +1032,10 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
     txn.Abort();
     txn = db.CreateWriteTxn();
     for (auto& l : lines) {
-        int ret = txn.UpsertEdge(std::get<0>(l), std::get<1>(l),
-                                 label_id, std::get<2>(l), std::get<3>(l), std::get<4>(l));
+        int ret = txn.UpsertEdge(
+            std::get<0>(l), std::get<1>(l),
+                label_id, std::get<2>(l),
+                    std::get<3>(l), std::get<4>(l), std::get<5>(l));
         if (ret == 0) {
             index_conflict++;
         } else if (ret == 1) {

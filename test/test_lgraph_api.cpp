@@ -1243,11 +1243,20 @@ TEST_F(TestLGraphApi, pairUniqueIndex) {
         txn = db.CreateWriteTxn();
         auto like_lid = txn.GetEdgeLabelId("like");
         auto fid = txn.GetEdgeFieldId(like_lid, "id");
-        auto iter = txn.GetEdgePairUniqueIndexIterator(like_lid, fid, vids[i], vids[i+1], FieldData::Int32(i), FieldData::Int32(i));
-        UT_EXPECT_TRUE(iter.IsValid());
-        auto euid = iter.GetUid();
-        auto iter2 = txn.GetOutEdgeIterator(euid);
-        UT_EXPECT_EQ(iter2.GetField("id"), FieldData::Int32(i));
+        {
+            auto iter = txn.GetEdgePairUniqueIndexIterator(
+                like_lid, fid, vids[i], vids[i + 1], FieldData::Int32(i), FieldData::Int32(i));
+            UT_EXPECT_TRUE(iter.IsValid());
+            auto euid = iter.GetUid();
+            auto iter2 = txn.GetOutEdgeIterator(euid);
+            UT_EXPECT_EQ(iter2.GetField("id"), FieldData::Int32(i));
+        }
+        {
+            auto iter = txn.GetEdgePairUniqueIndexIterator(like_lid, fid, vids[i], vids[i + 1],
+                                                      FieldData::Int32(i + 1),
+                                                      FieldData::Int32(i + 1));
+            UT_EXPECT_FALSE(iter.IsValid());
+        }
         txn.Abort();
     }
 }

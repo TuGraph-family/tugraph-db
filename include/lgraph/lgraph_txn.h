@@ -423,7 +423,8 @@ class Transaction {
     int UpsertEdge(int64_t src, int64_t dst, size_t label_id,
                    const std::vector<size_t>& unique_pos,
                    const std::vector<size_t>& field_ids,
-                   const std::vector<FieldData>& field_values);
+                   const std::vector<FieldData>& field_values,
+                   std::optional<size_t> pair_unique_pos);
 
     /**
      * @brief   List indexes

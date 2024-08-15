@@ -684,8 +684,8 @@ EdgeIndexIterator Transaction::GetEdgePairUniqueIndexIterator(
     size_t label_id, size_t field_id, VertexId src_vid, VertexId dst_vid,
     const FieldData& key_start, const FieldData& key_end) {
     EdgeIndex* index = GetEdgeIndex(label_id, field_id);
-    if (!index || !index->IsReady()) {
-        THROW_CODE(InputError, "EdgeIndex is not created for this field");
+    if (!index || !index->IsReady() || index->GetType() != IndexType::PairUniqueIndex) {
+        THROW_CODE(InputError, "Edge pair unique index is not created for this field");
     }
     Value ks, ke;
     if (!key_start.IsNull()) {

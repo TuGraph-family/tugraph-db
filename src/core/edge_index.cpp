@@ -66,12 +66,12 @@ std::unique_ptr<KvIterator> InitEdgeIndexIterator(KvTransaction& txn, KvTable& t
     return std::unique_ptr<KvIterator>();
 }
 
-Value InitKeyEndValue(const Value& key, IndexType type) {
+Value InitKeyEndValue(const Value& key, VertexId vid1, VertexId vid2, IndexType type) {
     switch (type) {
     case IndexType::GlobalUniqueIndex:
         return Value::MakeCopy(key);
     case IndexType::PairUniqueIndex:
-        return _detail::PatchPairUniqueIndexKey(key, -1, -1);
+        return _detail::PatchPairUniqueIndexKey(key, vid1, vid2);
     case IndexType::NonuniqueIndex:
         return _detail::PatchNonuniqueIndexKey(key, -1, -1, -1, -1, -1);
     }
@@ -197,7 +197,7 @@ EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, Transaction* txn, KvTable& 
       index_(idx),
       it_(_detail::InitEdgeIndexIterator(
           txn->GetTxn(), table, key_start, vid, vid2, lid, tid, eid, type)),
-      key_end_(_detail::InitKeyEndValue(key_end, type)),
+      key_end_(_detail::InitKeyEndValue(key_end, vid, vid2, type)),
       iv_(),
       valid_(false),
       pos_(0),
@@ -216,7 +216,7 @@ EdgeIndexIterator::EdgeIndexIterator(EdgeIndex* idx, KvTransaction* txn, KvTable
       index_(idx),
       it_(_detail::InitEdgeIndexIterator(
           *txn, table, key_start, vid, vid2, lid, tid, eid, type)),
-      key_end_(_detail::InitKeyEndValue(key_end, type)),
+      key_end_(_detail::InitKeyEndValue(key_end, vid, vid2, type)),
       iv_(),
       valid_(false),
       pos_(0),
