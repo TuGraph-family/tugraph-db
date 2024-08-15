@@ -1197,7 +1197,8 @@ TEST_F(TestLGraphApi, pairUniqueIndex) {
     VertexOptions vo("id");
     vo.detach_property = true;
     UT_EXPECT_TRUE(db.AddVertexLabel("Person",
-                                     std::vector<FieldSpec>({{"id", FieldType::INT32, false}}), vo));
+                                     std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                     vo));
     EdgeOptions eo;
     eo.detach_property = true;
     UT_EXPECT_TRUE(db.AddEdgeLabel("like",

@@ -485,7 +485,8 @@ class Transaction {
 
     EdgeIndexIterator GetEdgePairUniqueIndexIterator(size_t label_id, size_t field_id,
                                                      int64_t src_vid, int64_t dst_vid,
-                                                     const FieldData& key_start, const FieldData& key_end);
+                                                     const FieldData& key_start,
+                                                     const FieldData& key_end);
 
     /**
      * @brief   Gets vertex index iterator. The iterator has field value [key_start, key_end]. So

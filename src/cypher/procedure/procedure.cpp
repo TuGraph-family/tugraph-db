@@ -682,7 +682,7 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
     CYPHER_ARG_CHECK(args.size() == 4 || args.size() == 5,
                      "need 4 or 5 parameters, "
                      "e.g. db.upsertEdge(label_name, start_spec, end_spec, list_data) or "
-                     "db.upsertEdge(label_name, start_spec, end_spec, list_data, pair_unique_field)")
+                 "db.upsertEdge(label_name, start_spec, end_spec, list_data, pair_unique_field)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].IsMap(), "start_spec type should be map")
     CYPHER_ARG_CHECK(args[2].IsMap(), "end_spec type should be map")
@@ -844,7 +844,8 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
     txn = db.CreateWriteTxn();
     for (auto& l : lines) {
         int ret = txn.UpsertEdge(std::get<0>(l), std::get<1>(l),
-                                 label_id, std::get<2>(l), std::get<3>(l), std::get<4>(l), std::get<5>(l));
+                                 label_id, std::get<2>(l), std::get<3>(l),
+                                     std::get<4>(l), std::get<5>(l));
         if (ret == 0) {
             index_conflict++;
         } else if (ret == 1) {
@@ -869,7 +870,7 @@ void BuiltinProcedure::DbUpsertEdgeByJson(RTContext *ctx, const Record *record,
     CYPHER_ARG_CHECK(args.size() == 4 || args.size() == 5,
                      "need 4 or 5 parameters, "
                      "e.g. db.upsertEdgeByJson(label_name, start_spec, end_spec, list_data) or "
-                     "db.upsertEdgeByJson(label_name, start_spec, end_spec, list_data, pair_unique_field)")
+             "db.upsertEdgeByJson(label_name, start_spec, end_spec, list_data, pair_unique_field)")
     CYPHER_ARG_CHECK(args[0].IsString(), "label_name type should be string")
     CYPHER_ARG_CHECK(args[1].IsString(), "start_spec type should be json string")
     CYPHER_ARG_CHECK(args[2].IsString(), "end_spec type should be json string")

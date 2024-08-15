@@ -84,7 +84,8 @@ TEST_F(TestUpsert, upsertWithPairUniqueError) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')", start.dump(),
+        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')",
+                                     start.dump(),
                                      end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_FALSE(ret);
@@ -159,8 +160,8 @@ TEST_F(TestUpsert, upsertWithPairUnique) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')", start.dump(),
-                         end.dump(), array.dump());
+        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')",
+                                     start.dump(), end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
         UT_EXPECT_EQ(str, R"([{"data_error":0,"index_conflict":0,"insert":10,"total":10,"update":0}])");
@@ -184,8 +185,8 @@ TEST_F(TestUpsert, upsertWithPairUnique) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')", start.dump(),
-                                     end.dump(), array.dump());
+        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')",
+                                     start.dump(), end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
         UT_EXPECT_EQ(str, R"([{"data_error":0,"index_conflict":0,"insert":0,"total":10,"update":10}])");
@@ -219,8 +220,8 @@ TEST_F(TestUpsert, upsertWithPairUnique) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')", start.dump(),
-                                     end.dump(), array.dump());
+        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')",
+                                     start.dump(), end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
         UT_EXPECT_EQ(str, R"([{"data_error":0,"index_conflict":0,"insert":10,"total":10,"update":0}])");
@@ -252,8 +253,8 @@ TEST_F(TestUpsert, upsertWithPairUnique) {
         nlohmann::json end;
         end["type"] = "node2";
         end["key"] = "node2_id";
-        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')", start.dump(),
-                                     end.dump(), array.dump());
+        std::string cypher = FMA_FMT("CALL db.upsertEdgeByJson('edge1','{}', '{}', '{}', 'num')",
+                                     start.dump(), end.dump(), array.dump());
         ret = client.CallCypher(str, cypher);
         UT_EXPECT_TRUE(ret);
         UT_EXPECT_EQ(str, R"([{"data_error":0,"index_conflict":0,"insert":0,"total":10,"update":10}])");
