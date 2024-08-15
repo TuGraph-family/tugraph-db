@@ -383,13 +383,13 @@ std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) {
 
             for (auto& pair : node->items()) {
                 const std::string& name = std::get<0>(pair);
-                auto type = lgraph_api::LGraphType::NUL;
                 const auto iter =
                     std::find_if(sig_spec->result_list.cbegin(), sig_spec->result_list.cend(),
                                  [&name](const auto& param) { return name == param.name; });
                 if (iter == sig_spec->result_list.cend()) {
                     THROW_CODE(InputError, FMA_FMT("yield item [{}] is not exist", name));
                 }
+                auto type = iter->type;
                 switch (type) {
                 case lgraph_api::LGraphType::NODE:
                     AddSymbol(name, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);
