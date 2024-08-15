@@ -82,7 +82,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
                 communityNode["label"] = vit_label;
                 communityNode["primary_field"] = primary_field;
                 communityNode["field_data"] = field_data.ToString();
-                
+
                 cur["cur"] = curNode;
                 cur["community"] = communityNode;
                 arr.push_back(cur);
