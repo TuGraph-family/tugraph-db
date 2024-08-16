@@ -88,6 +88,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
                 fprintf(fout, "%s,", cur.dump().c_str());
             }
         }
+        fprintf(fout, "%s\n", arr.dump(4).c_str());
         fclose(fout);
         // change last , to ]
         fout = fopen(output_file.c_str(), "r+");
