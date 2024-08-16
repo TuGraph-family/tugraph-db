@@ -21,16 +21,15 @@ HNSW::HNSW(const std::string& label, const std::string& name,
                            std::vector<int> index_spec,
                            std::shared_ptr<KvTable> table)
     : VectorIndex(label, name, distance_type, index_type,
-                    vec_dimension, index_spec, std::move(table)),
- {}
+                    vec_dimension, index_spec, std::move(table)) {}
 
 HNSW::HNSW(const HNSW& rhs)
-    : VectorIndex(rhs),
- {}
+    : VectorIndex(rhs) {}
 
 // add vector to index
 bool HNSW::Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) {
 
+    return true;
 }
 
 // build index
@@ -47,7 +46,8 @@ bool HNSW::Build() {
 
 // serialize index
 std::vector<uint8_t> HNSW::Save() {
-
+    std::vector<uint8_t> blob;
+    return blob;
 }
 
 // load index form serialization
@@ -59,7 +59,7 @@ void HNSW::Load(std::vector<uint8_t>& idx_bytes) {
 bool HNSW::Search(const std::vector<float> query, size_t num_results,
                           std::vector<float>& distances, std::vector<int64_t>& indices) {
 
-    return !indices.empty();
+    return true;
 }
 
 // no need to implementation

@@ -19,6 +19,7 @@
 #include "core/lightning_graph.h"
 #include "core/transaction.h"
 #include "core/Faiss_IVF_FLAT.h"
+#include "core/Vsag_HNSW.h"
 
 namespace lgraph {
 IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
