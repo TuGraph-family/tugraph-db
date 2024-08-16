@@ -4020,17 +4020,17 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     if (!extr->GetVertexIndex()) {
         throw lgraph::VectorIndexNotExistException(args[0].String(), args[1].String());
     }
+    std::vector<float> index_distances;
+    std::vector<int64_t> index_indices;
+    std::vector<float> Flat_distances;
+    std::vector<int64_t> Flat_indices;
+    std::vector<std::tuple<std::string, std::string, float>> SearchResult;
     auto index_type = extr->GetVectorIndex()->GetIndexType();
     if (index_type == "IVF_FLAT") {
         CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT &&
                           args[4].Int() <= 65536 && args[4].Int() >= 1),
                          "Please check the parameter,"
                          " nprobe should be an integer in the range [1,65536]");
-        std::vector<float> index_distances;
-        std::vector<int64_t> index_indices;
-        std::vector<float> Flat_distances;
-        std::vector<int64_t> Flat_indices;
-        std::vector<std::tuple<std::string, std::string, float>> SearchResult;
         int64_t count = 0;
         lgraph::VectorIndex* index = extr->GetVectorIndex();
         if (schema->DetachProperty()) {
@@ -4058,7 +4058,7 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                     }
                 }
             }
-            if (index->GetVectorIndexManager()->getCount() != 0) {
+            if (index->GetVectorIndexCounter()->getCount() != 0) {
                 if (index->GetFlatSearchResult(txn.GetTxn(), query_vector,
                         static_cast<size_t>(args[3].Int()), Flat_distances, Flat_indices)) {
                     auto kv_iter = index->GetTable()->GetIterator(txn.GetTxn());
