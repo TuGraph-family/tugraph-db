@@ -1261,7 +1261,8 @@ TEST_F(TestLGraphApi, pairUniqueIndex) {
                                                       FieldData::Int32(i + 1));
             if (iter.IsValid()) {
                 auto euid = iter.GetUid();
-                UT_EXPECT_FALSE(euid.src == vids[i] && euid.dst == vids[i + 1] && euid.lid == like_lid);
+                UT_EXPECT_FALSE(euid.src == vids[i] && euid.dst == vids[i + 1]
+                                && euid.lid == like_lid);
             }
         }
         txn.Abort();
