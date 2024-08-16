@@ -175,13 +175,13 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
         }
 
         plan = std::make_shared<ExecutionPlanV2>();
-        // plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
+        plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
         ret = plan->Build(node, ctx);
         if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
             LOG_DEBUG() << "build execution_plan_v2 failed: " << plan->ErrorMsg();
             return;
         }
-        // plan->Validate(ctx);
+        plan->Validate(ctx);
         if (visitor.CommandType() != parser::CmdType::QUERY) {
             ctx->result_info_ = std::make_unique<cypher::ResultInfo>();
             ctx->result_ = std::make_unique<lgraph::Result>();

@@ -80,18 +80,18 @@ const std::unordered_map<std::string, geax::frontend::GeneralSetFunction>
         {"min", geax::frontend::GeneralSetFunction::kMin},
         {"sum", geax::frontend::GeneralSetFunction::kSum},
         {"collect", geax::frontend::GeneralSetFunction::kCollect},
-        {"stdDevSamp", geax::frontend::GeneralSetFunction::kStdDevSamp},
-        {"stdDevPop", geax::frontend::GeneralSetFunction::kStdDevPop},
-        {"groutConcat", geax::frontend::GeneralSetFunction::kGroupConcat},
-        {"stDev", geax::frontend::GeneralSetFunction::kStDev},
-        {"stDevP", geax::frontend::GeneralSetFunction::kStDevP},
+        {"stddevsamp", geax::frontend::GeneralSetFunction::kStdDevSamp},
+        {"stddevpop", geax::frontend::GeneralSetFunction::kStdDevPop},
+        {"groutconcat", geax::frontend::GeneralSetFunction::kGroupConcat},
+        {"stdev", geax::frontend::GeneralSetFunction::kStDev},
+        {"stdevp", geax::frontend::GeneralSetFunction::kStDevP},
         {"variance", geax::frontend::GeneralSetFunction::kVariance},
-        {"varianceP", geax::frontend::GeneralSetFunction::kVarianceP}};
+        {"variancep", geax::frontend::GeneralSetFunction::kVarianceP}};
 
 const std::unordered_map<std::string, geax::frontend::BinarySetFunction>
     CypherBaseVisitorV2::S_BAGG_LIST = {
-        {"percentileCont", geax::frontend::BinarySetFunction::kPercentileCont},
-        {"percentileDisc", geax::frontend::BinarySetFunction::kPercentileDisc},
+        {"percentilecont", geax::frontend::BinarySetFunction::kPercentileCont},
+        {"percentiledisc", geax::frontend::BinarySetFunction::kPercentileDisc},
 };
 
 void ExtractLabelTree(std::vector<std::string> &labels, const geax::frontend::LabelTree *root) {
@@ -1696,10 +1696,11 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
     LcypherParser::OC_FunctionInvocationContext *ctx) {
     std::string name;
     checkedAnyCast(visit(ctx->oC_FunctionName()), name);
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
     geax::frontend::Expr *res = nullptr;
     auto it = S_AGG_LIST.find(name);
     auto bit = S_BAGG_LIST.find(name);
-    if (name == "EXISTS") {
+    if (name == "exists") {
         if (ctx->oC_Expression().size() > 1) NOT_SUPPORT_AND_THROW();
         geax::frontend::Expr *expr = nullptr;
         checkedAnyCast(visit(ctx->oC_Expression(0)), expr);
