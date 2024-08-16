@@ -23,13 +23,17 @@ class Apply;
 class Argument;
 class CartesianProduct;
 class OpCreate;
+class OpGqlCreate;
 class OpDelete;
+class OpGqlDelete;
 class Distinct;
 class ExpandAll;
 class OpFilter;
 class InQueryCall;
+class GqlInQueryCall;
 class Limit;
 class OpMerge;
+class OpGqlMerge;
 class NodeByIdSeek;
 class NodeByLabelScan;
 class NodeByLabelScanDynamic;
@@ -40,10 +44,13 @@ class ProduceResults;
 class Project;
 class RelationshipCount;
 class OpRemove;
+class OpGqlRemove;
 class OpSet;
+class OpGqlSet;
 class Skip;
 class Sort;
 class StandaloneCall;
+class GqlStandaloneCall;
 class TopN;
 class Union;
 class Unwind;
@@ -97,6 +104,14 @@ class Visitor {
     virtual void Visit(const Traversal &op) = 0;
     // nested op
     virtual void Visit(const ImmediateArgument &op) = 0;
+    // gql op
+    virtual void Visit(const OpGqlCreate &op) = 0;
+    virtual void Visit(const OpGqlDelete &op) = 0;
+    virtual void Visit(const GqlInQueryCall &op) = 0;
+    virtual void Visit(const OpGqlMerge &op) = 0;
+    virtual void Visit(const OpGqlRemove &op) = 0;
+    virtual void Visit(const OpGqlSet &op) = 0;
+    virtual void Visit(const GqlStandaloneCall &op) = 0;
 };
 
 #define CYPHER_DEFINE_VISITABLE() \
