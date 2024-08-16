@@ -66,7 +66,10 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         olapondb.ProcessVertexActive<size_t>([&](size_t vi) { return vi; }, all_vertices, 0,
                                     [&](size_t a, size_t b) { return curr[a] > curr[b] ? a : b; });
     auto core_cost = get_time() - start_time;
-
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_curr_vi), false);
+    auto vit_label = vit.GetLabel();
+    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+    auto field_data = vit.GetField(primary_field);
     // output
     start_time = get_time();
     // TODO(any): write curr back to graph
@@ -76,6 +79,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     {
         json output;
         output["max_trustrank_id"] = olapondb.OriginalVid(max_curr_vi);
+        output["max_trustrank_label"] = vit_label;
+        output["max_trustrank_primaryfield"] = primary_field;
+        output["max_trustrank_fielddata"] = field_data.ToString();
         output["max_trustrank_val"] = curr[max_curr_vi];
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
