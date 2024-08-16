@@ -110,7 +110,8 @@ class ParallelTraversalV2 : public OptPass {
                 OpFilter *op_filter = dynamic_cast<OpFilter *>(leaf_op->parent);
 
                 if (op_filter->Filter()->Type() != lgraph::Filter::GEAX_EXPR_FILTER) return false;
-                auto geax_filter = ((lgraph::GeaxExprFilter *)op_filter->Filter().get())->GetArithExpr();
+                auto geax_filter = ((lgraph::GeaxExprFilter *)
+                                        op_filter->Filter().get())->GetArithExpr();
                 filter = geax_filter.expr_;
 
                 // only process RANGE_FILTER, it can be recursive
