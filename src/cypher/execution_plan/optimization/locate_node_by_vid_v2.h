@@ -47,7 +47,6 @@ namespace cypher {
 
 class LocateNodeByVidV2 : public OptPass {
     void _AdjustNodeVidFilter(OpBase *root) {
-        LOG_INFO() << "------------into LocateNodeByVidV2::_AdjustNodeVidFilter";
         OpFilter *op_filter = nullptr;
         ArithExprNode ae;
        std::unordered_map<std::string, std::set<uint64_t>> target_vids;
@@ -78,7 +77,6 @@ class LocateNodeByVidV2 : public OptPass {
 
     bool _CheckVidFilter(OpFilter *&op_filter, std::unordered_map<std::string,
                          std::set<uint64_t>> &target_vids) {
-        LOG_INFO() << "------------into LocateNodeByVidV2::_CheckVidFilter";
         /**
          * @brief
          *  Check if the Filter meets the requirement of having only Id() operation.
@@ -92,8 +90,6 @@ class LocateNodeByVidV2 : public OptPass {
         CYPHER_THROW_ASSERT(filter->Type() == lgraph::Filter::GEAX_EXPR_FILTER);
         auto geax_filter = ((lgraph::GeaxExprFilter*)filter.get())->GetArithExpr();
         geax::frontend::Expr* expr = geax_filter.expr_;
-        LOG_INFO() << "____filter = " << AstExprToString().dump(expr);
-        LOG_INFO() << "---------type = " << ToString(expr->type());
         IDFilterDetector detector;
         if (!detector.Build(expr)) return false;
         target_vids = detector.GetVids();
@@ -111,7 +107,6 @@ class LocateNodeByVidV2 : public OptPass {
 
     bool _FindNodeVidFilter(OpBase *root, OpFilter *&op_filter,
                             std::unordered_map<std::string, std::set<uint64_t>> &target_vids) {
-        LOG_INFO() << "------------into LocateNodeByVidV2::_FindNodeVidFilter";
         auto op = root;
         if (op->type == OpType::FILTER && op->children.size() == 1 &&
             (op->children[0]->type == OpType::ALL_NODE_SCAN ||

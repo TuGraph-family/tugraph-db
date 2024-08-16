@@ -98,22 +98,9 @@ class LocateNodeByIndexedPropV2 : public OptPass {
         CYPHER_THROW_ASSERT(filter->Type() == lgraph::Filter::GEAX_EXPR_FILTER);
         auto geax_filter = ((lgraph::GeaxExprFilter *)filter.get())->GetArithExpr();
         geax::frontend::Expr *expr = geax_filter.expr_;
-        LOG_INFO() << "____filter = " << AstExprToString().dump(expr);
-        LOG_INFO() << "---------type = " << ToString(expr->type());
         PropertyFilterDetector detector;
         if (!detector.Build(expr)) return false;
         target_value_datas = detector.GetProperties();
-        for (auto &[key, val] : target_value_datas) {
-            for (auto &[k, v] : val) {
-                std::string s;
-                for (auto f : v) {
-                    s.append(f.ToString());
-                    s.append(" ");
-                }
-                LOG_INFO() << "-----------properties has symbol " << key
-                           << " has field " << k << " in " << s;
-            }
-        }
         if (target_value_datas.empty()) return false;
         return true;
     }
