@@ -39,14 +39,14 @@ using namespace std;
 extern "C" bool Process(lgraph_api::GraphDB &db, const std::string &request, std::string &response);
 
 int main(int argc, char **argv) {
-    std::string db_path = "../build/output/lgraph_db";
+    std::string db_path = "/home/congruixuan.crx/newCoude/tugraph-db/build/output/testdb";
     if (argc > 1)
         db_path = argv[1];
     lgraph_api::Galaxy g(db_path);
     g.SetCurrentUser("admin", "73@TuGraph");
     lgraph_api::GraphDB db = g.OpenGraph("default");
     std::string resp;
-    bool r = Process(db, "{\"scan_edges\":true, \"times\":1}", resp);
+    bool r = Process(db, "{\"scan_edges\":true, \"times\":1, \"output_file\":\"./output.txt\"}", resp);
     cout << r << endl;
     cout << resp << endl;
     return 0;
