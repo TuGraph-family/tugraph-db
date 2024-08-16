@@ -1249,6 +1249,9 @@ TEST_F(TestLGraphApi, pairUniqueIndex) {
                 like_lid, fid, vids[i], vids[i + 1], FieldData::Int32(i), FieldData::Int32(i));
             UT_EXPECT_TRUE(iter.IsValid());
             auto euid = iter.GetUid();
+            UT_EXPECT_EQ(euid.src, vids[i]);
+            UT_EXPECT_EQ(euid.dst, vids[i+1]);
+            UT_EXPECT_EQ(euid.lid, like_lid);
             auto iter2 = txn.GetOutEdgeIterator(euid);
             UT_EXPECT_EQ(iter2.GetField("id"), FieldData::Int32(i));
         }
@@ -1256,7 +1259,10 @@ TEST_F(TestLGraphApi, pairUniqueIndex) {
             auto iter = txn.GetEdgePairUniqueIndexIterator(like_lid, fid, vids[i], vids[i + 1],
                                                       FieldData::Int32(i + 1),
                                                       FieldData::Int32(i + 1));
-            UT_EXPECT_FALSE(iter.IsValid());
+            if (iter.IsValid()) {
+                auto euid = iter.GetUid();
+                UT_EXPECT_FALSE(euid.src == vids[i] && euid.dst == vids[i + 1] && euid.lid == like_lid);
+            }
         }
         txn.Abort();
     }

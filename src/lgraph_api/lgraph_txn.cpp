@@ -288,7 +288,10 @@ int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
             field_values[pair_unique_pos.value()],
             field_values[pair_unique_pos.value()]);
         if (iter.IsValid()) {
-            euid = iter.GetUid();
+            auto uid = iter.GetUid();
+            if (uid.src == src && uid.dst == dst && uid.lid == label_id) {
+                euid = uid;
+            }
         }
     } else {
         auto iter = txn_->GetOutEdgeIterator(EdgeUid(src, dst, label_id, 0, 0), false);
