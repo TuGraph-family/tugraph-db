@@ -63,7 +63,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // core
     start_time = get_time();
-    std::vector< std::tuple<size_t, std::string, std::string, std::string, size_t, std::string, std::string, std::string, double> > result_list;
+    std::vector< std::tuple<size_t, std::string, std::string, std::string,
+                        size_t, std::string, std::string, std::string, double> > result_list;
     for (auto search_pair : search_list) {
         double score = JiCore(olapondb, search_pair);
         std::cout << score <<std::endl;
@@ -77,9 +78,13 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         auto vit_second_primary_field = txn.GetVertexPrimaryField(vit_second_label);
         auto vit_second_field_data = vit_second.GetField(vit_second_primary_field);
         result_list.push_back(std::make_tuple(search_pair.first,
-                                                vit_first_label, vit_first_primary_field, vit_first_field_data.ToString(),
+                                                vit_first_label,
+                                                vit_first_primary_field,
+                                                vit_first_field_data.ToString(),
                                                 search_pair.second,
-                                                vit_second_label, vit_second_primary_field, vit_second_field_data.ToString(),
+                                                vit_second_label,
+                                                vit_second_primary_field,
+                                                vit_second_field_data.ToString(),
                                                 score));
     }
     auto core_cost = get_time() - start_time;
