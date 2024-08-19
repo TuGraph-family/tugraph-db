@@ -59,7 +59,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     start_time = get_time();
     if (output_file != "") {
         FILE* fout = fopen(output_file.c_str(), "w");
-        fprintf(fout, "[");
         json cur;
         json curNode;
         json communityNode;
@@ -85,15 +84,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
                 cur["cur"] = curNode;
                 cur["community"] = communityNode;
-                fprintf(fout, "%s,", cur.dump().c_str());
+                fprintf(fout, "%s\n", cur.dump().c_str());
             }
         }
-        fprintf(fout, "%s\n", arr.dump(4).c_str());
-        fclose(fout);
-        // change last , to ]
-        fout = fopen(output_file.c_str(), "r+");
-        fseek(fout, -1, SEEK_END);
-        fprintf(fout, "]");
         fclose(fout);
     }
 

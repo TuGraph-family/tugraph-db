@@ -18,6 +18,7 @@
 
 #include "lgraph/lgraph.h"
 #include "lgraph/lgraph_txn.h"
+#include "lgraph/lgraph_utils.h"
 #include "lgraph/olap_base.h"
 #include "fma-common/fma_stream.h"
 
@@ -1496,9 +1497,14 @@ class OlapOnDB : public OlapBase<EdgeData> {
             auto vit_label = vit.GetLabel();
             auto primary_field = txn_.GetVertexPrimaryField(vit_label);
             auto field_data = vit.GetField(primary_field);
+            json curJson;
+            curJson["vid"] = OriginalVid(i);
+            curJson["label"] = vit_label;
+            curJson["primary_field"] = primary_field;
+            curJson["field_data"] = field_data.ToString();
+            curJson["result"] = vertex_data[i];
             std::string line =
-                fma_common::StringFormatter::Format("{} {} {} {} {}\n", OriginalVid(i),
-                                            vit_label, primary_field, field_data, vertex_data[i]);
+                fma_common::StringFormatter::Format("{}\n", curJson.dump());
             fout.Write(line.c_str(), line.size());
         }
     }
