@@ -143,10 +143,17 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
             olapondb.OriginalVid(max_distance_vi), distance[max_distance_vi]);
     auto output_cost = get_time() - start_time;
 
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_distance_vi), false);
+    auto vit_label = vit.GetLabel();
+    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+    auto field_data = vit.GetField(primary_field);
     // return
     {
         json output;
         output["max_distance_vid"] = olapondb.OriginalVid(max_distance_vi);
+        output["max_distance_label"] = vit_label;
+        output["max_distance_primaryfield"] = primary_field;
+        output["max_distance_fielddata"] = field_data.ToString();
         output["max_distance_val"] = distance[max_distance_vi];
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();

@@ -55,6 +55,10 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     }, active_all);
     double max_length = score[max_score_vi];
     auto core_cost = get_time() - start_time;
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_score_vi), false);
+    auto vit_label = vit.GetLabel();
+    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+    auto field_data = vit.GetField(primary_field);
 
     // output
     start_time = get_time();
@@ -63,7 +67,10 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // return
     {
         json output;
-        output["max_length_vi"] = olapondb.OriginalVid(max_score_vi);
+        output["max_length_vid"] = olapondb.OriginalVid(max_score_vi);
+        output["max_length_label"] = vit_label;
+        output["max_length_primaryfield"] = primary_field;
+        output["max_length_fielddata"] = field_data.ToString();
         output["max_length"] = max_length;
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
