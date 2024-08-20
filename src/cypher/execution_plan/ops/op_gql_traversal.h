@@ -47,7 +47,7 @@ namespace cypher {
  * more: Node Scan - Filter - Expand - Expand - Argument
  */
 
-class GqlTraversal : public OpBase {
+class OpGqlTraversal : public OpBase {
     /** about node scan */
     std::string start_label_;
     std::string start_alias_;
@@ -339,7 +339,7 @@ class GqlTraversal : public OpBase {
     }
 
  public:
-    GqlTraversal(
+    OpGqlTraversal(
         std::string label, std::string alias, ResultSetHeader result_set_header,
         ArithExprNode agg_expr, ArithExprNode noneagg_expr,
         std::vector<

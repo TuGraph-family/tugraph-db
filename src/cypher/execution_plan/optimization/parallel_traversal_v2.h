@@ -177,8 +177,8 @@ class ParallelTraversalV2 : public OptPass {
                 return false;
             }
         }
-        GqlTraversal *traversal_op =
-            new GqlTraversal(start_label, start_alias, aggregate->GetResultSetHeader(), agg_expr,
+        OpGqlTraversal *traversal_op =
+            new OpGqlTraversal(start_label, start_alias, aggregate->GetResultSetHeader(), agg_expr,
                              noneagg_expr, expands);
         if (filter) {
             traversal_op->SetFilter(filter);

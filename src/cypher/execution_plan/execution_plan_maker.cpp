@@ -1060,7 +1060,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InlineProcedureCall* node) { 
 std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
     std::string name = std::get<std::string>(node->name());
     std::vector<OpBase*> expand_ops;
-    auto op = new GqlStandaloneCall(name, node->args(), node->yield(),
+    auto op = new OpGqlStandaloneCall(name, node->args(), node->yield(),
                                     pattern_graphs_[cur_pattern_graph_].symbol_table);
     expand_ops.emplace_back(op);
     auto produce = new ProduceResults();

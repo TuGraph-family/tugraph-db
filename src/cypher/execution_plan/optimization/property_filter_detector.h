@@ -15,34 +15,23 @@
 #pragma once
 
 #include "core/data_type.h"
-#include "cypher/utils/ast_node_visitor_impl.h"
-#include "cypher/cypher_exception.h"
-#include "geax-front-end/ast/expr/BIn.h"
-#include "geax-front-end/ast/expr/GetField.h"
-#include "geax-front-end/ast/expr/MkList.h"
-#include "geax-front-end/ast/expr/Ref.h"
-#include "geax-front-end/ast/expr/VBool.h"
-#include "geax-front-end/ast/expr/VDouble.h"
-#include "geax-front-end/ast/expr/VInt.h"
-#include "geax-front-end/ast/expr/VString.h"
+#include "cypher/execution_plan/optimization/optimization_filter_visitor_impl.h"
 
 namespace cypher {
 
-class PropertyFilterDetector : public cypher::AstNodeVisitorImpl {
+class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
  public:
     PropertyFilterDetector() : isValidDetector(false) {}
 
     virtual ~PropertyFilterDetector() = default;
 
     bool Build(geax::frontend::AstNode* astNode) {
-        LOG_INFO() << "------------into FilterDetector::Build";
         try {
             if (std::any_cast<geax::frontend::GEAXErrorCode>(astNode->accept(*this)) !=
                 geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS) {
                 return false;
             }
         } catch (const lgraph::CypherException& e) {
-            LOG_INFO() << "-------PropertyFilterDetector Build failed at " << e.msg();
             return false;
         }
         return true;

@@ -50,13 +50,14 @@ class OpGqlSet;
 class Skip;
 class Sort;
 class StandaloneCall;
-class GqlStandaloneCall;
+class OpGqlStandaloneCall;
 class TopN;
 class Union;
 class Unwind;
 class VarLenExpand;
 class VarLenExpandInto;
 class Traversal;
+class OpGqlTraversal;
 // nested op
 class ImmediateArgument;
 }  // namespace cypher
@@ -111,7 +112,8 @@ class Visitor {
     virtual void Visit(const OpGqlMerge &op) = 0;
     virtual void Visit(const OpGqlRemove &op) = 0;
     virtual void Visit(const OpGqlSet &op) = 0;
-    virtual void Visit(const GqlStandaloneCall &op) = 0;
+    virtual void Visit(const OpGqlStandaloneCall &op) = 0;
+    virtual void Visit(const OpGqlTraversal &op) = 0;
 };
 
 #define CYPHER_DEFINE_VISITABLE() \

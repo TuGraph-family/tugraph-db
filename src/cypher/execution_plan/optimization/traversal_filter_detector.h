@@ -14,23 +14,11 @@
 
 #pragma once
 
-#include "cypher/utils/ast_node_visitor_impl.h"
-#include "cypher/cypher_exception.h"
-#include "geax-front-end/ast/expr/BGreaterThan.h"
-#include "geax-front-end/ast/expr/BNotEqual.h"
-#include "geax-front-end/ast/expr/BNotGreaterThan.h"
-#include "geax-front-end/ast/expr/BNotSmallerThan.h"
-#include "geax-front-end/ast/expr/BSmallerThan.h"
-#include "geax-front-end/ast/expr/GetField.h"
-#include "geax-front-end/ast/expr/Ref.h"
-#include "geax-front-end/ast/expr/VBool.h"
-#include "geax-front-end/ast/expr/VDouble.h"
-#include "geax-front-end/ast/expr/VInt.h"
-#include "geax-front-end/ast/expr/VString.h"
+#include "cypher/execution_plan/optimization/optimization_filter_visitor_impl.h"
 
 namespace cypher {
 
-class TraversalFilterDetector : public cypher::AstNodeVisitorImpl {
+class TraversalFilterDetector : public cypher::OptimizationFilterVisitorImpl {
  public:
     TraversalFilterDetector() {}
 

@@ -14,18 +14,11 @@
 
 #pragma once
 
-#include <cstdint>
-#include "cypher/utils/ast_node_visitor_impl.h"
-#include "cypher/cypher_exception.h"
-#include "geax-front-end/ast/expr/BAnd.h"
-#include "geax-front-end/ast/expr/BIn.h"
-#include "geax-front-end/ast/expr/MkList.h"
-#include "geax-front-end/ast/expr/Ref.h"
-#include "geax-front-end/ast/expr/VInt.h"
+#include "cypher/execution_plan/optimization/optimization_filter_visitor_impl.h"
 
 namespace cypher {
 
-class IDFilterDetector : public cypher::AstNodeVisitorImpl {
+class IDFilterDetector : public cypher::OptimizationFilterVisitorImpl {
  public:
     IDFilterDetector() : isValidDetector(false) {}
 
