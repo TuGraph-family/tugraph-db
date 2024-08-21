@@ -44,19 +44,6 @@ find_package(OpenSSL REQUIRED)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
 
-# faiss
-include_directories(${PROJECT_SOURCE_DIR}/src/faiss)
-add_library(faiss STATIC IMPORTED)
-set_target_properties(faiss PROPERTIES
-    IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/faiss/libfaiss.a
-)
-
-# faiss_env
-add_library(faiss_env STATIC IMPORTED)
-set_target_properties(faiss_env PROPERTIES
-    IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/faiss/libfaiss_env.a
-)
-
 # target
 set(GEAX_ENABLE_GLOG OFF)
 add_subdirectory(deps/geax-front-end)
