@@ -110,10 +110,17 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     printf("max rank value is pr[%ld] = %lf\n", olapondb.OriginalVid(max_pr_vi), pr[max_pr_vi]);
     auto output_cost = get_time() - start_time;
 
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_pr_vi), false);
+    auto vit_label = vit.GetLabel();
+    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+    auto field_data = vit.GetField(primary_field);
     // return
     {
         json output;
         output["max_pr_id"] = olapondb.OriginalVid(max_pr_vi);
+        output["max_pr_label"] = vit_label;
+        output["max_pr_primaryfield"] = primary_field;
+        output["max_pr_fielddata"] = field_data.ToString();
         output["max_pr_val"] = pr[max_pr_vi];
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
