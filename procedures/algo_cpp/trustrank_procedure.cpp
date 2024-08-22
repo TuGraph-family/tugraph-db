@@ -36,13 +36,13 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         parse_from_json(iterations, "iterations", input);
         parse_from_json(label, "label", input);
         parse_from_json(field, "field", input);
+        parse_from_json(output_file, "output_file", input);
         if (input["trust_list"].is_array()) {
             trust_list.clear();
         }
         for (auto ele : input["trust_list"]) {
             trust_list.push_back(ele);
         }
-        parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         throw std::runtime_error("json parse error");
         return false;
