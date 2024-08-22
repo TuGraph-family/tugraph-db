@@ -36,6 +36,7 @@
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 #include "cypher/rewriter/MultiPathPatternRewriter.h"
+#include "cypher/rewriter/PushDownFilterAstRewriter.h"
 
 #include "server/bolt_session.h"
 
@@ -161,6 +162,8 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
         node->accept(gen_anonymous_alias_rewriter);
         cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
         node->accept(multi_path_pattern_rewriter);
+        cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx);
+        node->accept(push_down_filter_ast_writer);
 
         geax::frontend::AstDumper dumper;
         auto ret = dumper.handle(node);

@@ -38,6 +38,7 @@
 #include "cypher/parser/cypher_base_visitor_v2.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 #include "cypher/rewriter/MultiPathPatternRewriter.h"
+#include "cypher/rewriter/PushDownFilterAstRewriter.h"
 
 using namespace parser;
 using namespace antlr4;
@@ -67,6 +68,8 @@ void eval_query_check(cypher::RTContext *ctx, const std::string &query,
     node->accept(gen_anonymous_alias_rewriter);
     cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
     node->accept(multi_path_pattern_rewriter);
+    cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx);
+    node->accept(push_down_filter_ast_writer);
 
     double t0, t1, t2;
     t0 = fma_common::GetTime();

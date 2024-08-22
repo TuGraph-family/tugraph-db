@@ -48,14 +48,13 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     OpBase* last_op_ = nullptr;
 
     std::shared_ptr<Node> node_t_;
-    std::shared_ptr<Node> start_t_;
     std::shared_ptr<Relationship> relp_t_;
     OpFilter* op_filter_ = nullptr;
     geax::common::ObjectArenaAllocator& objAlloc_;
     std::vector<geax::frontend::BEqual*> equal_filter_;
     std::vector<bool> has_filter_per_level_;
     uint32_t filter_level_ = 0;
-    bool is_end_path_ = false;
+    bool is_end_path_ = true;
 
  private:
     DISABLE_COPY(ExecutionPlanMaker);
