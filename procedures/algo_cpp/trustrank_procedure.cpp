@@ -29,12 +29,14 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::vector<int64_t> trust_list = {0, 1, 3};
     std::string label = "node";
     std::string field = "id";
+    std::string output_file = "";
 
     try {
         json input = json::parse(request);
         parse_from_json(iterations, "iterations", input);
         parse_from_json(label, "label", input);
         parse_from_json(field, "field", input);
+        parse_from_json(output_file, "output_file", input);
         if (input["trust_list"].is_array()) {
             trust_list.clear();
         }
@@ -72,6 +74,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     auto field_data = vit.GetField(primary_field);
     // output
     start_time = get_time();
+    if (output_file != "") {
+        olapondb.WriteToFile<double>(curr, output_file);
+    }
     // TODO(any): write curr back to graph
     auto output_cost = get_time() - start_time;
 
