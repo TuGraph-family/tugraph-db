@@ -2657,6 +2657,7 @@ void BuiltinProcedure::DbPluginListPlugin(RTContext *ctx, const Record *record,
                      "need 2 parameters, e.g. db.plugin.listPlugin(plugin_type, plugin_version)")
     CYPHER_ARG_CHECK(args[0].IsString(), "plugin_type type should be string")
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    if (ctx->txn_) ctx->txn_->Abort();
     lgraph::AccessControlledDB db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     auto plugin_type_it = ValidPluginType.find(args[0].constant.scalar.AsString());
     CYPHER_ARG_CHECK(plugin_type_it != ValidPluginType.end(),
