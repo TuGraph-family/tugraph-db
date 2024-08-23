@@ -30,7 +30,6 @@
 #include "geax-front-end/ast/expr/BSmallerThan.h"
 #include "geax-front-end/ast/expr/BXor.h"
 #include "geax-front-end/ast/expr/Not.h"
-#include "geax-front-end/ast/expr/Ref.h"
 #include "geax-front-end/ast/expr/VBool.h"
 #include "geax-front-end/ast/expr/VDouble.h"
 #include "geax-front-end/ast/expr/VInt.h"
@@ -193,7 +192,7 @@ class OpGqlTraversal : public OpBase {
             {
                 geax::frontend::BOr *op = (geax::frontend::BOr *)expr;
                 return op->left() && op->right() &&
-                       (DoFilter(vit, op->left()) && DoFilter(vit, op->right()));
+                       (DoFilter(vit, op->left()) || DoFilter(vit, op->right()));
             }
         case geax::frontend::AstNodeType::kBXor:
             {
