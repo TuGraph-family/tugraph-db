@@ -93,14 +93,6 @@ class LocateNodeByVidV2 : public OptPass {
         IDFilterDetector detector;
         if (!detector.Build(expr)) return false;
         target_vids = detector.GetVids();
-        for (auto & [key, val] : target_vids) {
-            std::string s;
-            for (auto v : val) {
-                s.append(std::to_string(v));
-                s.append(" ");
-            }
-            LOG_INFO() << "-----------vids has symbol " << key << " in vids " << s;
-        }
         if (target_vids.empty()) return false;
         return true;
     }

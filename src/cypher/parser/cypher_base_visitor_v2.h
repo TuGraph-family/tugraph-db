@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <vector>
 #include "antlr4-runtime/antlr4-runtime.h"
 #include "parser/generated/LcypherVisitor.h"
 #include "cypher/cypher_exception.h"

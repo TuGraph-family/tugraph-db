@@ -31,7 +31,6 @@ class IDFilterDetector : public cypher::OptimizationFilterVisitorImpl {
                 return false;
             }
         } catch (const lgraph::CypherException& e) {
-            LOG_INFO() << "-------IDFilterDetector Build failed at " << e.msg();
             return false;
         }
         return true;
@@ -46,21 +45,18 @@ class IDFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     std::set<uint64_t> cur_vids_;
 
     std::any visit(geax::frontend::BOr* node) override {
-        LOG_INFO() << "-----------FilterDetector BOr";
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
     }
 
     std::any visit(geax::frontend::BAnd* node) override {
-        LOG_INFO() << "-----------FilterDetector BAnd";
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
     std::any visit(geax::frontend::Function* node) override {
-        LOG_INFO() << "-----------FilterDetector Function";
         if (node->name() == "id") isValidDetector = true;
         for (auto& arg : node->args()) {
             ACCEPT_AND_CHECK_WITH_PASS_MSG(arg);
@@ -69,13 +65,11 @@ class IDFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     }
 
     std::any visit(geax::frontend::Ref* node) override {
-        LOG_INFO() << "-----------FilterDetector Ref";
         cur_symbol_ = node->name();
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
     }
 
     std::any visit(geax::frontend::BEqual* node) override {
-        LOG_INFO() << "-----------FilterDetector BEqual";
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         if (!cur_vids_.empty()) {
@@ -87,7 +81,6 @@ class IDFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     }
 
     std::any visit(geax::frontend::MkList* node) override {
-        LOG_INFO() << "-----------FilterDetector MkList";
         for (auto& expr : node->elems()) {
             ACCEPT_AND_CHECK_WITH_PASS_MSG(expr);
         }
@@ -95,7 +88,6 @@ class IDFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     }
 
     std::any visit(geax::frontend::BIn* node) override {
-        LOG_INFO() << "-----------FilterDetector BIn";
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         if (!cur_vids_.empty()) {
@@ -107,7 +99,6 @@ class IDFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     }
 
     std::any visit(geax::frontend::VInt* node) override {
-        LOG_INFO() << "-----------FilterDetector VInt";
         if (isValidDetector) cur_vids_.insert(node->val());
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
     }
