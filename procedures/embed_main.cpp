@@ -46,7 +46,8 @@ int main(int argc, char **argv) {
     g.SetCurrentUser("admin", "73@TuGraph");
     lgraph_api::GraphDB db = g.OpenGraph("default");
     std::string resp;
-    bool r = Process(db, "{\"scan_edges\":true, \"times\":1}", resp);
+    bool r = Process(db,
+                    "{\"scan_edges\":true, \"times\":1}", resp);
     cout << r << endl;
     cout << resp << endl;
     return 0;
