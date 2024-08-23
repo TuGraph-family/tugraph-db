@@ -54,7 +54,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::vector<geax::frontend::BEqual*> equal_filter_;
     std::vector<bool> has_filter_per_level_;
     uint32_t filter_level_ = 0;
-    bool is_end_path_ = true;
+    bool is_end_path_ = false;
 
  private:
     DISABLE_COPY(ExecutionPlanMaker);

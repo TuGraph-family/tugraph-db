@@ -311,113 +311,111 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto head = node->head();
     auto& tails = node->tails();
-    std::vector<std::shared_ptr<Node>> nodes;
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
-    nodes.push_back(node_t_);
-    for (auto [edge, end_node] : tails) {
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(end_node);
-        end_node->filler()->v()
-        nodes.push_back(node_t_);
+    std::unordered_map<std::string, geax::frontend::Node*> geax_nodes_map;
+    std::unordered_map<std::string, geax::frontend::Edge*> geax_edges_map;
+    geax_nodes_map.emplace(head->filler()->v().value(), head);
+    for (auto [edge_like, end_node] : tails) {
+        geax_nodes_map.emplace(end_node->filler()->v().value(), end_node);
+        auto edge = objAlloc_.allocate<geax::frontend::Edge>();
+        checkedCast(edge_like, edge);
+        geax_edges_map.emplace(edge->filler()->v().value(), edge);
     }
-    std::vector<NodeID> start_nodes;
 
-    for (const auto &n : nodes) {
-        auto& pattern_node = pattern_graph.GetNode(n->Alias());
-        auto &prop = pattern_node.Prop();
-        if (pattern_node.derivation_ != Node::CREATED && prop.type == Property::VARIABLE) {
-            auto it = pattern_graph.symbol_table.symbols.find(prop.value_alias);
-            CYPHER_THROW_ASSERT(it != pattern_graph.symbol_table.symbols.end());
-            start_nodes.emplace_back(pattern_node.ID());
+    // select the starting Node and end Node according to the pattern graph
+    std::vector<NodeID> start_nodes;
+    {
+        std::vector<Node*> nodes;
+        nodes.push_back(&pattern_graph.GetNode(head->filler()->v().value()));
+        for (auto [edge, end_node] : tails) {
+            nodes.push_back(&pattern_graph.GetNode(end_node->filler()->v().value()));
         }
-    }
-    for (const auto &n : nodes) {
-        auto& pattern_node = pattern_graph.GetNode(n->Alias());
-        if (pattern_node.derivation_ == Node::ARGUMENT) {
-            start_nodes.emplace_back(pattern_node.ID());
-        }
-    }
-    for (const auto &n : nodes) {
-        auto& pattern_node = pattern_graph.GetNode(n->Alias());
-        if (pattern_node.derivation_ == Node::MATCHED &&
-            !pattern_node.Label().empty() &&
-            pattern_node.Prop().type == Property::VALUE) {
-            start_nodes.emplace_back(pattern_node.ID());
-        }
-    }
-    for (const auto &n : nodes) {
-        auto& pattern_node = pattern_graph.GetNode(n->Alias());
-        if (pattern_node.derivation_ == Node::MATCHED &&
-            !pattern_node.Label().empty()) {
-            start_nodes.emplace_back(pattern_node.ID());
-        }
-    }
-    for (const auto &n : nodes) {
-        auto& pattern_node = pattern_graph.GetNode(n->Alias());
-        if (pattern_node.derivation_ != Node::CREATED &&
-            pattern_node.derivation_ != Node::MERGED) {
-            start_nodes.emplace_back(pattern_node.ID());
-        }
-    }
-    auto expand_streams = pattern_graph.CollectExpandStreams(start_nodes, true);
-    std::vector<OpBase *> expand_ops;
-    for (auto &stream : expand_streams) {
-        bool hanging = false;  // if the stream is a hanging node
-        for (auto &step : stream) {
-            auto &start = pattern_graph.GetNode(std::get<0>(step));
-            auto &relp = pattern_graph.GetRelationship(std::get<1>(step));
-            auto &neighbor = pattern_graph.GetNode(std::get<2>(step));
-            if (relp.Empty() && neighbor.Empty()) {
-                // neighbor and relationship are both empty, it's a hanging node
-                /* Node doesn't have any incoming nor outgoing edges,
-                 * this is an hanging node "()", create a scan operation. */
-                CYPHER_THROW_ASSERT(stream.size() == 1);
-                hanging = true;
-                _AddScanOp(&pattern_graph.symbol_table, &start, expand_ops, false);
-            } else if (relp.VarLen()) {
-                // expand when neighbor is not null
-                OpBase *expand_op = new VarLenExpand(&pattern_graph, &start, &neighbor, &relp);
-                expand_ops.emplace_back(expand_op);
-            } else {
-                OpBase *expand_op = new ExpandAll(&pattern_graph, &start, &neighbor, &relp);
-                expand_ops.emplace_back(expand_op);
-            }
-            // add property filter op
-            auto pf = neighbor.Prop();
-            if (!pf.field.empty()) {
-                ArithExprNode ae1, ae2;
-                ae1.SetOperand(ArithOperandNode::AR_OPERAND_VARIADIC, neighbor.Alias(), pf.field,
-                               pattern_graph.symbol_table);
-                if (pf.type == Property::PARAMETER) {
-                    // TODO(anyone) use record
-                    ae2.SetOperand(ArithOperandNode::AR_OPERAND_PARAMETER,
-                                   cypher::FieldData(lgraph::FieldData(pf.value_alias)));
-                } else if (pf.type == Property::VARIABLE) {
-                    ae2.SetOperandVariable(ArithOperandNode::AR_OPERAND_VARIABLE,
-                                           pf.hasMapFieldName, pf.value_alias, pf.map_field_name);
-                } else {
-                    ae2.SetOperand(ArithOperandNode::AR_OPERAND_CONSTANT,
-                                   cypher::FieldData(pf.value));
-                }
-                std::shared_ptr<lgraph::Filter> filter =
-                    std::make_shared<lgraph::RangeFilter>(lgraph::CompareOp::LBR_EQ, ae1, ae2,
-                                                          &pattern_graph.symbol_table);
-                OpBase *filter_op = new OpFilter(filter);
-                expand_ops.emplace_back(filter_op);
-            }
-        }  // end for steps
-        /* Save expand ops in reverse order. */
-        std::reverse(expand_ops.begin(), expand_ops.end());
-        if (!hanging) {
-            // add a scan op when it is not a hanging node
-            CYPHER_THROW_ASSERT(!stream.empty());
-            std::vector<OpBase *> scan_ops;
-            auto &start_node = pattern_graph.GetNode(std::get<0>(stream[0]));
-            _AddScanOp(&pattern_graph.symbol_table, &start_node, scan_ops, false);
-            for (auto it = scan_ops.rbegin(); it != scan_ops.rend(); it++) {
-                expand_ops.emplace_back(*it);
+        for (const auto &n : nodes) {
+            auto &prop = n->Prop();
+            if (n->derivation_ != Node::CREATED && prop.type == Property::VARIABLE) {
+                auto it = pattern_graph.symbol_table.symbols.find(prop.value_alias);
+                CYPHER_THROW_ASSERT(it != pattern_graph.symbol_table.symbols.end());
+                start_nodes.emplace_back(n->ID());
             }
         }
-    }  // end for streams
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::ARGUMENT) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::MATCHED &&
+                !n->Label().empty() &&
+                n->Prop().type == Property::VALUE) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::MATCHED &&
+                !n->Label().empty()) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ != Node::CREATED &&
+                n->derivation_ != Node::MERGED) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+    }
+    // set pattern_graph node visited to false before generate dfs path
+    std::unordered_map<std::string, bool> graph_node_visited_map;
+    for (const auto& node_kv : geax_nodes_map) {
+        graph_node_visited_map.emplace(node_kv.first,
+                                       pattern_graph.GetNode(node_kv.first).Visited());
+        pattern_graph.GetNode(node_kv.first).Visited() = false;
+    }
+    auto expand_stream = pattern_graph.CollectExpandStreams(start_nodes, true)[0];
+    // reset pattern_graph node visited after generate dfs path
+    for (const auto& node_kv : geax_nodes_map) {
+        pattern_graph.GetNode(node_kv.first).Visited() = graph_node_visited_map[node_kv.first];
+    }
+    auto &start_node = pattern_graph.GetNode(std::get<0>(expand_stream[0]));
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_nodes_map[start_node.Alias()]);
+    std::vector<OpBase*> expand_ops;
+    if (last_op_) {
+        expand_ops.emplace_back(last_op_);
+        last_op_ = nullptr;
+    }
+
+    ClauseGuard cg(node->type(), cur_types_);
+    for (auto &step : expand_stream) {
+        auto &start = pattern_graph.GetNode(std::get<0>(step));
+        auto &relp = pattern_graph.GetRelationship(std::get<1>(step));
+        auto &neighbor = pattern_graph.GetNode(std::get<2>(step));
+        if (relp.Empty() && neighbor.Empty()) {
+            continue;
+        }
+        equal_filter_.push_back(nullptr);
+        has_filter_per_level_.push_back(false);
+        is_end_path_ = true;
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_nodes_map[neighbor.Alias()]);
+        is_end_path_ = false;
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_edges_map[relp.Alias()]);
+        OpBase* expand_op;
+        LOG_DEBUG() << relp.MinHop() << " " << relp.MaxHop();
+        if (relp.VarLen()) {
+            expand_op = new VarLenExpand(&pattern_graph, &start, &neighbor, &relp);
+        } else {
+            expand_op = new ExpandAll(&pattern_graph, &start, &neighbor, &relp);
+        }
+        expand_ops.emplace_back(expand_op);
+        if (has_filter_per_level_[filter_level_]) {
+            OpFilter* filter = new OpFilter(std::make_shared<lgraph::GeaxExprFilter>(
+                equal_filter_[filter_level_], pattern_graphs_[cur_pattern_graph_].symbol_table));
+            expand_ops.push_back(filter);
+        }
+        if (op_filter_ != nullptr) {
+            expand_ops.push_back(op_filter_);
+            op_filter_ = nullptr;
+        }
+        ++filter_level_;
+    }
+    std::reverse(expand_ops.begin(), expand_ops.end());
     // For the exists pattern query, SemiAllpy is simulated by combining Limit Optional and
     // ExpandAll operators. e.g MATCH (n {name:'Rachel Kempson'}),(m:Person) RETURN
     // exists((n)-[:MARRIED]->(m)) The resulting execution plan is as follows Produce Results
@@ -499,6 +497,22 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Node* node) {
     }
     auto filler = node->filler();
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(filler);
+    auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
+    if (!ClauseGuard::InClause(geax::frontend::AstNodeType::kPathChain, cur_types_)) {
+        std::vector<OpBase*> expand_ops;
+        auto& start = pattern_graph.GetNode(node_t_->Alias());
+        _AddScanOp(&pattern_graph.symbol_table, &start, expand_ops, false);
+        if (op_filter_ != nullptr) {
+            expand_ops.push_back(op_filter_);
+            op_filter_ = nullptr;
+        }
+        std::reverse(expand_ops.begin(), expand_ops.end());
+        if (auto op = _SingleBranchConnect(expand_ops)) {
+            // Do not connect op to pattern_graph_root_[cur_pattern_graph_] for now,
+            // use last_op_ to store it.
+            last_op_ = op;
+        }
+    }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
