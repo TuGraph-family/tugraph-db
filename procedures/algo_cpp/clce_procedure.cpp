@@ -26,9 +26,11 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // prepare
     start_time = get_time();
     size_t samples = 64;
+    std::string output_file = "";
     try {
         json input = json::parse(request);
         parse_from_json(samples, "samples", input);
+        parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
@@ -62,6 +64,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // output
     start_time = get_time();
+    if (output_file != "") {
+        olapondb.WriteToFile<double>(score, output_file);
+    }
     auto output_cost = get_time() - start_time;
 
     // return
