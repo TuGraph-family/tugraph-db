@@ -1366,6 +1366,22 @@ struct EdgeUid {
             return false;
         }
     };
+
+    struct Hash {
+        size_t operator()(const EdgeUid& edgeUid) const {
+            size_t hashValue = 0;
+            hashValue = std::hash<int64_t>()(edgeUid.eid);
+            hashValue ^= std::hash<int64_t>()(edgeUid.dst) +
+                        0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            hashValue ^= std::hash<int64_t>()(edgeUid.lid) +
+                        0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            hashValue ^= std::hash<int64_t>()(edgeUid.src) +
+                        0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            hashValue ^= std::hash<int64_t>()(edgeUid.tid) +
+                        0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            return hashValue;
+        }
+    };
 };
 
 /** @brief   Information about the user. */
