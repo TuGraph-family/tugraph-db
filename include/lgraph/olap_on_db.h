@@ -1491,13 +1491,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
      */
     template <typename VertexData>
     void WriteToFile(ParallelVector<VertexData> &vertex_data, const std::string &output_file) {
-        // fma_common::OutputFmaStream fout;
-        // try {
-        //     fout.Open(output_file, 64 << 20);
-        // } catch (std::exception& e) {
-        //     std::cerr << "Exception caught: " << e.what() << std::endl;
-        // }
-        // //fout.Open(output_file, 64 << 20);
         FILE* fout = fopen(output_file.c_str(), "w");
         if (fout == nullptr) {
             THROW_CODE(InputError, "Unable to open file for writting!");
@@ -1513,9 +1506,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
             curJson["primary_field"] = primary_field;
             curJson["field_data"] = field_data.ToString();
             curJson["result"] = vertex_data[i];
-            // std::string line =
-            //     fma_common::StringFormatter::Format("{}\n", curJson.dump());
-            // fout.Write(line.c_str(), line.size());
             fprintf(fout, "%s\n", curJson.dump().c_str());
         }
     }
