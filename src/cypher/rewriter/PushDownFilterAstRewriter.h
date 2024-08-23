@@ -147,4 +147,4 @@ class PushDownFilterAstRewriter : public AstNodeVisitorImpl {
     RTContext *ctx;
 };
 
-}
+} // namespace cypher
