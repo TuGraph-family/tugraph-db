@@ -62,7 +62,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         FILE* fout = fopen(output_file.c_str(), "w");
         if (fout == nullptr) {
             THROW_CODE(InputError, "Unable to open file for writting!");
-        } 
+        }
         json cur;
         json curNode;
         json communityNode;

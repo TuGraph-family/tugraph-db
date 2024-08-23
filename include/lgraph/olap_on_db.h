@@ -1494,7 +1494,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
         FILE* fout = fopen(output_file.c_str(), "w");
         if (fout == nullptr) {
             THROW_CODE(InputError, "Unable to open file for writting!");
-        } 
+        }
         for (size_t i = 0; i < this->num_vertices_; ++i) {
             auto vit = txn_.GetVertexIterator(OriginalVid(i));
             auto vit_label = vit.GetLabel();
