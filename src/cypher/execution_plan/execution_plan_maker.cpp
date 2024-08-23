@@ -310,34 +310,98 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathPattern* node) {
 std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto head = node->head();
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
+    auto& tails = node->tails();
+    std::unordered_map<std::string, geax::frontend::Node*> geax_nodes_map;
+    std::unordered_map<std::string, geax::frontend::Edge*> geax_edges_map;
+    geax_nodes_map.emplace(head->filler()->v().value(), head);
+    for (auto [edge_like, end_node] : tails) {
+        geax_nodes_map.emplace(end_node->filler()->v().value(), end_node);
+        auto edge = objAlloc_.allocate<geax::frontend::Edge>();
+        checkedCast(edge_like, edge);
+        geax_edges_map.emplace(edge->filler()->v().value(), edge);
+    }
+
+    // select the starting Node and end Node according to the pattern graph
+    std::vector<NodeID> start_nodes;
+    {
+        std::vector<Node*> nodes;
+        nodes.push_back(&pattern_graph.GetNode(head->filler()->v().value()));
+        for (auto [edge, end_node] : tails) {
+            nodes.push_back(&pattern_graph.GetNode(end_node->filler()->v().value()));
+        }
+        for (const auto &n : nodes) {
+            auto &prop = n->Prop();
+            if (n->derivation_ != Node::CREATED && prop.type == Property::VARIABLE) {
+                auto it = pattern_graph.symbol_table.symbols.find(prop.value_alias);
+                CYPHER_THROW_ASSERT(it != pattern_graph.symbol_table.symbols.end());
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::ARGUMENT) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::MATCHED &&
+                !n->Label().empty() &&
+                n->Prop().type == Property::VALUE) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::MATCHED &&
+                !n->Label().empty()) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ != Node::CREATED &&
+                n->derivation_ != Node::MERGED) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+    }
+    // set pattern_graph node visited to false before generate dfs path
+    std::unordered_map<std::string, bool> graph_node_visited_map;
+    for (const auto& node_kv : geax_nodes_map) {
+        graph_node_visited_map.emplace(node_kv.first,
+                                       pattern_graph.GetNode(node_kv.first).Visited());
+        pattern_graph.GetNode(node_kv.first).Visited() = false;
+    }
+    auto expand_stream = pattern_graph.CollectExpandStreams(start_nodes, true)[0];
+    // reset pattern_graph node visited after generate dfs path
+    for (const auto& node_kv : geax_nodes_map) {
+        pattern_graph.GetNode(node_kv.first).Visited() = graph_node_visited_map[node_kv.first];
+    }
+    auto &start_node = pattern_graph.GetNode(std::get<0>(expand_stream[0]));
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_nodes_map[start_node.Alias()]);
     std::vector<OpBase*> expand_ops;
     if (last_op_) {
         expand_ops.emplace_back(last_op_);
         last_op_ = nullptr;
     }
-    // todo: ...
+
     ClauseGuard cg(node->type(), cur_types_);
-    auto& tails = node->tails();
-    // TODO(lingsu): generate the pattern graph
-    // and select the starting Node and end Node according to the pattern graph
-    for (auto [edge, end_node] : tails) {
-        start_t_ = node_t_;
-        is_end_path_ = true;
+    for (auto &step : expand_stream) {
+        auto &start = pattern_graph.GetNode(std::get<0>(step));
+        auto &relp = pattern_graph.GetRelationship(std::get<1>(step));
+        auto &neighbor = pattern_graph.GetNode(std::get<2>(step));
+        if (relp.Empty() && neighbor.Empty()) {
+            continue;
+        }
         equal_filter_.push_back(nullptr);
         has_filter_per_level_.push_back(false);
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(end_node);
+        is_end_path_ = true;
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_nodes_map[neighbor.Alias()]);
         is_end_path_ = false;
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(edge);
-        auto& start = pattern_graph.GetNode(start_t_->Alias());
-        auto& relp = pattern_graph.GetRelationship(relp_t_->Alias());
-        auto& end = pattern_graph.GetNode(node_t_->Alias());
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_edges_map[relp.Alias()]);
         OpBase* expand_op;
         LOG_DEBUG() << relp.MinHop() << " " << relp.MaxHop();
         if (relp.VarLen()) {
-            expand_op = new VarLenExpand(&pattern_graph, &start, &end, &relp);
+            expand_op = new VarLenExpand(&pattern_graph, &start, &neighbor, &relp);
         } else {
-            expand_op = new ExpandAll(&pattern_graph, &start, &end, &relp);
+            expand_op = new ExpandAll(&pattern_graph, &start, &neighbor, &relp);
         }
         expand_ops.emplace_back(expand_op);
         if (has_filter_per_level_[filter_level_]) {

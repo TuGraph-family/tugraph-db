@@ -79,6 +79,7 @@ public:
 
     void setWhere(Expr* where) { where_ = where; }
     const std::optional<Expr*>& where() const { return where_; }
+    void resetWhere() { where_.reset(); }
 
     // NOTE(yaochi): this could be confict with system function yield()
     void setYield(YieldField* yield) { yield_ = yield; }
