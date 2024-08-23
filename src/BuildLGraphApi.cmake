@@ -110,7 +110,7 @@ target_include_directories(${TARGET_LGRAPH} PUBLIC
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(${TARGET_LGRAPH} PUBLIC
             /opt/OpenBLAS/lib/libopenblas.a
-            faiss.a
+            libfaiss_avx2.a
             libgomp.a
             -static-libstdc++
             -static-libgcc
@@ -130,7 +130,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 /opt/OpenBLAS/lib/libopenblas.a
-                faiss.a
+                libfaiss_avx2.a
                 ${Boost_LIBRARIES}
                 omp
                 pthread
@@ -140,7 +140,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     else ()
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 /opt/OpenBLAS/lib/libopenblas.a
-                faiss.a
+                libfaiss_avx2.a
                 rt
                 omp
                 pthread
