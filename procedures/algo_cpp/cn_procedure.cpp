@@ -64,8 +64,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::vector< std::tuple<size_t, std::string, std::string, std::string,
             size_t, std::string, std::string, std::string, double> > result_list;
     for (auto search_pair : search_list) {
-        double score = JiCore(olapondb, search_pair);
-        std::cout << score <<std::endl;
+        size_t count_common = CNCore(olapondb, search_pair);
         auto vit_first = txn.GetVertexIterator(search_pair.first, false);
         auto vit_first_label = vit_first.GetLabel();
         auto vit_first_primary_field = txn.GetVertexPrimaryField(vit_first_label);
@@ -84,7 +83,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
                             vit_second_label,
                             vit_second_primary_field,
                             vit_second_field_data.ToString(),
-                            score));
+                            count_common));
     }
     auto core_cost = get_time() - start_time;
 
