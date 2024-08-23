@@ -24,7 +24,7 @@ class OptimizationFilterVisitorImpl : public cypher::AstNodeVisitorImpl {
  public:
     OptimizationFilterVisitorImpl() {}
 
-    virtual ~OptimizationFilterVisitorImpl() {};
+    virtual ~OptimizationFilterVisitorImpl() {}
 
  private:
     std::any visit(geax::frontend::AggFunc* node) override {
@@ -125,7 +125,7 @@ class OptimizationFilterVisitorImpl : public cypher::AstNodeVisitorImpl {
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
-    
+
     std::any visit(geax::frontend::BLike* node) override {
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
@@ -185,7 +185,7 @@ class OptimizationFilterVisitorImpl : public cypher::AstNodeVisitorImpl {
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
-    
+
     std::any visit(geax::frontend::BSub* node) override {
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
@@ -378,15 +378,15 @@ class OptimizationFilterVisitorImpl : public cypher::AstNodeVisitorImpl {
     std::any visit(geax::frontend::VDatetime* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
-        
+
     std::any visit(geax::frontend::VDouble* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
-    
+
     std::any visit(geax::frontend::VDuration* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
-    
+
     std::any visit(geax::frontend::VInt* node) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
