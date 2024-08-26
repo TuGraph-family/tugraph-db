@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
     lgraph_api::GraphDB db = g.OpenGraph("default");
     std::string resp;
     bool r = Process(db,
-            "{\"scan_edges\":true, \"times\":1}", resp);
+                    "{\"scan_edges\":true, \"times\":1}", resp);
     cout << r << endl;
     cout << resp << endl;
     return 0;
