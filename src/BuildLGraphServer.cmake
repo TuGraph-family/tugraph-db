@@ -72,6 +72,10 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             lgraph_cypher_lib
             geax_isogql
             bolt
+            libsimd.a
+            libcpuinfo.a
+            /usr/local/lib64/libvsag_static.a
+            libdiskann.a
             /opt/OpenBLAS/lib/libopenblas.a
             faiss.a
             # begin static linking
@@ -132,6 +136,10 @@ add_executable(${TARGET_SERVER}
 target_link_libraries(${TARGET_SERVER}
         ${TARGET_SERVER_LIB}
         librocksdb.a
+        libsimd.a
+        libcpuinfo.a
+        /usr/local/lib64/libvsag_static.a
+        libdiskann.a
         /opt/OpenBLAS/lib/libopenblas.a
         faiss.a
 )

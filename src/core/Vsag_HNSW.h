@@ -17,6 +17,7 @@
 #include <vector>
 #include <cstdint>
 #include "core/vector_index_layer.h"
+#include "vsag/vsag.h"
 
 namespace lgraph {
 
@@ -26,7 +27,8 @@ class HNSW : public VectorIndex {
   friend class Transaction;
   friend class IndexManager;
 
-
+  std::shared_ptr<vsag::Index> createindex_;
+  vsag::Index* index_;
  public:
   HNSW(const std::string& label, const std::string& name,
                 const std::string& distance_type, const std::string& index_type,
@@ -59,5 +61,15 @@ class HNSW : public VectorIndex {
   bool GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
                            size_t num_results, std::vector<float>& distances,
                            std::vector<int64_t>& indices) override;
+
+  template <typename T>
+  static void writeBinaryPOD(std::ostream& out, const T& podRef) {
+      out.write((char*)&podRef, sizeof(T));
+  }
+
+  template <typename T>
+  static void readBinaryPOD(std::istream& in, T& podRef) {
+      in.read((char*)&podRef, sizeof(T));
+  }                       
 };
 }  // namespace lgraph
