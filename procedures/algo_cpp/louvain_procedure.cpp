@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "lgraph/lgraph_exceptions.h"
 #include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
 #include "./algo.h"
@@ -59,6 +60,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     start_time = get_time();
     if (output_file != "") {
         FILE* fout = fopen(output_file.c_str(), "w");
+        if (fout == nullptr) {
+            THROW_CODE(InputError, "Unable to open file for writting!");
+        }
         json cur;
         json curNode;
         json communityNode;
