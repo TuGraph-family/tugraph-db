@@ -760,6 +760,9 @@ std::any CypherBaseVisitorV2::visitOC_Limit(LcypherParser::OC_LimitContext *ctx)
     checkedCast(node_, node);
     geax::frontend::Expr *expr = nullptr;
     checkedAnyCast(visit(ctx->oC_Expression()), expr);
+    if (expr->type() != geax::frontend::AstNodeType::kVInt) {
+        THROW_CODE(ParserException, "Limit must be integer value.");
+    }
     geax::frontend::VInt *integer = nullptr;
     checkedCast(expr, integer);
     node->setLimit(integer->val());
