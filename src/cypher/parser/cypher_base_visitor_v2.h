@@ -23,6 +23,7 @@
 #include "geax-front-end/common/ObjectAllocator.h"
 #include "geax-front-end/ast/Ast.h"
 #include "cypher/parser/data_typedef.h"
+#include "execution_plan/runtime_context.h"
 
 #if __APPLE__
 #ifdef TRUE
@@ -76,6 +77,7 @@ class VisitGuard {
  * extended to create a visitor which only needs to handle a subset of the available methods.
  */
 class CypherBaseVisitorV2 : public LcypherVisitor {
+    cypher::RTContext *cypher_ctx_;
     std::string error_msg_;
     geax::common::ObjectArenaAllocator& objAlloc_;
     geax::frontend::AstNode * node_;
@@ -105,7 +107,7 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     parser::CmdType CommandType() const { return cmd_type_; }
 
     CypherBaseVisitorV2(geax::common::ObjectArenaAllocator& objAlloc,
-            antlr4::tree::ParseTree *tree);
+            antlr4::tree::ParseTree *tree, cypher::RTContext *cypher_ctx);
 
     std::string GenAnonymousAlias(bool is_node);
 
