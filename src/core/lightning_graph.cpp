@@ -2229,6 +2229,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             VectorIndex* index = extractor->GetVectorIndex();
             uint64_t count = 0;
             std::vector<std::vector<float>> floatvector;
+            std::vector<size_t> vids;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto prop = kv_iter->GetValue();
@@ -2239,13 +2240,14 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
                 auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
                 index->AddVectorInTable(txn.GetTxn(), extractor->GetConstRef(prop), vid);
                 floatvector.emplace_back(vector);
+                vids.emplace_back(vid);
                 count++;
             }
             LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model",
                                     label, field);
             if (index->GetIndexType() == "HNSW") {
                 index->Build();
-                index->Add(floatvector, count);
+                index->Add(floatvector, vids, count);
                 bool success = index_manager_->SetVectorIndex(txn.GetTxn(), label, field, index_type,
                                    vec_dimension, distance_type, index_spec,
                                    extractor->Type(), type, index->Save());
@@ -2258,7 +2260,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
                     if ((index->GetVectorIndexCounter())->WhetherUpdate()) {
                         index->CleanVectorFromTable(txn.GetTxn());
                         index->Build();
-                        index->Add(floatvector, count);
+                        index->Add(floatvector, vids, count);
                         bool success = index_manager_->SetVectorIndex(txn.GetTxn(), label, field, index_type,
                                    vec_dimension, distance_type, index_spec,
                                    extractor->Type(), type, index->Save());

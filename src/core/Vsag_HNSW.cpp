@@ -30,7 +30,7 @@ HNSW::HNSW(const HNSW& rhs)
       index_(rhs.index_) {}
 
 // add vector to index
-bool HNSW::Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) {
+bool HNSW::Add(const std::vector<std::vector<float>>& vectors, const std::vector<size_t>& vids, size_t num_vectors) {
     // reduce dimension
     std::vector<float> index_vectors;
     index_vectors.reserve(num_vectors * vec_dimension_);
@@ -39,7 +39,7 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors, size_t num_vector
     }
     std::vector<int64_t> ids(num_vectors);
     for (int i = 0; i < (int)num_vectors; i++) {
-        ids[i] = i;
+        ids[i] = vids[i];
     }
     if (index_type_ == "HNSW") {
         auto dataset = vsag::Dataset::Make();

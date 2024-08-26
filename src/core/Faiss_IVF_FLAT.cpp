@@ -33,7 +33,7 @@ IVFFlat::IVFFlat(const IVFFlat& rhs)
       index_(rhs.index_) {}
 
 // add vector to index
-bool IVFFlat::Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) {
+bool IVFFlat::Add(const std::vector<std::vector<float>>& vectors, const std::vector<size_t>& vids, size_t num_vectors) {
     // reduce dimension
     std::vector<float> index_vectors;
     index_vectors.reserve(num_vectors * vec_dimension_);
