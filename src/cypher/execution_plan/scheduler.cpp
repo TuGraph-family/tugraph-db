@@ -156,7 +156,7 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
         antlr4::CommonTokenStream tokens(&lexer);
         parser::LcypherParser parser(&tokens);
         parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
-        parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
+        parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher(), ctx);
         geax::frontend::AstNode *node = visitor.result();
         cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
         node->accept(gen_anonymous_alias_rewriter);

@@ -173,7 +173,7 @@ class TestCypherV2 : public TuGraphTest {
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
             geax::common::ObjectArenaAllocator objAlloc_;
-            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
+            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher(), ctx_.get());
             AstNode* node = visitor.result();
             // rewrite ast
             cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
