@@ -114,7 +114,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             /usr/local/lib64/libvsag_static.a 
             libdiskann.a   
             /opt/OpenBLAS/lib/libopenblas.a
-            faiss.a
+            libfaiss_avx2.a
             libgomp.a
             -static-libstdc++
             -static-libgcc
@@ -138,7 +138,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 /usr/local/lib64/libvsag_static.a
                 libdiskann.a
                 /opt/OpenBLAS/lib/libopenblas.a
-                faiss.a
+                libfaiss_avx2.a
                 ${Boost_LIBRARIES}
                 omp
                 pthread
@@ -152,7 +152,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 /usr/local/lib64/libvsag_static.a
                 libdiskann.a
                 /opt/OpenBLAS/lib/libopenblas.a
-                faiss.a
+                libfaiss_avx2.a
                 rt
                 omp
                 pthread

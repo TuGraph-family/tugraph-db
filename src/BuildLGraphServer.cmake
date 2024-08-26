@@ -77,7 +77,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             /usr/local/lib64/libvsag_static.a
             libdiskann.a
             /opt/OpenBLAS/lib/libopenblas.a
-            faiss.a
+            libfaiss_avx2.a
             # begin static linking
             -Wl,-Bstatic
             cpprest
@@ -141,5 +141,5 @@ target_link_libraries(${TARGET_SERVER}
         /usr/local/lib64/libvsag_static.a
         libdiskann.a
         /opt/OpenBLAS/lib/libopenblas.a
-        faiss.a
+        libfaiss_avx2.a
 )
