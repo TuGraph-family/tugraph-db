@@ -21,6 +21,7 @@
 #include "cypher/resultset/result_info.h"
 #include "lgraph/lgraph_result.h"
 #include "bolt/connection.h"
+#include "geax-front-end/common/ObjectAllocator.h"
 
 namespace cypher {
 
@@ -31,7 +32,8 @@ class SubmitQueryContext {
     lgraph::Galaxy *galaxy_ = nullptr;
     std::string user_;
     std::string graph_;
-    std::shared_ptr<std::unordered_map<std::string, parser::Expression>> bolt_parameters_;
+    std::shared_ptr<std::unordered_map<std::string, geax::frontend::Expr*>> bolt_parameters_;
+    geax::common::ObjectArenaAllocator obj_alloc_;
     PARAM_TAB param_tab_;
     bool optimistic_ = false;
     bool path_unique_ = true;

@@ -61,7 +61,7 @@ void eval_query_check(cypher::RTContext *ctx, const std::string &query,
     CommonTokenStream tokens(&lexer);
     LcypherParser parser(&tokens);
     geax::common::ObjectArenaAllocator objAlloc_;
-    CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
+    CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher(), ctx);
     geax::frontend::AstNode *node = visitor.result();
     // rewrite ast
     cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
