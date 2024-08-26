@@ -23,7 +23,7 @@
           },
           {
             "query": "MATCH (n) WHERE id(n)=1 OR id(n)=3 AND id(n)=4 OR id(n)=18 OR id(n)=1111 RETURN n",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Filter [((({id(false,n) = 1}||({id(false,n) = 3}&&{id(false,n) = 4}))||{id(false,n) = 18})||{id(false,n) = 1111})]\n            All Node Scan [n]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Filter [((((id(n)=1) or ((id(n)=3) and (id(n)=4))) or (id(n)=18)) or (id(n)=1111))]\n            All Node Scan [n]\n",
             "res": 2
           }
         ],
@@ -35,22 +35,22 @@
           },
           {
             "query": "MATCH (n) where n.name in [\"Rachel Kempson\",\"Dennis Quaid\",\"none\"] RETURN n",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Rachel Kempson,Dennis Quaid,none,]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,none,]\n",
             "res": 2
           },
           {
             "query": "MATCH (n) where n.name =\"Rachel Kempson\" or n.name= \"Dennis Quaid\" or n.name=\"none\" RETURN n",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Rachel Kempson,Dennis Quaid,none,]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,none,]\n",
             "res": 2
           },
           {
             "query": "MATCH (n) where n.name = \"Rachel Kempson\" and n.name = \"Dennis Quaid\" or n.name = \"Vanessa Redgrave\" RETURN n",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Filter [(({n.name = Rachel Kempson}&&{n.name = Dennis Quaid})||{n.name = Vanessa Redgrave})]\n            All Node Scan [n]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Filter [(((n.name=\"Rachel Kempson\") and (n.name=\"Dennis Quaid\")) or (n.name=\"Vanessa Redgrave\"))]\n            All Node Scan [n]\n",
             "res": 1
           },
           {
             "query": "MATCH (n) where n.name = \"Rachel Kempson\" or n.name = \"Dennis Quaid\" or n.name = \"Vanessa Redgrave\" RETURN n",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Rachel Kempson,Dennis Quaid,Vanessa Redgrave,]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,Vanessa Redgrave,]\n",
             "res": 3
           }
         ],
@@ -64,22 +64,22 @@
         "parallel_traversal": [
           {
             "query": "MATCH (n:Person) return count(n)",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Traversal [n]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Gql Traversal [n]\n",
             "res": 1
           },
           {
             "query": "MATCH (n:Person) where n.birthyear > 1900 and n.birthyear < 2000 return count(n) ",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Traversal [n]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Gql Traversal [n]\n",
             "res": 1
           },
           {
             "query": "MATCH (n:Person) return n.birthyear, count(n)",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Traversal [n]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Gql Traversal [n]\n",
             "res": 13
           },
           {
             "query": "MATCH (f:Film)<-[:ACTED_IN]-(p:Person)-[:BORN_IN]->(c:City) return c.name, count(f)",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Traversal [f<--p-->c]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Gql Traversal [f<--p-->c]\n",
             "res": 3
           }
         ],

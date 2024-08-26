@@ -31,7 +31,6 @@ class TraversalFilterDetector : public cypher::OptimizationFilterVisitorImpl {
                 return false;
             }
         } catch (const lgraph::CypherException& e) {
-            LOG_INFO() << "-------TraversalFilterDetector Build failed at " << e.msg();
             return false;
         }
         return true;
