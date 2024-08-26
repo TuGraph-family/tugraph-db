@@ -549,7 +549,6 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::Exists* node) override {
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
         for (auto path_chain : node->pathChains()) {
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(path_chain);
         }

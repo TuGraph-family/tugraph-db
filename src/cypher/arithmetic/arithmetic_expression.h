@@ -19,12 +19,14 @@
 
 #include <core/data_type.h>
 #include <cmath>
+#include <string>
 #include "cypher/filter/iterator.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/execution_plan/runtime_context.h"
 #include "cypher/arithmetic/ast_expr_evaluator.h"
 #include "cypher/arithmetic/agg_funcs.h"
 #include "cypher/utils/geax_expr_util.h"
+#include "graph/common.h"
 
 namespace lgraph {
 class Filter;
@@ -57,7 +59,7 @@ static cypher::FieldData Add(const cypher::FieldData &x, const cypher::FieldData
     if (x.IsNull() || y.IsNull()) return cypher::FieldData();
     cypher::FieldData ret;
     if (x.type == cypher::FieldData::ARRAY || y.type == cypher::FieldData::ARRAY) {
-        ret.array = new std::vector<::lgraph::FieldData>();
+        ret.array = new std::vector<cypher::FieldData>();
         ret.type = cypher::FieldData::ARRAY;
         AddList(ret, x);
         AddList(ret, y);
@@ -398,19 +400,23 @@ struct ArithOperandNode {
         std::string entity_prop;
     } variadic;
     //};
-
+    struct Variable {
+        bool hasMapFieldName;
+        std::string _value_alias;
+        std::string _map_field_name;
+    } variable;
     /* AR_OperandNodeType type of leaf node,
      * either a constant: 3.14, a variable: node.property, or a parameter: $name. */
     enum ArithOperandType {
         AR_OPERAND_CONSTANT,
         AR_OPERAND_VARIADIC,
         AR_OPERAND_PARAMETER,
+        AR_OPERAND_VARIABLE,
     } type;
 
     ArithOperandNode() = default;
 
     ArithOperandNode(const parser::Expression &expr, const SymbolTable &sym_tab);
-
     void SetConstant(const cypher::FieldData &data) {
         type = AR_OPERAND_CONSTANT;
         constant = data;
@@ -421,17 +427,22 @@ struct ArithOperandNode {
         type = AR_OPERAND_VARIADIC;
         variadic.alias = alias;
     }
-
     void SetVariadic(const std::string &alias, const std::string &property) {
         SetVariadic(alias);
         variadic.entity_prop = property;
+    }
+    void SetVariable(const bool &hasMapFieldName = false, const std::string &value_alias = "",
+                    const std::string &map_field_name = "") {
+        type = AR_OPERAND_VARIABLE;
+        variable.hasMapFieldName = hasMapFieldName;
+        variable._value_alias = value_alias;
+        variable._map_field_name = map_field_name;
     }
 
     void SetEntity(const std::string &alias, const SymbolTable &sym_tab);
 
     void SetEntity(const std::string &alias, const std::string &property,
                    const SymbolTable &sym_tab);
-
     void SetParameter(const std::string &param) {
         type = AR_OPERAND_PARAMETER;
         variadic.alias = param;
@@ -442,7 +453,6 @@ struct ArithOperandNode {
     void Set(const parser::Expression &expr, const SymbolTable &sym_tab);
 
     void RealignAliasId(const SymbolTable &sym_tab);
-
     Entry Evaluate(RTContext *ctx, const Record &record) const {
         if (type == AR_OPERAND_CONSTANT) {
             return Entry(constant);
@@ -470,13 +480,14 @@ struct ArithOperandNode {
                 throw lgraph::CypherException("Undefined parameter: " + ToString());
             }
             return record.values[variadic.alias_idx];
+        } else if (type == AR_OPERAND_VARIABLE) {
+            return Entry(constant);
         } else {
             THROW_CODE(InternalError, "Invalid type.");
         }
         CYPHER_THROW_ASSERT(false);
         return Entry();
     }
-
     std::string ToString() const {
         std::string str;
         if (type == AR_OPERAND_VARIADIC) {
@@ -486,6 +497,14 @@ struct ArithOperandNode {
             str = constant.ToString();
         } else if (type == AR_OPERAND_PARAMETER) {
             str = variadic.alias;
+        } else if (type == AR_OPERAND_VARIABLE) {
+            if (!variable.hasMapFieldName) {
+                str.append(variable._value_alias);
+            } else {
+                str.append(variable._value_alias)
+                .append(".")
+                .append(variable._map_field_name);
+            }
         }
         return str;
     }
@@ -702,6 +721,14 @@ struct ArithExprNode {
         CYPHER_THROW_ASSERT(operand_type == ArithOperandNode::AR_OPERAND_CONSTANT);
         type = AR_EXP_OPERAND;
         operand.SetConstant(data);
+    }
+
+    void SetOperandVariable(ArithOperandNode::ArithOperandType operand_type,
+                    const bool &hasMapFieldName = false, const std::string &value_alias = "",
+                    const std::string &map_field_name = "") {
+        CYPHER_THROW_ASSERT(operand_type == ArithOperandNode::AR_OPERAND_VARIABLE);
+        type = AR_EXP_OPERAND;
+        operand.SetVariable(hasMapFieldName, value_alias, map_field_name);
     }
 
     void SetOperand(ArithOperandNode::ArithOperandType operand_type, const std::string &alias,

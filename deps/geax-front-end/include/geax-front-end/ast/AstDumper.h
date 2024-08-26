@@ -1109,9 +1109,7 @@ class AstDumper : public AstNodeVisitor {
     std::any visit(Exists* node) override {
         INDET_GUARD();
         VARIABLE_GUARD_WITH_TYPE_NAME(Exists);
-        auto expr = node->expr();
         auto& path_chains = node->pathChains();
-        VISIT_PARAM_AND_CHECK_WITH_MSG(expr);
         VISIT_PARAM_AND_CHECK_WITH_MSG(path_chains);
         return GEAXErrorCode::GEAX_SUCCEED;
     }

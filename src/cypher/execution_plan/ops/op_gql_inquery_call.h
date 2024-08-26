@@ -15,7 +15,7 @@
 #pragma once
 
 #include <vector>
-#include "procedure/procedure_v2.h"
+#include "procedure/procedure.h"
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/procedure/utils.h"
 #include "resultset/record.h"
@@ -165,7 +165,7 @@ class GqlInQueryCall : public OpBase {
             if (children.empty()) {
                 if (HandOff(ctx, record) == OP_OK) return OP_OK;
                 if (state == StreamDepleted) return OP_DEPLETED;
-                auto p = global_ptable_v2.GetProcedureV2(func_name_);
+                auto p = global_ptable.GetProcedure(func_name_);
                 if (!p) {
                     throw lgraph::EvaluationException("unregistered standalone function: " +
                                                       func_name_);
@@ -190,7 +190,7 @@ class GqlInQueryCall : public OpBase {
                 if (HandOff(ctx, record) == OP_OK) return OP_OK;
                 auto child = children[0];
                 while (child->Consume(ctx) == OP_OK) {
-                    auto p = global_ptable_v2.GetProcedureV2(func_name_);
+                    auto p = global_ptable.GetProcedure(func_name_);
                     if (!p) {
                         throw lgraph::EvaluationException("unregistered standalone function: " +
                                                           func_name_);

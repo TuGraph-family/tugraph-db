@@ -12,14 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <map>
 #include <unordered_set>
 #include "geax-front-end/isogql/GQLAstVisitor.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/clause_guard.h"
 #include "cypher/execution_plan/pattern_graph_maker.h"
-#include "cypher/procedure/procedure_v2.h"
+#include "cypher/procedure/procedure.h"
 #include "db/galaxy.h"
-
+#include "lgraph/lgraph_exceptions.h"
 
 namespace cypher {
 
@@ -318,6 +319,13 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
             p.type = Property::PARAMETER;
             p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
             p.value_alias = ((geax::frontend::Param*)value)->name();
+        } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+            p.type = Property::VARIABLE;
+            geax::frontend::Ref* ref;
+            checkedCast(((geax::frontend::GetField*)value)->expr(), ref);
+            p.value_alias = ref->name();
+            p.value = lgraph::FieldData(p.value_alias);
+            p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
         } else {
             NOT_SUPPORT();
         }
@@ -336,7 +344,7 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
 }
 
 std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) {
-    auto p = global_ptable_v2.GetProcedureV2(curr_procedure_name_);
+    auto p = global_ptable.GetProcedure(curr_procedure_name_);
     if (p) {
         for (auto& pair : node->items()) {
             const std::string& name = std::get<0>(pair);
@@ -798,6 +806,10 @@ std::any PatternGraphMaker::visit(geax::frontend::Same* node) { NOT_SUPPORT(); }
 std::any PatternGraphMaker::visit(geax::frontend::AllDifferent* node) { NOT_SUPPORT(); }
 
 std::any PatternGraphMaker::visit(geax::frontend::Exists* node) {
+    pattern_graphs_.resize(pattern_graphs_.size() + 1);
+    symbols_idx_.resize(symbols_idx_.size() + 1);
+    ++cur_pattern_graph_;
+    ClauseGuard cg(node->type(), cur_types_);
     for (auto& path_chain : node->pathChains()) {
         auto head = path_chain->head();
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
@@ -812,6 +824,32 @@ std::any PatternGraphMaker::visit(geax::frontend::Exists* node) {
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(edge);
         }
     }
+    auto& symbols_prev = pattern_graphs_[cur_pattern_graph_ - 1].symbol_table.symbols;
+    auto& symbols_cur = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols;
+    std::unordered_map<std::string, SymbolNode> temp_symbols;
+    std::map<size_t, std::pair<std::string, SymbolNode>> argument_symbols;
+    size_t temp_symbols_idx = 0;
+    for (auto& [alias, symbol] : symbols_prev) {
+        auto it = symbols_cur.find(alias);
+        if (it != symbols_cur.end()) {
+            argument_symbols.emplace(
+                symbol.id,
+                std::make_pair(alias, SymbolNode(symbol.id, symbol.type, SymbolNode::ARGUMENT)));
+        }
+    }
+
+    for (auto& [id, pair] : argument_symbols) {
+        temp_symbols.emplace(pair.first,
+                             SymbolNode(temp_symbols_idx++, pair.second.type, pair.second.scope));
+    }
+
+    for (auto& [alias, symbol] : symbols_cur) {
+        auto it = symbols_prev.find(alias);
+        if (it == symbols_prev.end()) {
+            temp_symbols.emplace(alias, SymbolNode(temp_symbols_idx++, symbol.type, symbol.scope));
+        }
+    }
+    std::swap(symbols_cur, temp_symbols);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -850,7 +888,7 @@ std::any PatternGraphMaker::visit(geax::frontend::ProcedureBody* node) {
         auto statement = i->statement();
         pattern_graphs_size += 1;
         if (statement->type() == geax::frontend::AstNodeType::kQueryStatement) {
-            geax::frontend::QueryStatement *queryStatement =
+            geax::frontend::QueryStatement* queryStatement =
                 (geax::frontend::QueryStatement*)statement;
             // not support join query, but support union query
             // in CompositeQueryStatement
@@ -953,6 +991,15 @@ std::any PatternGraphMaker::visit(geax::frontend::CompositeQueryStatement* node)
 
 std::any PatternGraphMaker::visit(geax::frontend::AmbientLinearQueryStatement* node) {
     auto& query_stmts = node->queryStatements();
+    int match_count = 0;
+    for (auto &stat : query_stmts) {
+        if (stat->type() == geax::frontend::AstNodeType::kMatchStatement) {
+            match_count++;
+        }
+    }
+    if (match_count > 1) {
+        THROW_CODE(CypherException, "Not support more than one (optional) match clause.");
+    }
     for (auto query_stmt : query_stmts) {
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_stmt);
     }
@@ -1183,7 +1230,7 @@ void PatternGraphMaker::AddRelationship(Relationship* rel) {
 
 std::any PatternGraphMaker::visit(geax::frontend::RemoveSingleProperty* node) { NOT_SUPPORT(); }
 std::any PatternGraphMaker::visit(geax::frontend::ListComprehension* node) {
-    geax::frontend::Ref *ref = nullptr;
+    geax::frontend::Ref* ref = nullptr;
     checkedCast(node->getVariable(), ref);
     AddSymbol(ref->name(), cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getVariable());
