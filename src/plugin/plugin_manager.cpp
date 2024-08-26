@@ -88,6 +88,7 @@ std::string lgraph::SingleLanguagePluginManager::SignatureToJsonString(
 std::vector<lgraph::PluginDesc> lgraph::SingleLanguagePluginManager::ListPlugins(
     const std::string& user) {
     AutoReadLock lock(lock_, GetMyThreadId());
+    auto txn = db_->CreateReadTxn();
     std::vector<PluginDesc> plugins;
     for (auto it = procedures_.begin(); it != procedures_.end(); it++) {
         std::string signature;
@@ -97,9 +98,35 @@ std::vector<lgraph::PluginDesc> lgraph::SingleLanguagePluginManager::ListPlugins
         } else {
             signature = "";
         }
-        plugins.emplace_back(FromInternalName(it->first), it->second->language, it->second->desc,
+        std::string code_type;
+        {
+            std::string name = it->first;
+            std::string zip_key = GetZipKey(name);
+            std::string cpp_key = GetCppKey(name);
+            std::string so_key = GetSoKey(name);
+            std::string cython_key = GetCythonKey(name);
+            if (table_->HasKey(txn.GetTxn(), Value::ConstRef(zip_key))) {
+                auto zip_it = table_->GetIterator(txn.GetTxn(), Value::ConstRef(zip_key));
+                const std::string& zip = zip_it->GetValue().AsString();
+                code_type = "zip";
+            } else if (table_->HasKey(txn.GetTxn(), Value::ConstRef(cpp_key))) {
+                auto cpp_it = table_->GetIterator(txn.GetTxn(), Value::ConstRef(cpp_key));
+                const std::string& cpp = cpp_it->GetValue().AsString();
+                code_type = "cpp";
+            } else if (table_->HasKey(txn.GetTxn(), Value::ConstRef(cython_key))) {
+                auto cython_it = table_->GetIterator(txn.GetTxn(), Value::ConstRef(cython_key));
+                const std::string& cython = cython_it->GetValue().AsString();
+                code_type = "py";
+            } else {
+                auto so_it = table_->GetIterator(txn.GetTxn(), Value::ConstRef(so_key));
+                const std::string& so = so_it->GetValue().AsString();
+                code_type = language_ == plugin::PLUGIN_LANG_TYPE_CPP ? "so" : "py";
+            }
+        }
+        plugins.emplace_back(FromInternalName(it->first), code_type, it->second->desc,
                              it->second->version, it->second->read_only, signature);
     }
+    txn.Commit();
     return plugins;
 }
 
