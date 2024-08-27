@@ -176,8 +176,6 @@ class TestQuery : public TuGraphTest {
             node->accept(gen_anonymous_alias_rewriter);
             cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
             node->accept(multi_path_pattern_rewriter);
-//            cypher::AstNodeVisitorImpl impl;
-//            node->accept(impl);
             cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx_.get());
             node->accept(push_down_filter_ast_writer);
             // dump
