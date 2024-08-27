@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -427,77 +427,6 @@ void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
     }
 }
 
-void Schema::RefreshLayout() {
-    // check field types
-    // check if there is any blob
-    blob_fields_.clear();
-    for (size_t i = 0; i < fields_.size(); i++) {
-        auto& f = fields_[i];
-        if (f.Type() == FieldType::NUL) throw FieldCannotBeNullTypeException(f.Name());
-        if (f.Type() == FieldType::BLOB) blob_fields_.push_back(i);
-    }
-    // if label is included in record, data starts after LabelId
-    size_t data_start_off = label_in_record_ ? sizeof(LabelId) : 0;
-    // setup name_to_fields
-    name_to_idx_.clear();
-    for (size_t i = 0; i < fields_.size(); i++) {
-        auto& f = fields_[i];
-        f.SetFieldId(i);
-        f.SetNullableArrayOff(data_start_off);
-        if (_F_UNLIKELY(name_to_idx_.find(f.Name()) != name_to_idx_.end()))
-            throw FieldAlreadyExistsException(f.Name());
-        name_to_idx_[f.Name()] = i;
-    }
-    // layout nullable array
-    n_nullable_ = 0;
-    for (auto& f : fields_) {
-        if (f.IsOptional()) {
-            f.SetNullableOff(n_nullable_);
-            n_nullable_++;
-        }
-    }
-    v_offset_start_ = data_start_off + (n_nullable_ + 7) / 8;
-    // layout the fixed fields
-    n_fixed_ = 0;
-    n_variable_ = 0;
-    for (auto& f : fields_) {
-        if (field_data_helper::IsFixedLengthFieldType(f.Type())) {
-            n_fixed_++;
-            f.SetFixedLayoutInfo(v_offset_start_);
-            v_offset_start_ += f.TypeSize();
-        } else {
-            n_variable_++;
-        }
-    }
-    // now, layout the variable fields
-    size_t vidx = 0;
-    for (auto& f : fields_) {
-        if (!field_data_helper::IsFixedLengthFieldType(f.Type()))
-            f.SetVLayoutInfo(v_offset_start_, n_variable_, vidx++);
-    }
-    // finally, check the indexed fields
-    indexed_fields_.clear();
-    bool found_primary = false;
-    for (auto& f : fields_) {
-        if (!f.GetVertexIndex() && !f.GetEdgeIndex()) continue;
-        indexed_fields_.emplace_hint(indexed_fields_.end(), f.GetFieldId());
-        if (f.Name() == primary_field_) {
-            FMA_ASSERT(!found_primary);
-            found_primary = true;
-        }
-    }
-    // vertex must have primary property
-    if (is_vertex_ && !indexed_fields_.empty()) {
-        FMA_ASSERT(found_primary);
-    }
-
-    fulltext_fields_.clear();
-    for (auto& f : fields_) {
-        if (!f.FullTextIndexed()) continue;
-        fulltext_fields_.emplace(f.GetFieldId());
-    }
-}
-
 /**
  * Creates an empty record
  *
@@ -612,10 +541,6 @@ void Schema::ClearFields() {
     label_.clear();
     fields_.clear();
     name_to_idx_.clear();
-    n_fixed_ = 0;
-    n_variable_ = 0;
-    n_nullable_ = 0;
-    v_offset_start_ = 0;
     indexed_fields_.clear();
     blob_fields_.clear();
     primary_field_.clear();
@@ -657,7 +582,6 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     temporal_field_ = temporal;
     temporal_order_ = temporal_order;
     edge_constraints_ = edge_constraints;
-    RefreshLayout();
 }
 
 // del fields, assuming fields is already de-duplicated
@@ -699,7 +623,6 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
         }
     }
     fields_.erase(fields_.begin() + put_pos, fields_.end());
-    RefreshLayout();
 }
 
 // add fields, assuming fields are already de-duplicated
@@ -717,7 +640,6 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
         fields_.push_back(_detail::FieldExtractor(f));
     }
     lgraph::CheckValidFieldNum(fields_.size());
-    RefreshLayout();
 }
 
 // mod fields, assuming fields are already de-duplicated
@@ -737,7 +659,6 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
     for (const auto &k : composite_index_key) {
         UnVertexCompositeIndex(k);
     }
-    RefreshLayout();
 }
 
 std::vector<const FieldSpec*> Schema::GetFieldSpecPtrs() const {

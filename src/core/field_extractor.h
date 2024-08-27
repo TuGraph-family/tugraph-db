@@ -30,24 +30,16 @@ namespace _detail {
     typename std::enable_if<                \
         std::is_integral<_TYPE_>::value || std::is_floating_point<_TYPE_>::value, _RT_>::type
 
+#define FIELD_VERSION_OFFSET 8
+#define FILED_COUNT_OFFSET sizeof(size_t)
+#define FIELD_LABEL_OFFSET sizeof(uint16_t)
+
 /** A field extractor can be used to get/set a field in the record. */
 class FieldExtractor {
     friend class lgraph::Schema;
     // type information
     FieldSpec def_;
-    // layout
-    size_t field_id_ = 0;
     bool is_vfield_ = false;
-    union {
-        size_t data_off = 0;
-        struct {
-            size_t idx;  // index of this field in all the vfields
-            size_t v_offs;
-            size_t last_idx;
-        };
-    } offset_;
-    size_t nullable_array_off_ = 0;  // offset of nullable array in record
-    size_t null_bit_off_ = 0;
     // index
     std::unique_ptr<VertexIndex> vertex_index_;
     std::unique_ptr<EdgeIndex> edge_index_;
@@ -55,17 +47,13 @@ class FieldExtractor {
     bool fulltext_indexed_ = false;
 
  public:
-    FieldExtractor() : null_bit_off_(0), vertex_index_(nullptr), edge_index_(nullptr) {}
+    FieldExtractor() : vertex_index_(nullptr), edge_index_(nullptr) {}
 
     ~FieldExtractor() {}
 
     FieldExtractor(const FieldExtractor& rhs) {
         def_ = rhs.def_;
-        field_id_ = rhs.field_id_;
         is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        nullable_array_off_ = rhs.nullable_array_off_;
-        null_bit_off_ = rhs.null_bit_off_;
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
@@ -74,11 +62,7 @@ class FieldExtractor {
     FieldExtractor& operator=(const FieldExtractor& rhs) {
         if (this == &rhs) return *this;
         def_ = rhs.def_;
-        field_id_ = rhs.field_id_;
         is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        null_bit_off_ = rhs.null_bit_off_;
-        nullable_array_off_ = rhs.nullable_array_off_;
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
@@ -87,11 +71,7 @@ class FieldExtractor {
 
     FieldExtractor(FieldExtractor&& rhs) noexcept {
         def_ = std::move(rhs.def_);
-        field_id_ = rhs.field_id_;
         is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        null_bit_off_ = rhs.null_bit_off_;
-        nullable_array_off_ = rhs.nullable_array_off_;
         vertex_index_ = std::move(rhs.vertex_index_);
         edge_index_ = std::move(rhs.edge_index_);
         rhs.vertex_index_ = nullptr;
@@ -102,11 +82,7 @@ class FieldExtractor {
     FieldExtractor& operator=(FieldExtractor&& rhs) noexcept {
         if (this == &rhs) return *this;
         def_ = std::move(rhs.def_);
-        field_id_ = rhs.field_id_;
         is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        null_bit_off_ = rhs.null_bit_off_;
-        nullable_array_off_ = rhs.nullable_array_off_;
         vertex_index_ = std::move(rhs.vertex_index_);
         edge_index_ = std::move(rhs.edge_index_);
         fulltext_indexed_ = rhs.fulltext_indexed_;
@@ -118,8 +94,6 @@ class FieldExtractor {
         is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         vertex_index_ = nullptr;
         edge_index_ = nullptr;
-        null_bit_off_ = 0;
-        if (is_vfield_) SetVLayoutInfo(d.optional ? 1 : 0, 1, 0);
     }
 
     const FieldSpec& GetFieldSpec() const { return def_; }
@@ -130,7 +104,7 @@ class FieldExtractor {
         } else {
             // get the Kth bit from NullArray
             char* arr = GetNullArray(record);
-            return arr[null_bit_off_ / 8] & (0x1 << (null_bit_off_ % 8));
+            return arr[def_.fieldId / 8] & (0x1 << (def_.fieldId % 8));
         }
     }
 
@@ -267,31 +241,17 @@ class FieldExtractor {
 
     bool FullTextIndexed() const { return fulltext_indexed_; }
 
-    size_t GetFieldId() const { return field_id_; }
+    size_t GetFieldId() const { return def_.fieldId; }
+    
+    size_t GetDataOffsetPos(size_t count) const {
+        return FIELD_LABEL_OFFSET + FIELD_VERSION_OFFSET + FILED_COUNT_OFFSET + (count + 7) / 8 + def_.fieldId * sizeof(size_t);
+    }
 
  private:
     void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
 
     void SetEdgeIndex(EdgeIndex* edgeindex) { edge_index_.reset(edgeindex); }
     void SetFullTextIndex(bool fulltext_indexed) { fulltext_indexed_ = fulltext_indexed; }
-
-    void SetFixedLayoutInfo(size_t offset) {
-        is_vfield_ = false;
-        offset_.data_off = offset;
-    }
-
-    void SetVLayoutInfo(size_t voff, size_t nv, size_t idx) {
-        is_vfield_ = true;
-        offset_.v_offs = voff;
-        offset_.last_idx = nv - 1;
-        offset_.idx = idx;
-    }
-
-    void SetNullableOff(size_t offset) { null_bit_off_ = offset; }
-
-    void SetNullableArrayOff(size_t offset) { nullable_array_off_ = offset; }
-
-    void SetFieldId(size_t n) { field_id_ = n; }
 
     //-----------------------
     // record accessors
@@ -383,9 +343,9 @@ class FieldExtractor {
         // set the Kth bit from NullArray
         char* arr = GetNullArray(record);
         if (is_null) {
-            arr[null_bit_off_ / 8] |= (0x1 << (null_bit_off_ % 8));
+            arr[def_.fieldId / 8] |= (0x1 << (def_.fieldId % 8));
         } else {
-            arr[null_bit_off_ / 8] &= ~(0x1 << (null_bit_off_ % 8));
+            arr[def_.fieldId / 8] &= ~(0x1 << (def_.fieldId % 8));
         }
     }
 
@@ -405,7 +365,7 @@ class FieldExtractor {
         memcpy(data, record.Data() + off, size);
     }
 
-    char* GetNullArray(const Value& record) const { return record.Data() + nullable_array_off_; }
+    char* GetNullArray(const Value& record) const { return record.Data() + FIELD_VERSION_OFFSET + FILED_COUNT_OFFSET; }
 
     size_t GetDataSize(const Value& record) const {
         if (is_vfield_) {
@@ -429,6 +389,8 @@ class FieldExtractor {
     }
 
     size_t GetNextOffset(const Value& record) const {
+
+
         if (is_vfield_) {
             size_t off =
                 (offset_.idx == offset_.last_idx)

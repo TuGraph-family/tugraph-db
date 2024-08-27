@@ -44,18 +44,18 @@ class SchemaManager;
 
 /** A schema is the description of data types in one record.
  ** The record is layout as the following:
- **     [LabelId] [Null-array] [Fixed-fields] [V-offsets] [V-data]
+ **     [Version][LabelId][Field-count][Null-array][Offset-array][Fixed-data and V-dataoffset] [V-data]
  ** in which:
  **     LabelId:        indicates the label of the record, different
  **                     label has different schema.
                         LabelId is left out for edges since edges are
                         sorted by LabelId so it becomes part of the key.
- **     Null-array:     records whether a field is null. Each nullable
- **                     field takes one bit
+ **     Field-count:    the number of fields in the schema
+ **     Null-array:     records whether a field is null. All fields will have one bit.
+ **     Offset-array:   stores the offsets of the fields. The first offset is obvious.
  **     Fixed-fields:   stores all the fixed-length fields one by one
- **     V-offsets:      stores the offsets of the variable-length fields.
- **                     Note that only the offsets from field 1 to N-1
- **                     are recorded, since the first offset is obvious.
+ **     Fixed-data and V-dataoffset: stores the offset of the variable-length fields
+ **                     they are stored together and the order is the same as the filedId
  **     V-data:         stores the data of the variable-length fields
 */
 class Schema {
@@ -69,11 +69,6 @@ class Schema {
 
     std::vector<_detail::FieldExtractor> fields_;
     std::unordered_map<std::string, size_t> name_to_idx_;
-    size_t n_fixed_ = 0;
-    size_t n_variable_ = 0;
-    size_t n_nullable_ = 0;
-    size_t v_offset_start_ = 0;
-
     std::unordered_set<size_t> indexed_fields_;
     std::vector<size_t> blob_fields_;
     std::string primary_field_{};
@@ -586,6 +581,5 @@ class Schema {
         return FieldData::Blob(extractor->GetBlobConstRef(record, get_blob).AsString());
     }
 
-    void RefreshLayout();
 };  // Schema
 }  // namespace lgraph
