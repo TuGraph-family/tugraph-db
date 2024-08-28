@@ -357,6 +357,22 @@ RUN wget -O /tmp/openblas-faiss.tar.gz https://tugraph-web.oss-cn-beijing.aliyun
     && cd /tmp/openblas-faiss/faiss && cmake -B build -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_OPT_LEVEL=avx2 -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib -DOpenMP_CXX_FLAGS="-fopenmp" -DOpenMP_CXX_LIB_NAMES="gomp" -DOpenMP_gomp_LIBRARY="/usr/lib64/libgomp.so.1" -DBLAS_LIBRARIES=/opt/OpenBLAS/lib/libopenblas.so . && make -C build && make -C build install \
     && rm -rf /tmp/openblas-faiss /tmp/openblas-faiss.tar.gz && ldconfig
 
+# install vsag
+RUN wget -O /tmp/binutils-gcc-vsag.tar.gz https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/binutils-gcc-vsag.tar.gz \
+    && tar -xzvf /tmp/binutils-gcc-vsag.tar.gz -C /tmp && cd /tmp/gcc-14.2.0 \
+    && yum install -y gmp-devel mpfr-devel libmpc-devel \
+    && ./configure --disable-multilib --enable-languages=c,c++,fortran --prefix=/opt/gcc-14.2.0 \
+    && make -j$(nproc) && make install && cd /tmp/binutils-2.43.1 \
+    && ./configure --prefix=/usr/local/binutils-2.43.1 --with-sysroot=/opt/gcc-14.2.0 --libdir=/opt/gcc-14.2.0/lib64 --disable-multilib \
+    && make -j$(nproc) && make install && cd /tmp/vsag && sh ./scripts/deps/install_deps_centos.sh \
+    && PATH=/usr/local/binutils-2.43.1/bin:/opt/gcc-14.2.0/bin:$PATH \
+       LD_LIBRARY_PATH=/opt/gcc-14.2.0/lib64:/usr/lib64:$LD_LIBRARY_PATH \
+       LDFLAGS="-L/opt/gcc-14.2.0/lib64" \
+       LD=/opt/gcc-14.2.0/bin/ld \
+       make release && make install \
+    && yum erase -y gmp-devel mpfr-devel libmpc-devel && yum clean all \
+    && rm -rf /tmp/gcc-14.2.0 /tmp/binutils-2.43.1 /tmp/vsag /tmp/binutils-gcc-vsag.tar.gz /opt/gcc-14.2.0 /opt/intel /usr/local/binutils-2.43.1
+
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
     LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
