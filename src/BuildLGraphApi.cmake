@@ -109,10 +109,7 @@ target_include_directories(${TARGET_LGRAPH} PUBLIC
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(${TARGET_LGRAPH} PUBLIC
-            libsimd.a
-            libcpuinfo.a
-            /usr/local/lib64/libvsag_static.a 
-            libdiskann.a   
+            vsag
             /opt/OpenBLAS/lib/libopenblas.a
             libfaiss_avx2.a
             libgomp.a
@@ -133,10 +130,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
-                libsimd.a
-                libcpuinfo.a
-                /usr/local/lib64/libvsag_static.a
-                libdiskann.a
+                vsag
                 /opt/OpenBLAS/lib/libopenblas.a
                 libfaiss_avx2.a
                 ${Boost_LIBRARIES}
@@ -147,10 +141,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 ${JAVA_JVM_LIBRARY})
     else ()
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
-                libsimd.a
-                libcpuinfo.a
-                /usr/local/lib64/libvsag_static.a
-                libdiskann.a
+                vsag
                 /opt/OpenBLAS/lib/libopenblas.a
                 libfaiss_avx2.a
                 rt

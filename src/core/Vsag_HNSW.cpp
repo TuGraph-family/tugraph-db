@@ -32,6 +32,12 @@ HNSW::HNSW(const HNSW& rhs)
 // add vector to index
 bool HNSW::Add(const std::vector<std::vector<float>>& vectors, const std::vector<size_t>& vids, size_t num_vectors) {
     // reduce dimension
+    if (num_vectors == 0) {
+        for (size_t i = 0; i < vids.size(); i++){
+            delete_ids_.insert(static_cast<int64_t>(vids[i]));
+        }
+        return true;
+    }
     std::vector<float> index_vectors;
     index_vectors.reserve(num_vectors * vec_dimension_);
     for (const auto& vec : vectors) {
@@ -100,7 +106,7 @@ std::vector<uint8_t> HNSW::Save() {
             file.write(reinterpret_cast<const char*>(b.data.get()), b.size);
             offsets.push_back(offset);
             offset += sizeof(b.size) + b.size;
-        }
+         }
         for (uint64_t i = 0; i < keys.size(); ++i) {
             const auto& key = keys[i];
             int64_t len = key.length();
@@ -113,11 +119,11 @@ std::vector<uint8_t> HNSW::Save() {
         file.close();
         std::ifstream input_file("hnsw.index", std::ios::binary | std::ios::ate);
         if (input_file.is_open()) {
-            std::streamsize size = input_file.tellg();
-            input_file.seekg(0, std::ios::beg);
-            blob.resize(size);
-            input_file.read(reinterpret_cast<char*>(blob.data()), size);
-            input_file.close();
+        std::streamsize size = input_file.tellg();
+        input_file.seekg(0, std::ios::beg);
+        blob.resize(size);
+        input_file.read(reinterpret_cast<char*>(blob.data()), size);
+        input_file.close();
         }
     }
     std::remove("hnsw.index");
@@ -176,6 +182,9 @@ bool HNSW::Search(const std::vector<float> query, size_t num_results,
     if (!index_) {
         return false;
     }
+    std::function<bool(int64_t)> delete_filter_ = [this](int64_t id) -> bool {
+        return delete_ids_.find(id) == delete_ids_.end();
+    };    
     auto dataset = vsag::Dataset::Make();
     dataset->Dim(query.size())
            ->NumElements(1)
@@ -183,7 +192,7 @@ bool HNSW::Search(const std::vector<float> query, size_t num_results,
     nlohmann::json parameters{
         {"hnsw", {{"ef_search", query_spec_}}},
     };
-    auto result = index_->KnnSearch(dataset, num_results, parameters.dump());
+    auto result = index_->KnnSearch(dataset, num_results, parameters.dump(), delete_filter_);
     if (result.has_value()) {
         auto ids = result.value()->GetIds();
         auto dists = result.value()->GetDistances();
