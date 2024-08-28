@@ -38,14 +38,14 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors, const std::vector
         }
         return true;
     }
-    std::vector<float> index_vectors;
-    index_vectors.reserve(num_vectors * vec_dimension_);
+    std::vector<float> index_vectors(num_vectors * vec_dimension_);
+    auto it = index_vectors.begin();
     for (const auto& vec : vectors) {
-        index_vectors.insert(index_vectors.end(), vec.begin(), vec.end());
+        it = std::copy(vec.begin(), vec.end(), it);
     }
     std::vector<int64_t> ids(num_vectors);
-    for (int i = 0; i < (int)num_vectors; i++) {
-        ids[i] = vids[i];
+    for (size_t i = 0; i < num_vectors; i++) {
+        ids[i] = static_cast<int64_t>(vids[i]);
     }
     if (index_type_ == "HNSW") {
         auto dataset = vsag::Dataset::Make();
