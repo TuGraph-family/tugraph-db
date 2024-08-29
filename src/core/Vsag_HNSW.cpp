@@ -107,7 +107,7 @@ std::vector<uint8_t> HNSW::Save() {
             file.write(reinterpret_cast<const char*>(b.data.get()), b.size);
             offsets.push_back(offset);
             offset += sizeof(b.size) + b.size;
-         }
+        }
         for (uint64_t i = 0; i < keys.size(); ++i) {
             const auto& key = keys[i];
             int64_t len = key.length();
@@ -157,18 +157,17 @@ void HNSW::Load(std::vector<uint8_t>& idx_bytes) {
     for (uint64_t i = 0; i < num_keys; ++i) {
         int64_t key_len = 0;
         readBinaryPOD(file, key_len);
-        char key_buf[key_len + 1];
-        memset(key_buf, 0, key_len + 1);
-        file.read(key_buf, key_len);
-        keys.push_back(key_buf);
+        std::vector<char> key_buf(key_len);
+        file.read(key_buf.data(), key_len);
+        keys.push_back(std::string(key_buf.begin(), key_buf.end()));
         uint64_t offset = 0;
         readBinaryPOD(file, offset);
         offsets.push_back(offset);
     }
     vsag::ReaderSet bs;
     for (uint64_t i = 0; i < num_keys; ++i) {
-        int64_t size = (i + 1 == num_keys) ? footer_offset : offsets[i + 1];
-        size -= (offsets[i] + sizeof(uint64_t));
+        int64_t size = (i + 1 == num_keys) ? (footer_offset - offsets[i] - sizeof(uint64_t))
+                                       : (offsets[i + 1] - offsets[i] - sizeof(uint64_t));
         auto file_reader = vsag::Factory::CreateLocalFileReader(filename, offsets[i] + sizeof(uint64_t), size);
         bs.Set(keys[i], file_reader);
     }
@@ -184,7 +183,7 @@ bool HNSW::Search(const std::vector<float> query, size_t num_results,
         return false;
     }
     std::function<bool(int64_t)> delete_filter_ = [this](int64_t id) -> bool {
-        return delete_ids_.find(id) == delete_ids_.end();
+        return delete_ids_.find(id) != delete_ids_.end();
     };    
     auto dataset = vsag::Dataset::Make();
     dataset->Dim(query.size())
@@ -193,7 +192,9 @@ bool HNSW::Search(const std::vector<float> query, size_t num_results,
     nlohmann::json parameters{
         {"hnsw", {{"ef_search", query_spec_}}},
     };
-    auto result = index_->KnnSearch(dataset, num_results, parameters.dump(), delete_filter_);
+    auto result = (!delete_ids_.empty())
+        ? index_->KnnSearch(dataset, num_results, parameters.dump(), delete_filter_)
+        : index_->KnnSearch(dataset, num_results, parameters.dump());
     if (result.has_value()) {
         auto ids = result.value()->GetIds();
         auto dists = result.value()->GetDistances();
