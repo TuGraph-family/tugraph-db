@@ -12,9 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-//
-// Created by wt on 7/2/18.
-//
 #pragma once
 
 #include "core/data_type.h"
