@@ -116,7 +116,15 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
     std::any visit(geax::frontend::Case* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::Cast* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::MatchCase* node) override { NOT_SUPPORT_AND_THROW(); }
-    std::any visit(geax::frontend::AggFunc* node) override { NOT_SUPPORT_AND_THROW(); }
+    std::any visit(geax::frontend::AggFunc* node) override {
+        std::string res(geax::frontend::ToString(node->funcName()));
+        res.append("(");
+        std::string str;
+        checkedAnyCast(node->expr()->accept(*this), str);
+        res += str;
+        res.append(")");
+        return res;
+    }
     std::any visit(geax::frontend::BAggFunc* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::MultiCount* node) override { NOT_SUPPORT_AND_THROW(); }
     std::any visit(geax::frontend::Windowing* node) override { NOT_SUPPORT_AND_THROW(); }

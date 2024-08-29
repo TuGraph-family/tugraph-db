@@ -30,6 +30,12 @@ class ExecutionPlanV2 {
     std::string ErrorMsg();
     OpBase* Root();
     void SetReadOnly(bool read_only) { read_only_ = read_only; }
+    void PreValidate(cypher::RTContext* ctx,
+                     const std::unordered_map<std::string, std::set<std::string>>& node,
+                     const std::unordered_map<std::string, std::set<std::string>>& edge);
+
+    void Validate(cypher::RTContext* ctx);
+    bool ReadOnly() const;
 
  private:
     bool read_only_ = true;
@@ -42,7 +48,6 @@ class ExecutionPlanV2 {
  private:
     DISABLE_COPY(ExecutionPlanV2);
     DISABLE_MOVE(ExecutionPlanV2);
-    bool ReadOnly() const;
     void Reset();
 };
 

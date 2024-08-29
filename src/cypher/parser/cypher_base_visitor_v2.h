@@ -22,6 +22,7 @@
 #include "geax-front-end/common/ObjectAllocator.h"
 #include "geax-front-end/ast/Ast.h"
 #include "cypher/parser/data_typedef.h"
+#include "execution_plan/runtime_context.h"
 
 #if __APPLE__
 #ifdef TRUE
@@ -75,6 +76,7 @@ class VisitGuard {
  * extended to create a visitor which only needs to handle a subset of the available methods.
  */
 class CypherBaseVisitorV2 : public LcypherVisitor {
+    cypher::RTContext *cypher_ctx_;
     std::string error_msg_;
     geax::common::ObjectArenaAllocator& objAlloc_;
     geax::frontend::AstNode * node_;
@@ -83,11 +85,15 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     static const std::unordered_map<std::string, geax::frontend::GeneralSetFunction> S_AGG_LIST;
     static const std::unordered_map<std::string, geax::frontend::BinarySetFunction> S_BAGG_LIST;
     geax::frontend::PathChain* path_chain_;
-    geax::frontend::FilterStatement* filter_in_with_clause_;
+    std::vector<geax::frontend::FilterStatement*> filter_in_with_clauses_;
+    size_t filter_in_with_idx_;
     parser::CmdType cmd_type_;
     std::unordered_map<std::string, std::stack<std::string>> list_comprehension_anonymous_symbols_;
     std::unordered_map<std::string, int32_t> list_comprehension_anonymous_idx_;
     int32_t list_comprehension_depth {0};
+
+    std::unordered_map<std::string, std::set<std::string>> node_property_;
+    std::unordered_map<std::string, std::set<std::string>> rel_property_;
 
     std::string GenerateListComprehension(const std::string &x) {
         return std::string("LIST_COMPREHENSION@") + x + "@" +
@@ -100,7 +106,7 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     parser::CmdType CommandType() const { return cmd_type_; }
 
     CypherBaseVisitorV2(geax::common::ObjectArenaAllocator& objAlloc,
-            antlr4::tree::ParseTree *tree);
+            antlr4::tree::ParseTree *tree, cypher::RTContext *cypher_ctx);
 
     std::string GenAnonymousAlias(bool is_node);
 
@@ -336,6 +342,14 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     std::any visitOC_RightArrowHead(LcypherParser::OC_RightArrowHeadContext *ctx) override;
 
     std::any visitOC_Dash(LcypherParser::OC_DashContext *ctx) override;
+
+    const std::unordered_map<std::string, std::set<std::string>>&
+    GetNodeProperty() const {return node_property_;}
+
+    const std::unordered_map<std::string, std::set<std::string>>&
+    GetRelProperty() const {return rel_property_;}
+
+    void PropertyExtractor(geax::frontend::ElementFiller *filler, bool isVertex);
 };
 
 }  // namespace parser
