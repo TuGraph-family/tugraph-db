@@ -232,9 +232,9 @@ p
 | ReadOnly:1                     |
 | Execution Plan:                |
 | Produce Results                |
-| Project [n]                    |
-| Expand(All) [n --> m ]         |
-| All Node Scan [n]              |
+|     Project [n]                |
+|         Expand(All) [n --> m ] |
+|             All Node Scan [n]  |
 +--------------------------------+
 
 1 rows
