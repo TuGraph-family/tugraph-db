@@ -39,6 +39,8 @@ class HNSW : public VectorIndex {
 
   HNSW(HNSW&& rhs) = delete;
 
+  ~HNSW() { index_ = nullptr; }
+
   HNSW& operator=(const HNSW& rhs) = delete;
 
   HNSW& operator=(HNSW&& rhs) = delete;

@@ -22,13 +22,13 @@ HNSW::HNSW(const std::string& label, const std::string& name,
                            std::shared_ptr<KvTable> table)
     : VectorIndex(label, name, distance_type, index_type,
                     vec_dimension, index_spec, std::move(table)),
-      createindex_(nullptr), index_(nullptr) { delete_ids_.clear(); }
+      createindex_(nullptr), index_(createindex_.get()) { delete_ids_.clear(); }
 
 HNSW::HNSW(const HNSW& rhs)
     : VectorIndex(rhs),
       delete_ids_(rhs.delete_ids_),
       createindex_(rhs.createindex_), 
-      index_(rhs.index_) {}
+      index_(createindex_.get()) {}
 
 // add vector to index
 bool HNSW::Add(const std::vector<std::vector<float>>& vectors, const std::vector<size_t>& vids, size_t num_vectors) {
@@ -39,22 +39,24 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors, const std::vector
         }
         return true;
     }
-    std::vector<float> index_vectors(num_vectors * vec_dimension_);
-    auto it = index_vectors.begin();
-    for (const auto& vec : vectors) {
-        it = std::copy(vec.begin(), vec.end(), it);
+    float* index_vectors = new float[num_vectors * vec_dimension_];
+    int64_t* ids = new int64_t[num_vectors];
+    for (size_t i = 0; i < num_vectors; i++) {
+        std::copy(vectors[i].begin(), vectors[i].end(), &index_vectors[i * vec_dimension_]);
     }
-    std::vector<int64_t> ids(num_vectors);
     for (size_t i = 0; i < num_vectors; i++) {
         ids[i] = static_cast<int64_t>(vids[i]);
     }
     if (index_type_ == "HNSW") {
         auto dataset = vsag::Dataset::Make();
-        dataset->Dim(vec_dimension_)->NumElements(num_vectors)->Ids(ids.data())->Float32Vectors(index_vectors.data());
+        dataset->Dim(vec_dimension_)->NumElements(num_vectors)->Ids(ids)->Float32Vectors(index_vectors);
         auto result = index_->Add(dataset);
         return result.has_value();
+    } else {
+        delete[] ids;
+        delete[] index_vectors;
+        return true;
     }
-    return true;
 }
 
 bool HNSW::Build() {
@@ -185,10 +187,12 @@ bool HNSW::Search(const std::vector<float> query, size_t num_results,
     std::function<bool(int64_t)> delete_filter_ = [this](int64_t id) -> bool {
         return delete_ids_.find(id) != delete_ids_.end();
     };    
+    float* query_copy = new float[query.size()];
+    std::copy(query.begin(), query.end(), query_copy);
     auto dataset = vsag::Dataset::Make();
     dataset->Dim(query.size())
            ->NumElements(1)
-           ->Float32Vectors(query.data());
+           ->Float32Vectors(query_copy);
     nlohmann::json parameters{
         {"hnsw", {{"ef_search", query_spec_}}},
     };
