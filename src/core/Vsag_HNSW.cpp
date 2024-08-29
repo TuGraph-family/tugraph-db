@@ -22,10 +22,11 @@ HNSW::HNSW(const std::string& label, const std::string& name,
                            std::shared_ptr<KvTable> table)
     : VectorIndex(label, name, distance_type, index_type,
                     vec_dimension, index_spec, std::move(table)),
-      createindex_(nullptr), index_(nullptr) {}
+      createindex_(nullptr), index_(nullptr) { delete_ids_.clear(); }
 
 HNSW::HNSW(const HNSW& rhs)
     : VectorIndex(rhs),
+      delete_ids_(rhs.delete_ids_),
       createindex_(rhs.createindex_), 
       index_(rhs.index_) {}
 

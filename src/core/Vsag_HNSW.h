@@ -27,7 +27,7 @@ class HNSW : public VectorIndex {
   friend class Transaction;
   friend class IndexManager;
 
-  std::unordered_set<int64_t> delete_ids_;
+  std::unordered_set<int64_t> delete_ids_ = {};
   std::shared_ptr<vsag::Index> createindex_;
   vsag::Index* index_;
  public:
