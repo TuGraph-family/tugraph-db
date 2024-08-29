@@ -1984,9 +1984,9 @@ std::any CypherBaseVisitorV2::visitOC_MapLiteral(LcypherParser::OC_MapLiteralCon
 
 std::any CypherBaseVisitorV2::visitOC_Parameter(LcypherParser::OC_ParameterContext *ctx) {
     std::string parameter = ctx->getText();
-    if (cypher_ctx_->bolt_parameters_) {
-        auto iter = cypher_ctx_->bolt_parameters_->find(parameter);
-        if (iter == cypher_ctx_->bolt_parameters_->end()) {
+    if (cypher_ctx_->bolt_parameters_v2_) {
+        auto iter = cypher_ctx_->bolt_parameters_v2_->find(parameter);
+        if (iter == cypher_ctx_->bolt_parameters_v2_->end()) {
             throw lgraph::CypherException(FMA_FMT("Parameter {} missing value", parameter));
         }
         return iter->second;

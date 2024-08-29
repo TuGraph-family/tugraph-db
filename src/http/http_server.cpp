@@ -545,7 +545,7 @@ void HttpService::BuildPbGraphQueryRequest(const brpc::Controller* cntl,
     ExtractTypedField<double>(req, HTTP_TIMEOUT, timeout);
     const std::string user = galaxy_->ParseAndValidateToken(token);
     pb.set_token(token);
-    cypher::RTContext ctx(sm_, galaxy_, user, graph);
+    cypher::RTContext ctx(sm_, galaxy_, user, graph, sm_->IsCypherV2());
     std::string name;
     std::string type;
     bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query, name, type);
@@ -971,7 +971,7 @@ void HttpService::DoCallProcedure(const brpc::Controller* cntl, std::string& res
     } else if (version == plugin::PLUGIN_VERSION_2) {
         // call cypher for plugin version 2
         bool is_write_op = false;
-        cypher::RTContext ctx(sm_, galaxy_, user, graphName);
+        cypher::RTContext ctx(sm_, galaxy_, user, graphName, sm_->IsCypherV2());
         std::string name, type;
         bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, lgraph_api::GraphQueryType::CYPHER,
                                                         procedureParam, name, type);

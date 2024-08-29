@@ -45,7 +45,11 @@ namespace cypher {
 void Scheduler::Eval(RTContext *ctx, const lgraph_api::GraphQueryType &type,
                      const std::string &script, ElapsedTime &elapsed) {
     if (type == lgraph_api::GraphQueryType::CYPHER) {
-        EvalCypher2(ctx, script, elapsed);
+        if (ctx->is_cypher_v2_) {
+            EvalCypher2(ctx, script, elapsed);
+        } else {
+            EvalCypher(ctx, script, elapsed);
+        }
     } else {
         EvalGql(ctx, script, elapsed);
     }

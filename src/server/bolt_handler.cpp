@@ -203,13 +203,24 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     auto& field1 = std::any_cast<
                         std::unordered_map<std::string, std::any>&>(fields[1]);
                     auto sm = BoltServer::Instance().StateMachine();
-                    cypher::RTContext ctx(sm, sm->GetGalaxy(), session->user, graph);
+                    cypher::RTContext ctx(sm, sm->GetGalaxy(), session->user, graph,
+                                          sm->IsCypherV2());
                     ctx.SetBoltConnection(conn.get());
-                    ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
-                        std::string, geax::frontend::Expr*>>();
+                    if (ctx.is_cypher_v2_) {
+                        ctx.bolt_parameters_v2_ = std::make_shared<std::unordered_map<
+                            std::string, geax::frontend::Expr*>>();
+                    } else {
+                        ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
+                            std::string, parser::Expression>>();
+                    }
                     for (auto& pair : field1) {
-                        ctx.bolt_parameters_->emplace("$" + pair.first,
-                            ConvertParameters(ctx.obj_alloc_, std::move(pair.second)));
+                        if (ctx.is_cypher_v2_) {
+                            ctx.bolt_parameters_v2_->emplace("$" + pair.first,
+                                ConvertParameters(ctx.obj_alloc_, std::move(pair.second)));
+                        } else {
+                            ctx.bolt_parameters_->emplace("$" + pair.first,
+                                ConvertParameters(std::move(pair.second)));
+                        }
                     }
                     session->streaming_msg.reset();
                     cypher::ElapsedTime elapsed;
