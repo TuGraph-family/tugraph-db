@@ -16,7 +16,7 @@
 
 #include "core/data_type.h"
 #include "cypher/execution_plan/ops/op.h"
-#include "cypher_exception.h"
+#include "cypher/cypher_exception.h"
 
 namespace cypher {
 
@@ -34,21 +34,12 @@ class NodeIndexSeekByRange : public OpBase {
     std::vector<lgraph::FieldData> target_values_;
     lgraph::CompareOp cmpOp_;
 
-    OpResult HandOff() {
-        if (!it_ || !it_->IsValid()) return OP_REFRESH;
-        if (!consuming_) {
-            consuming_ = true;
-            return OP_OK;
-        }
-        it_->Next();
-        return it_->IsValid() ? OP_OK : OP_REFRESH;
-    }
-
  public:
     NodeIndexSeekByRange(Node *node, const SymbolTable *sym_tab, std::string field = "",
                   std::vector<lgraph::FieldData> target_values = {},
                   lgraph::CompareOp cmpOP = lgraph::CompareOp::LBR_EQ)
-        : OpBase(OpType::NODE_INDEX_SEEK_BYRANGE, "Node Index Seek By Range"), node_(node), sym_tab_(sym_tab), cmpOp_(cmpOP) {
+        : OpBase(OpType::NODE_INDEX_SEEK_BYRANGE, "Node Index Seek By Range"),
+                    node_(node), sym_tab_(sym_tab), cmpOp_(cmpOP) {
         if (node) {
             it_ = node->ItRef();
             alias_ = node->Alias();
@@ -85,25 +76,30 @@ class NodeIndexSeekByRange : public OpBase {
             CYPHER_TODO();
         }
         CYPHER_THROW_ASSERT(!target_values_.empty());
-        CYPHER_THROW_ASSERT(cmpOp_ == lgraph::CompareOp::LBR_GT || cmpOp_ == lgraph::CompareOp::LBR_LT);
+        CYPHER_THROW_ASSERT(cmpOp_ == lgraph::CompareOp::LBR_GT ||
+                            cmpOp_ == lgraph::CompareOp::LBR_LT);
         auto value = target_values_[0];
         if (cmpOp_ == lgraph::CompareOp::LBR_GT) {
-            if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
-                it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(),
-                                field_, value, lgraph::FieldData());
+            if (!node_->Label().empty() && ctx->txn_->GetTxn()
+                ->IsIndexed(node_->Label(), field_)) {
+                it_->Initialize(ctx->txn_->GetTxn().get(),
+                            lgraph::VIter::INDEX_ITER, node_->Label(),
+                            field_, value, lgraph::FieldData());
             } else {
                 // Weak index iterator
-                it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value, lgraph::FieldData());
-                //CYPHER_THROW_ASSERT(0);
+                it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(),
+                    field_, value, lgraph::FieldData());
             }
         } else if (cmpOp_ == lgraph::CompareOp::LBR_LT) {
-            if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
-                it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(),
-                                field_,  lgraph::FieldData(), value);
+            if (!node_->Label().empty() &&
+                ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
+                it_->Initialize(ctx->txn_->GetTxn().get(),
+                            lgraph::VIter::INDEX_ITER, node_->Label(),
+                            field_,  lgraph::FieldData(), value);
             } else {
                 // Weak index iterator
-                it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, lgraph::FieldData(), value);
-                //CYPHER_THROW_ASSERT(0);
+                it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(),
+                                field_, lgraph::FieldData(), value);
             }
         }
         consuming_ = false;
@@ -129,24 +125,6 @@ class NodeIndexSeekByRange : public OpBase {
         LOG_DEBUG() << alias_ << ": " << it_->GetId();
 #endif
         return OP_OK;
-        // if (HandOff() == OP_OK) {
-        //     return OP_OK;
-        // }
-        // while ((size_t)value_rec_idx_ < target_values_.size() - 1) {
-        //     value_rec_idx_++;
-        //     auto value = target_values_[value_rec_idx_];
-        //     if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
-        //         it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER,
-        //                         node_->Label(), field_, value, value);
-        //     } else {
-        //         // Weak index iterator
-        //         it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
-        //     }
-        //     if (it_->IsValid()) {
-        //         return OP_OK;
-        //     }
-        // }
-        // return OP_DEPLETED;
     }
 
     OpResult ResetImpl(bool complete = false) override {

@@ -202,7 +202,8 @@ struct OpBase {
 
     bool IsScan() const {
         return type == OpType::ALL_NODE_SCAN || type == OpType::NODE_BY_LABEL_SCAN ||
-               type == OpType::NODE_INDEX_SEEK || type == OpType::ARGUMENT || type == OpType::NODE_INDEX_SEEK_BYRANGE;
+               type == OpType::NODE_INDEX_SEEK || type == OpType::ARGUMENT ||
+               type == OpType::NODE_INDEX_SEEK_BYRANGE;
     }
 
     bool IsDynamicScan() const {

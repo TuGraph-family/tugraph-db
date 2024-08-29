@@ -109,7 +109,7 @@ class WeakIndexIterator {
 
     void SeekIndex(const std::string &l) {
         if (_txn->IsIndexed(l, _field_name)) {
-            if(!range) {
+            if (!range) {
                 auto iit = _txn->GetVertexIndexIterator(l, _field_name, _value, _value);
                 if (iit.IsValid()) {
                     _iit.emplace_back(new lgraph::VertexIndexIterator(std::move(iit)));
@@ -150,9 +150,11 @@ class WeakIndexIterator {
         }
     }
 
-        WeakIndexIterator(lgraph::Transaction *txn, const std::string &label, const std::string &field,
-                      const FieldData &startVal, const FieldData &endVal)
-        : _txn(txn), _label(label), _field_name(field), _startVal(startVal), _endVal(endVal), range(true) {
+        WeakIndexIterator(lgraph::Transaction *txn, const std::string &label,
+                    const std::string &field, const FieldData &startVal,
+                    const FieldData &endVal)
+        : _txn(txn), _label(label), _field_name(field),
+            _startVal(startVal), _endVal(endVal), range(true) {
         if (!_label.empty()) {
             SeekIndex(_label);
         } else {
@@ -166,7 +168,7 @@ class WeakIndexIterator {
             // TODO(anyone) optimize, use label iterator
             _it = new lgraph::graph::VertexIterator(_txn->GetVertexIterator());
             while (_it->IsValid()) {
-                if(endVal.type == lgraph_api::NUL) {
+                if (endVal.type == lgraph_api::NUL) {
                     if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
                         _txn->GetVertexField(*_it, _field_name) > startVal) {
                             _valid = true;
@@ -221,14 +223,15 @@ class WeakIndexIterator {
         if (_it) {
             while (_it->IsValid()) {
                 _it->Next();
-                if(!range){
-                    if (_it->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                if (!range) {
+                    if (_it->IsValid() && (_label.empty() ||
+                        _txn->GetVertexLabel(*_it) == _label) &&
                         _txn->GetVertexField(*_it, _field_name) == _value) {
                         _valid = true;
                         break;
                     }
                 } else {
-                    if(_endVal.type == lgraph_api::NUL) {
+                    if (_endVal.type == lgraph_api::NUL) {
                         if ((_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
                             _txn->GetVertexField(*_it, _field_name) > _startVal) {
                                 _valid = true;
@@ -254,27 +257,31 @@ class WeakIndexIterator {
             auto iit = _iit[_iit_idx];
             while (iit->IsValid()) {
                 iit->Next();
-                if(!range) {
-                    if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                if (!range) {
+                    if (iit->IsValid() && (_label.empty() ||
+                        _txn->GetVertexLabel(*_it) == _label) &&
                         _txn->GetVertexField(iit->GetVid(), _field_name) == _value) {
                         _valid = true;
                         break;
                     }
                 } else {
-                    if(_endVal.type == lgraph_api::NUL) {
-                        if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                    if (_endVal.type == lgraph_api::NUL) {
+                        if (iit->IsValid() && (_label.empty() ||
+                            _txn->GetVertexLabel(*_it) == _label) &&
                             _txn->GetVertexField(iit->GetVid(), _field_name) > _startVal) {
                                 _valid = true;
                                 break;
                         }
                     } else if (_startVal.type == lgraph_api::NUL) {
-                            if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                            if (iit->IsValid() && (_label.empty() ||
+                            _txn->GetVertexLabel(*_it) == _label) &&
                             _txn->GetVertexField(iit->GetVid(), _field_name) < _endVal) {
                                 _valid = true;
                                 break;
                         }
                     } else {
-                            if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                            if (iit->IsValid() && (_label.empty() ||
+                            _txn->GetVertexLabel(*_it) == _label) &&
                             _txn->GetVertexField(iit->GetVid(), _field_name) > _startVal &&
                             _txn->GetVertexField(iit->GetVid(), _field_name) < _endVal) {
                                 _valid = true;

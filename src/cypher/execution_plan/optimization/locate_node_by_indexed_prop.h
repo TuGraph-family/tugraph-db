@@ -81,14 +81,18 @@ class LocateNodeByIndexedProp : public OptPass {
             // Reason that not to build unwind：unwind needs one more symbol in symbol table
             if (target_value_datas.empty()) target_value_datas.emplace_back(value);
             if (cmpOp == lgraph::CompareOp::LBR_EQ) {
-                auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, target_value_datas);
+                auto op_node_index_seek = new NodeIndexSeek(node, symtab,
+                                                                    field, target_value_datas);
                 op_node_index_seek->parent = op_post;
                 op_post->RemoveChild(op_filter);
                 OpBase::FreeStream(op_filter);
                 op_filter = nullptr;
                 op_post->AddChild(op_node_index_seek);
-            } else if (cmpOp == lgraph::CompareOp::LBR_GT || cmpOp == lgraph::CompareOp::LBR_LT) {
-                auto op_node_index_seek_byrange = new NodeIndexSeekByRange(node, symtab, field, target_value_datas, cmpOp);
+            } else if (cmpOp == lgraph::CompareOp::LBR_GT ||
+                    cmpOp == lgraph::CompareOp::LBR_LT) {
+                auto op_node_index_seek_byrange
+                                    = new NodeIndexSeekByRange(node, symtab,
+                                                            field, target_value_datas, cmpOp);
                 op_node_index_seek_byrange->parent = op_post;
                 op_post->RemoveChild(op_filter);
                 OpBase::FreeStream(op_filter);
@@ -182,7 +186,7 @@ class LocateNodeByIndexedProp : public OptPass {
         } else if ((filter->Type() == lgraph::Filter::BINARY &&
                     filter->LogicalOp() == lgraph::LBR_OR)) {
             if (!getValueFromRangeFilter(filter->Right(), field, value, cmpOP)) return false;
-            if(cmpOP != lgraph::CompareOp::LBR_EQ) return false;
+            if (cmpOP != lgraph::CompareOp::LBR_EQ) return false;
             target_value_datas.emplace_back(value);
             while (!filter->Left()->IsLeaf()) {
                 filter = filter->Left();
@@ -191,11 +195,11 @@ class LocateNodeByIndexedProp : public OptPass {
                     return false;
                 }
                 if (!getValueFromRangeFilter(filter->Right(), field, value, cmpOP)) return false;
-                if(cmpOP != lgraph::CompareOp::LBR_EQ) return false;
+                if (cmpOP != lgraph::CompareOp::LBR_EQ) return false;
                 target_value_datas.emplace_back(value);
             }
             if (!getValueFromRangeFilter(filter->Left(), field, value, cmpOP)) return false;
-            if(cmpOP != lgraph::CompareOp::LBR_EQ) return false;
+            if (cmpOP != lgraph::CompareOp::LBR_EQ) return false;
             target_value_datas.emplace_back(value);
             std::reverse(target_value_datas.begin(), target_value_datas.end());
             return true;
@@ -220,7 +224,8 @@ class LocateNodeByIndexedProp : public OptPass {
         }
 
         for (auto child : op->children) {
-            if (FindNodePropFilter(child, op_filter, field, value, target_value_datas, cmpOp)) return true;
+            if (FindNodePropFilter(child, op_filter, field,
+                                    value, target_value_datas, cmpOp)) return true;
         }
 
         return false;
