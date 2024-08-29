@@ -19,16 +19,21 @@
 
 #include <regex>
 #include "cypher/execution_plan/ops/op.h"
+#include "lgraph/lgraph_result.h"
 #include "lgraph/lgraph_types.h"
+#include "lgraph_api/result_element.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
 #include "server/bolt_session.h"
+#include "boost/regex.hpp"
 
 /* Runtime Record to User Record */
 static void RRecordToURecord(
     lgraph_api::Transaction *txn,
     const std::vector<std::pair<std::string, lgraph_api::LGraphType>> &header,
-    const std::shared_ptr<cypher::Record> &record_ptr, lgraph_api::Record &record) {
+    const std::shared_ptr<cypher::Record> &record_ptr, lgraph_api::Record &record,
+    lgraph_api::NODEMAP& node_map, lgraph_api::RELPMAP& relp_map
+    ) {
     if (header.empty()) {
         return;
     }
@@ -127,21 +132,21 @@ static void RRecordToURecord(
                 using Vertex = lgraph_api::traversal::Vertex;
                 using Path = lgraph_api::traversal::Path;
                 using Edge = lgraph_api::traversal::Edge;
-                std::regex regex_word("(E|V)\\[([0-9]+|([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+))\\]");
-                std::smatch match_group;
+                boost::regex regex_word("(E|V)\\[([0-9]+|([0-9]+_[0-9]+_[0-9]+_[0-9]+_[0-9]+))\\]");
+                boost::smatch match_group;
                 auto node_str = v.constant.array->at(0).ToString();
-                CYPHER_THROW_ASSERT(std::regex_match(node_str, match_group, regex_word));
+                CYPHER_THROW_ASSERT(boost::regex_match(node_str, match_group, regex_word));
                 auto start = static_cast<size_t>(std::stoll(match_group[2].str()));
                 Path path{Vertex(start)};
-                std::regex split_word("_");
+                boost::regex split_word("_");
                 for (auto &path_pattern : *v.constant.array) {
                     auto path_pattern_str = path_pattern.ToString();
                     CYPHER_THROW_ASSERT(
-                        std::regex_match(path_pattern_str, match_group, regex_word));
+                        boost::regex_match(path_pattern_str, match_group, regex_word));
                     auto type = match_group[1].str();
                     if (type == "V") continue;
                     auto ids = match_group[2].str();
-                    std::sregex_token_iterator id(ids.begin(), ids.end(), split_word, -1);
+                    boost::sregex_token_iterator id(ids.begin(), ids.end(), split_word, -1);
                     auto start = static_cast<size_t>(std::stoll(id++->str()));
                     auto end = static_cast<size_t>(std::stoll(id++->str()));
                     auto lid = static_cast<uint16_t>(std::stoll(id++->str()));
@@ -156,7 +161,7 @@ static void RRecordToURecord(
                     }
                     path.Append(Edge(start, lid, tid, end, eid, forward));
                 }
-                record.Insert(header[index].first, path, txn);
+                record.Insert(header[index].first, path, txn, node_map, relp_map);
                 continue;
             } else {
                 if (v.constant.array != nullptr || v.constant.map != nullptr) {
@@ -192,6 +197,8 @@ class ProduceResults : public OpBase {
         Resetted,
         Consuming,
     } state_;
+    lgraph_api::NODEMAP node_map_;
+    lgraph_api::RELPMAP relp_map_;
 
  public:
     ProduceResults() : OpBase(OpType::PRODUCE_RESULTS, "Produce Results") {
@@ -294,7 +301,8 @@ class ProduceResults : public OpBase {
             }
             if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
                 auto record = ctx->result_->MutableRecord();
-                RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
+                RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record,
+                                *record, node_map_, relp_map_);
                 session->ps.AppendRecords(ctx->result_->BoltRecords());
                 ctx->result_->ClearRecords();
                 bool sync = false;
@@ -327,7 +335,8 @@ class ProduceResults : public OpBase {
             auto res = child->Consume(ctx);
             if (res != OP_OK) return res;
             auto record = ctx->result_->MutableRecord();
-            RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(), child->record, *record);
+            RRecordToURecord(ctx->txn_.get(), ctx->result_->Header(),
+                            child->record, *record, node_map_, relp_map_);
             return OP_OK;
         }
     }

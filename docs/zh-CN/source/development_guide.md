@@ -233,22 +233,37 @@ CALL dbms.meta.countDetail()
 CALL db.upsertVertex('node1', [{id:1, name:'name1'},{id:2, name:'name2'}])
 ```
 ### 批量upsert边数据
-如果两点之间不存在某条类型的边就插入，如果存在就更新该边的属性。
+如果两点之间不存在某条类型的边就插入，如果存在就更新该边的属性，也就是两点之间同类型的边只能有一条。
 
 第四个参数是一个`list`类型，每个数组里面的元素是个`map`类型，每个`map`里面是：边的起点类型主键字段和对应的值、边的终点类型主键字段和对应的值、边类型自身的属性字段和值。每个map里面至少有两个元素。
 
 第二个参数和第三个参数是为第四个参数服务的。分别说明了起点和终点的类型是什么，以及第四个参数中那个字段代表起点主键字段值，那个字段代表终点主键字段值。
+
+注：第二个参数和第三个参数中配置的起点和终点的主键字段并不是起点和终点schema中的主键字段名，只是起一个占位和区别的作用，方便识别第四个参数中哪个字段代表起点和终点的主键字段。
 
 推荐使用driver里面的参数化特性，避免自己构造语句。
 ```
 CALL db.upsertEdge('edge1',{type:'node1',key:'node1_id'}, {type:'node2',key:'node2_id'}, [{node1_id:1,node2_id:2,score:10},{node1_id:3,node2_id:4,score:20}])
 ```
 
+### 批量upsert边数据-根据边的属性确定唯一
+上面描述的upsert逻辑是两点之间同类型的边只能有一条，如果要求两点之间同类型的边可以有多条，并且根据边上的某个属性来确定唯一，需要在原来的基础上多加一个字段，如下：
+```
+CALL db.upsertEdge('edge1',{type:'node1',key:'node1_id'}, {type:'node2',key:'node2_id'}, [{node1_id:1,node2_id:2,score:10},{node1_id:3,node2_id:4,score:20}], 'score')
+```
+在最后多了一个字段`score`, 逻辑变成：如果两点之间不存在一条`edge1`类型的边，并且`score`值等于某个值，就插入；否则就更新改边的属性。
+边上的`score`字段需要提前加上一个特殊的`pair unique`索引，如下：
+```
+CALL db.addEdgeIndex('edge1', 'score', false, true)
+```
+
 ### DataX
 
 https://github.com/ljcui/DataX/tree/bolt 自行编译。
 
-这个DataX实现的 tugraph writer 内部调用的是上面描述的`db.upsertVertex`和`db.upsertEdge`。
+这个DataX实现的 tugraph writer 内部调用的是上面描述的`db.upsertVertex`和`db.upsertEdge`，
+tugraph reader 内部调用的是TuGraph 的 bolt client，支持流式读取，
+具体使用方式见[TuGraph-DataX 使用介绍](./6.utility-tools/7.tugraph-datax.md)
 
 ### 离线脱机导入数据
 如果你有子图的schema以及子图里面所有的点边数据（csv或者json格式），可以利用`lgraph_import`工具离线将这些数据生成图数据。

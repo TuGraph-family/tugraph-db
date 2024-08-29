@@ -201,8 +201,8 @@ void lgraph::HaStateMachine::on_shutdown() { LOG_DEBUG() << "This node is down";
 }
 
 void lgraph::HaStateMachine::on_error(const ::braft::Error& e) {
-    LeaveGroup();
-    LOG_DEBUG() << "Met raft error " << e;
+    // LeaveGroup();
+    LOG_INFO() << "Met raft error " << e;
 }
 
 void lgraph::HaStateMachine::on_configuration_committed(const ::braft::Configuration& conf) {
