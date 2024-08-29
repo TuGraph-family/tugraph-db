@@ -349,8 +349,10 @@ void Schema::AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, co
                         fe.GetVectorIndex()->CleanVectorFromTable(txn);
                         fe.GetVectorIndex()->Build();
                         fe.GetVectorIndex()->Add(floatvector, vids, count);
-                        bool success = indexManager->SetVectorIndex(txn, fe.GetVectorIndex()->GetLabel(),
-                                    fe.GetVectorIndex()->GetName(), fe.GetVectorIndex()->GetIndexType(),
+                        bool success = indexManager->SetVectorIndex(txn,
+                                                            fe.GetVectorIndex()->GetLabel(),
+                                    fe.GetVectorIndex()->GetName(),
+                                                            fe.GetVectorIndex()->GetIndexType(),
                                     fe.GetVectorIndex()->GetVecDimension(),
                                     fe.GetVectorIndex()->GetDistanceType(),
                                     fe.GetVectorIndex()->index_spec_ , fe.Type(),
@@ -401,8 +403,10 @@ void Schema::DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const V
                         fe.GetVectorIndex()->CleanVectorFromTable(txn);
                         fe.GetVectorIndex()->Build();
                         fe.GetVectorIndex()->Add(floatvector, vids, count);
-                        bool success = indexManager->SetVectorIndex(txn, fe.GetVectorIndex()->GetLabel(),
-                                    fe.GetVectorIndex()->GetName(), fe.GetVectorIndex()->GetIndexType(),
+                        bool success = indexManager->SetVectorIndex(txn,
+                                                            fe.GetVectorIndex()->GetLabel(),
+                                    fe.GetVectorIndex()->GetName(),
+                                                            fe.GetVectorIndex()->GetIndexType(),
                                     fe.GetVectorIndex()->GetVecDimension(),
                                     fe.GetVectorIndex()->GetDistanceType(),
                                     fe.GetVectorIndex()->index_spec_ , fe.Type(),

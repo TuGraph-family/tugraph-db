@@ -54,7 +54,8 @@ class IVFFlat : public VectorIndex {
   IVFFlat& operator=(IVFFlat&& rhs) = delete;
 
   // add vector to index and build index
-  bool Add(const std::vector<std::vector<float>>& vectors, const std::vector<size_t>& vids, size_t num_vectors) override;
+  bool Add(const std::vector<std::vector<float>>& vectors,
+           const std::vector<size_t>& vids, size_t num_vectors) override;
 
   // build index
   bool Build() override;

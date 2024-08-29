@@ -3937,7 +3937,8 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record,
             "Please check the parameter, M should be an integer in the range (2,2048)");
             CYPHER_ARG_CHECK((args[6].type == parser::Expression::INT &&
                               args[6].Int() < 65536 && args[6].Int() > 1),
-            "Please check the parameter, efConstruction should be an integer in the range (1,65536)");
+            "Please check the parameter,"
+            "efConstruction should be an integer in the range (1,65536)");
             index_spec.emplace_back(args[5].Int());
             index_spec.emplace_back(args[6].Int());
             break;
@@ -4116,7 +4117,6 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                 }
             }
         } else {
-
         }
     } else if (index_type == "HNSW") {
         CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT &&
@@ -4149,7 +4149,6 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                 }
             }
         } else {
-
         }
     } else {
         throw lgraph::ReminderException("Please check the number of parameter!");

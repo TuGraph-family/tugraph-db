@@ -27,14 +27,15 @@ HNSW::HNSW(const std::string& label, const std::string& name,
 HNSW::HNSW(const HNSW& rhs)
     : VectorIndex(rhs),
       delete_ids_(rhs.delete_ids_),
-      createindex_(rhs.createindex_), 
+      createindex_(rhs.createindex_),
       index_(createindex_.get()) {}
 
 // add vector to index
-bool HNSW::Add(const std::vector<std::vector<float>>& vectors, const std::vector<size_t>& vids, size_t num_vectors) {
+bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
+               const std::vector<size_t>& vids, size_t num_vectors) {
     // reduce dimension
     if (num_vectors == 0) {
-        for (size_t i = 0; i < vids.size(); i++){
+        for (size_t i = 0; i < vids.size(); i++) {
             delete_ids_.insert(static_cast<int64_t>(vids[i]));
         }
         return true;
@@ -49,7 +50,8 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors, const std::vector
     }
     if (index_type_ == "HNSW") {
         auto dataset = vsag::Dataset::Make();
-        dataset->Dim(vec_dimension_)->NumElements(num_vectors)->Ids(ids)->Float32Vectors(index_vectors);
+        dataset->Dim(vec_dimension_)->NumElements(num_vectors)
+               ->Ids(ids)->Float32Vectors(index_vectors);
         auto result = index_->Add(dataset);
         return result.has_value();
     } else {
@@ -105,7 +107,7 @@ std::vector<uint8_t> HNSW::Save() {
         uint64_t offset = 0;
         for (const auto& key : keys) {
             vsag::Binary b = bs->Get(key);
-            writeBinaryPOD(file, b.size); 
+            writeBinaryPOD(file, b.size);
             file.write(reinterpret_cast<const char*>(b.data.get()), b.size);
             offsets.push_back(offset);
             offset += sizeof(b.size) + b.size;
@@ -113,9 +115,9 @@ std::vector<uint8_t> HNSW::Save() {
         for (uint64_t i = 0; i < keys.size(); ++i) {
             const auto& key = keys[i];
             int64_t len = key.length();
-            writeBinaryPOD(file, len); 
+            writeBinaryPOD(file, len);
             file.write(key.c_str(), len);
-            writeBinaryPOD(file, offsets[i]); 
+            writeBinaryPOD(file, offsets[i]);
         }
         writeBinaryPOD(file, keys.size());
         writeBinaryPOD(file, offset);
@@ -170,7 +172,8 @@ void HNSW::Load(std::vector<uint8_t>& idx_bytes) {
     for (uint64_t i = 0; i < num_keys; ++i) {
         int64_t size = (i + 1 == num_keys) ? (footer_offset - offsets[i] - sizeof(uint64_t))
                                        : (offsets[i + 1] - offsets[i] - sizeof(uint64_t));
-        auto file_reader = vsag::Factory::CreateLocalFileReader(filename, offsets[i] + sizeof(uint64_t), size);
+        auto file_reader = vsag::Factory::CreateLocalFileReader(filename,
+                                                    offsets[i] + sizeof(uint64_t), size);
         bs.Set(keys[i], file_reader);
     }
     file.close();
@@ -186,7 +189,7 @@ bool HNSW::Search(const std::vector<float>& query, size_t num_results,
     }
     std::function<bool(int64_t)> delete_filter_ = [this](int64_t id) -> bool {
         return delete_ids_.find(id) != delete_ids_.end();
-    };    
+    };
     float* query_copy = new float[query.size()];
     std::copy(query.begin(), query.end(), query_copy);
     auto dataset = vsag::Dataset::Make();
@@ -200,8 +203,8 @@ bool HNSW::Search(const std::vector<float>& query, size_t num_results,
         ? index_->KnnSearch(dataset, num_results, parameters.dump(), delete_filter_)
         : index_->KnnSearch(dataset, num_results, parameters.dump());
     if (result.has_value()) {
-        for (int64_t i = 0; i < result.value()->GetDim(); ++i) {             
-            indices.push_back(result.value()->GetIds()[i]);               
+        for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
+            indices.push_back(result.value()->GetIds()[i]);
             distances.push_back(result.value()->GetDistances()[i]);
         }
         return true;

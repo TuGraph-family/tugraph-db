@@ -81,7 +81,8 @@ class VectorIndex {
     bool SetSearchSpec(int query_spec);
 
     // add vector to index and build index
-    virtual bool Add(const std::vector<std::vector<float>>& vectors, const std::vector<size_t>& vids, size_t num_vectors) = 0;
+    virtual bool Add(const std::vector<std::vector<float>>& vectors,
+                 const std::vector<size_t>& vids, size_t num_vectors) = 0;
 
     // build index
     virtual bool Build() = 0;

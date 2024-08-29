@@ -360,7 +360,7 @@ bool IndexManager::GetVectorIndexListTableName(KvTransaction& txn,
 
 bool IndexManager::SetVectorIndex(KvTransaction& txn, const std::string& label,
                                   const std::string& field, const std::string& index_type,
-                                  int vec_dimension, const std::string& distance_type, 
+                                  int vec_dimension, const std::string& distance_type,
                                   std::vector<int>& index_spec, FieldType dt, IndexType type,
                                   std::vector<uint8_t> index_blob) {
     _detail::IndexEntry idx;
