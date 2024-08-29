@@ -37,11 +37,11 @@ public:
     void setDistinct(bool distinct) { isDistinct_ = distinct; }
     bool distinct() const { return isDistinct_; }
 
-    void appendItem(std::string&& name, Expr* expr) { items_.emplace_back(std::move(name), expr); }
-    void setItems(std::vector<std::tuple<std::string, Expr*>>&& items) {
+    void appendItem(std::string&& name, Expr* expr) { items_.emplace_back(std::move(name), expr, false); }
+    void setItems(std::vector<std::tuple<std::string, Expr*, bool>>&& items) {
         items_ = std::move(items);
     }
-    const std::vector<std::tuple<std::string, Expr*>>& items() const { return items_; }
+    const std::vector<std::tuple<std::string, Expr*, bool>>& items() const { return items_; }
     void appendGroupKey(Expr* groupKey) { groupKeys_.emplace_back(groupKey); }
     void setGroupKeys(std::vector<Expr*>&& groupKeys) { groupKeys_ = std::move(groupKeys); }
     const std::vector<Expr*>& groupKeys() const { return groupKeys_; }
@@ -64,7 +64,7 @@ public:
 
 private:
     bool isDistinct_;
-    std::vector<std::tuple<std::string, Expr*>> items_;
+    std::vector<std::tuple<std::string, Expr*, bool>> items_;
     std::vector<Expr*> groupKeys_;
     std::vector<OrderByField*> orderBys_;
     std::optional<IntParam> limit_;

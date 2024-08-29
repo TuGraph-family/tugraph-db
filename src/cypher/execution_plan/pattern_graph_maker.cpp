@@ -295,44 +295,45 @@ std::any PatternGraphMaker::visit(geax::frontend::PropStruct* node) {
         if (properties.size() != 1) {
             NOT_SUPPORT();
         }
-        auto property = node->properties()[0];
-        Property p;
-        auto [key, value] = property;
-        p.field = key;
-        if (value->type() == geax::frontend::AstNodeType::kVString) {
-            p.type = Property::VALUE;
-            p.value = lgraph::FieldData(((geax::frontend::VString*)value)->val());
-        } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
-            p.type = Property::VALUE;
-            p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
-        } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
-            p.type = Property::VALUE;
-            p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
-        } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
-            p.type = Property::VALUE;
-            p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
-        } else if (value->type() == geax::frontend::AstNodeType::kRef) {
-            p.type = Property::VARIABLE;
-            p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
-            p.value_alias = ((geax::frontend::Ref*)value)->name();
-        } else if (value->type() == geax::frontend::AstNodeType::kParam) {
-            p.type = Property::PARAMETER;
-            p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
-            p.value_alias = ((geax::frontend::Param*)value)->name();
-        } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
-            p.type = Property::VARIABLE;
-            geax::frontend::Ref* ref;
-            checkedCast(((geax::frontend::GetField*)value)->expr(), ref);
-            p.value_alias = ref->name();
-            p.value = lgraph::FieldData(p.value_alias);
-            p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
-        } else {
-            NOT_SUPPORT();
-        }
         if (ClauseGuard::InClause(geax::frontend::AstNodeType::kNode, cur_types_)) {
+            auto property = node->properties()[0];
+            auto [key, value] = property;
+            Property p;
+            p.field = key;
+            if (value->type() == geax::frontend::AstNodeType::kVString) {
+                p.type = Property::VALUE;
+                p.value = lgraph::FieldData(((geax::frontend::VString*)value)->val());
+            } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
+                p.type = Property::VALUE;
+                p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
+            } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
+                p.type = Property::VALUE;
+                p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
+            } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
+                p.type = Property::VALUE;
+                p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
+            } else if (value->type() == geax::frontend::AstNodeType::kRef) {
+                p.type = Property::VARIABLE;
+                p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
+                p.value_alias = ((geax::frontend::Ref*)value)->name();
+            } else if (value->type() == geax::frontend::AstNodeType::kParam) {
+                p.type = Property::PARAMETER;
+                p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
+                p.value_alias = ((geax::frontend::Param*)value)->name();
+            } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+                p.type = Property::VARIABLE;
+                geax::frontend::Ref* ref;
+                checkedCast(((geax::frontend::GetField*)value)->expr(), ref);
+                p.value_alias = ref->name();
+                p.value = lgraph::FieldData(p.value_alias);
+                p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
+            } else {
+                NOT_SUPPORT();
+            }
             node_t_->SetProperty(p);
             return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
         } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_)) {
+            relp_t_->SetGeaxProperties(node->properties());
             return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
         }
         NOT_SUPPORT();
@@ -382,13 +383,13 @@ std::any PatternGraphMaker::visit(geax::frontend::YieldField* node) {
 
             for (auto& pair : node->items()) {
                 const std::string& name = std::get<0>(pair);
-                auto type = lgraph_api::LGraphType::NUL;
                 const auto iter =
                     std::find_if(sig_spec->result_list.cbegin(), sig_spec->result_list.cend(),
                                  [&name](const auto& param) { return name == param.name; });
                 if (iter == sig_spec->result_list.cend()) {
                     THROW_CODE(InputError, FMA_FMT("yield item [{}] is not exist", name));
                 }
+                auto type = iter->type;
                 switch (type) {
                 case lgraph_api::LGraphType::NODE:
                     AddSymbol(name, cypher::SymbolNode::NODE, cypher::SymbolNode::LOCAL);

@@ -18,14 +18,14 @@
 
 namespace cypher {
     // TODO(lingsu): rename in the future
-class GqlStandaloneCall : public OpBase {
+class OpGqlStandaloneCall : public OpBase {
     const std::string func_name_;
     const std::vector<geax::frontend::Expr*>& args_;
     const std::optional<geax::frontend::YieldField*>& yield_;
     const SymbolTable& symbol_table_;
 
  public:
-    GqlStandaloneCall(const std::string& func_name,
+    OpGqlStandaloneCall(const std::string& func_name,
                         const std::vector<geax::frontend::Expr*>& args,
                         const std::optional<geax::frontend::YieldField*>& yield,
                         const SymbolTable& symbol_table)

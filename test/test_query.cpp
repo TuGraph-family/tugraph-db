@@ -30,11 +30,13 @@
 
 #include "cypher/parser/generated/LcypherLexer.h"
 #include "cypher/parser/generated/LcypherParser.h"
-#include "cypher/parser/cypher_base_visitor.h"
+#include "cypher/parser/cypher_base_visitor_v2.h"
 #include "cypher/parser/cypher_error_listener.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
+#include "cypher/rewriter/MultiPathPatternRewriter.h"
 #include "fma-common/file_system.h"
 #include "db/galaxy.h"
+#include "cypher/rewriter/PushDownFilterAstRewriter.h"
 #include "cypher/execution_plan/runtime_context.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "lgraph/lgraph_utils.h"
@@ -159,37 +161,77 @@ class TestQuery : public TuGraphTest {
         return true;
     }
 
-    bool test_cypher_case(const std::string& cypher, std::string& result) {
+     bool test_cypher_case(const std::string& cypher, std::string& result) {
         try {
             antlr4::ANTLRInputStream input(cypher);
             parser::LcypherLexer lexer(&input);
             antlr4::CommonTokenStream tokens(&lexer);
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
-            parser::CypherBaseVisitor visitor(ctx_.get(), parser.oC_Cypher());
-            LOG_INFO() << "-----CLAUSE TO STRING-----";
-            LOG_INFO() << visitor.GetQuery().size();
-            for (const auto &sql_query : visitor.GetQuery()) {
-                LOG_INFO() << sql_query.ToString();
+            geax::common::ObjectArenaAllocator objAlloc_;
+            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher(), ctx_.get());
+            AstNode* node = visitor.result();
+            // rewrite ast
+            cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
+            node->accept(gen_anonymous_alias_rewriter);
+            cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
+            node->accept(multi_path_pattern_rewriter);
+            cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx_.get());
+            node->accept(push_down_filter_ast_writer);
+            // dump
+            AstDumper dumper;
+            auto ret = dumper.handle(node);
+            if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+                UT_LOG() << "dumper.handle(node) gql: " << cypher;
+                UT_LOG() << "dumper.handle(node) ret: " << ToString(ret);
+                UT_LOG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
+                result = dumper.error_msg();
+                return false;
+            } else {
+                UT_DBG() << "--- dumper.handle(node) dump ---";
+                UT_DBG() << dumper.dump();
             }
-            cypher::ExecutionPlan execution_plan;
-            execution_plan.PreValidate(ctx_.get(), visitor.GetNodeProperty(),
-                                       visitor.GetRelProperty());
-            execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx_.get());
-            execution_plan.Validate(ctx_.get());
-            LOG_INFO() << execution_plan.DumpGraph();
-            LOG_INFO() << execution_plan.DumpPlan(0, false);
-            execution_plan.Execute(ctx_.get());
-            result = ctx_->result_->Dump(false);
-            UT_LOG() << "-----result-----";
-            result = ctx_->result_->Dump(false);
-            UT_LOG() << result;
-            return true;
+            cypher::ExecutionPlanV2 execution_plan_v2;
+            ret = execution_plan_v2.Build(node, ctx_.get());
+            if (ret != GEAXErrorCode::GEAX_SUCCEED) {
+                UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
+                result = execution_plan_v2.ErrorMsg();
+                return false;
+            } else {
+//                if (visitor.CommandType() != parser::CmdType::QUERY) {
+//                    ctx_->result_info_ = std::make_unique<cypher::ResultInfo>();
+//                    ctx_->result_ = std::make_unique<lgraph::Result>();
+//                    std::string header, data;
+//                    if (visitor.CommandType() == parser::CmdType::EXPLAIN) {
+//                        header = "@plan";
+//                        data = execution_plan_v2.DumpPlan(0, false);
+//                    } else {
+//                        header = "@profile";
+//                        data = execution_plan_v2.DumpGraph();
+//                    }
+//                    ctx_->result_->ResetHeader({{header, lgraph_api::LGraphType::STRING}});
+//                    auto r = ctx_->result_->MutableRecord();
+//                    r->Insert(header, lgraph::FieldData(data));
+//                    result = ctx_->result_->Dump(false);
+//                    return true;
+//                }
+                try {
+                    execution_plan_v2.Execute(ctx_.get());
+                } catch (std::exception& e) {
+                    UT_LOG() << e.what();
+                    result = e.what();
+                    return true;
+                }
+                UT_LOG() << "-----result-----";
+                result = ctx_->result_->Dump(false);
+                UT_LOG() << result;
+            }
         } catch (std::exception& e) {
             UT_LOG() << e.what();
             result = e.what();
-            return false;
+            return true;
         }
+        return true;
     }
 
     void test_files(const std::string& dir) {

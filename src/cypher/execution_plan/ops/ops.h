@@ -58,3 +58,4 @@
 #include "cypher/execution_plan/ops/op_union.h"
 #include "cypher/execution_plan/ops/op_node_by_id_seek.h"
 #include "cypher/execution_plan/ops/op_traversal.h"
+#include "cypher/execution_plan/ops/op_gql_traversal.h"
