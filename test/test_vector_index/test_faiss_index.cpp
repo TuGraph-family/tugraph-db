@@ -11,10 +11,10 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
+#include <random>
 
 #include "gtest/gtest.h"
 #include "core/Faiss_IVF_FLAT.h"
-#include <random>
 
 class FaissIndexTest : public ::testing::Test {
  protected:
