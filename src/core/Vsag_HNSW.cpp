@@ -179,7 +179,7 @@ void HNSW::Load(std::vector<uint8_t>& idx_bytes) {
 }
 
 // search vector in index
-bool HNSW::Search(const std::vector<float> query, size_t num_results,
+bool HNSW::Search(const std::vector<float>& query, size_t num_results,
                           std::vector<float>& distances, std::vector<int64_t>& indices) {
     if (!index_) {
         return false;
@@ -190,7 +190,7 @@ bool HNSW::Search(const std::vector<float> query, size_t num_results,
     float* query_copy = new float[query.size()];
     std::copy(query.begin(), query.end(), query_copy);
     auto dataset = vsag::Dataset::Make();
-    dataset->Dim(query.size())
+    dataset->Dim(vec_dimension_)
            ->NumElements(1)
            ->Float32Vectors(query_copy);
     nlohmann::json parameters{
@@ -200,10 +200,10 @@ bool HNSW::Search(const std::vector<float> query, size_t num_results,
         ? index_->KnnSearch(dataset, num_results, parameters.dump(), delete_filter_)
         : index_->KnnSearch(dataset, num_results, parameters.dump());
     if (result.has_value()) {
-        auto ids = result.value()->GetIds();
-        auto dists = result.value()->GetDistances();
-        indices.assign(ids, ids + result.value()->GetDim());
-        distances.assign(dists, dists + result.value()->GetDim());
+        for (int64_t i = 0; i < result.value()->GetDim(); ++i) {             
+            indices.push_back(result.value()->GetIds()[i]);               
+            distances.push_back(result.value()->GetDistances()[i]);
+        }
         return true;
     }
     return false;

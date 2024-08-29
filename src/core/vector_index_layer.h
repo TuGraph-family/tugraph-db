@@ -93,7 +93,7 @@ class VectorIndex {
     virtual void Load(std::vector<uint8_t>& idx_bytes) = 0;
 
     // search vector in index
-    virtual bool Search(const std::vector<float> query, size_t num_results,
+    virtual bool Search(const std::vector<float>& query, size_t num_results,
                         std::vector<float>& distances, std::vector<int64_t>& indices) = 0;
 
     static std::unique_ptr<KvTable> OpenTable(KvTransaction& txn, KvStore& store,

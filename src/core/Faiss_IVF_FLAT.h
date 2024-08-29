@@ -66,7 +66,7 @@ class IVFFlat : public VectorIndex {
   void Load(std::vector<uint8_t>& idx_bytes) override;
 
   // search vector in index
-  bool Search(const std::vector<float> query, size_t num_results,
+  bool Search(const std::vector<float>& query, size_t num_results,
               std::vector<float>& distances, std::vector<int64_t>& indices) override;
 
   bool GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,

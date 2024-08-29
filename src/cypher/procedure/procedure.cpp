@@ -3980,7 +3980,7 @@ void VectorFunc::ShowVectorIndex(RTContext *ctx, const cypher::Record *record,
                                     std::regex_constants::match_not_eol);
             auto words_end = std::sregex_token_iterator();
             Record r;
-            for (std::sregex_token_iterator i = words_begin; i != words_end; ++i) {
+            for (std::sregex_token_iterator i = words_begin; i != words_end; i++) {
                 if (!i->str().empty()) {
                     r.AddConstant(lgraph::FieldData(i->str()));
                 }
@@ -4011,7 +4011,7 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     CYPHER_ARG_CHECK(args[4].type == parser::Expression::INT,
                     "query_spec should be integer");
     std::vector<float> query_vector;
-    for (size_t i = 0; i < args[2].List().size(); ++i) {
+    for (size_t i = 0; i < args[2].List().size(); i++) {
         float fltValue;
         if (args[2].List().at(i).type == parser::Expression::INT) {
             int dblValue = args[2].List().at(i).Int();
@@ -4020,7 +4020,7 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
             double dblValue = args[2].List().at(i).Double();
             fltValue = static_cast<float>(dblValue);
         }
-        query_vector.emplace_back(fltValue);
+        query_vector.push_back(fltValue);
     }
     auto raw_txn = ctx->txn_->GetTxn();
     lgraph::Transaction& txn = *raw_txn;
@@ -4034,7 +4034,7 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     std::vector<int64_t> index_indices;
     std::vector<float> Flat_distances;
     std::vector<int64_t> Flat_indices;
-    std::vector<std::tuple<std::string, std::string, float>> SearchResult;
+    std::vector<std::tuple<int, std::string, float>> SearchResult;
     auto index_type = extr->GetVectorIndex()->GetIndexType();
     if (index_type == "IVF_FLAT") {
         CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT &&
@@ -4058,9 +4058,9 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                         auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
                                                                 kv_iter->GetKey());
                         auto vector = extr->GetConstRef(prop).AsType<std::vector<float>>();
-                        for (size_t i = 0; i < index_distances.size(); ++i) {
+                        for (size_t i = 0; i < index_distances.size(); i++) {
                             if (count == index_indices[i]) {
-                                SearchResult.emplace_back(make_tuple(std::to_string(vid),
+                                SearchResult.push_back(make_tuple((int)vid,
                                         fma_common::ToString(vector), index_distances[i]));
                             }
                         }
@@ -4077,9 +4077,9 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                         auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
                                                                 kv_iter->GetKey());
                         auto vector = prop.AsType<std::vector<float>>();
-                        for (size_t i = 0; i < Flat_distances.size(); ++i) {
+                        for (size_t i = 0; i < Flat_distances.size(); i++) {
                             if (count == Flat_indices[i]) {
-                                SearchResult.emplace_back(make_tuple(std::to_string(vid),
+                                SearchResult.push_back(make_tuple((int)vid,
                                     fma_common::ToString(vector), Flat_distances[i]));
                             }
                         }
@@ -4111,9 +4111,9 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                     auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
                                                             kv_iter->GetKey());
                     auto vector = extr->GetConstRef(prop).AsType<std::vector<float>>();
-                    for (size_t i = 0; i < index_distances.size(); ++i) {
+                    for (size_t i = 0; i < index_distances.size(); i++) {
                         if (count == index_indices[i]) {
-                            SearchResult.emplace_back(make_tuple(std::to_string(vid),
+                            SearchResult.push_back(make_tuple((int)vid,
                                     fma_common::ToString(vector), index_distances[i]));
                         }
                     }
@@ -4126,14 +4126,12 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     } else {
         throw lgraph::ReminderException("Please check the number of parameter!");
     }
-    auto compare_by_float = [](const std::tuple<std::string, std::string, float>& a,
-                            const std::tuple<std::string, std::string, float>& b) {
+    std::sort(SearchResult.begin(), SearchResult.end(),
+    [](const std::tuple<int, std::string, float>& a,
+       const std::tuple<int, std::string, float>& b) {
         return std::get<2>(a) < std::get<2>(b);
-    };
-    std::partial_sort(SearchResult.begin(),
-            SearchResult.begin() + SearchResult.size(),
-            SearchResult.end(), compare_by_float);
-    for (int i = 0; i < args[3].Int(); ++i) {
+    });
+    for (int i = 0; i < args[3].Int(); i++) {
         Record r;
         r.AddConstant(::lgraph::FieldData(std::get<0>(SearchResult.at(i))));
         r.AddConstant(::lgraph::FieldData(args[0].String()));

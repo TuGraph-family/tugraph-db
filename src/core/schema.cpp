@@ -324,8 +324,8 @@ void Schema::AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, co
                 if (fe.GetVectorIndex()->GetIndexType() == "HNSW") {
                     std::vector<std::vector<float>> floatvector;
                     std::vector<size_t> vids;
-                    floatvector.emplace_back(fe.GetConstRef(record).AsType<std::vector<float>>());
-                    vids.emplace_back(vid);
+                    floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+                    vids.push_back(vid);
                     fe.GetVectorIndex()->Add(floatvector, vids, 1);
                 } else {
                     fe.GetVectorIndex()->GetVectorIndexCounter()->addCount();
@@ -376,8 +376,8 @@ void Schema::DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const V
                 if (fe.GetVectorIndex()->GetIndexType() == "HNSW") {
                     std::vector<std::vector<float>> floatvector;
                     std::vector<size_t> vids;
-                    floatvector.emplace_back(fe.GetConstRef(record).AsType<std::vector<float>>());
-                    vids.emplace_back(vid);
+                    floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+                    vids.push_back(vid);
                     fe.GetVectorIndex()->Add(floatvector, vids, 0);
                 } else {
                     fe.GetVectorIndex()->GetVectorIndexCounter()->addCount();
