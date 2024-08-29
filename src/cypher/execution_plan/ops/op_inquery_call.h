@@ -19,13 +19,13 @@
 
 #include <vector>
 #include "parser/clause.h"
-#include "procedure/procedure.h"
 #include "db/galaxy.h"
 #include "core/defs.h"
 #include "cypher/procedure/utils.h"
 #include "cypher/cypher_exception.h"
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
+#include "cypher/procedure/procedure.h"
 
 namespace cypher {
 class InQueryCall : public OpBase {
@@ -191,7 +191,14 @@ class InQueryCall : public OpBase {
                 std::transform(yield_items.cbegin(), yield_items.cend(),
                                std::back_inserter(_yield_items),
                                [](const auto &item) { return item.first; });
-                procedure_->function(ctx, record.get(), parameters, _yield_items, &buffer_);
+                std::vector<Entry> evaluate_parameters;
+                evaluate_parameters.reserve(parameters.size());
+                for (const auto& expr : parameters) {
+                    ArithExprNode node(expr, pattern_->symbol_table);
+                    evaluate_parameters.emplace_back(node.Evaluate(ctx, *record));
+                }
+                procedure_->function(ctx, record.get(),
+                                     evaluate_parameters, _yield_items, &buffer_);
                 std::reverse(buffer_.begin(), buffer_.end());
                 state = StreamDepleted;
                 return HandOff(ctx, record);
@@ -213,7 +220,14 @@ class InQueryCall : public OpBase {
                      * e.g.
                      *   MATCH (n) CALL db.addLabel(n.name)  */
                     if (procedure_->separate_txn) CYPHER_TODO();
-                    procedure_->function(ctx, record.get(), parameters, _yield_items, &buffer_);
+                    std::vector<Entry> evaluate_parameters;
+                    evaluate_parameters.reserve(parameters.size());
+                    for (const auto& expr : parameters) {
+                        ArithExprNode node(expr, pattern_->symbol_table);
+                        evaluate_parameters.emplace_back(node.Evaluate(ctx, *record));
+                    }
+                    procedure_->function(ctx, record.get(),
+                                         evaluate_parameters, _yield_items, &buffer_);
                     std::reverse(buffer_.begin(), buffer_.end());
                     if (HandOff(ctx, record) == OP_OK) return OP_OK;
                 }

@@ -20,6 +20,7 @@
 #include <iostream>
 #include <utility>
 
+#include "arithmetic/arithmetic_expression.h"
 #include "parser/data_typedef.h"
 #include "execution_plan/runtime_context.h"
 #include "graph/graph.h"
@@ -65,7 +66,7 @@ static const std::unordered_map<std::string, lgraph::plugin::CodeType> ValidPlug
 
 static const int SPEC_MEMBER_SIZE = 3;
 
-typedef std::vector<parser::Expression> VEC_EXPR;
+typedef std::vector<Entry> VEC_EXPR;
 typedef std::vector<std::string> VEC_STR;
 // TODO(anyone) procedure context
 typedef std::function<void(RTContext *, const Record *, const VEC_EXPR &, const VEC_STR &,

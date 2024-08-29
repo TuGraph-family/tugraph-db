@@ -107,7 +107,7 @@ add_executable(${TARGET_MDB_STAT} ${LGRAPH_ROOT_DIR}/src/core/lmdb/mdb_stat.c
 target_link_libraries(${TARGET_MDB_STAT} pthread)
 
 set(LGRAPH_TOOLKITS ${TARGET_LGRAPH_IMPORT} ${TARGET_LGRAPH_BACKUP} ${TARGET_LGRAPH_EXPORT}
-                    ${TARGET_MDB_STAT} ${TARGET_LGRAPH_CLI})
+                    ${TARGET_MDB_STAT} ${TARGET_LGRAPH_CLI} ${TARGET_LGRAPH_PEER})
 
 # install
 install(TARGETS ${LGRAPH_TOOLKITS}

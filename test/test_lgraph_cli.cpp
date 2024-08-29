@@ -25,19 +25,19 @@ TEST_F(TestLGraphCLI, LGraphCLI) {
     std::string file = "statements.txt";
     std::string statements = R"(
 CALL db.createVertexLabel('person', 'int8',
-'bool' ,BOOL, false,
-'int8' ,INT8, false,
-'int16' ,INT16, false,
-'int32' ,INT32, false,
-'int64' ,INT64, false,
-'float' ,FLOAT, false,
-'double' ,DOUBLE, false,
-'date' ,DATE, false,
-'datetime' ,DATETIME, false,
-'string' ,STRING, false);
+'bool' ,'BOOL', false,
+'int8' ,'INT8', false,
+'int16' ,'INT16', false,
+'int32' ,'INT32', false,
+'int64' ,'INT64', false,
+'float' ,'FLOAT', false,
+'double' ,'DOUBLE', false,
+'date' ,'DATE', false,
+'datetime' ,'DATETIME', false,
+'string' ,'STRING', false);
 
 CALL db.createEdgeLabel('is_friend', '[["person","person"]]',
-'message', STRING, false);
+'message', 'STRING', false);
 
 create
 (n1:person{
@@ -117,8 +117,8 @@ N[0] n: (MATCHED)
 N[1] m: (MATCHED)
 R[0 --> 1] r:{<0>: } (MATCHED)
 Symbol: [n] type(NODE), scope(LOCAL), symbol_id(0)
-Symbol: [m] type(NODE), scope(LOCAL), symbol_id(2)
-Symbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(1)
+Symbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(2)
+Symbol: [m] type(NODE), scope(LOCAL), symbol_id(1)
 
 p
 (:person {int16:16,float:1.11,double:100.98,int8:8,string:"foo bar",int32:32,int64:64,bool:true,datetime:"2017-05-01 10:00:00",date:"2017-05-03"})-[:is_friend {message:"hi.."}]->(:person {int16:116,float:11.11,double:1100.98,int8:18,string:"bar foo",int32:132,int64:164,bool:true,datetime:"2018-05-01 10:00:00",date:"2018-05-03"})
@@ -161,7 +161,7 @@ p
 ["r"]
 ["[:is_friend {message:\"hi..\"}]"]
 ["@profile"]
-["Current Pattern Graph:\nN[0] n: (MATCHED)\nN[1] m: (MATCHED)\nR[0 --> 1] r:{<0>: } (MATCHED)\nSymbol: [n] type(NODE), scope(LOCAL), symbol_id(0)\nSymbol: [m] type(NODE), scope(LOCAL), symbol_id(2)\nSymbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(1)\n"]
+["Current Pattern Graph:\nN[0] n: (MATCHED)\nN[1] m: (MATCHED)\nR[0 --> 1] r:{<0>: } (MATCHED)\nSymbol: [n] type(NODE), scope(LOCAL), symbol_id(0)\nSymbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(2)\nSymbol: [m] type(NODE), scope(LOCAL), symbol_id(1)\n"]
 ["p"]
 ["(:person {int16:16,float:1.11,double:100.98,int8:8,string:\"foo bar\",int32:32,int64:64,bool:true,datetime:\"2017-05-01 10:00:00\",date:\"2017-05-03\"})-[:is_friend {message:\"hi..\"}]->(:person {int16:116,float:11.11,double:1100.98,int8:18,string:\"bar foo\",int32:132,int64:164,bool:true,datetime:\"2018-05-01 10:00:00\",date:\"2018-05-03\"})"]
 )xx";
@@ -232,9 +232,9 @@ p
 | ReadOnly:1                     |
 | Execution Plan:                |
 | Produce Results                |
-| Project [n]                    |
-| Expand(All) [n --> m ]         |
-| All Node Scan [n]              |
+|     Project [n]                |
+|         Expand(All) [n --> m ] |
+|             All Node Scan [n]  |
 +--------------------------------+
 
 1 rows
@@ -255,8 +255,8 @@ p
 | N[1] m: (MATCHED)                                          |
 | R[0 --> 1] r:{<0>: } (MATCHED)                             |
 | Symbol: [n] type(NODE), scope(LOCAL), symbol_id(0)         |
-| Symbol: [m] type(NODE), scope(LOCAL), symbol_id(2)         |
-| Symbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(1) |
+| Symbol: [r] type(RELATIONSHIP), scope(LOCAL), symbol_id(2) |
+| Symbol: [m] type(NODE), scope(LOCAL), symbol_id(1)         |
 +------------------------------------------------------------+
 
 1 rows

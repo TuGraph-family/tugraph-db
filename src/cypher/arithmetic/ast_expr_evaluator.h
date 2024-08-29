@@ -88,6 +88,10 @@ class AstExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
         }
     }
 
+    geax::frontend::Expr* GetExpression() {
+        return expr_;
+    }
+
  private:
     std::any visit(geax::frontend::GetField* node) override;
     std::any visit(geax::frontend::TupleGet* node) override;

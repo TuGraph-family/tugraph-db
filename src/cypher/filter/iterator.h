@@ -193,6 +193,36 @@ class WeakIndexIterator {
         return _valid;
     }
 
+    bool Goto(lgraph::VertexId vid) {
+        _valid = false;
+        if (_it) {
+            while (_it->IsValid()) {
+                _it->GotoClosestVertex(vid);
+                if (_it->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                    _txn->GetVertexField(*_it, _field_name) == _value) {
+                    _valid = true;
+                    break;
+                }
+            }
+        } else {
+            auto iit = _iit[_iit_idx];
+            while (iit->IsValid()) {
+                iit->Goto(vid);
+                if (iit->IsValid() && _txn->GetVertexField(iit->GetVid(), _field_name) == _value) {
+                    _valid = true;
+                    break;
+                }
+            }
+            if (!_valid) {
+                if (_iit_idx < _iit.size() - 1) {
+                    _iit_idx++;
+                    _valid = true;
+                }
+            }
+        }
+        return _valid;
+    }
+
     bool IsValid() const { return _valid; }
 
     lgraph::VertexId GetId() const {
@@ -374,6 +404,10 @@ class VIter {
             return (_vit && _vit->Goto(vid));
         case LABEL_VERTEX_ITER:
             return (_lvit && _lvit->Goto(vid));
+        case WEAK_INDEX_ITER:
+            return (_wit && _wit->Goto(vid));
+        case INDEX_ITER:
+            return (_iit && _iit->Goto(vid));
         default:
             CYPHER_TODO();
             return false;

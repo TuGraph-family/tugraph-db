@@ -12,6 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include <cstddef>
+#include <cstdio>
+#include <string>
+#include <tuple>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+#include "lgraph/lgraph_exceptions.h"
 #include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
 #include "./algo.h"
@@ -48,19 +56,44 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     auto label = olapondb.AllocVertexArray<size_t>();
     auto modularity = LouvainCore(olapondb, label, active_threshold, is_sync);
     auto core_cost = get_time() - start_time;
-
     // output
     start_time = get_time();
     if (output_file != "") {
         FILE* fout = fopen(output_file.c_str(), "w");
-#pragma omp parallel for
+        if (fout == nullptr) {
+            THROW_CODE(InputError, "Unable to open file for writting!");
+        }
+        json cur;
+        json curNode;
+        json communityNode;
         for (size_t i = 0; i < olapondb.NumVertices(); i++) {
             if (label[i]) {
-                fprintf(fout, "%ld, %ld\n", i, label[i]);
+                auto vit = txn.GetVertexIterator(i, false);
+                auto vit_label = vit.GetLabel();
+                auto primary_field = txn.GetVertexPrimaryField(vit_label);
+                auto field_data = vit.GetField(primary_field);
+                curNode["vid"] = i;
+                curNode["label"] = vit_label;
+                curNode["primary_field"] = primary_field;
+                curNode["field_data"] = field_data.ToString();
+
+                vit = txn.GetVertexIterator(label[i], false);
+                vit_label = vit.GetLabel();
+                primary_field = txn.GetVertexPrimaryField(vit_label);
+                field_data = vit.GetField(primary_field);
+                communityNode["vid"] = label[i];
+                communityNode["label"] = vit_label;
+                communityNode["primary_field"] = primary_field;
+                communityNode["field_data"] = field_data.ToString();
+
+                cur["cur"] = curNode;
+                cur["community"] = communityNode;
+                fprintf(fout, "%s\n", cur.dump().c_str());
             }
         }
         fclose(fout);
     }
+
     double output_cost = get_time() - start_time;
 
     json output;

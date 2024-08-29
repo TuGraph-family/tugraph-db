@@ -17,7 +17,9 @@
 //
 #pragma once
 
+#include "core/data_type.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "graph/common.h"
 
 namespace cypher {
 
@@ -27,6 +29,8 @@ class NodeIndexSeekDynamic : public OpBase {
     lgraph::VIter *it_ = nullptr;  // also can be derived from node
     std::string alias_;            // also can be derived from node
     std::string field_;
+    std::string map_field_name_;
+    bool hasMapFieldName;
     lgraph::FieldData value_;
     int value_rec_idx_;  // index of input variable
     int node_rec_idx_;   // index of node in record
@@ -47,6 +51,8 @@ class NodeIndexSeekDynamic : public OpBase {
         if (node) {
             it_ = node->ItRef();
             alias_ = node->Alias();
+            map_field_name_ = node->Prop().map_field_name;
+            hasMapFieldName = node->Prop().hasMapFieldName;
             modifies.emplace_back(alias_);
         }
         rec_length_ = sym_tab->symbols.size();
@@ -113,8 +119,19 @@ class NodeIndexSeekDynamic : public OpBase {
         auto child = children[0];
         while (child->Consume(ctx) == OP_OK) {
             // generate a new vertex iterator
-            auto value =
-                value_rec_idx_ < 0 ? value_ : record->values[value_rec_idx_].constant.scalar;
+            lgraph::FieldData value;
+            if (value_rec_idx_ < 0) {
+                value = value_;
+            } else {
+                if (record->values[value_rec_idx_].constant.IsMap()) {
+                    auto map_data = *(record->values[value_rec_idx_].constant.map);
+                    value = map_data[node_->Prop().map_field_name].scalar;
+                } else if (record->values[value_rec_idx_].constant.IsArray()) {
+                    THROW_CODE(CypherException, "Type error, do not support list as parameter.");
+                } else {
+                    value = record->values[value_rec_idx_].constant.scalar;
+                }
+            }
             if (!node_->Label().empty() && ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
                 it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER,
                                 node_->Label(), field_, value, value);

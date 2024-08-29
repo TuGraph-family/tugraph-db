@@ -30,8 +30,8 @@ class ExpandAll : public OpBase {
 
     void _InitializeEdgeIter(RTContext *ctx) {
         auto &types = relp_->Types();
-        auto& properties = relp_->Properties();
         std::vector<Property> props;
+        auto& properties = relp_->Properties();
         if (properties.type == parser::Expression::MAP) {
             SymbolTable dummy_st;
             Record dummy_rd;
@@ -47,6 +47,22 @@ class ExpandAll : public OpBase {
                 prop.value = std::move(value.constant.scalar);
                 props.emplace_back(std::move(prop));
             }
+        }
+        auto geax_properties = relp_->GeaxProperties();
+        for (auto& kv : geax_properties) {
+            LOG_INFO() << std::get<1>(kv);
+            SymbolTable dummy_st;
+            Record dummy_rd;
+            Property prop;
+            prop.field = std::get<0>(kv);
+            prop.type = Property::VALUE;
+            ArithExprNode ae(std::get<1>(kv), dummy_st);
+            auto value = ae.Evaluate(ctx, dummy_rd);
+            if (!value.IsScalar()) {
+                CYPHER_TODO();
+            }
+            prop.value = std::move(value.constant.scalar);
+            props.emplace_back(std::move(prop));
         }
         auto iter_type = lgraph::EIter::NA;
         switch (expand_direction_) {
@@ -222,7 +238,7 @@ class ExpandAll : public OpBase {
          * */
         /* reset modifies */
         eit_->FreeIter();
-        neighbor_->PushVid(-1);
+        if (!expand_into_) neighbor_->PushVid(-1);
         pattern_graph_->VisitedEdges().Erase(*eit_);
         state_ = ExpandAllUninitialized;
         return OP_OK;

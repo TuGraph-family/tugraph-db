@@ -20,6 +20,8 @@
 #include <random>
 #include <stack>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <regex>
 #include "cypher/cypher_exception.h"
@@ -1353,8 +1355,13 @@ cypher::FieldData BuiltinFunction::_ToList(RTContext *ctx, const Record &record,
     auto ret = cypher::FieldData::Array(0);
     for (auto &arg : args) {
         auto r = arg.Evaluate(ctx, record);
-        CYPHER_THROW_ASSERT(r.IsScalar());
-        ret.array->emplace_back(r.constant.scalar);
+        if (r.IsScalar()) {
+            ret.array->emplace_back(r.constant.scalar);
+        } else if (r.IsArray()) {
+            ret.array->emplace_back(*r.constant.array);
+        } else if (r.IsMap()) {
+            ret.array->emplace_back(*r.constant.map);
+        }
     }
     return ret;
 }
@@ -1428,6 +1435,21 @@ void ArithOperandNode::RealignAliasId(const SymbolTable &sym_tab) {
     variadic.alias_idx = it->second.id;
 }
 
+cypher::FieldData GenerateCypherFieldData(const parser::Expression &expr) {
+    if (expr.type != parser::Expression::LIST && expr.type != parser::Expression::MAP) {
+        return cypher::FieldData(parser::MakeFieldData(expr));
+    }
+    if (expr.type == parser::Expression::LIST) {
+        std::vector<cypher::FieldData> list;
+        for (auto &e : expr.List()) list.emplace_back(GenerateCypherFieldData(e));
+        return cypher::FieldData(std::move(list));
+    } else {
+        std::unordered_map<std::string, cypher::FieldData> map;
+        for (auto &e : expr.Map()) map.emplace(e.first, GenerateCypherFieldData(e.second));
+        return cypher::FieldData(std::move(map));
+    }
+}
+
 void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sym_tab) {
     switch (expr.type) {
     case parser::Expression::VARIABLE:
@@ -1466,9 +1488,13 @@ void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sy
         {
             /* e.g. [1,3,5,7], [1,3,5.55,'seven'] */
             type = ArithOperandNode::AR_OPERAND_CONSTANT;
-            std::vector<lgraph::FieldData> list;
-            for (auto &e : expr.List()) list.emplace_back(parser::MakeFieldData(e));
-            constant = cypher::FieldData(std::move(list));
+            constant = GenerateCypherFieldData(expr);
+            break;
+        }
+    case parser::Expression::MAP:
+        {
+            type = ArithOperandNode::AR_OPERAND_CONSTANT;
+            constant = GenerateCypherFieldData(expr);
             break;
         }
     default:
@@ -1614,10 +1640,13 @@ void ArithExprNode::Set(const parser::Expression &expr, const SymbolTable &sym_t
         {
             /* We treat:
              * [1, 2, 'three'] as operand
+             * [{a: "Christopher Nolan", b: "Dennis Quaid"}] as operand
              * [n.name, n.age] as op  */
             bool is_operand = true;
-            for (auto &e : expr.List())
+            for (auto &e : expr.List()) {
                 if (!e.IsLiteral()) is_operand = false;
+                if (e.type == parser::Expression::MAP) is_operand = true;
+            }
             if (!is_operand) {
                 type = AR_EXP_OP;
                 op.SetFunc(BuiltinFunction::INTL_TO_LIST);

@@ -28,12 +28,15 @@
 #include "parser/generated/LcypherLexer.h"
 #include "parser/generated/LcypherParser.h"
 #include "parser/cypher_base_visitor.h"
+#include "parser/cypher_base_visitor_v2.h"
 #include "parser/cypher_error_listener.h"
 
 #include "cypher/execution_plan/execution_plan.h"
 #include "cypher/execution_plan/scheduler.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
+#include "cypher/rewriter/MultiPathPatternRewriter.h"
+#include "cypher/rewriter/PushDownFilterAstRewriter.h"
 
 #include "server/bolt_session.h"
 
@@ -42,7 +45,11 @@ namespace cypher {
 void Scheduler::Eval(RTContext *ctx, const lgraph_api::GraphQueryType &type,
                      const std::string &script, ElapsedTime &elapsed) {
     if (type == lgraph_api::GraphQueryType::CYPHER) {
-        EvalCypher(ctx, script, elapsed);
+        if (ctx->is_cypher_v2_) {
+            EvalCypher2(ctx, script, elapsed);
+        } else {
+            EvalCypher(ctx, script, elapsed);
+        }
     } else {
         EvalGql(ctx, script, elapsed);
     }
@@ -138,6 +145,108 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     } else {
         plan->Execute(ctx);
     }
+    elapsed.t_total = fma_common::GetTime() - t0;
+    elapsed.t_exec = elapsed.t_total - elapsed.t_compile;
+}
+
+void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTime &elapsed) {
+    auto t0 = fma_common::GetTime();
+    thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlanV2>> tls_plan_cache;
+    std::shared_ptr<ExecutionPlanV2> plan;
+    geax::common::ObjectArenaAllocator objAlloc_;
+    if (!tls_plan_cache.Get(script, plan)) {
+        antlr4::ANTLRInputStream input(script);
+        parser::LcypherLexer lexer(&input);
+        antlr4::CommonTokenStream tokens(&lexer);
+        parser::LcypherParser parser(&tokens);
+        parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
+        parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher(), ctx);
+        geax::frontend::AstNode *node = visitor.result();
+        cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
+        node->accept(gen_anonymous_alias_rewriter);
+        cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
+        node->accept(multi_path_pattern_rewriter);
+        cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx);
+        node->accept(push_down_filter_ast_writer);
+
+        geax::frontend::AstDumper dumper;
+        auto ret = dumper.handle(node);
+        if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
+            LOG_DEBUG() << "dumper.handle(node) cypher: " << script;
+            LOG_DEBUG() << "dumper.handle(node) ret: " << ToString(ret);
+            LOG_DEBUG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
+            return;
+        } else {
+            LOG_DEBUG() << "--- dumper.handle(node) dump ---";
+            LOG_DEBUG() << dumper.dump();
+        }
+
+        plan = std::make_shared<ExecutionPlanV2>();
+        plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
+        ret = plan->Build(node, ctx);
+        if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
+            LOG_DEBUG() << "build execution_plan_v2 failed: " << plan->ErrorMsg();
+            return;
+        }
+        plan->Validate(ctx);
+        if (visitor.CommandType() != parser::CmdType::QUERY) {
+            ctx->result_info_ = std::make_unique<cypher::ResultInfo>();
+            ctx->result_ = std::make_unique<lgraph::Result>();
+            std::string header, data;
+            if (visitor.CommandType() == parser::CmdType::EXPLAIN) {
+                header = "@plan";
+                data = plan->DumpPlan(0, false);
+            } else {
+                header = "@profile";
+                data = plan->DumpGraph();
+            }
+            ctx->result_->ResetHeader({{header, lgraph_api::LGraphType::STRING}});
+            auto r = ctx->result_->MutableRecord();
+            r->Insert(header, lgraph::FieldData(data));
+            LOG_DEBUG() << "--- execution_plan_v2 dump ---";
+            LOG_DEBUG() << ctx->result_->Dump(false);
+            if (ctx->bolt_conn_) {
+                auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
+                ctx->result_->MarkPythonDriver(session->python_driver);
+                while (!session->streaming_msg) {
+                    session->streaming_msg = session->msgs.Pop(std::chrono::milliseconds(100));
+                    if (ctx->bolt_conn_->has_closed()) {
+                        LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
+                        return;
+                    }
+                }
+                std::unordered_map<std::string, std::any> meta;
+                meta["fields"] = ctx->result_->BoltHeader();
+                bolt::PackStream ps;
+                ps.AppendSuccess(meta);
+                if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
+                    ps.AppendRecords(ctx->result_->BoltRecords());
+                } else if (session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
+                    // ...
+                }
+                ps.AppendSuccess();
+                ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+            }
+            return;
+        }
+    }
+    LOG_DEBUG() << plan->DumpPlan(0, false);
+    LOG_DEBUG() << plan->DumpGraph();
+    elapsed.t_compile = fma_common::GetTime() - t0;
+    if (!plan->ReadOnly() && ctx->optimistic_) {
+        while (1) {
+            try {
+                plan->Execute(ctx);
+                break;
+            } catch (lgraph::TxnCommitException &e) {
+                LOG_DEBUG() << e.what();
+            }
+        }
+    } else {
+        plan->Execute(ctx);
+    }
+    LOG_DEBUG() << "-----result-----";
+    LOG_DEBUG() << ctx->result_->Dump(false);
     elapsed.t_total = fma_common::GetTime() - t0;
     elapsed.t_exec = elapsed.t_total - elapsed.t_compile;
 }

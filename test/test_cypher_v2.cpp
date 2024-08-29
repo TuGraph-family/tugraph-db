@@ -36,6 +36,7 @@
 #include "cypher/rewriter/MultiPathPatternRewriter.h"
 #include "fma-common/file_system.h"
 #include "db/galaxy.h"
+#include "cypher/rewriter/PushDownFilterAstRewriter.h"
 #include "cypher/execution_plan/runtime_context.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "lgraph/lgraph_utils.h"
@@ -172,13 +173,15 @@ class TestCypherV2 : public TuGraphTest {
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
             geax::common::ObjectArenaAllocator objAlloc_;
-            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
+            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher(), ctx_.get());
             AstNode* node = visitor.result();
             // rewrite ast
             cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
             node->accept(gen_anonymous_alias_rewriter);
             cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
             node->accept(multi_path_pattern_rewriter);
+            cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx_.get());
+            node->accept(push_down_filter_ast_writer);
             // dump
             AstDumper dumper;
             auto ret = dumper.handle(node);
@@ -192,13 +195,12 @@ class TestCypherV2 : public TuGraphTest {
                 UT_DBG() << "--- dumper.handle(node) dump ---";
                 UT_DBG() << dumper.dump();
             }
-            LOG_INFO() << "------------------------- " << __FILE__ << " " << __LINE__;
             cypher::ExecutionPlanV2 execution_plan_v2;
             ret = execution_plan_v2.Build(node, ctx_.get());
             if (ret != GEAXErrorCode::GEAX_SUCCEED) {
                 UT_LOG() << "build execution_plan_v2 failed: " << execution_plan_v2.ErrorMsg();
                 result = execution_plan_v2.ErrorMsg();
-                return false;
+                return true;
             } else {
 //                if (visitor.CommandType() != parser::CmdType::QUERY) {
 //                    ctx_->result_info_ = std::make_unique<cypher::ResultInfo>();
@@ -383,12 +385,12 @@ TEST_F(TestCypherV2, TestMultiMatch) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestOptionalMatch) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/optional_match/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestOptionalMatch) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/optional_match/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestUnion) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -432,12 +434,12 @@ TEST_F(TestCypherV2, TestFuncFilter) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestExpression) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/expression/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestExpression) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/expression/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestWith) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -467,12 +469,21 @@ TEST_F(TestCypherV2, TestUnwind) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestProcedure) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/procedure/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestProcedure) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/procedure/cypher";
+    test_files(dir);
+}
+
+#ifdef LGRAPH_ENABLE_PYTHON_PLUGIN
+TEST_F(TestCypherV2, TestPythonProcedure) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/python_procedure/cypher";
+    test_files(dir);
+}
+#endif
 
 TEST_F(TestCypherV2, TestAdd) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -530,12 +541,12 @@ TEST_F(TestCypherV2, TestAggregate) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestAlgo) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/algo/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestAlgo) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/algo/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestTopn) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
@@ -558,19 +569,19 @@ TEST_F(TestCypherV2, TestOpt) {
     test_files(dir);
 }
 
-// TEST_F(TestCypherV2, TestFixCrashIssues) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/fix_crash_issues/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestFixCrashIssues) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/fix_crash_issues/cypher";
+    test_files(dir);
+}
 
-// TEST_F(TestCypherV2, TestUndefinedVar) {
-//     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
-//     set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
-//     std::string dir = test_suite_dir_ + "/undefined_var/cypher";
-//     test_files(dir);
-// }
+TEST_F(TestCypherV2, TestUndefinedVar) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::YAGO);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/undefined_var/cypher";
+    test_files(dir);
+}
 
 TEST_F(TestCypherV2, TestCreateLabel) {
     set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);

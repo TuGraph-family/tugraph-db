@@ -269,23 +269,45 @@ bool Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
 int Transaction::UpsertEdge(int64_t src, int64_t dst, size_t label_id,
                             const std::vector<size_t>& unique_pos,
                             const std::vector<size_t>& field_ids,
-                            const std::vector<FieldData>& field_values) {
+                            const std::vector<FieldData>& field_values,
+                            std::optional<size_t> pair_unique_pos) {
     ThrowIfInvalid();
     for (auto pos : unique_pos) {
         if (pos >= field_ids.size()) {
             THROW_CODE(InputError, "unique_pos is out of the field_ids's range");
         }
     }
-    auto iter = txn_->GetOutEdgeIterator(EdgeUid(src, dst, label_id, 0, 0), false);
-    if (iter.IsValid()) {
+    std::optional<EdgeUid> euid;
+    if (pair_unique_pos.has_value()) {
+        if (pair_unique_pos.value() > field_ids.size()) {
+            THROW_CODE(InputError, "pair_unique_pos is out of the field_ids's range");
+        }
+        auto iter = txn_->GetEdgePairUniqueIndexIterator(
+            label_id, field_ids[pair_unique_pos.value()],
+            src, dst,
+            field_values[pair_unique_pos.value()],
+            field_values[pair_unique_pos.value()]);
+        if (iter.IsValid()) {
+            auto uid = iter.GetUid();
+            if (uid.src == src && uid.dst == dst && uid.lid == label_id) {
+                euid = uid;
+            }
+        }
+    } else {
+        auto iter = txn_->GetOutEdgeIterator(EdgeUid(src, dst, label_id, 0, 0), false);
+        if (iter.IsValid()) {
+            euid = iter.GetUid();
+        }
+    }
+    if (euid.has_value()) {
         for (auto pos : unique_pos) {
             auto tmp = txn_->GetEdgeIndexIterator(
                 label_id, field_ids[pos], field_values[pos], field_values[pos]);
-            if (tmp.IsValid() && (tmp.GetUid() != iter.GetUid())) {
+            if (tmp.IsValid() && (tmp.GetUid() != euid.value())) {
                 return 0;
             }
         }
-        txn_->SetEdgeProperty(iter, field_ids, field_values);
+        txn_->SetEdgeProperty(euid.value(), field_ids, field_values);
         return 2;
     } else {
         for (auto pos : unique_pos) {
@@ -336,6 +358,16 @@ EdgeIndexIterator Transaction::GetEdgeIndexIterator(size_t label_id, size_t fiel
                                                     const FieldData& key_end) {
     ThrowIfInvalid();
     return EdgeIndexIterator(txn_->GetEdgeIndexIterator(label_id, field_id, key_start, key_end),
+                             txn_);
+}
+
+EdgeIndexIterator Transaction::GetEdgePairUniqueIndexIterator(size_t label_id, size_t field_id,
+                                                            int64_t src_vid, int64_t dst_vid,
+                                                            const FieldData& key_start,
+                                                            const FieldData& key_end) {
+    ThrowIfInvalid();
+    return EdgeIndexIterator(txn_->GetEdgePairUniqueIndexIterator(
+                                 label_id, field_id, src_vid, dst_vid, key_start, key_end),
                              txn_);
 }
 
@@ -501,6 +533,7 @@ OutEdgeIterator Transaction::GetEdgeByUniqueIndex(size_t label_id, size_t field_
     euid = eit.GetUid();
     return GetOutEdgeIterator(euid, false);
 }
+
 size_t Transaction::GetNumVertices() {
     ThrowIfInvalid();
     return txn_->graph_->GetLooseNumVertex(txn_->GetTxn());
