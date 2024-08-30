@@ -73,7 +73,7 @@ MATCH (n:Person WHERE n.birthyear < 1970) RETURN n.birthyear AS q ORDER BY q DES
 MATCH (n:Person WHERE n.birthyear < 1970) RETURN n.birthyear AS q LIMIT 5
 NEXT
 RETURN q ORDER BY q;
-[{"q":1932},{"q":1939},{"q":1952},{"q":1954},{"q":1965}]
+[{"q":1908},{"q":1910},{"q":1937},{"q":1939},{"q":1952}]
 
 OPTIONAL MATCH (n:Person) WHERE n.birthyear > 3000 RETURN n.name;
 [{"n.name":null}]
