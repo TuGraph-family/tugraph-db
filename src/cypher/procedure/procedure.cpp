@@ -3914,43 +3914,48 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record,
     CYPHER_ARG_CHECK((args.size() >= 6 && args.size() <= 8),
                         "e.g. vector.addVectorIndex(label_name, field_name, index_type,"
                         " vec_dimension, distance_type, index_spec);");
-    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
+    CYPHER_ARG_CHECK(args[0].IsString(),
                         "label_name type should be string");
-    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
+    CYPHER_ARG_CHECK(args[1].IsString(),
                         "field_name type should be string");
-    CYPHER_ARG_CHECK((args[2].String() == "IVF_FLAT" || args[2].String() == "HNSW"),
+    CYPHER_ARG_CHECK((args[2].constant.AsString() == "IVF_FLAT" ||
+                      args[2].constant.AsString() == "HNSW"),
                       "Index type should be one of them : IVF_FLAT, HNSW");
-    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT, "vec_dimension should be integer");
-    CYPHER_ARG_CHECK((args[4].String() == "L2" || args[4].String() == "IP"),
+    CYPHER_ARG_CHECK(args[3].IsInteger(), "vec_dimension should be integer");
+    CYPHER_ARG_CHECK((args[4].constant.AsString() == "L2" ||
+                      args[4].constant.AsString() == "IP"),
                       "Distance type should be one of them : L2, IP");
     std::vector<int> index_spec;
     switch (args.size()) {
         case 6:
-            CYPHER_ARG_CHECK((args[5].type == parser::Expression::INT &&
-                              args[5].Int() <= 65536 && args[5].Int() >= 1),
+            CYPHER_ARG_CHECK((args[5].IsInteger() &&
+                              args[5].constant.AsInt64() <= 65536 &&
+                              args[5].constant.AsInt64() >= 1),
             "Please check the parameter, nlist should be an integer in the range [1,65536]");
-            index_spec.emplace_back(args[5].Int());
+            index_spec.emplace_back(args[5].constant.AsInt64());
             break;
         case 7:
-            CYPHER_ARG_CHECK((args[5].type == parser::Expression::INT &&
-                              args[5].Int() < 2048 && args[5].Int() > 2),
+            CYPHER_ARG_CHECK((args[5].IsInteger() &&
+                              args[5].constant.AsInt64() < 2048 &&
+                              args[5].constant.AsInt64() > 2),
             "Please check the parameter, M should be an integer in the range (2,2048)");
-            CYPHER_ARG_CHECK((args[6].type == parser::Expression::INT &&
-                              args[6].Int() < 65536 && args[6].Int() > 1),
+            CYPHER_ARG_CHECK((args[6].IsInteger() &&
+                              args[6].constant.AsInt64() < 65536 &&
+                              args[6].constant.AsInt64() > 1),
             "Please check the parameter,"
             "efConstruction should be an integer in the range (1,65536)");
-            index_spec.emplace_back(args[5].Int());
-            index_spec.emplace_back(args[6].Int());
+            index_spec.emplace_back(args[5].constant.AsInt64());
+            index_spec.emplace_back(args[6].constant.AsInt64());
             break;
         default:
             throw lgraph::ReminderException("Please check the number of parameter!");
     }
     if (ctx->txn_) ctx->txn_->Abort();
-    auto label = args[0].String();
-    auto field = args[1].String();
-    auto index_type = args[2].String();
-    auto vec_dimension = args[3].Int();
-    auto distance_type = args[4].String();
+    auto label = args[0].constant.AsString();
+    auto field = args[1].constant.AsString();
+    auto index_type = args[2].constant.AsString();
+    auto vec_dimension = args[3].constant.AsInt64();
+    auto distance_type = args[4].constant.AsString();
     lgraph::IndexType type = lgraph::IndexType::GlobalUniqueIndex;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     bool success = ac_db.AddVectorIndex(label, field, index_type,
@@ -3968,22 +3973,24 @@ void VectorFunc::DeleteVectorIndex(RTContext *ctx, const cypher::Record *record,
     CYPHER_ARG_CHECK(args.size() == 5,
                      "e.g. vector.deleteVectorIndex(label_name, field_name,"
                      " index_type, vec_dimension, distance_type);");
-    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
+    CYPHER_ARG_CHECK(args[0].IsString(),
                     "label_name type should be string");
-    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
+    CYPHER_ARG_CHECK(args[1].IsString(),
                     "field_name type should be string");
-    CYPHER_ARG_CHECK((args[2].String() == "IVF_FLAT" || args[2].String() == "HNSW"),
+    CYPHER_ARG_CHECK((args[2].constant.AsString() == "IVF_FLAT" ||
+                      args[2].constant.AsString() == "HNSW"),
                     "Index type should be one of them : IVF_FLAT, HNSW");
-    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT,
+    CYPHER_ARG_CHECK(args[3].IsInteger(),
                     "vec_dimension should be integer");
-    CYPHER_ARG_CHECK((args[4].String() == "L2" || args[4].String() == "IP"),
+    CYPHER_ARG_CHECK((args[4].constant.AsString() == "L2" ||
+                      args[4].constant.AsString() == "IP"),
                     "Distance type should be one of them : L2, IP");
     if (ctx->txn_) ctx->txn_->Abort();
-    auto label = args[0].String();
-    auto field = args[1].String();
-    auto index_type = args[2].String();
-    auto vec_dimension = args[3].Int();
-    auto distance_type = args[4].String();
+    auto label = args[0].constant.AsString();
+    auto field = args[1].constant.AsString();
+    auto index_type = args[2].constant.AsString();
+    auto vec_dimension = args[3].constant.AsInt64();
+    auto distance_type = args[4].constant.AsString();
     bool success = ctx->ac_db_->DeleteVectorIndex(label, field, index_type,
                                     vec_dimension, distance_type);
     if (!success) {
@@ -4029,24 +4036,26 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     CYPHER_ARG_CHECK(args.size() >= 5,
                      "e.g. vector.VectorIndexQuery(label_name, field_name,"
                      " vec, num_of_return, query_spec);");
-    CYPHER_ARG_CHECK(args[0].type == parser::Expression::STRING,
+    CYPHER_ARG_CHECK(args[0].IsString(),
                     "label_name type should be string");
-    CYPHER_ARG_CHECK(args[1].type == parser::Expression::STRING,
+    CYPHER_ARG_CHECK(args[1].IsString(),
                     "field_name type should be string");
-    CYPHER_ARG_CHECK(args[2].type == parser::Expression::LIST,
+    CYPHER_ARG_CHECK(args[2].IsArray(),
                     "Please check the vector you entered, e.g. [1, 2, 3]");
-    CYPHER_ARG_CHECK(args[3].type == parser::Expression::INT,
+    CYPHER_ARG_CHECK(args[3].IsInteger(),
                     "num_of_return should be integer");
-    CYPHER_ARG_CHECK(args[4].type == parser::Expression::INT,
+    CYPHER_ARG_CHECK(args[4].IsInteger(),
                     "query_spec should be integer");
     std::vector<float> query_vector;
-    for (size_t i = 0; i < args[2].List().size(); i++) {
+    for (size_t i = 0; i < args[2].constant.AsConstantArray().size(); i++) {
         float fltValue;
-        if (args[2].List().at(i).type == parser::Expression::INT) {
-            int dblValue = args[2].List().at(i).Int();
+        if (args[2].constant.AsConstantArray().at(i).IsFloat()) {
+            int dblValue =
+                args[2].constant.AsConstantArray().at(i).AsFloat();
             fltValue = static_cast<float>(dblValue);
         } else {
-            double dblValue = args[2].List().at(i).Double();
+            double dblValue =
+                args[2].constant.AsConstantArray().at(i).IsFloat();
             fltValue = static_cast<float>(dblValue);
         }
         query_vector.push_back(fltValue);
@@ -4054,10 +4063,12 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     auto raw_txn = ctx->txn_->GetTxn();
     lgraph::Transaction& txn = *raw_txn;
     auto SchemaInfo = ctx->txn_->GetTxn()->GetSchemaInfo();
-    ::lgraph::Schema* schema = SchemaInfo.v_schema_manager.GetSchema(args[0].String());
-    auto extr = schema->GetFieldExtractor(args[1].String());
+    ::lgraph::Schema* schema =
+        SchemaInfo.v_schema_manager.GetSchema(args[0].constant.AsString());
+    auto extr = schema->GetFieldExtractor(args[1].constant.AsString());
     if (!extr->GetVertexIndex()) {
-        throw lgraph::VectorIndexNotExistException(args[0].String(), args[1].String());
+        throw lgraph::VectorIndexNotExistException(args[0].constant.AsString(),
+                                                   args[1].constant.AsString());
     }
     std::vector<float> index_distances;
     std::vector<int64_t> index_indices;
@@ -4066,17 +4077,19 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     std::vector<std::tuple<int, std::string, float>> SearchResult;
     auto index_type = extr->GetVectorIndex()->GetIndexType();
     if (index_type == "IVF_FLAT") {
-        CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT &&
-                          args[4].Int() <= 65536 && args[4].Int() >= 1),
+        CYPHER_ARG_CHECK((args[4].IsInteger() &&
+                          args[4].constant.AsInt64()<= 65536 &&
+                          args[4].constant.AsInt64() >= 1),
                          "Please check the parameter,"
                          " nprobe should be an integer in the range [1,65536]");
         int64_t count = 0;
         lgraph::VectorIndex* index = extr->GetVectorIndex();
         if (schema->DetachProperty()) {
             if (index->GetWhetherRebuild()) {
-                auto success = index->SetSearchSpec(args[4].Int());
-                auto result = index->Search(query_vector, static_cast<size_t>(args[3].Int()),
-                                            index_distances, index_indices);
+                auto success = index->SetSearchSpec(args[4].constant.AsInt64());
+                auto result = index->Search(query_vector,
+                                    static_cast<size_t>(args[3].constant.AsInt64()),
+                                    index_distances, index_indices);
                 if (result && success) {
                     auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
                     for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
@@ -4099,7 +4112,8 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
             }
             if (index->GetVectorIndexCounter()->getCount() != 0) {
                 if (index->GetFlatSearchResult(txn.GetTxn(), query_vector,
-                        static_cast<size_t>(args[3].Int()), Flat_distances, Flat_indices)) {
+                        static_cast<size_t>(args[3].constant.AsInt64()),
+                        Flat_distances, Flat_indices)) {
                     auto kv_iter = index->GetTable()->GetIterator(txn.GetTxn());
                     for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                         auto prop = kv_iter->GetValue();
@@ -4119,15 +4133,17 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
         } else {
         }
     } else if (index_type == "HNSW") {
-        CYPHER_ARG_CHECK((args[4].type == parser::Expression::INT &&
-                          args[4].Int() <= 65536 && args[4].Int() >= args[3].Int()),
+        CYPHER_ARG_CHECK((args[4].IsInteger() &&
+                          args[4].constant.AsInt64() <= 65536 &&
+                          args[4].constant.AsInt64() >= args[3].constant.AsInt64()),
                          "Please check the parameter,"
                          "ef should be an integer in the range [top_k, 65536]");
         int64_t count = 0;
         lgraph::VectorIndex* index = extr->GetVectorIndex();
         if (schema->DetachProperty()) {
-            auto success = index->SetSearchSpec(args[4].Int());
-            auto result = index->Search(query_vector, static_cast<size_t>(args[3].Int()),
+            auto success = index->SetSearchSpec(args[4].constant.AsInt64());
+            auto result = index->Search(query_vector,
+                                        static_cast<size_t>(args[3].constant.AsInt64()),
                                         index_distances, index_indices);
             if (result && success) {
                 auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
@@ -4158,11 +4174,11 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
        const std::tuple<int, std::string, float>& b) {
         return std::get<2>(a) < std::get<2>(b);
     });
-    for (int i = 0; i < args[3].Int(); i++) {
+    for (int i = 0; i < args[3].constant.AsInt64(); i++) {
         Record r;
         r.AddConstant(::lgraph::FieldData(std::get<0>(SearchResult.at(i))));
-        r.AddConstant(::lgraph::FieldData(args[0].String()));
-        r.AddConstant(::lgraph::FieldData(args[1].String()));
+        r.AddConstant(::lgraph::FieldData(args[0].constant.AsString()));
+        r.AddConstant(::lgraph::FieldData(args[1].constant.AsString()));
         r.AddConstant(::lgraph::FieldData(std::get<1>(SearchResult.at(i))));
         r.AddConstant(::lgraph::FieldData(std::get<2>(SearchResult.at(i))));
         records->emplace_back(r.Snapshot());

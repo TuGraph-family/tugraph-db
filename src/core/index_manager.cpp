@@ -132,21 +132,25 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             }
             auto tbl =
                 VectorIndex::OpenTable(txn, db_->GetStore(), index_name, fe->Type(), idx.type);
-            VectorIndex* vector_index;
             if (index_type == "IVF_FLAT") {
-                vector_index = new IVFFlat(label, field, distance_type,
+                VectorIndex* vector_index = new IVFFlat(label, field, distance_type,
                                    index_type, vec_dimension,
                                    index_spec, std::move(tbl));
-            } else if (index_type == "HNSW") {
-                vector_index = new HNSW(label, field, distance_type,
-                                   index_type, vec_dimension,
-                                   index_spec, std::move(tbl));
-            }
-            index->SetReady();
-            schema->GetFieldExtractor(field)->GetVectorIndex()
+                index->SetReady();
+                schema->GetFieldExtractor(field)->GetVectorIndex()
                             ->GetVectorIndexCounter()->MakeVectorIndex();
-            schema->MarkVertexIndexed(fe->GetFieldId(), index);
-            schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
+                schema->MarkVertexIndexed(fe->GetFieldId(), index);
+                schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
+            } else if (index_type == "HNSW") {
+                VectorIndex* vector_index= new HNSW(label, field, distance_type,
+                                   index_type, vec_dimension,
+                                   index_spec, std::move(tbl));
+                index->SetReady();
+                schema->GetFieldExtractor(field)->GetVectorIndex()
+                            ->GetVectorIndexCounter()->MakeVectorIndex();
+                schema->MarkVertexIndexed(fe->GetFieldId(), index);
+                schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
+            }
         } else {
             LOG_ERROR() << "Unknown index type: " << index_name;
         }
