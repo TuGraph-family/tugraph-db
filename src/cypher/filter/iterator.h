@@ -113,11 +113,11 @@ class WeakIndexIterator {
                 auto iit = _txn->GetVertexIndexIterator(l, _field_name, _value, _value);
                 if (iit.IsValid()) {
                     _iit.emplace_back(new lgraph::VertexIndexIterator(std::move(iit)));
-                } else {
-                    auto iit = _txn->GetVertexIndexIterator(l, _field_name, _startVal, _endVal);
-                    if (iit.IsValid()) {
-                        _iit.emplace_back(new lgraph::VertexIndexIterator(std::move(iit)));
-                    }
+                }
+            } else {
+                auto iit = _txn->GetVertexIndexIterator(l, _field_name, _startVal, _endVal);
+                if (iit.IsValid()) {
+                    _iit.emplace_back(new lgraph::VertexIndexIterator(std::move(iit)));
                 }
             }
         }

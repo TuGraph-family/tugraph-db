@@ -143,8 +143,10 @@ class NodeIndexSeekByRange : public OpBase {
         std::string str(name);
         str.append(" [").append(alias_).append("]");
         str.append(" ").append(field_).append(" IN [");
-        for (const auto &v : target_values_) {
-            str.append(v.ToString()).append(",");
+        if (cmpOp_ == lgraph::CompareOp::LBR_LT) {
+            str.append("<").append(target_values_[0].ToString());
+        } else if (cmpOp_ == lgraph::CompareOp::LBR_GT) {
+            str.append(">").append(target_values_[0].ToString());
         }
         str.append("]");
         return str;

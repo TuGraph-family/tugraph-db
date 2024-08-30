@@ -67,6 +67,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         json curNode;
         json communityNode;
         for (size_t i = 0; i < olapondb.NumVertices(); i++) {
+            if (olapondb.OutDegree(i) == 0) continue;
             if (label[i]) {
                 auto vit = txn.GetVertexIterator(i, false);
                 auto vit_label = vit.GetLabel();
