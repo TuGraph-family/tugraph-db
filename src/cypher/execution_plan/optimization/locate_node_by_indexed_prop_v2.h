@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "execution_plan/ops/op.h"
 #include "execution_plan/ops/op_node_index_seek_byrange.h"
 #include "geax-front-end/ast/AstNode.h"
 #include "tools/lgraph_log.h"
@@ -69,40 +70,28 @@ class LocateNodeByIndexedPropV2 : public OptPass {
             // try to reuse NodeIndexSeek
             // Here implemention of NodeIndexSeek is tweaked to support multiple static values
             // Reason that not to build unwind：unwind needs one more symbol in symbol table
-            if(cmpOp == geax::frontend::AstNodeType::kBSmallerThan ||
-                cmpOp == geax::frontend::AstNodeType::kBGreaterThan) {
-                auto it = target_value_datas.find(node->Alias());
-                if (it == target_value_datas.end()) return;
-                CYPHER_THROW_ASSERT(it->second.size() == 1);
-                std::vector<lgraph::FieldData> values;
-                std::string field;
-                for (auto & [f, set] : it->second) {
-                    values.insert(values.end(), set.begin(), set.end());
-                    field = f;
-                }
-                auto op_node_index_byrange = new NodeIndexSeekByRange(node, symtab, field, values, cmpOp);
-                op_node_index_byrange->parent = op_post;
-                op_post->RemoveChild(op_filter);
-                OpBase::FreeStream(op_filter);
-                op_filter = nullptr;
-                op_post->AddChild(op_node_index_byrange);
-            } else {
-                auto it = target_value_datas.find(node->Alias());
-                if (it == target_value_datas.end()) return;
-                CYPHER_THROW_ASSERT(it->second.size() == 1);
-                std::vector<lgraph::FieldData> values;
-                std::string field;
-                for (auto & [f, set] : it->second) {
-                    values.insert(values.end(), set.begin(), set.end());
-                    field = f;
-                }
-                auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, values);
-                op_node_index_seek->parent = op_post;
-                op_post->RemoveChild(op_filter);
-                OpBase::FreeStream(op_filter);
-                op_filter = nullptr;
-                op_post->AddChild(op_node_index_seek);
+            auto it = target_value_datas.find(node->Alias());
+            if (it == target_value_datas.end()) return;
+            CYPHER_THROW_ASSERT(it->second.size() == 1);
+            std::vector<lgraph::FieldData> values;
+            std::string field;
+            for (auto & [f, set] : it->second) {
+                values.insert(values.end(), set.begin(), set.end());
+                field = f;
             }
+            OpBase* op_node_index_operation;
+            if (cmpOp == geax::frontend::AstNodeType::kBSmallerThan ||
+                cmpOp == geax::frontend::AstNodeType::kBGreaterThan) {
+                op_node_index_operation = new NodeIndexSeekByRange(node, symtab, field,
+                                                                    values, cmpOp);
+            } else {
+                op_node_index_operation = new NodeIndexSeek(node, symtab, field, values);
+            }
+            op_node_index_operation->parent = op_post;
+            op_post->RemoveChild(op_filter);
+            OpBase::FreeStream(op_filter);
+            op_filter = nullptr;
+            op_post->AddChild(op_node_index_operation);
         }
     }
 

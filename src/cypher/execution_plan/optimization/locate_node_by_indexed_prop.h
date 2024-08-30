@@ -88,7 +88,7 @@ class LocateNodeByIndexedProp : public OptPass {
                 OpBase::FreeStream(op_filter);
                 op_filter = nullptr;
                 op_post->AddChild(op_node_index_seek);
-            } 
+            }
             // else if (cmpOp == lgraph::CompareOp::LBR_GT ||
             //         cmpOp == lgraph::CompareOp::LBR_LT) {
             //     auto op_node_index_seek_byrange
