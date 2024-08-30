@@ -142,7 +142,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 schema->MarkVertexIndexed(fe->GetFieldId(), index);
                 schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
             } else if (index_type == "HNSW") {
-                VectorIndex* vector_index= new HNSW(label, field, distance_type,
+                VectorIndex* vector_index = new HNSW(label, field, distance_type,
                                    index_type, vec_dimension,
                                    index_spec, std::move(tbl));
                 index->SetReady();
