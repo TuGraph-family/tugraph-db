@@ -4,4 +4,4 @@
 #match (p:Person) where p.birthyear > 1900 or p.birthyear < 1910 return p
 #match (n:Person) return n;
 #CALL db.indexes();
-match (p:Person) where p.name < "D" return p
+match (p:Person) where p.name = "D" or p.name = "E" return p
