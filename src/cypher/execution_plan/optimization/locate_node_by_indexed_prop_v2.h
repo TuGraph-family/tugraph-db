@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "execution_plan/ops/op_node_index_seek_byrange.h"
+#include "geax-front-end/ast/AstNode.h"
 #include "tools/lgraph_log.h"
 #include "core/data_type.h"
 #include "cypher/execution_plan/ops/op_filter.h"
@@ -47,8 +49,9 @@ class LocateNodeByIndexedPropV2 : public OptPass {
         std::unordered_map<std::string,
                            std::unordered_map<std::string,
                            std::set<lgraph::FieldData>>> target_value_datas;
+        geax::frontend::AstNodeType cmpOp;
 
-        if (FindNodePropFilter(root, op_filter, target_value_datas)) {
+        if (FindNodePropFilter(root, op_filter, target_value_datas, cmpOp)) {
             auto op_post = op_filter->parent;
 
             Node *node;
@@ -66,27 +69,47 @@ class LocateNodeByIndexedPropV2 : public OptPass {
             // try to reuse NodeIndexSeek
             // Here implemention of NodeIndexSeek is tweaked to support multiple static values
             // Reason that not to build unwind：unwind needs one more symbol in symbol table
-            auto it = target_value_datas.find(node->Alias());
-            if (it == target_value_datas.end()) return;
-            CYPHER_THROW_ASSERT(it->second.size() == 1);
-            std::vector<lgraph::FieldData> values;
-            std::string field;
-            for (auto & [f, set] : it->second) {
-                values.insert(values.end(), set.begin(), set.end());
-                field = f;
+            if(cmpOp == geax::frontend::AstNodeType::kBSmallerThan ||
+                cmpOp == geax::frontend::AstNodeType::kBGreaterThan) {
+                auto it = target_value_datas.find(node->Alias());
+                if (it == target_value_datas.end()) return;
+                CYPHER_THROW_ASSERT(it->second.size() == 1);
+                std::vector<lgraph::FieldData> values;
+                std::string field;
+                for (auto & [f, set] : it->second) {
+                    values.insert(values.end(), set.begin(), set.end());
+                    field = f;
+                }
+                auto op_node_index_byrange = new NodeIndexSeekByRange(node, symtab, field, values, cmpOp);
+                op_node_index_byrange->parent = op_post;
+                op_post->RemoveChild(op_filter);
+                OpBase::FreeStream(op_filter);
+                op_filter = nullptr;
+                op_post->AddChild(op_node_index_byrange);
+            } else {
+                auto it = target_value_datas.find(node->Alias());
+                if (it == target_value_datas.end()) return;
+                CYPHER_THROW_ASSERT(it->second.size() == 1);
+                std::vector<lgraph::FieldData> values;
+                std::string field;
+                for (auto & [f, set] : it->second) {
+                    values.insert(values.end(), set.begin(), set.end());
+                    field = f;
+                }
+                auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, values);
+                op_node_index_seek->parent = op_post;
+                op_post->RemoveChild(op_filter);
+                OpBase::FreeStream(op_filter);
+                op_filter = nullptr;
+                op_post->AddChild(op_node_index_seek);
             }
-            auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, values);
-            op_node_index_seek->parent = op_post;
-            op_post->RemoveChild(op_filter);
-            OpBase::FreeStream(op_filter);
-            op_filter = nullptr;
-            op_post->AddChild(op_node_index_seek);
         }
     }
 
     bool _CheckPropFilter(OpFilter *&op_filter, std::unordered_map<std::string,
                           std::unordered_map<std::string,
-                          std::set<lgraph::FieldData>>> &target_value_datas) {
+                          std::set<lgraph::FieldData>>> &target_value_datas,
+                          geax::frontend::AstNodeType &cmpOp) {
         /**
          * @brief
          *  Check if Filter is filters to filter prop values
@@ -100,6 +123,7 @@ class LocateNodeByIndexedPropV2 : public OptPass {
         geax::frontend::Expr *expr = geax_filter.expr_;
         PropertyFilterDetector detector;
         if (!detector.Build(expr)) return false;
+        cmpOp = expr->type();
         target_value_datas = detector.GetProperties();
         if (target_value_datas.empty()) return false;
         return true;
@@ -108,19 +132,20 @@ class LocateNodeByIndexedPropV2 : public OptPass {
     bool FindNodePropFilter(OpBase *root, OpFilter *&op_filter,
                             std::unordered_map<std::string,
                             std::unordered_map<std::string,
-                            std::set<lgraph::FieldData>>> &target_value_datas) {
+                            std::set<lgraph::FieldData>>> &target_value_datas,
+                            geax::frontend::AstNodeType &cmpOp) {
         auto op = root;
         if (op->type == OpType::FILTER && op->children.size() == 1 &&
             (op->children[0]->type == OpType::ALL_NODE_SCAN ||
              op->children[0]->type == OpType::NODE_BY_LABEL_SCAN)) {
             op_filter = dynamic_cast<OpFilter *>(op);
-            if (_CheckPropFilter(op_filter,  target_value_datas)) {
+            if (_CheckPropFilter(op_filter,  target_value_datas, cmpOp)) {
                 return true;
             }
         }
 
         for (auto child : op->children) {
-            if (FindNodePropFilter(child, op_filter, target_value_datas)) return true;
+            if (FindNodePropFilter(child, op_filter, target_value_datas, cmpOp)) return true;
         }
 
         return false;

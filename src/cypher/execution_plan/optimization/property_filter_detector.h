@@ -16,6 +16,7 @@
 
 #include "core/data_type.h"
 #include "cypher/execution_plan/optimization/optimization_filter_visitor_impl.h"
+#include "geax-front-end/ast/expr/BSmallerThan.h"
 
 namespace cypher {
 
@@ -69,6 +70,17 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     }
 
     std::any visit(geax::frontend::BEqual* node) override {
+        ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
+        ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
+        if (!cur_properties_.empty()) {
+            auto& fields_map = properties_[cur_symbol_];
+            auto& fields = fields_map[cur_field_];
+            fields.insert(cur_properties_.begin(), cur_properties_.end());
+        }
+        return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
+    }
+
+    std::any visit(geax::frontend::BSmallerThan* node) override {
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         if (!cur_properties_.empty()) {

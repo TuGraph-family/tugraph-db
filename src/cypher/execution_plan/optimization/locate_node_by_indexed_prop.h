@@ -88,17 +88,18 @@ class LocateNodeByIndexedProp : public OptPass {
                 OpBase::FreeStream(op_filter);
                 op_filter = nullptr;
                 op_post->AddChild(op_node_index_seek);
-            } else if (cmpOp == lgraph::CompareOp::LBR_GT ||
-                    cmpOp == lgraph::CompareOp::LBR_LT) {
-                auto op_node_index_seek_byrange
-                                    = new NodeIndexSeekByRange(node, symtab,
-                                                            field, target_value_datas, cmpOp);
-                op_node_index_seek_byrange->parent = op_post;
-                op_post->RemoveChild(op_filter);
-                OpBase::FreeStream(op_filter);
-                op_filter = nullptr;
-                op_post->AddChild(op_node_index_seek_byrange);
-            }
+            } 
+            // else if (cmpOp == lgraph::CompareOp::LBR_GT ||
+            //         cmpOp == lgraph::CompareOp::LBR_LT) {
+            //     auto op_node_index_seek_byrange
+            //                         = new NodeIndexSeekByRange(node, symtab,
+            //                                                 field, target_value_datas, cmpOp);
+            //     op_node_index_seek_byrange->parent = op_post;
+            //     op_post->RemoveChild(op_filter);
+            //     OpBase::FreeStream(op_filter);
+            //     op_filter = nullptr;
+            //     op_post->AddChild(op_node_index_seek_byrange);
+            // }
         }
     }
 

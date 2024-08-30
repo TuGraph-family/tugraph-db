@@ -17,6 +17,7 @@
 #include "core/data_type.h"
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/cypher_exception.h"
+#include "geax-front-end/ast/AstNode.h"
 
 namespace cypher {
 
@@ -32,12 +33,12 @@ class NodeIndexSeekByRange : public OpBase {
     std::string field_;
     int value_rec_idx_;
     std::vector<lgraph::FieldData> target_values_;
-    lgraph::CompareOp cmpOp_;
+    geax::frontend::AstNodeType cmpOp_;
 
  public:
     NodeIndexSeekByRange(Node *node, const SymbolTable *sym_tab, std::string field = "",
                   std::vector<lgraph::FieldData> target_values = {},
-                  lgraph::CompareOp cmpOP = lgraph::CompareOp::LBR_EQ)
+                  geax::frontend::AstNodeType cmpOP = geax::frontend::AstNodeType::kBEqual)
         : OpBase(OpType::NODE_INDEX_SEEK_BYRANGE, "Node Index Seek By Range"),
                     node_(node), sym_tab_(sym_tab), cmpOp_(cmpOP) {
         if (node) {
@@ -76,10 +77,10 @@ class NodeIndexSeekByRange : public OpBase {
             CYPHER_TODO();
         }
         CYPHER_THROW_ASSERT(!target_values_.empty());
-        CYPHER_THROW_ASSERT(cmpOp_ == lgraph::CompareOp::LBR_GT ||
-                            cmpOp_ == lgraph::CompareOp::LBR_LT);
+        CYPHER_THROW_ASSERT(cmpOp_ == geax::frontend::AstNodeType::kBSmallerThan ||
+                            cmpOp_ == geax::frontend::AstNodeType::kBGreaterThan);
         auto value = target_values_[0];
-        if (cmpOp_ == lgraph::CompareOp::LBR_GT) {
+        if (cmpOp_ == geax::frontend::AstNodeType::kBGreaterThan) {
             if (!node_->Label().empty() && ctx->txn_->GetTxn()
                 ->IsIndexed(node_->Label(), field_)) {
                 it_->Initialize(ctx->txn_->GetTxn().get(),
@@ -90,7 +91,7 @@ class NodeIndexSeekByRange : public OpBase {
                 it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(),
                     field_, value, lgraph::FieldData());
             }
-        } else if (cmpOp_ == lgraph::CompareOp::LBR_LT) {
+        } else if (cmpOp_ == geax::frontend::AstNodeType::kBSmallerThan) {
             if (!node_->Label().empty() &&
                 ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
                 it_->Initialize(ctx->txn_->GetTxn().get(),
@@ -143,9 +144,9 @@ class NodeIndexSeekByRange : public OpBase {
         std::string str(name);
         str.append(" [").append(alias_).append("]");
         str.append(" ").append(field_).append(" IN [");
-        if (cmpOp_ == lgraph::CompareOp::LBR_LT) {
+        if (cmpOp_ == geax::frontend::AstNodeType::kBSmallerThan) {
             str.append("<").append(target_values_[0].ToString());
-        } else if (cmpOp_ == lgraph::CompareOp::LBR_GT) {
+        } else if (cmpOp_ == geax::frontend::AstNodeType::kBGreaterThan) {
             str.append(">").append(target_values_[0].ToString());
         }
         str.append("]");
