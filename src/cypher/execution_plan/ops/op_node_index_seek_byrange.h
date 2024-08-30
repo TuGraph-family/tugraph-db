@@ -34,6 +34,8 @@ class NodeIndexSeekByRange : public OpBase {
     int value_rec_idx_;
     std::vector<lgraph::FieldData> target_values_;
     geax::frontend::AstNodeType cmpOp_;
+    lgraph::FieldData startFieldData;
+    lgraph::FieldData endFieldData;
 
  public:
     NodeIndexSeekByRange(Node *node, const SymbolTable *sym_tab, std::string field = "",
@@ -53,6 +55,8 @@ class NodeIndexSeekByRange : public OpBase {
         target_values_ = std::move(target_values);
         field_ = std::move(field);
         value_rec_idx_ = 0;
+        startFieldData = lgraph::FieldData();
+        endFieldData = lgraph::FieldData();
     }
 
     OpResult Initialize(RTContext *ctx) override {
@@ -81,27 +85,19 @@ class NodeIndexSeekByRange : public OpBase {
                             cmpOp_ == geax::frontend::AstNodeType::kBGreaterThan);
         auto value = target_values_[0];
         if (cmpOp_ == geax::frontend::AstNodeType::kBGreaterThan) {
-            if (!node_->Label().empty() && ctx->txn_->GetTxn()
-                ->IsIndexed(node_->Label(), field_)) {
-                it_->Initialize(ctx->txn_->GetTxn().get(),
-                            lgraph::VIter::INDEX_ITER, node_->Label(),
-                            field_, value, lgraph::FieldData());
-            } else {
-                // Weak index iterator
-                it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(),
-                    field_, value, lgraph::FieldData());
-            }
+            startFieldData = value;
         } else if (cmpOp_ == geax::frontend::AstNodeType::kBSmallerThan) {
-            if (!node_->Label().empty() &&
+            endFieldData = value;
+        }
+        if (!node_->Label().empty() &&
                 ctx->txn_->GetTxn()->IsIndexed(node_->Label(), field_)) {
                 it_->Initialize(ctx->txn_->GetTxn().get(),
                             lgraph::VIter::INDEX_ITER, node_->Label(),
-                            field_,  lgraph::FieldData(), value);
-            } else {
-                // Weak index iterator
-                it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(),
-                                field_, lgraph::FieldData(), value);
-            }
+                            field_,  startFieldData, endFieldData);
+        } else {
+            // Weak index iterator
+            it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(),
+                                field_, startFieldData, endFieldData);
         }
         consuming_ = false;
         return OP_OK;
@@ -145,9 +141,9 @@ class NodeIndexSeekByRange : public OpBase {
         str.append(" [").append(alias_).append("]");
         str.append(" ").append(field_).append(" IN [");
         if (cmpOp_ == geax::frontend::AstNodeType::kBSmallerThan) {
-            str.append("<").append(target_values_[0].ToString());
+            str.append("< ").append(target_values_[0].ToString());
         } else if (cmpOp_ == geax::frontend::AstNodeType::kBGreaterThan) {
-            str.append(">").append(target_values_[0].ToString());
+            str.append("> ").append(target_values_[0].ToString());
         }
         str.append("]");
         return str;
