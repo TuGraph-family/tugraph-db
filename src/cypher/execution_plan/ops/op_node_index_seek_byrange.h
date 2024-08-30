@@ -36,7 +36,7 @@ class NodeIndexSeekByRange : public OpBase {
     geax::frontend::AstNodeType cmpOp_;
     lgraph::FieldData startFieldData;
     lgraph::FieldData endFieldData;
-
+ 
  public:
     NodeIndexSeekByRange(Node *node, const SymbolTable *sym_tab, std::string field = "",
                   std::vector<lgraph::FieldData> target_values = {},
@@ -64,22 +64,7 @@ class NodeIndexSeekByRange : public OpBase {
         record = std::make_shared<Record>(rec_length_, sym_tab_, ctx->param_tab_);
         record->values[node_rec_idx_].type = Entry::NODE;
         record->values[node_rec_idx_].node = node_;
-
-        auto &pf = node_->Prop();
-        field_ = pf.type != Property::NUL ? pf.field : field_;  // use pf.field if applicable
-        if (pf.type == Property::VALUE) {
-            target_values_.emplace_back(pf.value);
-        } else if (pf.type == Property::PARAMETER) {
-            auto it = ctx->param_tab_.find(pf.value_alias);
-            if (it == ctx->param_tab_.end())
-                throw lgraph::CypherException("invalid parameter: " + pf.value_alias);
-            if (it->second.type != cypher::FieldData::SCALAR) {
-                throw lgraph::CypherException("parameter with wrong type: " + pf.value_alias);
-            }
-            target_values_.emplace_back(it->second.scalar);
-        } else if (pf.type == Property::VARIABLE) {
-            CYPHER_TODO();
-        }
+        
         CYPHER_THROW_ASSERT(!target_values_.empty());
         CYPHER_THROW_ASSERT(cmpOp_ == geax::frontend::AstNodeType::kBSmallerThan ||
                             cmpOp_ == geax::frontend::AstNodeType::kBGreaterThan);
