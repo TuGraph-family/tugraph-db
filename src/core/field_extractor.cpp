@@ -293,7 +293,7 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
                 if (std::regex_search(*data.data.buf, nonNumbersAndCommas)) {
                     throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
                 }
-                // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+                // Check if the string conforms to the following format : 1.000000,2.000000,...
                 std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
                 if (!std::regex_match(*data.data.buf, vector)) {
                     throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
@@ -311,9 +311,13 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
                     vec.push_back(std::stof(match.str()));
                     ++begin_it;
                 }
-                if (vec.size() <= 0) throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
-                    return _SetVariableLengthValue(record, Value::ConstRef(vec));
-            } else throw ParseFieldDataException(Name(), data, Type());
+                if (vec.size() <= 0) {
+                    throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
+                }
+                return _SetVariableLengthValue(record, Value::ConstRef(vec));
+            } else {
+                throw ParseFieldDataException(Name(), data, Type());
+            }
         }
     default:
         LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type)
