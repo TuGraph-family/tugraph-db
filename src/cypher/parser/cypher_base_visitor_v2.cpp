@@ -1751,6 +1751,9 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
         for (size_t idx = 0; idx < ctx->oC_Expression().size(); ++idx) {
             geax::frontend::Expr *expr = nullptr;
             checkedAnyCast(visit(ctx->oC_Expression(idx)), expr);
+            if (expr == nullptr) {
+                continue;
+            }
             func->appendArg(expr);
         }
         res = func;

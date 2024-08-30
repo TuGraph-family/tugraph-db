@@ -354,6 +354,12 @@ cypher::FieldData BuiltinFunction::Range(RTContext *ctx, const Record &record,
     auto start_i = start.constant.scalar.integer();
     auto end_i = end.constant.scalar.integer();
     cypher::FieldData ret = cypher::FieldData::Array(0);
+    if (step_i == 0) {
+        THROW_CODE(InvalidParameter, "range() arg 3 must not be zero");
+    }
+    if ((step_i > 0 && start_i >= end_i) || (step_i < 0 && start_i <= end_i)) {
+        return ret;
+    }
     for (auto i = start_i; i <= end_i; i += step_i) {
         ret.array->emplace_back(i);
     }
