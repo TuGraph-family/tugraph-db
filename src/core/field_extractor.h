@@ -20,7 +20,6 @@
 #include "core/edge_index.h"
 #include "core/schema_common.h"
 #include "core/vector_index_layer.h"
-#include "core/Faiss_IVF_FLAT.h"
 #include "core/Vsag_HNSW.h"
 
 namespace lgraph {
@@ -76,10 +75,7 @@ class FieldExtractor {
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
         if (rhs.vector_index_ != nullptr) {
-            if (rhs.vector_index_->GetIndexType() == "IVF_FLAT") {
-                vector_index_.reset(new IVFFlat(
-                    dynamic_cast<IVFFlat&>(*rhs.vector_index_)));
-            } else if (rhs.vector_index_->GetIndexType() == "HNSW") {
+            if (rhs.vector_index_->GetIndexType() == "HNSW") {
                 vector_index_.reset(new HNSW(
                     dynamic_cast<HNSW&>(*rhs.vector_index_)));
             } else {
@@ -102,10 +98,7 @@ class FieldExtractor {
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
         if (rhs.vector_index_ != nullptr) {
-            if (rhs.vector_index_->GetIndexType() == "IVF_FLAT") {
-                vector_index_.reset(new IVFFlat(
-                    dynamic_cast<IVFFlat&>(*rhs.vector_index_)));
-            } else if (rhs.vector_index_->GetIndexType() == "HNSW") {
+            if (rhs.vector_index_->GetIndexType() == "HNSW") {
                 vector_index_.reset(new HNSW(
                     dynamic_cast<HNSW&>(*rhs.vector_index_)));
             } else {

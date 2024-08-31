@@ -18,10 +18,9 @@ namespace lgraph {
 HNSW::HNSW(const std::string& label, const std::string& name,
                            const std::string& distance_type,
                            const std::string& index_type, int vec_dimension,
-                           std::vector<int> index_spec,
-                           std::shared_ptr<KvTable> table)
+                           std::vector<int> index_spec)
     : VectorIndex(label, name, distance_type, index_type,
-                    vec_dimension, index_spec, std::move(table)),
+                    vec_dimension, index_spec),
       createindex_(nullptr), index_(createindex_.get()) { delete_ids_.clear(); }
 
 HNSW::HNSW(const HNSW& rhs)
@@ -32,7 +31,7 @@ HNSW::HNSW(const HNSW& rhs)
 
 // add vector to index
 bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
-               const std::vector<size_t>& vids, size_t num_vectors) {
+               const std::vector<int64_t>& vids, int64_t num_vectors) {
     // reduce dimension
     if (num_vectors == 0) {
         for (size_t i = 0; i < vids.size(); i++) {
@@ -42,10 +41,10 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
     }
     float* index_vectors = new float[num_vectors * vec_dimension_];
     int64_t* ids = new int64_t[num_vectors];
-    for (size_t i = 0; i < num_vectors; i++) {
+    for (int64_t i = 0; i < num_vectors; i++) {
         std::copy(vectors[i].begin(), vectors[i].end(), &index_vectors[i * vec_dimension_]);
     }
-    for (size_t i = 0; i < num_vectors; i++) {
+    for (int64_t i = 0; i < num_vectors; i++) {
         ids[i] = static_cast<int64_t>(vids[i]);
     }
     if (index_type_ == "HNSW") {
@@ -182,7 +181,7 @@ void HNSW::Load(std::vector<uint8_t>& idx_bytes) {
 }
 
 // search vector in index
-bool HNSW::Search(const std::vector<float>& query, size_t num_results,
+bool HNSW::Search(const std::vector<float>& query, int64_t num_results,
                           std::vector<float>& distances, std::vector<int64_t>& indices) {
     if (!index_) {
         return false;
@@ -211,11 +210,4 @@ bool HNSW::Search(const std::vector<float>& query, size_t num_results,
     }
     return false;
 }
-// no need to implementation
-bool HNSW::GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
-                                       size_t num_results, std::vector<float>& distances,
-                                       std::vector<int64_t>& indices) {
-    return true;
-}
-
 }  // namespace lgraph

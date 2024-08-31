@@ -49,8 +49,6 @@ set(LGRAPH_CORE_SRC
         core/transaction.cpp
         core/vertex_index.cpp
         core/vector_index_layer.cpp
-        core/vector_index_counter.cpp
-        core/Faiss_IVF_FLAT.cpp
         core/Vsag_HNSW.cpp
         core/wal.cpp
         core/lmdb/mdb.c

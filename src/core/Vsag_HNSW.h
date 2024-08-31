@@ -16,6 +16,10 @@
 
 #include <vector>
 #include <cstdint>
+#include <string>
+#include <unordered_set>
+#include <fstream>
+#include "tools/json.hpp"
 #include "core/vector_index_layer.h"
 #include "vsag/vsag.h"
 
@@ -34,7 +38,7 @@ class HNSW : public VectorIndex {
  public:
   HNSW(const std::string& label, const std::string& name,
                 const std::string& distance_type, const std::string& index_type,
-                int vec_dimension, std::vector<int> index_spec, std::shared_ptr<KvTable> table);
+                int vec_dimension, std::vector<int> index_spec);
 
   HNSW(const HNSW& rhs);
 
@@ -48,7 +52,7 @@ class HNSW : public VectorIndex {
 
   // add vector to index and build index
   bool Add(const std::vector<std::vector<float>>& vectors,
-           const std::vector<size_t>& vids, size_t num_vectors) override;
+           const std::vector<int64_t>& vids, int64_t num_vectors) override;
 
   // build index
   bool Build() override;
@@ -60,12 +64,8 @@ class HNSW : public VectorIndex {
   void Load(std::vector<uint8_t>& idx_bytes) override;
 
   // search vector in index
-  bool Search(const std::vector<float>& query, size_t num_results,
+  bool Search(const std::vector<float>& query, int64_t num_results,
               std::vector<float>& distances, std::vector<int64_t>& indices) override;
-
-  bool GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
-                           size_t num_results, std::vector<float>& distances,
-                           std::vector<int64_t>& indices) override;
 
   template <typename T>
   static void writeBinaryPOD(std::ostream& out, const T& podRef) {

@@ -500,11 +500,9 @@ class Schema {
                         std::vector<size_t>& created);
     bool EdgeUniqueIndexConflict(KvTransaction& txn, const Value& record);
 
-    void AddDetachedVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record,
-                                        IndexManager* indexManager);
+    void AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
-    void DeleteDetachedVectorIndex(KvTransaction& txn, VertexId vid, const Value& record,
-                                   IndexManager* indexManager);
+    void DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void AddVertexToFullTextIndex(VertexId vid, const Value& record,
                                   std::vector<FTIndexEntry>& buffers);

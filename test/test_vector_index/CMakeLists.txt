@@ -17,7 +17,6 @@ add_executable(vector_index_unit_test
         test_faiss_index.cpp
         test_vsag_index.cpp
         ../../src/core/Vsag_HNSW.cpp
-        ../../src/core/Faiss_IVF_FLAT.cpp
         ../../src/core/vector_index_layer.cpp
         ../../src/core/vector_index_counter.cpp
 )

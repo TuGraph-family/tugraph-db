@@ -18,7 +18,6 @@
 #include "core/kv_store.h"
 #include "core/lightning_graph.h"
 #include "core/transaction.h"
-#include "core/Faiss_IVF_FLAT.h"
 #include "core/Vsag_HNSW.h"
 
 namespace lgraph {
@@ -130,24 +129,11 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 index_spec.push_back(std::stof(match.str()));
                 ++begin_it;
             }
-            auto tbl =
-                VectorIndex::OpenTable(txn, db_->GetStore(), index_name, fe->Type(), idx.type);
-            if (index_type == "IVF_FLAT") {
-                VectorIndex* vector_index = new IVFFlat(label, field, distance_type,
+            if (index_type == "HNSW") {
+                VectorIndex* vector_index= new HNSW(label, field, distance_type,
                                    index_type, vec_dimension,
-                                   index_spec, std::move(tbl));
+                                   index_spec);
                 index->SetReady();
-                schema->GetFieldExtractor(field)->GetVectorIndex()
-                            ->GetVectorIndexCounter()->MakeVectorIndex();
-                schema->MarkVertexIndexed(fe->GetFieldId(), index);
-                schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
-            } else if (index_type == "HNSW") {
-                VectorIndex* vector_index = new HNSW(label, field, distance_type,
-                                   index_type, vec_dimension,
-                                   index_spec, std::move(tbl));
-                index->SetReady();
-                schema->GetFieldExtractor(field)->GetVectorIndex()
-                            ->GetVectorIndexCounter()->MakeVectorIndex();
                 schema->MarkVertexIndexed(fe->GetFieldId(), index);
                 schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
             }
@@ -217,13 +203,9 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
 
     index.reset(new VertexIndex(nullptr, dt, type));  // no need to creates index table
 
-    auto tbl = VectorIndex::OpenTable(txn, db_->GetStore(), idx.table_name, dt, type);
-    if (index_type == "IVF_FLAT") {
-        vector_index.reset(new IVFFlat(label, field, distance_type,
-                            index_type, vec_dimension, index_spec, std::move(tbl)));
-    } else if (index_type == "HNSW") {
+    if (index_type == "HNSW") {
         vector_index.reset(new HNSW(label, field, distance_type,
-                            index_type, vec_dimension, index_spec, std::move(tbl)));
+                            index_type, vec_dimension, index_spec));
     }
     return true;
 }
@@ -360,23 +342,5 @@ bool IndexManager::GetVectorIndexListTableName(KvTransaction& txn,
     } else {
         return false;
     }
-}
-
-bool IndexManager::SetVectorIndex(KvTransaction& txn, const std::string& label,
-                                  const std::string& field, const std::string& index_type,
-                                  int vec_dimension, const std::string& distance_type,
-                                  std::vector<int>& index_spec, FieldType dt, IndexType type,
-                                  std::vector<uint8_t> index_blob) {
-    _detail::IndexEntry idx;
-    idx.label = label;
-    idx.field = field;
-    idx.table_name = GetVectorIndexTableName(label, field, index_type,
-                                vec_dimension, distance_type, index_spec);
-    idx.type = type;
-
-    auto it = index_list_table_->GetIterator(txn, Value::ConstRef(idx.table_name));
-    Value idxv = Value(index_blob.data(), sizeof(index_blob));
-    it->SetValue(idxv);
-    return true;
 }
 }  // namespace lgraph

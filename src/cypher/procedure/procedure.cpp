@@ -3918,22 +3918,14 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record,
                         "label_name type should be string");
     CYPHER_ARG_CHECK(args[1].IsString(),
                         "field_name type should be string");
-    CYPHER_ARG_CHECK((args[2].constant.AsString() == "IVF_FLAT" ||
-                      args[2].constant.AsString() == "HNSW"),
-                      "Index type should be one of them : IVF_FLAT, HNSW");
+    CYPHER_ARG_CHECK((args[2].constant.AsString() == "HNSW"),
+                      "Index type should be one of them : HNSW");
     CYPHER_ARG_CHECK(args[3].IsInteger(), "vec_dimension should be integer");
     CYPHER_ARG_CHECK((args[4].constant.AsString() == "L2" ||
                       args[4].constant.AsString() == "IP"),
                       "Distance type should be one of them : L2, IP");
     std::vector<int> index_spec;
     switch (args.size()) {
-        case 6:
-            CYPHER_ARG_CHECK((args[5].IsInteger() &&
-                              args[5].constant.AsInt64() <= 65536 &&
-                              args[5].constant.AsInt64() >= 1),
-            "Please check the parameter, nlist should be an integer in the range [1,65536]");
-            index_spec.emplace_back(args[5].constant.AsInt64());
-            break;
         case 7:
             CYPHER_ARG_CHECK((args[5].IsInteger() &&
                               args[5].constant.AsInt64() < 2048 &&
@@ -3977,9 +3969,8 @@ void VectorFunc::DeleteVectorIndex(RTContext *ctx, const cypher::Record *record,
                     "label_name type should be string");
     CYPHER_ARG_CHECK(args[1].IsString(),
                     "field_name type should be string");
-    CYPHER_ARG_CHECK((args[2].constant.AsString() == "IVF_FLAT" ||
-                      args[2].constant.AsString() == "HNSW"),
-                    "Index type should be one of them : IVF_FLAT, HNSW");
+    CYPHER_ARG_CHECK((args[2].constant.AsString() == "HNSW"),
+                    "Index type should be one of them : HNSW");
     CYPHER_ARG_CHECK(args[3].IsInteger(),
                     "vec_dimension should be integer");
     CYPHER_ARG_CHECK((args[4].constant.AsString() == "L2" ||
@@ -4060,8 +4051,6 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
         }
         query_vector.push_back(fltValue);
     }
-    auto raw_txn = ctx->txn_->GetTxn();
-    lgraph::Transaction& txn = *raw_txn;
     auto SchemaInfo = ctx->txn_->GetTxn()->GetSchemaInfo();
     ::lgraph::Schema* schema =
         SchemaInfo.v_schema_manager.GetSchema(args[0].constant.AsString());
@@ -4072,106 +4061,31 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     }
     std::vector<float> index_distances;
     std::vector<int64_t> index_indices;
-    std::vector<float> Flat_distances;
-    std::vector<int64_t> Flat_indices;
-    std::vector<std::tuple<int, std::string, float>> SearchResult;
+    std::vector<std::tuple<int64_t, std::string, float>> SearchResult;
     auto index_type = extr->GetVectorIndex()->GetIndexType();
-    if (index_type == "IVF_FLAT") {
-        CYPHER_ARG_CHECK((args[4].IsInteger() &&
-                          args[4].constant.AsInt64()<= 65536 &&
-                          args[4].constant.AsInt64() >= 1),
-                         "Please check the parameter,"
-                         " nprobe should be an integer in the range [1,65536]");
-        int64_t count = 0;
-        lgraph::VectorIndex* index = extr->GetVectorIndex();
-        if (schema->DetachProperty()) {
-            if (index->GetWhetherRebuild()) {
-                auto success = index->SetSearchSpec(args[4].constant.AsInt64());
-                auto result = index->Search(query_vector,
-                                    static_cast<size_t>(args[3].constant.AsInt64()),
-                                    index_distances, index_indices);
-                if (result && success) {
-                    auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
-                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                        auto prop = kv_iter->GetValue();
-                        if (extr->GetIsNull(prop)) {
-                            continue;
-                        }
-                        auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
-                                                                kv_iter->GetKey());
-                        auto vector = extr->GetConstRef(prop).AsType<std::vector<float>>();
-                        for (size_t i = 0; i < index_distances.size(); i++) {
-                            if (count == index_indices[i]) {
-                                SearchResult.push_back(make_tuple((int)vid,
-                                        fma_common::ToString(vector), index_distances[i]));
-                            }
-                        }
-                        count++;
-                    }
-                }
-            }
-            if (index->GetVectorIndexCounter()->getCount() != 0) {
-                if (index->GetFlatSearchResult(txn.GetTxn(), query_vector,
-                        static_cast<size_t>(args[3].constant.AsInt64()),
-                        Flat_distances, Flat_indices)) {
-                    auto kv_iter = index->GetTable()->GetIterator(txn.GetTxn());
-                    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                        auto prop = kv_iter->GetValue();
-                        auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
-                                                                kv_iter->GetKey());
-                        auto vector = prop.AsType<std::vector<float>>();
-                        for (size_t i = 0; i < Flat_distances.size(); i++) {
-                            if (count == Flat_indices[i]) {
-                                SearchResult.push_back(make_tuple((int)vid,
-                                    fma_common::ToString(vector), Flat_distances[i]));
-                            }
-                        }
-                        count++;
-                    }
-                }
-            }
-        } else {
-        }
-    } else if (index_type == "HNSW") {
+    if (index_type == "HNSW") {
         CYPHER_ARG_CHECK((args[4].IsInteger() &&
                           args[4].constant.AsInt64() <= 65536 &&
                           args[4].constant.AsInt64() >= args[3].constant.AsInt64()),
                          "Please check the parameter,"
                          "ef should be an integer in the range [top_k, 65536]");
-        int64_t count = 0;
         lgraph::VectorIndex* index = extr->GetVectorIndex();
-        if (schema->DetachProperty()) {
-            auto success = index->SetSearchSpec(args[4].constant.AsInt64());
-            auto result = index->Search(query_vector,
-                                        static_cast<size_t>(args[3].constant.AsInt64()),
-                                        index_distances, index_indices);
-            if (result && success) {
-                auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
-                for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                    auto prop = kv_iter->GetValue();
-                    if (extr->GetIsNull(prop)) {
-                        continue;
-                    }
-                    auto vid = lgraph::graph::KeyPacker::GetVidFromPropertyTableKey(
-                                                            kv_iter->GetKey());
-                    auto vector = extr->GetConstRef(prop).AsType<std::vector<float>>();
-                    for (size_t i = 0; i < index_distances.size(); i++) {
-                        if (count == index_indices[i]) {
-                            SearchResult.push_back(make_tuple((int)vid,
-                                    fma_common::ToString(vector), index_distances[i]));
-                        }
-                    }
-                    count++;
-                }
+        auto success = index->SetSearchSpec(args[4].constant.AsInt64());
+        auto result = index->Search(query_vector, args[3].constant.AsInt64(),
+                                    index_distances, index_indices);
+        if (result && success) {
+            for (int64_t i = 0; i < args[3].constant.AsInt64(); i++) {
+                LOG_DEBUG() << index_indices[i];
+                auto vector = ctx->txn_->GetTxn()->GetVertexField(index_indices[i], args[1].constant.AsString());
+                SearchResult.emplace_back(index_indices[i], fma_common::ToString(vector.AsFloatVector()), index_distances[i]);
             }
-        } else {
         }
     } else {
         throw lgraph::ReminderException("Please check the number of parameter!");
     }
     std::sort(SearchResult.begin(), SearchResult.end(),
-    [](const std::tuple<int, std::string, float>& a,
-       const std::tuple<int, std::string, float>& b) {
+    [](const std::tuple<int64_t, std::string, float>& a,
+       const std::tuple<int64_t, std::string, float>& b) {
         return std::get<2>(a) < std::get<2>(b);
     });
     for (int i = 0; i < args[3].constant.AsInt64(); i++) {

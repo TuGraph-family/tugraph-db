@@ -345,6 +345,10 @@ class LightningGraph {
                          const std::vector<std::string> &fields, CompositeIndexType type,
                          VertexId start_vid, VertexId end_vid, bool is_vertex = true);
 
+    void BatchBuildVectorIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
+                         size_t field_id, IndexType type, VertexId start_vid, VertexId end_vid,
+                         bool is_vertex = true);
+
     void Open();
 };
 }  // namespace lgraph
