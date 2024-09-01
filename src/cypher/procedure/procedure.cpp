@@ -4041,13 +4041,19 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     for (size_t i = 0; i < args[2].constant.AsConstantArray().size(); i++) {
         float fltValue;
         if (args[2].constant.AsConstantArray().at(i).IsFloat()) {
-            int dblValue =
+            float dblValue =
                 args[2].constant.AsConstantArray().at(i).AsFloat();
             fltValue = static_cast<float>(dblValue);
-        } else {
-            double dblValue =
-                args[2].constant.AsConstantArray().at(i).IsFloat();
+        } else if (args[2].constant.AsConstantArray().at(i).IsInteger()) {
+            int64_t dblValue =
+                args[2].constant.AsConstantArray().at(i).AsInt64();
             fltValue = static_cast<float>(dblValue);
+        } else if (args[2].constant.AsConstantArray().at(i).IsDouble()) {
+            double dblValue =
+                args[2].constant.AsConstantArray().at(i).AsDouble();
+            fltValue = static_cast<float>(dblValue);
+        } else {
+            throw lgraph::ReminderException("Please check the vector");
         }
         query_vector.push_back(fltValue);
     }
@@ -4075,7 +4081,6 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                                     index_distances, index_indices);
         if (result && success) {
             for (int64_t i = 0; i < args[3].constant.AsInt64(); i++) {
-                LOG_DEBUG() << index_indices[i];
                 auto vector = ctx->txn_->GetTxn()->GetVertexField(index_indices[i], args[1].constant.AsString());
                 SearchResult.emplace_back(index_indices[i], fma_common::ToString(vector.AsFloatVector()), index_distances[i]);
             }
