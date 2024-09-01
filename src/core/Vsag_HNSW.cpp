@@ -21,11 +21,10 @@ HNSW::HNSW(const std::string& label, const std::string& name,
                            std::vector<int> index_spec)
     : VectorIndex(label, name, distance_type, index_type,
                     vec_dimension, index_spec),
-      createindex_(nullptr), index_(createindex_.get()) { delete_ids_.clear(); }
+      createindex_(nullptr), index_(createindex_.get()) {}
 
 HNSW::HNSW(const HNSW& rhs)
     : VectorIndex(rhs),
-      delete_ids_(rhs.delete_ids_),
       createindex_(rhs.createindex_),
       index_(createindex_.get()) {}
 
@@ -35,7 +34,10 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
     // reduce dimension
     if (num_vectors == 0) {
         for (size_t i = 0; i < vids.size(); i++) {
-            delete_ids_.insert(static_cast<int64_t>(vids[i]));
+            auto result = index_->Remove(static_cast<int64_t>(vids[i]));
+            if (!result.has_value() || !result.value()) {
+                return false;
+            }
         }
         return true;
     }
@@ -45,7 +47,7 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
         std::copy(vectors[i].begin(), vectors[i].end(), &index_vectors[i * vec_dimension_]);
     }
     for (int64_t i = 0; i < num_vectors; i++) {
-        ids[i] = static_cast<int64_t>(vids[i]);
+        ids[i] = vids[i];
     }
     if (index_type_ == "HNSW") {
         auto dataset = vsag::Dataset::Make();
@@ -186,9 +188,6 @@ bool HNSW::Search(const std::vector<float>& query, int64_t num_results,
     if (!index_) {
         return false;
     }
-    std::function<bool(int64_t)> delete_filter_ = [this](int64_t id) -> bool {
-        return delete_ids_.find(id) != delete_ids_.end();
-    };
     float* query_copy = new float[query.size()];
     std::copy(query.begin(), query.end(), query_copy);
     auto dataset = vsag::Dataset::Make();
@@ -198,9 +197,7 @@ bool HNSW::Search(const std::vector<float>& query, int64_t num_results,
     nlohmann::json parameters{
         {"hnsw", {{"ef_search", query_spec_}}},
     };
-    auto result = (!delete_ids_.empty())
-        ? index_->KnnSearch(dataset, num_results, parameters.dump(), delete_filter_)
-        : index_->KnnSearch(dataset, num_results, parameters.dump());
+    auto result = index_->KnnSearch(dataset, num_results, parameters.dump());
     if (result.has_value()) {
         for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
             indices.push_back(result.value()->GetIds()[i]);

@@ -20,7 +20,7 @@ class VSAGTest : public ::testing::Test {
     int64_t dim = 4;
     int64_t num_vectors = 10000;
     std::vector<std::vector<float>> vectors;
-    std::vector<size_t> vids;
+    std::vector<int64_t> vids;
     std::unique_ptr<lgraph::HNSW> vector_index;
     std::vector<int> index_spec = {24, 100};
     VSAGTest() : vectors(num_vectors, std::vector<float>(dim)), vids(num_vectors) {}
@@ -34,8 +34,7 @@ class VSAGTest : public ::testing::Test {
             }
         }
         vector_index =
-            std::make_unique<lgraph::HNSW>("label", "name",
-                            "L2", "HNSW", dim, index_spec, nullptr);
+            std::make_unique<lgraph::HNSW>("label", "name", "L2", "HNSW", dim, index_spec);
     }
     void TearDown() override {}
 };
@@ -62,8 +61,7 @@ TEST_F(VSAGTest, SaveAndLoadIndex) {
     ASSERT_TRUE(vector_index->Add(vectors, vids, num_vectors));
     std::vector<uint8_t> serialized_index = vector_index->Save();
     ASSERT_FALSE(serialized_index.empty());
-    lgraph::HNSW vector_index_loaded("label", "name",
-                            "L2", "HNSW", dim, index_spec, nullptr);
+    lgraph::HNSW vector_index_loaded("label", "name", "L2", "HNSW", dim, index_spec);
     ASSERT_TRUE(vector_index_loaded.Build());
     vector_index_loaded.Load(serialized_index);
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
@@ -76,7 +74,7 @@ TEST_F(VSAGTest, SaveAndLoadIndex) {
 TEST_F(VSAGTest, DeleteVectors) {
     ASSERT_TRUE(vector_index->Build());
     ASSERT_TRUE(vector_index->Add(vectors, vids, num_vectors));
-    std::vector<size_t> delete_vids = {vids[0], vids[1]};
+    std::vector<int64_t> delete_vids = {vids[0], vids[1]};
     ASSERT_TRUE(vector_index->Add({}, delete_vids, 0));
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
     std::vector<float> distances;
@@ -86,9 +84,4 @@ TEST_F(VSAGTest, DeleteVectors) {
         ASSERT_TRUE(std::find(delete_vids.begin(),
                         delete_vids.end(), idx) == delete_vids.end());
     }
-}
-
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }
