@@ -237,7 +237,7 @@ bool lgraph::AccessControlledDB::AddVectorIndex(const std::string& label, const 
                                                 std::vector<int>& index_spec, IndexType type) {
     CheckFullAccess();
     return graph_->BlockingAddVectorIndex(label, field, index_type, vec_dimension,
-                                            distance_type, index_spec, type,  true);
+                                            distance_type, index_spec, type, true);
 }
 
 bool lgraph::AccessControlledDB::AddFullTextIndex(bool is_vertex, const std::string& label,

@@ -14,6 +14,24 @@
 
 #include "gtest/gtest.h"
 #include "core/Vsag_HNSW.h"
+#include <unistd.h>
+#include <mutex>
+#include <condition_variable>
+#include <boost/lexical_cast.hpp>
+#include "./ut_utils.h"
+#include "fma-common/configuration.h"
+#include "restful/server/stdafx.h"
+#include "restful/server/rest_server.h"
+#include "./graph_factory.h"
+#include "fma-common/string_formatter.h"
+
+#include "brpc/closure_guard.h"
+#include "brpc/server.h"
+#include "lgraph/lgraph_rpc_client.h"
+#include "./test_tools.h"
+
+using namespace utility;               // Common utilities like string conversions
+using namespace concurrency::streams;  // Asynchronous streams
 
 class VSAGTest : public ::testing::Test {
  protected:
@@ -84,4 +102,186 @@ TEST_F(VSAGTest, DeleteVectors) {
         ASSERT_TRUE(std::find(delete_vids.begin(),
                         delete_vids.end(), idx) == delete_vids.end());
     }
+}
+
+std::mutex lock_rpc_vector;
+std::condition_variable cond_vector;
+int stage_3_vector = 0;
+lgraph::StateMachine::Config sm_config_vector;
+std::shared_ptr<lgraph::GlobalConfig> gconfig_vector = std::make_shared<lgraph::GlobalConfig>();
+lgraph::StateMachine* ptr_state_machine_vector;
+extern void build_so();
+
+brpc::Server rpc_server_vector;
+struct Config : public lgraph::StateMachine::Config, public lgraph::RestServer::Config {
+    int verbose = 1;
+    std::string log_file;
+    bool enable_ha = false;
+    bool enable_rpc = true;
+    int thread_limit = 0;
+};
+class RPCService : public lgraph::LGraphRPCService {
+ public:
+    explicit RPCService(lgraph::StateMachine* sm) : sm_(sm) {}
+
+    void HandleRequest(::google::protobuf::RpcController* controller,
+                       const ::lgraph::LGraphRequest* request, ::lgraph::LGraphResponse* response,
+                       ::google::protobuf::Closure* done) {
+        sm_->HandleRequest(controller, request, response, done);
+    }
+
+ private:
+    lgraph::StateMachine* sm_;
+};
+RPCService* ptr_rpc_service_vector;
+
+int ElementCount_vector(const web::json::value& val, const std::string& value, const std::string& field) {
+    int count = 0;
+    if (val.is_array()) {
+        for (int i = 0; i < val.size(); ++i) {
+            if (val.at(i).has_field(field)) {
+                if (val.at(i).at(field).as_string() == value) {
+                    ++count;
+                }
+            }
+        }
+    } else if (val.is_object()) {
+        if (val.has_field(field)) {
+            if (val.at(field).as_string() == value) {
+                ++count;
+            }
+        }
+    }
+    return count;
+}
+
+void on_initialize_rpc_server_vector() {
+    using namespace fma_common;
+    using namespace lgraph;
+    bool enable_ssl = true;
+    std::string host = "127.0.0.1";
+    uint16_t port = 6464;
+    std::string db_name = "default";
+    {
+        Configuration config;
+        config.Add(enable_ssl, "ssl", true).Comment("Enable SSL");
+        config.Add(host, "host", true).Comment("Host address");
+        config.Add(port, "port", true).Comment("HTTP port");
+        config.Add(gconfig_vector->enable_ip_check, "enable_ip_check", true).Comment("Enable IP check.");
+    }
+
+    { GraphFactory::create_modern(); }
+    // Build listener's URI from the configured address and the hard-coded path "RestServer/Action"
+    sm_config_vector.db_dir = "./testdb";
+    sm_config_vector.rpc_port = 19099;
+
+    gconfig_vector->ft_index_options.enable_fulltext_index = true;
+    lgraph::AccessControlledDB::SetEnablePlugin(true);
+    ptr_state_machine_vector = new lgraph::StateMachine(sm_config_vector, gconfig_vector);
+    ptr_rpc_service_vector = new RPCService(ptr_state_machine_vector);
+
+    rpc_server_vector.AddService(ptr_rpc_service_vector, brpc::SERVER_DOESNT_OWN_SERVICE);
+    rpc_server_vector.Start(sm_config_vector.rpc_port, NULL);
+
+    ptr_state_machine_vector->Start();
+    return;
+}
+
+void on_shutdown_rpc_server_vector() {
+    try {
+        ptr_state_machine_vector->Stop();
+    } catch (std::exception& e) {
+        LOG_ERROR() << "Rest server shutdown failed: " << e.what();
+    }
+    rpc_server_vector.Stop(0);
+    return;
+}
+
+void* test_vector_rpc_server(void*) {
+    std::unique_lock<std::mutex> l(lock_rpc_vector);
+    if (stage_3_vector == 0) {
+        on_initialize_rpc_server_vector();
+        UT_LOG() << "rpc server is running";
+        stage_3_vector++;
+        cond_vector.notify_one();
+    }
+    if (stage_3_vector != 2) cond_vector.wait(l);
+    on_shutdown_rpc_server_vector();
+    UT_LOG() << __func__ << " thread exit";
+    delete ptr_state_machine_vector;
+    delete ptr_rpc_service_vector;
+    return nullptr;
+}
+
+void test_vector_index(lgraph::RpcClient& client) {
+    UT_LOG() << "test AddVectorIndex , DeleteVectorIndex , ShowVectorIndex , VectorIndexQuery";
+    std::string str;
+    // vector.AddVectorIndex test
+    bool  ret = client.CallCypher(str, "CALL db.createVertexLabel('person', 'id', 'id', 'int64', false, 'vector', 'float_vector', true)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL vector.AddVectorIndex('person', 'vector', 'HNSW', 4, 'L2' ,24 , 100)");
+    UT_EXPECT_TRUE(ret);
+
+    // vector.ShowVectorIndex test
+    ret = client.CallCypher(str, "CALL vector.ShowVectorIndex()");
+    UT_EXPECT_TRUE(ret);
+    web::json::value json_val = web::json::value::parse(str);
+    UT_EXPECT_TRUE(ret);
+    UT_EXPECT_EQ(ElementCount_vector(json_val, "person", "label"), 1);
+
+    // vector.DeleteVectorIndex test
+    ret = client.CallCypher(str, "CALL vector.DeleteVectorIndex('person', 'vector', ' HNSW ', 4, 'L2')");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL vector.AddVectorIndex('person', 'vector', 'HNSW', 4, 'L2' ,24 , 100)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL vector.ShowVectorIndex()");
+    UT_EXPECT_TRUE(ret);
+    json_val = web::json::value::parse(str);
+    UT_EXPECT_TRUE(ret);
+    UT_EXPECT_EQ(ElementCount_vector(json_val, "person", "label"), 1);
+
+    // vector.VectorIndexQuery test
+    ret = client.CallCypher(str, "CREATE (n:person {id:1, vector: '1.0,1.0,1.0,1.0'})");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CREATE (n:person {id:2, vector: '2.0,2.0,2.0,2.0'})");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CREATE (n:person {id:3, vector: '3.0,3.0,3.0,3.0'})");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CREATE (n:person {id:4, vector: '4.0,4.0,4.0,4.0'})");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str, "CALL vector.VectorIndexQuery('person', 'vector', [1,2,3,4], 4, 10)");
+    UT_EXPECT_TRUE(ret);
+    json_val = web::json::value::parse(str);
+    UT_EXPECT_TRUE(ret);
+    UT_EXPECT_EQ(ElementCount_vector(json_val, "4", "score"), 2);
+    UT_EXPECT_EQ(ElementCount_vector(json_val, "16", "score"), 2);
+    ret = client.CallCypher(str, "CALL db.dropDB");
+    UT_EXPECT_TRUE(ret);
+}
+
+void* test_vector_rpc_client(void*) {
+    using namespace lgraph;
+    std::unique_lock<std::mutex> l(lock_rpc_vector);
+    if (stage_3_vector == 0) cond_vector.wait(l);
+    // start test user login
+    UT_LOG() << "admin user login";
+    {
+        RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
+        test_vector_index(client3);
+    }
+
+    stage_3_vector++;
+    cond_vector.notify_one();
+    UT_LOG() << __func__ << " thread exit";
+    return nullptr;
+}
+
+class TestVectorProcedure : public TuGraphTest {};
+
+TEST_F(TestVectorProcedure, VectorProcedure) {
+    // fma_common::Logger::Get().SetLevel(fma_common::LogLevel::LL_DEBUG);
+    std::thread tid_https[2] = {std::thread(test_vector_rpc_server, nullptr),
+                                std::thread(test_vector_rpc_client, nullptr)};
+    tid_https[0].join();
+    tid_https[1].join();
 }

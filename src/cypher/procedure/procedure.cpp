@@ -4081,9 +4081,14 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
                                     index_distances, index_indices);
         if (result && success) {
             for (int64_t i = 0; i < args[3].constant.AsInt64(); i++) {
-                auto vector = ctx->txn_->GetTxn()->GetVertexField(index_indices[i], args[1].constant.AsString());
-                SearchResult.emplace_back(index_indices[i], fma_common::ToString(vector.AsFloatVector()), index_distances[i]);
+                auto vector = ctx->txn_->GetTxn()->GetVertexField(
+                                index_indices[i], args[1].constant.AsString());
+                SearchResult.emplace_back(index_indices[i],
+                                fma_common::ToString(vector.AsFloatVector()),
+                                index_distances[i]);
             }
+        } else {
+            throw lgraph::ReminderException("There is no result!");
         }
     } else {
         throw lgraph::ReminderException("Please check the number of parameter!");

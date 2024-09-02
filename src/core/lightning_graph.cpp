@@ -1622,7 +1622,8 @@ void LightningGraph::BatchBuildVectorIndex(Transaction& txn, SchemaInfo* new_sch
                 if (field_extractor->GetIsNull(prop)) {
                     continue;
                 }
-                const std::vector<float>& key = (field_extractor->GetConstRef(prop)).AsType<std::vector<float>>();
+                const std::vector<float>& key = 
+                                (field_extractor->GetConstRef(prop)).AsType<std::vector<float>>();
                 key_vids.emplace_back(it.GetId(), key);
             }
             LGRAPH_PSORT(key_vids.begin(), key_vids.end());
@@ -1642,7 +1643,8 @@ void LightningGraph::BatchBuildVectorIndex(Transaction& txn, SchemaInfo* new_sch
                         break;
                     }
                 default:
-                        THROW_CODE(InputError, "vector index only support Global Unique attributes");
+                        THROW_CODE(InputError, 
+                                    "vector index only support Global Unique attributes");
                 }
             } else {
                 // multiple blocks, use regular index calls
@@ -2352,6 +2354,89 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
     // install the new index
     schema_.Assign(new_schema.release());
     return true;
+}
+
+bool LightningGraph::RebuildVectorIndex(const std::string& label, const std::string& field,
+                                const std::string& index_type, int vec_dimension,
+                                const std::string& distance_type, std::vector<int>& index_spec,
+                                IndexType type, bool is_vertex, KvTransaction& txn,
+                                bool known_vid_range,
+                                VertexId start_vid, VertexId end_vid) {
+    _HoldWriteLock(meta_lock_);
+    LOG_DEBUG() << "1";
+    std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
+    Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
+                               : new_schema->e_schema_manager.GetSchema(label);
+                                   LOG_DEBUG() << "1";
+    if (!schema) {
+        if (is_vertex)
+            THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
+        else
+            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
+    }
+        LOG_DEBUG() << "1";
+    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+        LOG_DEBUG() << "1";
+    if (!extractor) {
+        if (is_vertex)
+            THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
+        else
+            THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
+    }
+        LOG_DEBUG() << "1";
+    if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
+        return false;  // index already exist
+    if (is_vertex) {
+        std::unique_ptr<VertexIndex> vertex_index;
+        std::unique_ptr<VectorIndex> vector_index;
+            LOG_DEBUG() << "1";
+        vertex_index.reset(new VertexIndex(nullptr, extractor->Type(), type));
+        if (index_type == "HNSW") {
+            vector_index.reset(new HNSW(label, field, distance_type,
+                            index_type, vec_dimension, index_spec));
+        }
+
+        vertex_index->SetReady();
+        schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
+        schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
+
+        if (extractor->GetVectorIndex() != nullptr) {
+            LOG_INFO() <<
+                FMA_FMT("set the vector index for {}:{}", label, field);
+        }
+
+        // detach property
+        if (schema->DetachProperty()) {
+            VectorIndex* index = extractor->GetVectorIndex();
+            uint64_t count = 0;
+            std::vector<std::vector<float>> floatvector;
+            std::vector<int64_t> vids;
+            auto kv_iter = schema->GetPropertyTable().GetIterator(txn);
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto prop = kv_iter->GetValue();
+                if (extractor->GetIsNull(prop)) {
+                    continue;
+                }
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
+                floatvector.emplace_back(vector);
+                vids.emplace_back(vid);
+                count++;
+            }
+            LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model",
+                                    label, field);
+            index->Build();
+            index->Add(floatvector, vids, count);
+            LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model",
+                                    label, field);
+            kv_iter.reset();
+            LOG_DEBUG() << "index count: " << count;
+            schema_.Assign(new_schema.release());
+            return true;
+        }
+        return false;
+    }
+    return false;
 }
 
 /**

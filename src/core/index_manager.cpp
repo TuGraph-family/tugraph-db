@@ -96,13 +96,13 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
         } else if (index_name.size() > vector_index_len &&
                    index_name.substr(index_name.size() - vector_index_len) ==
                        _detail::VECTOR_INDEX) {
+            LOG_INFO() << "Rebuild vector index soon";
             _detail::IndexEntry idx = LoadIndex(it->GetValue());
             FMA_DBG_CHECK_EQ(idx.table_name, it->GetKey().AsString());
             Schema* schema = v_schema_manager->GetSchema(idx.label);
             FMA_DBG_ASSERT(schema);
             const _detail::FieldExtractor* fe = schema->GetFieldExtractor(idx.field);
             FMA_DBG_ASSERT(fe);
-            VertexIndex* index = new VertexIndex(nullptr, fe->Type(), idx.type);
             std::vector<std::string> vectorindex;
             std::regex re(R"(_@lgraph@_|vector_index)");
             auto words_begin = std::sregex_token_iterator(index_name.begin(),
@@ -130,12 +130,14 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 ++begin_it;
             }
             if (index_type == "HNSW") {
-                VectorIndex* vector_index= new HNSW(label, field, distance_type,
-                                   index_type, vec_dimension,
-                                   index_spec);
-                index->SetReady();
-                schema->MarkVertexIndexed(fe->GetFieldId(), index);
-                schema->MarkVectorIndexed(fe->GetFieldId(), vector_index);
+                LOG_INFO() << "Begin to rebuild vector index";
+                if (db->RebuildVectorIndex(label, field, index_type, vec_dimension,
+                    distance_type, index_spec, IndexType::GlobalUniqueIndex,
+                    true, txn)) {
+                    LOG_INFO() << "Rebuild vector index successfully";
+                } else {
+                    LOG_INFO() << "Can not build vector index successfully";
+                }
             }
         } else {
             LOG_ERROR() << "Unknown index type: " << index_name;

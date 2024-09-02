@@ -197,6 +197,9 @@ bool HNSW::Search(const std::vector<float>& query, int64_t num_results,
     nlohmann::json parameters{
         {"hnsw", {{"ef_search", query_spec_}}},
     };
+    if (index_->GetNumElements() < num_results) {
+        return false;
+    }
     auto result = index_->KnnSearch(dataset, num_results, parameters.dump());
     if (result.has_value()) {
         for (int64_t i = 0; i < result.value()->GetDim(); ++i) {

@@ -1318,7 +1318,6 @@ Transaction::AddVertex(const LabelT& label, size_t n_fields, const FieldT* field
     schema->AddVectorToVectorIndex(*txn_, newvid, prop);
     if (schema->DetachProperty()) {
         schema->AddDetachedVertexProperty(*txn_, newvid, prop);
-
     }
     if (fulltext_index_) {
         schema->AddVertexToFullTextIndex(newvid, prop, fulltext_buffers_);

@@ -325,7 +325,7 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
                 std::vector<int64_t> vids;
                 floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
                 vids.push_back(vid);
-                if(!index->Add(floatvector, vids, 1)) {
+                if (!index->Add(floatvector, vids, 1)) {
                     THROW_CODE(InputError,
                     "Failed to index vertex [{}] with field "
                                                  "value [{}:{}]: index value already exists.",
@@ -348,7 +348,7 @@ void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& re
                 std::vector<int64_t> vids;
                 floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
                 vids.push_back(vid);
-                if(!index->Add(floatvector, vids, 0)) {
+                if (!index->Add(floatvector, vids, 0)) {
                     THROW_CODE(InputError,
                     "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",

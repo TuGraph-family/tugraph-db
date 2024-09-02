@@ -710,17 +710,16 @@ inline size_t ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(const char* beg,
     // check if there are only numbers and commas
     std::regex nonNumbersAndCommas("[^0-9,.]");
     if (std::regex_search(cd, nonNumbersAndCommas)) {
-        LOG_INFO() << cd;
-        THROW_CODE(InputError, "This is not a float vector string1");
+        THROW_CODE(InputError, "This is not a float vector string");
     }
     // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
     std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
     if (!std::regex_match(cd, vector)) {
-        THROW_CODE(InputError, "This is not a float vector string2");
+        THROW_CODE(InputError, "This is not a float vector string");
     }
     // check if there are 1.000,,2.000 & 1.000,2.000,
     if (cd.front() == ',' || cd.back() == ',' || cd.find(",,") != std::string::npos) {
-        THROW_CODE(InputError, "This is not a float vector string3");
+        THROW_CODE(InputError, "This is not a float vector string");
     }
     std::vector<float> vec;
     std::regex pattern("-?[0-9]+\\.?[0-9]*");
