@@ -46,7 +46,7 @@ namespace parser {
 #endif  // !SWITCH_CONTEXT_VISIT_CHILDREN
 
 std::string demangle(const char* mangled) {
-    int status = -4; // some arbitrary value to eliminate the compiler warning
+    int status = -4;  // some arbitrary value to eliminate the compiler warning
     std::unique_ptr<char, void(*)(void*)> res{
         abi::__cxa_demangle(mangled, nullptr, nullptr, &status),
         std::free
