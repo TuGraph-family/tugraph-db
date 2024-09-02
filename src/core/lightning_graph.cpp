@@ -1622,7 +1622,7 @@ void LightningGraph::BatchBuildVectorIndex(Transaction& txn, SchemaInfo* new_sch
                 if (field_extractor->GetIsNull(prop)) {
                     continue;
                 }
-                const std::vector<float>& key = 
+                const std::vector<float>& key =
                                 (field_extractor->GetConstRef(prop)).AsType<std::vector<float>>();
                 key_vids.emplace_back(it.GetId(), key);
             }
@@ -1643,7 +1643,7 @@ void LightningGraph::BatchBuildVectorIndex(Transaction& txn, SchemaInfo* new_sch
                         break;
                     }
                 default:
-                        THROW_CODE(InputError, 
+                        THROW_CODE(InputError,
                                     "vector index only support Global Unique attributes");
                 }
             } else {
@@ -2363,33 +2363,27 @@ bool LightningGraph::RebuildVectorIndex(const std::string& label, const std::str
                                 bool known_vid_range,
                                 VertexId start_vid, VertexId end_vid) {
     _HoldWriteLock(meta_lock_);
-    LOG_DEBUG() << "1";
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
     Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
                                : new_schema->e_schema_manager.GetSchema(label);
-                                   LOG_DEBUG() << "1";
     if (!schema) {
         if (is_vertex)
             THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
         else
             THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
     }
-        LOG_DEBUG() << "1";
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
-        LOG_DEBUG() << "1";
     if (!extractor) {
         if (is_vertex)
             THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
         else
             THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
     }
-        LOG_DEBUG() << "1";
     if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
         return false;  // index already exist
     if (is_vertex) {
         std::unique_ptr<VertexIndex> vertex_index;
         std::unique_ptr<VectorIndex> vector_index;
-            LOG_DEBUG() << "1";
         vertex_index.reset(new VertexIndex(nullptr, extractor->Type(), type));
         if (index_type == "HNSW") {
             vector_index.reset(new HNSW(label, field, distance_type,

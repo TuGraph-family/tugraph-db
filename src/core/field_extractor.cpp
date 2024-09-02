@@ -313,7 +313,7 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
                     ++begin_it;
                 }
                 if (vec.size() <= 0) {
-                   throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR); 
+                   throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
                 }
                 return _SetVariableLengthValue(record, Value::ConstRef(vec));
             } else if (data.type == FieldType::FLOAT_VECTOR) {
