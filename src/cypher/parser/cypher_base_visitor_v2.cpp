@@ -45,12 +45,24 @@ namespace parser {
     })
 #endif  // !SWITCH_CONTEXT_VISIT_CHILDREN
 
+std::string demangle(const char* mangled) {
+    int status = -4; // some arbitrary value to eliminate the compiler warning
+    std::unique_ptr<char, void(*)(void*)> res{
+        abi::__cxa_demangle(mangled, nullptr, nullptr, &status),
+        std::free
+    };
+    return (status == 0) ? res.get() : mangled;
+}
+
 template <typename Base, typename Drive>
 void checkedCast(Base *b, Drive *&d) {
     static_assert(std::is_base_of<Base, Drive>::value,
                   "type `Base` must be the base of type `Drive`");
     d = dynamic_cast<Drive *>(b);
-    assert(d);
+    if (!d) {
+        THROW_CODE(CypherException, "type `{}` is not the base of type `{}`",
+                   demangle(typeid(b).name()), demangle(typeid(d).name()));
+    }
 }
 
 template <typename TargetType>
@@ -59,16 +71,17 @@ void checkedAnyCast(const std::any &s, TargetType *&d) {
         d = std::any_cast<TargetType *>(s);
     } catch (...) {
         // TODO(lingsu): remove in future
-        assert(false);
+        THROW_CODE(CypherException, "s is not type `{}`", demangle(typeid(d).name()));
     }
 }
+
 template <typename TargetType>
 void checkedAnyCast(const std::any &s, TargetType &d) {
     try {
         d = std::any_cast<TargetType>(s);
     } catch (...) {
         // TODO(lingsu): remove in future
-        assert(false);
+        THROW_CODE(CypherException, "s is not type `{}`", demangle(typeid(d).name()));
     }
 }
 

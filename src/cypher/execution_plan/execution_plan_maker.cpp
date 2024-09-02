@@ -1063,7 +1063,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node
             cur_pattern_graph_ += 1;
             should_connect_[cur_pattern_graph_] = false;
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(statement));
-            op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]->children[0]);
+            if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
+                op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]->children[0]);
+            } else {
+                op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+            }
         }
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
