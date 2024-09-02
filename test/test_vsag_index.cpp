@@ -11,9 +11,10 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-
-#include "gtest/gtest.h"
-#include "core/Vsag_HNSW.h"
+#include <unistd.h>
+#include <mutex>
+#include <condition_variable>
+#include <boost/lexical_cast.hpp>
 
 #include "./ut_utils.h"
 #include "fma-common/configuration.h"
@@ -26,10 +27,8 @@
 #include "lgraph/lgraph_rpc_client.h"
 #include "./test_tools.h"
 
-#include <unistd.h>
-#include <mutex>
-#include <condition_variable>
-#include <boost/lexical_cast.hpp>
+#include "gtest/gtest.h"
+#include "core/Vsag_HNSW.h"
 
 using namespace utility;               // Common utilities like string conversions
 using namespace concurrency::streams;  // Asynchronous streams
