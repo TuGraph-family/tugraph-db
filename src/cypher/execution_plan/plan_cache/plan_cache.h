@@ -21,47 +21,40 @@
 #include "execution_plan/runtime_context.h"
 #include "plan_cache_param.h"
 
-// #include <boost/any.hpp>
 namespace cypher {
 class ASTCacheObj {
     public:
-    struct AST {
-        std::vector<parser::SglQuery> stmts;
-        parser::CmdType cmd;
-    } ast_;
-    boost::any value_;
+    std::vector<parser::SglQuery> stmts;
+    parser::CmdType cmd;
 
-    ASTCacheObj(const std::vector<parser::SglQuery> &stmts, parser::CmdType cmd) {
-        value_ = AST{stmts, cmd};
-    }
+    ASTCacheObj() {}
 
-    ASTCacheObj(boost::any val) : value_(val) {
-        ast_ = boost::any_cast<AST>(value_);
-    }
-
-    boost::any to_any() {
-        return value_;
+    ASTCacheObj(const std::vector<parser::SglQuery> &stmts, parser::CmdType cmd)
+    : stmts(stmts), cmd(cmd) {
     }
 
     std::vector<parser::SglQuery> Stmt() {
-        return ast_.stmts;
+        return stmts;
     }
 
     parser::CmdType CmdType() {
-        return ast_.cmd;
+        return cmd;
     }
 };
 
+template<typename T>
 class PlanCacheEntry {
     public:
     std::string key;
-    boost::any value;
+    T value;
 
-    PlanCacheEntry(const std::string &key, const boost::any &value) : key(key), value(value) {}
+    PlanCacheEntry(const std::string &key, const T &value) : key(key), value(value) {}
 };
 
+template<typename T>
 class LRUPlanCache {
-    std::list<PlanCacheEntry> _item_list;
+    typedef PlanCacheEntry<T> Entry;
+    std::list<Entry> _item_list;
     std::unordered_map<std::string, decltype(_item_list.begin())> _item_map;
     size_t _cache_size;
     mutable std::shared_mutex _mutex;
@@ -80,13 +73,13 @@ class LRUPlanCache {
 
     LRUPlanCache() : _cache_size(512) {}
 
-    void add_plan(RTContext *ctx, const boost::any &val) {
+    void add_plan(RTContext *ctx, const T &val) {
         std::string query = ctx->param_query_;
 
         std::unique_lock<std::shared_mutex> _guard(_mutex);
         auto it = _item_map.find(query);
         if (it == _item_map.end()) {
-            _item_list.push_front(PlanCacheEntry(query, val));
+            _item_list.push_front(Entry(query, val));
             _item_map.emplace(query, _item_list.begin());
             _KickOut();
         } else {
@@ -95,7 +88,7 @@ class LRUPlanCache {
         }
     }
 
-    bool get_plan(RTContext *ctx, const std::string &raw_query, boost::any &val) {
+    bool get_plan(RTContext *ctx, const std::string &raw_query, T &val) {
         // parameterized raw query
         std::string query = fastQueryParam(ctx, raw_query);
 
@@ -110,4 +103,6 @@ class LRUPlanCache {
         return true;
     }
 };
+
+typedef LRUPlanCache<ASTCacheObj> ASTCache;
 }  // namespace cypher

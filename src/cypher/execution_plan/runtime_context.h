@@ -17,7 +17,6 @@
 //
 #pragma once
 
-#include "cypher/cypher_types.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/resultset/result_info.h"
 #include "lgraph/lgraph_result.h"

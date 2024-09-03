@@ -25,8 +25,6 @@
 #include "tools/lgraph_log.h"
 #include "core/task_tracker.h"
 
-#include "parser/clause.h"
-#include "parser/data_typedef.h"
 #include "parser/generated/LcypherLexer.h"
 #include "parser/generated/LcypherParser.h"
 #include "parser/cypher_base_visitor.h"
@@ -70,7 +68,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     plan = std::make_shared<ExecutionPlan>();
     std::vector<parser::SglQuery> stmt;
     parser::CmdType cmd;
-    boost::any cache_val;
+    ASTCacheObj cache_val;
     if(!plan_cache_.get_plan(ctx, script, cache_val)) {
         ANTLRInputStream input(script);
         LcypherLexer lexer(&input);
@@ -89,7 +87,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
         stmt = visitor.GetQuery();
         cmd = visitor.CommandType();
         // plan_cache_.put_plan(ctx, script, plan);
-        plan_cache_.add_plan(ctx, ASTCacheObj(stmt, cmd).to_any());
+        plan_cache_.add_plan(ctx, ASTCacheObj(stmt, cmd));
     } else {
         ASTCacheObj ast(cache_val);
         stmt = ast.Stmt();
