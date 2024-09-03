@@ -17,6 +17,7 @@
 //
 #pragma once
 
+#include "cypher/cypher_types.h"
 #include "cypher/parser/data_typedef.h"
 #include "cypher/resultset/result_info.h"
 #include "lgraph/lgraph_result.h"
@@ -61,6 +62,9 @@ class RTContext : public SubmitQueryContext {
     std::unique_ptr<ResultInfo> result_info_;
     std::unique_ptr<lgraph_api::Result> result_;
     bolt::BoltConnection* bolt_conn_ = nullptr;
+    // for plan cache
+    std::vector<cypher::FieldData> query_params_;
+    std::string param_query_;
 
     RTContext() = default;
 

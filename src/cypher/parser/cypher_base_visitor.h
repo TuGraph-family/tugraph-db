@@ -1805,7 +1805,10 @@ class CypherBaseVisitor : public LcypherVisitor {
     }
 
     std::any visitOC_Parameter(LcypherParser::OC_ParameterContext *ctx) override {
-        return visitChildren(ctx);
+        Expression expr;
+        expr.type = Expression::PARAMETER;
+        expr.data = std::stol(ctx->getText());
+        return expr;
     }
 
     std::any visitOC_PropertyExpression(

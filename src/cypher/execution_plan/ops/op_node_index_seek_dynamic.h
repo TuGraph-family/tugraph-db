@@ -81,13 +81,17 @@ class NodeIndexSeekDynamic : public OpBase {
             break;
         case Property::PARAMETER:
             {
-                auto it = ctx->param_tab_.find(pf.value_alias);
-                if (it == ctx->param_tab_.end())
-                    throw lgraph::CypherException("invalid parameter: " + pf.value_alias);
-                if (it->second.type != cypher::FieldData::SCALAR) {
-                    throw lgraph::CypherException("parameter with wrong type: " + pf.value_alias);
+                if (std::isdigit(pf.value_alias[0])) {
+                    value_ = ctx->query_params_[std::stoi(pf.value_alias)].scalar;
+                } else {
+                    auto it = ctx->param_tab_.find(pf.value_alias);
+                    if (it == ctx->param_tab_.end())
+                        throw lgraph::CypherException("invalid parameter: " + pf.value_alias);
+                    if (it->second.type != cypher::FieldData::SCALAR) {
+                        throw lgraph::CypherException("parameter with wrong type: " + pf.value_alias);
+                    }
+                    value_ = it->second.scalar;
                 }
-                value_ = it->second.scalar;
                 break;
             }
         case Property::VARIABLE:

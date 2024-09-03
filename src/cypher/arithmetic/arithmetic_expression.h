@@ -476,6 +476,10 @@ struct ArithOperandNode {
                 CYPHER_TODO();
             }
         } else if (type == AR_OPERAND_PARAMETER) {
+            if (std::isdigit(variadic.alias[0])) {
+                // query plan parameters
+                return Entry(ctx->query_params_[variadic.alias_idx]);
+            }
             if (record.values[variadic.alias_idx].type == Entry::UNKNOWN) {
                 throw lgraph::CypherException("Undefined parameter: " + ToString());
             }

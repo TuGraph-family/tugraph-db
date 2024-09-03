@@ -20,6 +20,7 @@
 #include <list>
 #include <unordered_map>
 #include <mutex>
+// #include <boost/any.hpp>
 
 #include "core/lightning_graph.h"
 #include "db/db.h"
@@ -28,6 +29,7 @@
 
 #include "execution_plan/execution_plan.h"
 #include "execution_plan/runtime_context.h"
+#include "execution_plan/plan_cache/plan_cache.h"
 #include "cypher/execution_plan/lru_cache.h"
 
 namespace lgraph {
@@ -61,5 +63,7 @@ class Scheduler {
 
     static bool DetermineGqlReadOnly(cypher::RTContext *ctx, const std::string &script,
                                      std::string &name, std::string &type);
+
+    LRUPlanCache plan_cache_;
 };
 }  // namespace cypher

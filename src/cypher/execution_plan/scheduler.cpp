@@ -25,6 +25,8 @@
 #include "tools/lgraph_log.h"
 #include "core/task_tracker.h"
 
+#include "parser/clause.h"
+#include "parser/data_typedef.h"
 #include "parser/generated/LcypherLexer.h"
 #include "parser/generated/LcypherParser.h"
 #include "parser/cypher_base_visitor.h"
@@ -62,10 +64,14 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     using namespace parser;
     using namespace antlr4;
     auto t0 = fma_common::GetTime();
-    // <script, execution plan>
-    thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlan>> tls_plan_cache;
+    // // <script, execution plan>
+    // thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlan>> tls_plan_cache;
     std::shared_ptr<ExecutionPlan> plan;
-    if (!tls_plan_cache.Get(script, plan)) {
+    plan = std::make_shared<ExecutionPlan>();
+    std::vector<parser::SglQuery> stmt;
+    parser::CmdType cmd;
+    boost::any cache_val;
+    if(!plan_cache_.get_plan(ctx, script, cache_val)) {
         ANTLRInputStream input(script);
         LcypherLexer lexer(&input);
         CommonTokenStream tokens(&lexer);
@@ -79,49 +85,55 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
         for (const auto &sql_query : visitor.GetQuery()) {
             LOG_DEBUG() << sql_query.ToString();
         }
-        plan = std::make_shared<ExecutionPlan>();
         plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
-        plan->Build(visitor.GetQuery(), visitor.CommandType(), ctx);
-        plan->Validate(ctx);
-        if (plan->CommandType() != parser::CmdType::QUERY) {
-            ctx->result_info_ = std::make_unique<ResultInfo>();
-            ctx->result_ = std::make_unique<lgraph::Result>();
-            std::string header, data;
-            if (plan->CommandType() == parser::CmdType::EXPLAIN) {
-                header = "@plan";
-                data = plan->DumpPlan(0, false);
-            } else {
-                header = "@profile";
-                data = plan->DumpGraph();
-            }
-            ctx->result_->ResetHeader({{header, lgraph_api::LGraphType::STRING}});
-            auto r = ctx->result_->MutableRecord();
-            r->Insert(header, lgraph::FieldData(data));
-            if (ctx->bolt_conn_) {
-                auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
-                ctx->result_->MarkPythonDriver(session->python_driver);
-                while (!session->streaming_msg) {
-                    session->streaming_msg = session->msgs.Pop(std::chrono::milliseconds(100));
-                    if (ctx->bolt_conn_->has_closed()) {
-                        LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
-                        return;
-                    }
-                }
-                std::unordered_map<std::string, std::any> meta;
-                meta["fields"] = ctx->result_->BoltHeader();
-                bolt::PackStream ps;
-                ps.AppendSuccess(meta);
-                if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
-                    ps.AppendRecords(ctx->result_->BoltRecords());
-                } else if (session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
-                    // ...
-                }
-                ps.AppendSuccess();
-                ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
-            }
-            return;
+        stmt = visitor.GetQuery();
+        cmd = visitor.CommandType();
+        // plan_cache_.put_plan(ctx, script, plan);
+        plan_cache_.add_plan(ctx, ASTCacheObj(stmt, cmd).to_any());
+    } else {
+        ASTCacheObj ast(cache_val);
+        stmt = ast.Stmt();
+        cmd = ast.CmdType();
+    }
+    plan->Build(stmt, cmd, ctx);
+    plan->Validate(ctx);
+    if (plan->CommandType() != parser::CmdType::QUERY) {
+        ctx->result_info_ = std::make_unique<ResultInfo>();
+        ctx->result_ = std::make_unique<lgraph::Result>();
+        std::string header, data;
+        if (plan->CommandType() == parser::CmdType::EXPLAIN) {
+            header = "@plan";
+            data = plan->DumpPlan(0, false);
+        } else {
+            header = "@profile";
+            data = plan->DumpGraph();
         }
-        LOG_DEBUG() << "Plan cache disabled.";
+        ctx->result_->ResetHeader({{header, lgraph_api::LGraphType::STRING}});
+        auto r = ctx->result_->MutableRecord();
+        r->Insert(header, lgraph::FieldData(data));
+        if (ctx->bolt_conn_) {
+            auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
+            ctx->result_->MarkPythonDriver(session->python_driver);
+            while (!session->streaming_msg) {
+                session->streaming_msg = session->msgs.Pop(std::chrono::milliseconds(100));
+                if (ctx->bolt_conn_->has_closed()) {
+                    LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
+                    return;
+                }
+            }
+            std::unordered_map<std::string, std::any> meta;
+            meta["fields"] = ctx->result_->BoltHeader();
+            bolt::PackStream ps;
+            ps.AppendSuccess(meta);
+            if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
+                ps.AppendRecords(ctx->result_->BoltRecords());
+            } else if (session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
+                // ...
+            }
+            ps.AppendSuccess();
+            ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+        }
+        return;
     }
     LOG_DEBUG() << plan->DumpPlan(0, false);
     LOG_DEBUG() << plan->DumpGraph();

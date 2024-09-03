@@ -1419,13 +1419,19 @@ void ArithOperandNode::SetEntity(const std::string &alias, const std::string &pr
 }
 
 void ArithOperandNode::SetParameter(const std::string &param, const SymbolTable &sym_tab) {
-    type = AR_OPERAND_PARAMETER;
-    variadic.alias = param;
-    auto it = sym_tab.symbols.find(param);
-    if (it == sym_tab.symbols.end()) {
-        throw lgraph::CypherException("Parameter not defined: " + param);
+    if (std::isdigit(param[0])) {
+        // query plan parameter
+        variadic.alias_idx = std::stoi(param);
+    } else {
+        // named parameter
+        type = AR_OPERAND_PARAMETER;
+        variadic.alias = param;
+        auto it = sym_tab.symbols.find(param);
+        if (it == sym_tab.symbols.end()) {
+            throw lgraph::CypherException("Parameter not defined: " + param);
+        }
+        variadic.alias_idx = it->second.id;
     }
-    variadic.alias_idx = it->second.id;
 }
 
 void ArithOperandNode::RealignAliasId(const SymbolTable &sym_tab) {
