@@ -345,7 +345,12 @@ void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record,
     for (auto &p : global_procedures) {
         Record r;
         for (auto &title : titles) {
-            lmap.find(title)->second(p, r);
+            auto it = lmap.find(title);
+            if (it == lmap.end()) {
+                THROW_CODE(CypherException, "yield filed {} is not in procedure", title);
+            } else {
+                it->second(p, r);
+            }
         }
         records->emplace_back(r.Snapshot());
     }
