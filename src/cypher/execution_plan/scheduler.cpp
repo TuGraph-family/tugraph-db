@@ -154,7 +154,7 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
     thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlanV2>> tls_plan_cache;
     std::shared_ptr<ExecutionPlanV2> plan;
     geax::common::ObjectArenaAllocator objAlloc_;
-    LOG_INFO() << script;
+    LOG_DEBUG() << script;
     if (!tls_plan_cache.Get(script, plan)) {
         antlr4::ANTLRInputStream input(script);
         parser::LcypherLexer lexer(&input);
