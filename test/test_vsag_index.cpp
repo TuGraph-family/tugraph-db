@@ -135,27 +135,6 @@ class RPCService : public lgraph::LGraphRPCService {
 };
 RPCService* ptr_rpc_service_vector;
 
-int ElementCount_vector(const web::json::value& val,
-                        const std::string& value, const std::string& field) {
-    int count = 0;
-    if (val.is_array()) {
-        for (int i = 0; i < val.size(); ++i) {
-            if (val.at(i).has_field(field)) {
-                if (val.at(i).at(field).as_string() == value) {
-                    ++count;
-                }
-            }
-        }
-    } else if (val.is_object()) {
-        if (val.has_field(field)) {
-            if (val.at(field).as_string() == value) {
-                ++count;
-            }
-        }
-    }
-    return count;
-}
-
 void on_initialize_rpc_server_vector() {
     using namespace fma_common;
     using namespace lgraph;
@@ -174,8 +153,8 @@ void on_initialize_rpc_server_vector() {
 
     { GraphFactory::create_modern(); }
     // Build listener's URI from the configured address and the hard-coded path "RestServer/Action"
-    sm_config_vector.db_dir = "./testdb";
-    sm_config_vector.rpc_port = 19099;
+    sm_config_vector.db_dir = "./testdb_vector";
+    sm_config_vector.rpc_port = 19089;
 
     gconfig_vector->ft_index_options.enable_fulltext_index = true;
     lgraph::AccessControlledDB::SetEnablePlugin(true);
@@ -215,11 +194,33 @@ void* test_vector_rpc_server(void*) {
     return nullptr;
 }
 
+int ElementCount_vector(const web::json::value& val,
+                        const std::string& value, const std::string& field) {
+    int count = 0;
+    if (val.is_array()) {
+        for (int i = 0; i < val.size(); ++i) {
+            if (val.at(i).has_field(field)) {
+                if (val.at(i).at(field).as_string() == value) {
+                    ++count;
+                }
+            }
+        }
+    } else if (val.is_object()) {
+        if (val.has_field(field)) {
+            if (val.at(field).as_string() == value) {
+                ++count;
+            }
+        }
+    }
+    return count;
+}
+
 void test_vector_index(lgraph::RpcClient& client) {
     UT_LOG() << "test AddVectorIndex , DeleteVectorIndex , ShowVectorIndex , VectorIndexQuery";
+    build_so();
     std::string str;
     // vector.AddVectorIndex test
-    bool  ret = client.CallCypher(str, "CALL db.createVertexLabel('person',"
+    bool ret = client.CallCypher(str, "CALL db.createVertexLabel('person',"
                     "'id', 'id', 'int64', false, 'vector', 'float_vector', true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str, "CALL vector.AddVectorIndex('person',"
@@ -273,7 +274,7 @@ void* test_vector_rpc_client(void*) {
     // start test user login
     UT_LOG() << "admin user login";
     {
-        RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
+        RpcClient client3("0.0.0.0:19089", "admin", "73@TuGraph");
         test_vector_index(client3);
     }
 
