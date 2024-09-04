@@ -33,7 +33,7 @@
 using namespace utility;               // Common utilities like string conversions
 using namespace concurrency::streams;  // Asynchronous streams
 
-class VSAGTest : public ::testing::Test {
+class VSAGTest : public TuGraphTest {
  protected:
     int64_t dim = 4;
     int64_t num_vectors = 10000;
@@ -217,52 +217,59 @@ int ElementCount_vector(const web::json::value& val,
 
 void test_vector_index(lgraph::RpcClient& client) {
     UT_LOG() << "test AddVectorIndex , DeleteVectorIndex , ShowVectorIndex , VectorIndexQuery";
-    build_so();
     std::string str;
     // vector.AddVectorIndex test
-    bool ret = client.CallCypher(str, "CALL db.createVertexLabel('person',"
-                    "'id', 'id', 'int64', false, 'vector', 'float_vector', true)");
+    bool ret = client.CallCypher(str,
+    "CALL db.createVertexLabel('person','id','id','int64',false,'vector','float_vector',true)");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CALL vector.AddVectorIndex('person',"
-                    "'vector', 'HNSW', 4, 'L2' ,24 , 100)");
+    ret = client.CallCypher(str,
+    "CALL vector.AddVectorIndex('person','vector','HNSW',4,'L2',24,100)");
     UT_EXPECT_TRUE(ret);
 
     // vector.ShowVectorIndex test
-    ret = client.CallCypher(str, "CALL vector.ShowVectorIndex()");
+    ret = client.CallCypher(str,
+    "CALL vector.ShowVectorIndex()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
     UT_EXPECT_TRUE(ret);
-    UT_EXPECT_EQ(ElementCount_vector(json_val, "person", "label"), 1);
+    UT_EXPECT_EQ(ElementCount_vector(json_val, "person", "label_name"), 1);
 
     // vector.DeleteVectorIndex test
-    ret = client.CallCypher(str, "CALL vector.DeleteVectorIndex('person',"
-                    "'vector', ' HNSW ', 4, 'L2')");
+    ret = client.CallCypher(str,
+    "CALL vector.DeleteVectorIndex('person','vector','HNSW',4,'L2')");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CALL vector.AddVectorIndex('person',"
-                    "'vector', 'HNSW', 4, 'L2' ,24 , 100)");
+    ret = client.CallCypher(str,
+    "CALL vector.AddVectorIndex('person','vector','HNSW',4,'L2',24,100)");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CALL vector.ShowVectorIndex()");
+    ret = client.CallCypher(str,
+    "CALL vector.ShowVectorIndex()");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_TRUE(ret);
-    UT_EXPECT_EQ(ElementCount_vector(json_val, "person", "label"), 1);
+    UT_EXPECT_EQ(ElementCount_vector(json_val, "person", "label_name"), 1);
 
     // vector.VectorIndexQuery test
-    ret = client.CallCypher(str, "CREATE (n:person {id:1, vector: '1.0,1.0,1.0,1.0'})");
+    ret = client.CallCypher(str,
+    "CREATE (n:person {id:1, vector: '1.0,1.0,1.0,1.0'})");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CREATE (n:person {id:2, vector: '2.0,2.0,2.0,2.0'})");
+    ret = client.CallCypher(str,
+    "CREATE (n:person {id:2, vector: '2.0,2.0,2.0,2.0'})");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CREATE (n:person {id:3, vector: '3.0,3.0,3.0,3.0'})");
+    ret = client.CallCypher(str,
+    "CREATE (n:person {id:3, vector: '3.0,3.0,3.0,3.0'})");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CREATE (n:person {id:4, vector: '4.0,4.0,4.0,4.0'})");
+    ret = client.CallCypher(str,
+    "CREATE (n:person {id:4, vector: '4.0,4.0,4.0,4.0'})");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str, "CALL vector.VectorIndexQuery('person',"
-                    "'vector', [1,2,3,4], 4, 10)");
+    ret = client.CallCypher(str,
+    "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10)");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_TRUE(ret);
-    UT_EXPECT_EQ(ElementCount_vector(json_val, "4", "score"), 2);
-    UT_EXPECT_EQ(ElementCount_vector(json_val, "16", "score"), 2);
+    UT_EXPECT_EQ(ElementCount_vector(json_val,
+    "3.000000,3.000000,3.000000,3.000000", "vec"), 1);
+    UT_EXPECT_EQ(ElementCount_vector(json_val,
+    "2.000000,2.000000,2.000000,2.000000", "vec"), 1);
     ret = client.CallCypher(str, "CALL db.dropDB");
     UT_EXPECT_TRUE(ret);
 }
@@ -284,9 +291,7 @@ void* test_vector_rpc_client(void*) {
     return nullptr;
 }
 
-class TestVectorProcedure : public TuGraphTest {};
-
-TEST_F(TestVectorProcedure, VectorProcedure) {
+TEST_F(VSAGTest, VectorProcedure) {
     // fma_common::Logger::Get().SetLevel(fma_common::LogLevel::LL_DEBUG);
     std::thread tid_https[2] = {std::thread(test_vector_rpc_server, nullptr),
                                 std::thread(test_vector_rpc_client, nullptr)};
