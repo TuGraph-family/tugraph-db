@@ -53,7 +53,7 @@ set(LGRAPH_CORE_SRC
         core/vertex_index.cpp
         core/vector_index_layer.cpp
         core/vector_index_counter.cpp
-        core/Vsag_HNSW.cpp
+        core/vsag_hnsw.cpp
         core/wal.cpp
         core/lmdb/mdb.c
         core/lmdb/midl.c)

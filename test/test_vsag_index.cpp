@@ -28,7 +28,7 @@
 #include "./test_tools.h"
 
 #include "gtest/gtest.h"
-#include "core/Vsag_HNSW.h"
+#include "core/vsag_hnsw.h"
 
 using namespace utility;               // Common utilities like string conversions
 using namespace concurrency::streams;  // Asynchronous streams

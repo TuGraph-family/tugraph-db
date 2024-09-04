@@ -11,6 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
+#include <memory>
 #include <boost/algorithm/string.hpp>
 #include "db/galaxy.h"
 #include "core/index_manager.h"
@@ -1631,20 +1632,20 @@ void LightningGraph::BatchBuildVectorIndex(Transaction& txn, SchemaInfo* new_sch
             if (max_block_size >= (size_t)(end_vid - start_vid)) {
                 // block size large enough, so there is only one pass, use AppendKv
                 switch (type) {
-                case IndexType::GlobalUniqueIndex:
-                    {
-                        std::vector<std::vector<float>> floatvectors;
-                        std::vector<int64_t> vids;
-                        for (auto& kv : key_vids) {
-                            vids.emplace_back(kv.first);
-                            floatvectors.emplace_back(kv.second);
+                    case IndexType::GlobalUniqueIndex:
+                        {
+                            std::vector<std::vector<float>> floatvectors;
+                            std::vector<int64_t> vids;
+                            for (auto& kv : key_vids) {
+                                vids.emplace_back(kv.first);
+                                floatvectors.emplace_back(kv.second);
+                            }
+                            index->Add(floatvectors, vids, key_vids.size());
+                            break;
                         }
-                        index->Add(floatvectors, vids, key_vids.size());
-                        break;
-                    }
-                default:
-                        THROW_CODE(InputError,
-                                    "vector index only support Global Unique attributes");
+                    default:
+                            THROW_CODE(InputError,
+                                        "vector index only support Global Unique attributes");
                 }
             } else {
                 // multiple blocks, use regular index calls
@@ -2342,12 +2343,12 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
     LabelId lid = schema->GetLabelId();
     size_t fid = schema->GetFieldId(field);
     switch (extractor->Type()) {
-    case FieldType::FLOAT_VECTOR:
-        BatchBuildVectorIndex(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
-                                is_vertex);
-        break;
-    default:
-        throw std::runtime_error(std::string("Unhandled field type: ") +
+        case FieldType::FLOAT_VECTOR:
+            BatchBuildVectorIndex(txn, new_schema.get(), lid, fid, type, start_vid, end_vid,
+                                    is_vertex);
+            break;
+        default:
+            throw std::runtime_error(std::string("Unhandled field type: ") +
                                  field_data_helper::FieldTypeName(extractor->Type()));
     }
     txn.Commit();
@@ -2384,10 +2385,10 @@ bool LightningGraph::RebuildVectorIndex(const std::string& label, const std::str
     if (is_vertex) {
         std::unique_ptr<VertexIndex> vertex_index;
         std::unique_ptr<VectorIndex> vector_index;
-        vertex_index.reset(new VertexIndex(nullptr, extractor->Type(), type));
+        vertex_index = std::make_unique<VertexIndex>(nullptr, extractor->Type(), type);
         if (index_type == "HNSW") {
-            vector_index.reset(new HNSW(label, field, distance_type,
-                            index_type, vec_dimension, index_spec));
+            vector_index.reset(dynamic_cast<lgraph::VectorIndex*> (
+                new HNSW(label, field, distance_type, index_type, vec_dimension, index_spec)));
         }
 
         vertex_index->SetReady();

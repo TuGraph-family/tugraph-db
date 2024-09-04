@@ -12,7 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "core/Vsag_HNSW.h"
+#include "core/vsag_hnsw.h"
+
+#include <utility>
 
 namespace lgraph {
 HNSW::HNSW(const std::string& label, const std::string& name,
@@ -20,7 +22,7 @@ HNSW::HNSW(const std::string& label, const std::string& name,
                            const std::string& index_type, int vec_dimension,
                            std::vector<int> index_spec)
     : VectorIndex(label, name, distance_type, index_type,
-                    vec_dimension, index_spec),
+                    vec_dimension, std::move(index_spec)),
       createindex_(nullptr), index_(createindex_.get()) {}
 
 HNSW::HNSW(const HNSW& rhs)
@@ -41,8 +43,8 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
         }
         return true;
     }
-    float* index_vectors = new float[num_vectors * vec_dimension_];
-    int64_t* ids = new int64_t[num_vectors];
+    auto* index_vectors = new float[num_vectors * vec_dimension_];
+    auto* ids = new int64_t[num_vectors];
     for (int64_t i = 0; i < num_vectors; i++) {
         std::copy(vectors[i].begin(), vectors[i].end(), &index_vectors[i * vec_dimension_]);
     }
@@ -125,11 +127,11 @@ std::vector<uint8_t> HNSW::Save() {
         file.close();
         std::ifstream input_file("hnsw.index", std::ios::binary | std::ios::ate);
         if (input_file.is_open()) {
-        std::streamsize size = input_file.tellg();
-        input_file.seekg(0, std::ios::beg);
-        blob.resize(size);
-        input_file.read(reinterpret_cast<char*>(blob.data()), size);
-        input_file.close();
+            std::streamsize size = input_file.tellg();
+            input_file.seekg(0, std::ios::beg);
+            blob.resize(size);
+            input_file.read(reinterpret_cast<char*>(blob.data()), size);
+            input_file.close();
         }
     }
     std::remove("hnsw.index");

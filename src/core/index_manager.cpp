@@ -18,7 +18,7 @@
 #include "core/kv_store.h"
 #include "core/lightning_graph.h"
 #include "core/transaction.h"
-#include "core/Vsag_HNSW.h"
+#include "core/vsag_hnsw.h"
 
 namespace lgraph {
 IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
@@ -103,7 +103,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             FMA_DBG_ASSERT(schema);
             const _detail::FieldExtractor* fe = schema->GetFieldExtractor(idx.field);
             FMA_DBG_ASSERT(fe);
-            std::vector<std::string> vectorindex;
+            std::vector<std::string> vector_index;
             std::regex re(R"(_@lgraph@_|vector_index)");
             auto words_begin = std::sregex_token_iterator(index_name.begin(),
                                 index_name.end(), re, -1,
@@ -112,18 +112,18 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             auto words_end = std::sregex_token_iterator();
             for (std::sregex_token_iterator i = words_begin; i != words_end; ++i) {
                 if (!i->str().empty()) {
-                    vectorindex.emplace_back(i->str());
+                    vector_index.emplace_back(i->str());
                 }
             }
-            auto label = vectorindex[0];
-            auto field = vectorindex[1];
-            auto index_type = vectorindex[2];
-            auto distance_type = vectorindex[4];
-            int vec_dimension = std::stoi(vectorindex[3]);
+            auto label = vector_index[0];
+            auto field = vector_index[1];
+            auto index_type = vector_index[2];
+            auto distance_type = vector_index[4];
+            int vec_dimension = std::stoi(vector_index[3]);
             std::vector<int> index_spec;
             std::regex pattern("-?[0-9]+\\.?[0-9]*");
-            std::sregex_iterator begin_it(vectorindex[5].begin(),
-                                 vectorindex[5].end(), pattern), end_it;
+            std::sregex_iterator begin_it(vector_index[5].begin(),
+                                 vector_index[5].end(), pattern), end_it;
             while (begin_it != end_it) {
                 std::smatch match = *begin_it;
                 index_spec.push_back(std::stof(match.str()));
@@ -203,11 +203,11 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
     StoreIndex(idx, idxv);
     it->AddKeyValue(Value::ConstRef(idx.table_name), idxv);
 
-    index.reset(new VertexIndex(nullptr, dt, type));  // no need to creates index table
+    index = std::make_unique<VertexIndex>(nullptr, dt, type);  // no need to creates index table
 
     if (index_type == "HNSW") {
-        vector_index.reset(new HNSW(label, field, distance_type,
-                            index_type, vec_dimension, index_spec));
+        vector_index.reset(dynamic_cast<lgraph::VectorIndex*> (new HNSW(label, field, distance_type,
+                            index_type, vec_dimension, index_spec)));
     }
     return true;
 }

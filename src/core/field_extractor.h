@@ -20,7 +20,7 @@
 #include "core/edge_index.h"
 #include "core/schema_common.h"
 #include "core/vector_index_layer.h"
-#include "core/Vsag_HNSW.h"
+#include "core/vsag_hnsw.h"
 
 namespace lgraph {
 class Schema;

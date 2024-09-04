@@ -44,6 +44,8 @@ class VectorIndex {
 
     VectorIndex(VectorIndex&& rhs) = delete;
 
+    virtual ~VectorIndex() = default;
+
     VectorIndex& operator=(const VectorIndex& rhs) = delete;
 
     VectorIndex& operator=(VectorIndex&& rhs) = delete;
