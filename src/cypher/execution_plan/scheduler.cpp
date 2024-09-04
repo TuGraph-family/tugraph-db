@@ -154,6 +154,7 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
     thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlanV2>> tls_plan_cache;
     std::shared_ptr<ExecutionPlanV2> plan;
     geax::common::ObjectArenaAllocator objAlloc_;
+    LOG_DEBUG() << script;
     if (!tls_plan_cache.Get(script, plan)) {
         antlr4::ANTLRInputStream input(script);
         parser::LcypherLexer lexer(&input);
@@ -175,7 +176,7 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
             LOG_DEBUG() << "dumper.handle(node) cypher: " << script;
             LOG_DEBUG() << "dumper.handle(node) ret: " << ToString(ret);
             LOG_DEBUG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
-            return;
+            THROW_CODE(CypherException, dumper.error_msg());
         } else {
             LOG_DEBUG() << "--- dumper.handle(node) dump ---";
             LOG_DEBUG() << dumper.dump();
@@ -186,7 +187,7 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
         ret = plan->Build(node, ctx);
         if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
             LOG_DEBUG() << "build execution_plan_v2 failed: " << plan->ErrorMsg();
-            return;
+            THROW_CODE(CypherException, plan->ErrorMsg());
         }
         plan->Validate(ctx);
         if (visitor.CommandType() != parser::CmdType::QUERY) {

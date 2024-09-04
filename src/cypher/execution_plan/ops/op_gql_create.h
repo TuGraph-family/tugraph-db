@@ -202,7 +202,7 @@ class OpGqlCreate : public OpBase {
         for (auto child : children) {
             child->Initialize(ctx);
         }
-        auto sym_tab = pattern_graph_->symbol_table;
+        auto &sym_tab = pattern_graph_->symbol_table;
         record = children.empty() ? std::make_shared<Record>(sym_tab.symbols.size(),
                                      &sym_tab, ctx->param_tab_)
                                   : children[0]->record;
