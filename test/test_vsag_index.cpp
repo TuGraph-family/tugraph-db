@@ -162,10 +162,9 @@ void on_initialize_rpc_server_vector() {
     ptr_rpc_service_vector = new RPCService(ptr_state_machine_vector);
 
     rpc_server_vector.AddService(ptr_rpc_service_vector, brpc::SERVER_DOESNT_OWN_SERVICE);
-    rpc_server_vector.Start(sm_config_vector.rpc_port, NULL);
+    rpc_server_vector.Start(sm_config_vector.rpc_port, nullptr);
 
     ptr_state_machine_vector->Start();
-    return;
 }
 
 void on_shutdown_rpc_server_vector() {
@@ -175,7 +174,6 @@ void on_shutdown_rpc_server_vector() {
         LOG_ERROR() << "Rest server shutdown failed: " << e.what();
     }
     rpc_server_vector.Stop(0);
-    return;
 }
 
 void* test_vector_rpc_server(void*) {
@@ -250,16 +248,16 @@ void test_vector_index(lgraph::RpcClient& client) {
 
     // vector.VectorIndexQuery test
     ret = client.CallCypher(str,
-    "CREATE (n:person {id:1, vector: '1.0,1.0,1.0,1.0'})");
+    "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-    "CREATE (n:person {id:2, vector: '2.0,2.0,2.0,2.0'})");
+    "CREATE (n:person {id:2, vector: [2.0,2.0,2.0,2.0]})");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-    "CREATE (n:person {id:3, vector: '3.0,3.0,3.0,3.0'})");
+    "CREATE (n:person {id:3, vector: [3.0,3.0,3.0,3.0]})");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-    "CREATE (n:person {id:4, vector: '4.0,4.0,4.0,4.0'})");
+    "CREATE (n:person {id:4, vector: [4.0,4.0,4.0,4.0]})");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
     "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10)");
