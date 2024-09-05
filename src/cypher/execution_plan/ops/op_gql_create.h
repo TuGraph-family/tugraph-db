@@ -39,8 +39,17 @@ class OpGqlCreate : public OpBase {
                 fields.emplace_back(std::get<0>(property));
                 ArithExprNode ae(std::get<1>(property), *record->symbol_table);
                 auto value = ae.Evaluate(ctx, *record);
-                CYPHER_THROW_ASSERT(value.IsScalar());
-                values.emplace_back(value.constant.scalar);
+                CYPHER_THROW_ASSERT(value.IsScalar() || value.IsArray());
+                if (value.IsScalar()) {
+                    values.emplace_back(value.constant.scalar);
+                } else {
+                    std::vector<float> float_vector;
+                    for (const auto &item : *value.constant.array) {
+                        CYPHER_THROW_ASSERT(item.IsReal());
+                        float_vector.push_back(item.AsDouble());
+                    }
+                    values.emplace_back(float_vector);
+                }
             }
         }
     }
