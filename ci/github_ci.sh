@@ -61,6 +61,7 @@ else
   #cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar $WORKSPACE/build/output/
 
   # build cpp client test
+  export LD_PRELOAD=$WORKSPACE/build/output/liblgraph.so
   cd $WORKSPACE/test/test_rpc_client
   sh ./cpp/CppClientTest/compile.sh
   cp -r ./cpp/CppClientTest/build/clienttest $WORKSPACE/build/output/
