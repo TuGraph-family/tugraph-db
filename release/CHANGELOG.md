@@ -1,5 +1,16 @@
 # Change Log for TuGraph
 
+# 4.5.0 (2024-09-05)
+
+**Breaking Changes:**
+
+1. Cypher & gql ast use the same ast node, and the query engine is fully upgraded.(#597)(#604)(#644)(#651)
+
+**Improvements And Bug Fixes:**
+
+**Interface Modification:**
+
+
 # 4.3.2 (2024-07-25)
 
 **Breaking Changes:**
