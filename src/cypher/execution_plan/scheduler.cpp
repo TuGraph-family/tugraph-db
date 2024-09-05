@@ -15,7 +15,11 @@
 //
 // Created by wt on 18-8-14.
 //
+
+
 #include "./antlr4-runtime.h"
+#include "execution_plan/plan_cache/plan_cache_param.h"
+
 #include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/ast/AstDumper.h"
 #include "geax-front-end/isogql/GQLResolveCtx.h"
@@ -62,14 +66,14 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     using namespace parser;
     using namespace antlr4;
     auto t0 = fma_common::GetTime();
-    // // <script, execution plan>
-    // thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlan>> tls_plan_cache;
     std::shared_ptr<ExecutionPlan> plan;
     plan = std::make_shared<ExecutionPlan>();
     std::vector<parser::SglQuery> stmt;
     parser::CmdType cmd;
     ASTCacheObj cache_val;
-    if(!plan_cache_.get_plan(ctx, script, cache_val)) {
+    // parameterize the query
+    std::string param_query = fastQueryParam(ctx, script);
+    if(!plan_cache_.get_plan(ctx, param_query, cache_val)) {
         ANTLRInputStream input(script);
         LcypherLexer lexer(&input);
         CommonTokenStream tokens(&lexer);
@@ -86,7 +90,6 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
         plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
         stmt = visitor.GetQuery();
         cmd = visitor.CommandType();
-        // plan_cache_.put_plan(ctx, script, plan);
         plan_cache_.add_plan(ctx, ASTCacheObj(stmt, cmd));
     } else {
         ASTCacheObj ast(cache_val);

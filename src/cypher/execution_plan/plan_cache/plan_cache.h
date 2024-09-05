@@ -19,7 +19,6 @@
 #include "parser/clause.h"
 #include "parser/data_typedef.h"
 #include "execution_plan/runtime_context.h"
-#include "plan_cache_param.h"
 
 namespace cypher {
 class ASTCacheObj {
@@ -88,14 +87,12 @@ class LRUPlanCache {
         }
     }
 
-    bool get_plan(RTContext *ctx, const std::string &raw_query, T &val) {
+    bool get_plan(RTContext *ctx, const std::string &param_query, T &val) {
         // parameterized raw query
-        std::string query = fastQueryParam(ctx, raw_query);
-
         std::shared_lock<std::shared_mutex> _guard(_mutex); 
-        auto it = _item_map.find(query);
+        auto it = _item_map.find(param_query);
         if (it == _item_map.end()) {
-            ctx->param_query_ = std::move(query);
+            ctx->param_query_ = std::move(param_query);
             return false;
         }
         _item_list.splice(_item_list.begin(), _item_list, it->second);
