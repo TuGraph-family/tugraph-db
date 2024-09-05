@@ -26,6 +26,8 @@ cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
 fi
 make -j2
 
+export LD_PRELOAD=$LD_PRELOAD:$WORKSPACE/build/output/liblgraph.so
+
 if [[ "$TEST" == "ut" ]]; then
   # build tugraph db management
   #cd $WORKSPACE/deps/tugraph-db-management/
