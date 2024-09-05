@@ -16,6 +16,7 @@ cd deps
 bash ./build_deps.sh -j2
 
 # build tugraph
+export LD_PRELOAD=
 cd $WORKSPACE
 mkdir build && cd build
 if [[ "$ASAN" == "asan" ]]; then
@@ -25,6 +26,7 @@ else
 cmake .. -DCMAKE_BUILD_TYPE=Coverage -DBUILD_PROCEDURE=$WITH_PROCEDURE
 fi
 make -j2
+export LD_PRELOAD=$WORKSPACE/build/output/liblgraph.so
 
 if [[ "$TEST" == "ut" ]]; then
   # build tugraph db management
@@ -40,7 +42,7 @@ if [[ "$TEST" == "ut" ]]; then
   if [[ "$ASAN" == "asan" ]]; then
       export LSAN_OPTIONS=suppressions=$WORKSPACE/test/asan.suppress
   fi
-  LD_PRELOAD=$LD_PRELOAD:$WORKSPACE/build/output/liblgraph.so OMP_NUM_THREADS=2 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
+  OMP_NUM_THREADS=2 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
   rm -rf testdb* .import_tmp
   if [[ "$ASAN" == "asan" ]]; then
     exit 0
