@@ -1184,3 +1184,87 @@ TEST_F(TestLGraphApi, deleteAllVertex) {
     UT_EXPECT_EQ(expect, detail);
     txn.Abort();
 }
+
+TEST_F(TestLGraphApi, pairUniqueIndex) {
+    std::string path = "./testdb";
+    auto ADMIN = lgraph::_detail::DEFAULT_ADMIN_NAME;
+    auto ADMIN_PASS = lgraph::_detail::DEFAULT_ADMIN_PASS;
+    lgraph::AutoCleanDir cleaner(path);
+    Galaxy galaxy(path);
+    std::string db_path;
+    galaxy.SetCurrentUser(ADMIN, ADMIN_PASS);
+    GraphDB db = galaxy.OpenGraph("default");
+    VertexOptions vo("id");
+    vo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddVertexLabel("Person",
+                                     std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                     vo));
+    EdgeOptions eo;
+    eo.detach_property = true;
+    UT_EXPECT_TRUE(db.AddEdgeLabel("like",
+                                   std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddEdgeLabel("know",
+                                   std::vector<FieldSpec>({{"id", FieldType::INT32, false}}),
+                                   eo));
+    UT_EXPECT_TRUE(db.AddEdgeIndex("like", "id", IndexType::PairUniqueIndex));
+
+    std::vector<std::string> vp{"id"};
+    std::vector<std::string> ep{"id"};
+    auto txn = db.CreateWriteTxn();
+    std::vector<int64_t> vids;
+    for (int i = 0; i < 100; i++) {
+        auto vid = txn.AddVertex(
+            std::string("Person"), vp,
+            {FieldData::Int32(i)});
+        vids.push_back(vid);
+    }
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn.AddEdge(vids[i], vids[i+1],
+                    std::string("like"), vp,
+                    {FieldData::Int32(i)});
+        txn.AddEdge(vids[i], vids[i+1],
+                    std::string("know"), vp,
+                    {FieldData::Int32(i)});
+    }
+    txn.Commit();
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(txn.AddEdge(vids[i], vids[i+1],
+                    std::string("like"), vp,
+                    {FieldData::Int32(i)}), "index value already exists");
+        txn.Abort();
+    }
+    txn = db.CreateWriteTxn();
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn.AddEdge(vids[i], vids[i+1], std::string("know"), vp, {FieldData::Int32(i)});
+    }
+    txn.Commit();
+    for (int i = 0; i < vids.size()-1; i++) {
+        txn = db.CreateWriteTxn();
+        auto like_lid = txn.GetEdgeLabelId("like");
+        auto fid = txn.GetEdgeFieldId(like_lid, "id");
+        {
+            auto iter = txn.GetEdgePairUniqueIndexIterator(
+                like_lid, fid, vids[i], vids[i + 1], FieldData::Int32(i), FieldData::Int32(i));
+            UT_EXPECT_TRUE(iter.IsValid());
+            auto euid = iter.GetUid();
+            UT_EXPECT_EQ(euid.src, vids[i]);
+            UT_EXPECT_EQ(euid.dst, vids[i+1]);
+            UT_EXPECT_EQ(euid.lid, like_lid);
+            auto iter2 = txn.GetOutEdgeIterator(euid);
+            UT_EXPECT_EQ(iter2.GetField("id"), FieldData::Int32(i));
+        }
+        {
+            auto iter = txn.GetEdgePairUniqueIndexIterator(like_lid, fid, vids[i], vids[i + 1],
+                                                      FieldData::Int32(i + 1),
+                                                      FieldData::Int32(i + 1));
+            if (iter.IsValid()) {
+                auto euid = iter.GetUid();
+                UT_EXPECT_FALSE(euid.src == vids[i] && euid.dst == vids[i + 1]
+                                && euid.lid == like_lid);
+            }
+        }
+        txn.Abort();
+    }
+}

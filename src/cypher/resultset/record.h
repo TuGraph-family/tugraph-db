@@ -17,7 +17,9 @@
 //
 #pragma once
 
+#include <utility>
 #include "core/data_type.h"  // lgraph::FieldData
+#include "cypher/cypher_types.h"
 #include "parser/data_typedef.h"
 #include "graph/node.h"
 #include "graph/relationship.h"
@@ -50,6 +52,10 @@ struct Entry {
     explicit Entry(const cypher::FieldData &v) : constant(v), type(CONSTANT) {}
 
     explicit Entry(cypher::FieldData &&v) : constant(std::move(v)), type(CONSTANT) {}
+
+    explicit Entry(const lgraph::FieldData &v) : constant(v), type(CONSTANT) {}
+
+    explicit Entry(lgraph::FieldData &&v) : constant(std::move(v)), type(CONSTANT) {}
 
     explicit Entry(Node *v) : node(v), type(NODE) {}
 
@@ -89,6 +95,8 @@ struct Entry {
     bool IsMap() const { return type == CONSTANT && constant.type == cypher::FieldData::MAP; }
 
     bool IsScalar() const { return type == CONSTANT && constant.type == cypher::FieldData::SCALAR; }
+
+    bool IsConstant() const { return IsNull() || IsScalar() || IsArray() || IsMap(); }
 
     bool IsBool() const { return type == CONSTANT && constant.IsBool(); }
 

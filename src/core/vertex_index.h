@@ -220,7 +220,6 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
 
     bool Goto(VertexId vid);
 
-
     /**
      * Gets the current key.
      *

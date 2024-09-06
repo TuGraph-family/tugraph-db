@@ -21,6 +21,7 @@
 #include "cypher/resultset/result_info.h"
 #include "lgraph/lgraph_result.h"
 #include "bolt/connection.h"
+#include "geax-front-end/common/ObjectAllocator.h"
 
 namespace cypher {
 
@@ -31,16 +32,21 @@ class SubmitQueryContext {
     lgraph::Galaxy *galaxy_ = nullptr;
     std::string user_;
     std::string graph_;
+    std::shared_ptr<std::unordered_map<std::string, geax::frontend::Expr*>> bolt_parameters_v2_;
     std::shared_ptr<std::unordered_map<std::string, parser::Expression>> bolt_parameters_;
+    geax::common::ObjectArenaAllocator obj_alloc_;
     PARAM_TAB param_tab_;
     bool optimistic_ = false;
     bool path_unique_ = true;
+    bool is_cypher_v2_ = true;
 
     SubmitQueryContext() = default;
 
     SubmitQueryContext(lgraph::StateMachine *sm, lgraph::Galaxy *galaxy,
-                       const std::string &user, const std::string &graph)
-        : sm_(sm), galaxy_(galaxy), user_(user), graph_(graph) {}
+                       const std::string &user, const std::string &graph,
+                       bool is_cypher_v2 = true)
+        : sm_(sm), galaxy_(galaxy), user_(user), graph_(graph),
+          is_cypher_v2_(is_cypher_v2) {}
 
     bool Check(std::string &msg) const {
         if (!galaxy_) {
@@ -65,8 +71,9 @@ class RTContext : public SubmitQueryContext {
     RTContext() = default;
 
     RTContext(lgraph::StateMachine *sm, lgraph::Galaxy *galaxy,
-              const std::string &user, const std::string &graph)
-        : SubmitQueryContext(sm, galaxy, user, graph) {}
+              const std::string &user, const std::string &graph,
+              bool is_cypher_v2 = true)
+        : SubmitQueryContext(sm, galaxy, user, graph, is_cypher_v2) {}
 
     bool Check(std::string &msg) const {
         if (!SubmitQueryContext::Check(msg)) return false;

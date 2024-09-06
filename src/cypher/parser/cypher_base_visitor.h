@@ -932,10 +932,10 @@ class CypherBaseVisitor : public LcypherVisitor {
                     throw lgraph::CypherException(
                         FMA_FMT("Parameter {} missing value", parameter_val));
                 }
-                if (iter->second.type != Expression::DataType::MAP) {
-                    throw lgraph::CypherException(
-                        FMA_FMT("Parameter {} should be MAP type", parameter_val));
-                }
+//                if (iter->second.type != Expression::DataType::MAP) {
+//                    throw lgraph::CypherException(
+//                        FMA_FMT("Parameter {} should be MAP type", parameter_val));
+//                }
                 return std::make_tuple(iter->second, parameter);
             }
         }

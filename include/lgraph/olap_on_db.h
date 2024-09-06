@@ -16,7 +16,10 @@
 
 #pragma once
 
+#include <exception>
 #include "lgraph/lgraph.h"
+#include "lgraph/lgraph_txn.h"
+#include "lgraph/lgraph_utils.h"
 #include "lgraph/olap_base.h"
 #include "fma-common/fma_stream.h"
 
@@ -476,7 +479,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
     void ConstructWithVid() {
         auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
-
 
         // Read from TuGraph
         if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
@@ -959,7 +961,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
     /**
      * @brief Generate a graph with LightningGraph. For V1/V2 Procedures
      */
-    OlapOnDB(GraphDB* db, Transaction &txn, size_t flags = 0,
+    OlapOnDB(GraphDB *db, Transaction &txn, size_t flags = 0,
              std::function<bool(VertexIterator &)> vertex_filter = nullptr,
              std::function<bool(OutEdgeIterator &, EdgeData &)> out_edge_filter = nullptr)
         : db_(db),
@@ -1487,10 +1489,14 @@ class OlapOnDB : public OlapBase<EdgeData> {
      *
      */
     template <typename VertexData>
-    void WriteToFile(ParallelVector<VertexData> &vertex_data, const std::string &output_file) {
+    void WriteToFile(ParallelVector<VertexData> &vertex_data, const std::string &output_file,
+                     std::function<bool(size_t vid, VertexData &vdata)> output_filter = nullptr) {
         fma_common::OutputFmaStream fout;
         fout.Open(output_file, 64 << 20);
         for (size_t i = 0; i < this->num_vertices_; ++i) {
+            if (output_filter != nullptr && !output_filter(i, vertex_data[i])) {
+                continue;
+            }
             std::string line =
                 fma_common::StringFormatter::Format("{} {}\n", OriginalVid(i), vertex_data[i]);
             fout.Write(line.c_str(), line.size());

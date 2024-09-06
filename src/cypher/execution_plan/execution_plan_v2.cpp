@@ -18,6 +18,8 @@
 #include "cypher/execution_plan/optimization/locate_node_by_indexed_prop.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "cypher/execution_plan/clause_read_only_decider.h"
+#include "cypher/execution_plan/validation/graph_name_checker.h"
+#include "cypher/execution_plan/optimization/pass_manager.h"
 
 namespace cypher {
 
@@ -44,13 +46,14 @@ geax::frontend::GEAXErrorCode ExecutionPlanV2::Build(geax::frontend::AstNode* as
     result_info_ = execution_plan_maker.GetResultInfo();
     LOG_DEBUG() << DumpPlan(0, false);
     // optimize
-    LocateNodeByIndexedProp locate_node_by_indexed_prop;
-    locate_node_by_indexed_prop.Execute(Root());
+    PassManager pass_manager(root_, ctx);
+    pass_manager.ExecutePasses();
     LOG_DEBUG() << DumpPlan(0, false);
 
     ClauseReadOnlyDecider decider;
     ret = decider.Build(astNode);
     read_only_ = decider.IsReadOnly();
+
     return ret;
 }
 
@@ -87,6 +90,18 @@ int ExecutionPlanV2::Execute(RTContext* ctx) {
         header.emplace_back(column);
     }
     ctx->result_ = std::make_unique<lgraph_api::Result>(lgraph_api::Result(header));
+
+    if (ctx->bolt_conn_) {
+        std::unordered_map<std::string, std::any> meta;
+        meta["fields"] = ctx->result_->BoltHeader();
+        bolt::PackStream ps;
+        ps.AppendSuccess(meta);
+        ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+        auto session = (bolt::BoltSession*)ctx->bolt_conn_->GetContext();
+        session->state = bolt::SessionState::STREAMING;
+        ctx->result_->MarkPythonDriver(session->python_driver);
+    }
+
     try {
         OpBase::OpResult res;
         do {
@@ -128,7 +143,9 @@ int ExecutionPlanV2::Execute(RTContext* ctx) {
 }
 
 std::string ExecutionPlanV2::DumpPlan(int indent, bool statistics) const {
-    std::string s = statistics ? "Profile statistics:\n" : "Execution Plan:\n";
+    std::string s;
+    s.append(FMA_FMT("ReadOnly:{}\n", ReadOnly()));
+    s.append(statistics ? "Profile statistics:\n" : "Execution Plan:\n");
     OpBase::DumpStream(root_, indent, statistics, s);
     return s;
 }
@@ -146,5 +163,50 @@ OpBase* ExecutionPlanV2::Root() { return root_; }
 bool ExecutionPlanV2::ReadOnly() const { return read_only_; }
 
 void ExecutionPlanV2::Reset() {}
+
+void ExecutionPlanV2::PreValidate(
+    cypher::RTContext* ctx,
+    const std::unordered_map<std::string, std::set<std::string>>& node,
+    const std::unordered_map<std::string, std::set<std::string>>& edge) {
+    if (node.empty() && edge.empty()) {
+        return;
+    }
+    if (ctx->graph_.empty()) {
+        return;
+    }
+    auto graph = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    auto txn = graph.CreateReadTxn();
+    const auto& si = txn.GetSchemaInfo();
+    for (const auto& pair : node) {
+        auto s = si.v_schema_manager.GetSchema(pair.first);
+        if (!s) {
+            THROW_CODE(CypherException, "No such vertex label: {}", pair.first);
+        }
+        for (const auto& name : pair.second) {
+            size_t fid;
+            if (!s->TryGetFieldId(name, fid)) {
+                THROW_CODE(CypherException, "No such vertex property: {}.{}", pair.first, name);
+            }
+        }
+    }
+    for (const auto& pair : edge) {
+        auto s = si.e_schema_manager.GetSchema(pair.first);
+        if (!s) {
+            THROW_CODE(CypherException, "No such edge label: {}", pair.first);
+        }
+        for (const auto& name : pair.second) {
+            size_t fid;
+            if (!s->TryGetFieldId(name, fid)) {
+                THROW_CODE(CypherException, "No such edge property: {}.{}", pair.first, name);
+            }
+        }
+    }
+    txn.Abort();
+}
+
+void ExecutionPlanV2::Validate(cypher::RTContext* ctx) {
+    GraphNameChecker checker(root_, ctx);
+    checker.Execute();
+}
 
 }  // namespace cypher

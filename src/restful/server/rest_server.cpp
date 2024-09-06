@@ -1713,7 +1713,7 @@ void RestServer::HandlePostGraphQuery(const std::string& user, const std::string
 
     LGraphRequest proto_req;
     proto_req.set_token(token);
-    cypher::RTContext ctx(state_machine_, galaxy_, user, graph);
+    cypher::RTContext ctx(state_machine_, galaxy_, user, graph, state_machine_->IsCypherV2());
     std::string name;
     std::string type;
     bool ret = cypher::Scheduler::DetermineReadOnly(&ctx, query_type, query,

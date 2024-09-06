@@ -18,9 +18,11 @@
 
 #include <memory>
 #include <stack>
+#include "arithmetic/arithmetic_expression.h"
 #include "db/galaxy.h"
 
 #include "execution_plan/ops/op.h"
+#include "graph/common.h"
 #include "graph/graph.h"
 #include "cypher/cypher_exception.h"
 #include "ops/ops.h"
@@ -71,7 +73,7 @@ static void BuildQueryGraph(const QueryPart &part, PatternGraph &graph) {
                 auto dst_nid = graph.AddNode("", dst_alias, Node::ARGUMENT);
                 graph.AddRelationship(std::set<std::string>{}, src_nid, dst_nid,
                                       parser::LinkDirection::UNKNOWN, a.first,
-                                      Relationship::ARGUMENT, {});
+                                      Relationship::ARGUMENT, {}, {});
                 auto &src_node = graph.GetNode(src_nid);
                 auto &dst_node = graph.GetNode(dst_nid);
                 src_node.Visited() = true;
@@ -365,6 +367,7 @@ void ExecutionPlan::_AddScanOp(const parser::QueryPart &part, const SymbolTable 
         } else if (pf.type == Property::VARIABLE) {
             scan_op = new NodeIndexSeekDynamic(node, sym_tab);
             /* WITH 'sth' AS x MATCH (n {name:x}) RETURN n  */
+            /* WITH {a: 'sth'} AS x MATCH (n {name:x.a}) RETURN n  */
             auto i = sym_tab->symbols.find(pf.value_alias);
             if (i == sym_tab->symbols.end())
                 throw lgraph::CypherException("Unknown variable: " + pf.value_alias);
@@ -602,12 +605,16 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
                     // TODO(anyone) use record
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_PARAMETER,
                                    cypher::FieldData(lgraph::FieldData(pf.value_alias)));
+                } else if (pf.type == Property::VARIABLE) {
+                    ae2.SetOperandVariable(ArithOperandNode::AR_OPERAND_VARIABLE,
+                                        pf.hasMapFieldName, pf.value_alias, pf.map_field_name);
                 } else {
                     ae2.SetOperand(ArithOperandNode::AR_OPERAND_CONSTANT,
                                    cypher::FieldData(pf.value));
                 }
                 std::shared_ptr<lgraph::Filter> filter =
-                    std::make_shared<lgraph::RangeFilter>(lgraph::CompareOp::LBR_EQ, ae1, ae2);
+                    std::make_shared<lgraph::RangeFilter>(lgraph::CompareOp::LBR_EQ, ae1, ae2,
+                                                        &pattern_graph.symbol_table);
                 OpBase *filter_op = new OpFilter(filter);
                 expand_ops.emplace_back(filter_op);
             }

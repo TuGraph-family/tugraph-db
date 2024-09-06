@@ -423,7 +423,8 @@ class Transaction {
     int UpsertEdge(int64_t src, int64_t dst, size_t label_id,
                    const std::vector<size_t>& unique_pos,
                    const std::vector<size_t>& field_ids,
-                   const std::vector<FieldData>& field_values);
+                   const std::vector<FieldData>& field_values,
+                   std::optional<size_t> pair_unique_pos);
 
     /**
      * @brief   List indexes
@@ -481,6 +482,11 @@ class Transaction {
      */
     EdgeIndexIterator GetEdgeIndexIterator(size_t label_id, size_t field_id,
                                            const FieldData& key_start, const FieldData& key_end);
+
+    EdgeIndexIterator GetEdgePairUniqueIndexIterator(size_t label_id, size_t field_id,
+                                                     int64_t src_vid, int64_t dst_vid,
+                                                     const FieldData& key_start,
+                                                     const FieldData& key_end);
 
     /**
      * @brief   Gets vertex index iterator. The iterator has field value [key_start, key_end]. So

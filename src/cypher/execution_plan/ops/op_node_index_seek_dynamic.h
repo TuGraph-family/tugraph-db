@@ -17,7 +17,9 @@
 //
 #pragma once
 
+#include "core/data_type.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "graph/common.h"
 
 namespace cypher {
 
@@ -27,6 +29,8 @@ class NodeIndexSeekDynamic : public OpBase {
     lgraph::VIter *it_ = nullptr;  // also can be derived from node
     std::string alias_;            // also can be derived from node
     std::string field_;
+    std::string map_field_name_;
+    bool hasMapFieldName;
     lgraph::FieldData value_;
     int value_rec_idx_;  // index of input variable
     int node_rec_idx_;   // index of node in record
@@ -47,6 +51,8 @@ class NodeIndexSeekDynamic : public OpBase {
         if (node) {
             it_ = node->ItRef();
             alias_ = node->Alias();
+            map_field_name_ = node->Prop().map_field_name;
+            hasMapFieldName = node->Prop().hasMapFieldName;
             modifies.emplace_back(alias_);
         }
         rec_length_ = sym_tab->symbols.size();
