@@ -25,7 +25,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // prepare
     start_time = get_time();
-    size_t samples = 10;
+    size_t samples = 64;
     std::string output_file = "";
     try {
         json input = json::parse(request);
@@ -37,14 +37,25 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         return false;
     }
     auto txn = db.CreateReadTxn();
-    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
+
+    OlapOnDB<double> olapondb(db, txn, SNAPSHOT_PARALLEL, nullptr, edge_convert_default<double>);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
     auto score = olapondb.AllocVertexArray<double>();
-    score.Fill(0.0);
-    size_t max_score_vi = BCCore(olapondb, samples, score);
+    auto path_num = olapondb.AllocVertexArray<size_t>();
+    CLCECore(olapondb, samples, score, path_num);
+    auto active_all = olapondb.AllocVertexSubset();
+    active_all.Fill();
+    size_t max_score_vi = 0;
+    olapondb.ProcessVertexActive<size_t>([&](size_t vi) {
+        if (path_num[vi] > samples / 5 && score[vi] > score[max_score_vi]) {
+            max_score_vi = vi;
+        }
+        return 0;
+    }, active_all);
+    double max_length = score[max_score_vi];
     auto core_cost = get_time() - start_time;
     auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_score_vi), false);
     auto vit_label = vit.GetLabel();
@@ -54,18 +65,18 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // output
     start_time = get_time();
     if (output_file != "") {
-        olapondb.WriteToFile(score, output_file);
+        olapondb.WriteToFile<double>(true, score, output_file);
     }
     auto output_cost = get_time() - start_time;
 
     // return
     {
         json output;
-        output["max_score_vid"] = olapondb.OriginalVid(max_score_vi);
-        output["max_score_label"] = vit_label;
-        output["max_score_primaryfield"] = primary_field;
-        output["max_score_fielddata"] = field_data.ToString();
-        output["max_score"] = score[max_score_vi];
+        output["max_length_vid"] = olapondb.OriginalVid(max_score_vi);
+        output["max_length_label"] = vit_label;
+        output["max_length_primaryfield"] = primary_field;
+        output["max_length_fielddata"] = field_data.ToString();
+        output["max_length"] = max_length;
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;

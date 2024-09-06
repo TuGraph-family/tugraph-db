@@ -54,7 +54,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // output
     start_time = get_time();
     if (output_file != "") {
-        olapondb.WriteToFile(score, output_file);
+        olapondb.WriteToFile(true, score, output_file);
     }
     auto output_cost = get_time() - start_time;
 
