@@ -337,5 +337,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     argparser.Add(browser_options.retain_connection_credentials,
                   "browser.retain_connection_credentials", true)
         .Comment("Config browser whether to store user credentials in local storage.");
+    argparser.Add(is_cypher_v2,
+                  "is_cypher_v2", true)
+        .Comment("Config browser whether to store user credentials in local storage.");
     return argparser;
 }

@@ -310,34 +310,98 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathPattern* node) {
 std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto head = node->head();
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(head);
+    auto& tails = node->tails();
+    std::unordered_map<std::string, geax::frontend::Node*> geax_nodes_map;
+    std::unordered_map<std::string, geax::frontend::Edge*> geax_edges_map;
+    geax_nodes_map.emplace(head->filler()->v().value(), head);
+    for (auto [edge_like, end_node] : tails) {
+        geax_nodes_map.emplace(end_node->filler()->v().value(), end_node);
+        auto edge = objAlloc_.allocate<geax::frontend::Edge>();
+        checkedCast(edge_like, edge);
+        geax_edges_map.emplace(edge->filler()->v().value(), edge);
+    }
+
+    // select the starting Node and end Node according to the pattern graph
+    std::vector<NodeID> start_nodes;
+    {
+        std::vector<Node*> nodes;
+        nodes.push_back(&pattern_graph.GetNode(head->filler()->v().value()));
+        for (auto [edge, end_node] : tails) {
+            nodes.push_back(&pattern_graph.GetNode(end_node->filler()->v().value()));
+        }
+        for (const auto &n : nodes) {
+            auto &prop = n->Prop();
+            if (n->derivation_ != Node::CREATED && prop.type == Property::VARIABLE) {
+                auto it = pattern_graph.symbol_table.symbols.find(prop.value_alias);
+                CYPHER_THROW_ASSERT(it != pattern_graph.symbol_table.symbols.end());
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::ARGUMENT) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::MATCHED &&
+                !n->Label().empty() &&
+                n->Prop().type == Property::VALUE) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ == Node::MATCHED &&
+                !n->Label().empty()) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+        for (const auto &n : nodes) {
+            if (n->derivation_ != Node::CREATED &&
+                n->derivation_ != Node::MERGED) {
+                start_nodes.emplace_back(n->ID());
+            }
+        }
+    }
+    // set pattern_graph node visited to false before generate dfs path
+    std::unordered_map<std::string, bool> graph_node_visited_map;
+    for (const auto& node_kv : geax_nodes_map) {
+        graph_node_visited_map.emplace(node_kv.first,
+                                       pattern_graph.GetNode(node_kv.first).Visited());
+        pattern_graph.GetNode(node_kv.first).Visited() = false;
+    }
+    auto expand_stream = pattern_graph.CollectExpandStreams(start_nodes, true)[0];
+    // reset pattern_graph node visited after generate dfs path
+    for (const auto& node_kv : geax_nodes_map) {
+        pattern_graph.GetNode(node_kv.first).Visited() = graph_node_visited_map[node_kv.first];
+    }
+    auto &start_node = pattern_graph.GetNode(std::get<0>(expand_stream[0]));
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_nodes_map[start_node.Alias()]);
     std::vector<OpBase*> expand_ops;
     if (last_op_) {
         expand_ops.emplace_back(last_op_);
         last_op_ = nullptr;
     }
-    // todo: ...
+
     ClauseGuard cg(node->type(), cur_types_);
-    auto& tails = node->tails();
-    // TODO(lingsu): generate the pattern graph
-    // and select the starting Node and end Node according to the pattern graph
-    for (auto [edge, end_node] : tails) {
-        start_t_ = node_t_;
-        is_end_path_ = true;
+    for (auto &step : expand_stream) {
+        auto &start = pattern_graph.GetNode(std::get<0>(step));
+        auto &relp = pattern_graph.GetRelationship(std::get<1>(step));
+        auto &neighbor = pattern_graph.GetNode(std::get<2>(step));
+        if (relp.Empty() && neighbor.Empty()) {
+            continue;
+        }
         equal_filter_.push_back(nullptr);
         has_filter_per_level_.push_back(false);
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(end_node);
+        is_end_path_ = true;
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_nodes_map[neighbor.Alias()]);
         is_end_path_ = false;
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(edge);
-        auto& start = pattern_graph.GetNode(start_t_->Alias());
-        auto& relp = pattern_graph.GetRelationship(relp_t_->Alias());
-        auto& end = pattern_graph.GetNode(node_t_->Alias());
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(geax_edges_map[relp.Alias()]);
         OpBase* expand_op;
         LOG_DEBUG() << relp.MinHop() << " " << relp.MaxHop();
         if (relp.VarLen()) {
-            expand_op = new VarLenExpand(&pattern_graph, &start, &end, &relp);
+            expand_op = new VarLenExpand(&pattern_graph, &start, &neighbor, &relp);
         } else {
-            expand_op = new ExpandAll(&pattern_graph, &start, &end, &relp);
+            expand_op = new ExpandAll(&pattern_graph, &start, &neighbor, &relp);
         }
         expand_ops.emplace_back(expand_op);
         if (has_filter_per_level_[filter_level_]) {
@@ -544,9 +608,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         NOT_SUPPORT();
     }
     auto property = node->properties()[0];
-    Property p;
     auto [key, value] = property;
-    p.field = key;
 
     geax::frontend::BEqual* expr = nullptr;
     geax::frontend::GetField* field = nullptr;
@@ -559,78 +621,80 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PropStruct* node) {
         has_filter_per_level_[filter_level_] = true;
         equal_filter_[filter_level_] = expr;
     }
-    if (value->type() == geax::frontend::AstNodeType::kVString) {
-        p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VString*)value)->val());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::VString>();
-            std::string str = ((geax::frontend::VString*)value)->val();
-            right->setVal(std::move(str));
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
-        p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::VInt>();
-            right->setVal(((geax::frontend::VInt*)value)->val());
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
-        p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::VBool>();
-            right->setVal(((geax::frontend::VBool*)value)->val());
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
-        p.type = Property::VALUE;
-        p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::VDouble>();
-            right->setVal(((geax::frontend::VDouble*)value)->val());
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kRef) {
-        p.type = Property::VARIABLE;
-        p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::Ref>();
-            auto val = ((geax::frontend::Ref*)value)->name();
-            right->setName(std::move(val));
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kParam) {
-        p.type = Property::PARAMETER;
-        p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::Ref>();
-            auto val = ((geax::frontend::Param*)value)->name();
-            right->setName(std::move(val));
-            expr->setRight(right);
-        }
-    } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
-        p.type = Property::VARIABLE;
-        p.value_alias = ((geax::frontend::Ref*)((
-                         (geax::frontend::GetField*)value)->expr()))->name();
-        p.value = lgraph::FieldData(p.value_alias);
-        p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
-        if (is_end_path_) {
-            auto right = objAlloc_.allocate<geax::frontend::GetField>();
-            auto field_name = ((geax::frontend::GetField*)value)->fieldName();
-            right->setFieldName(std::move(field_name));
-            right->setExpr(((geax::frontend::GetField*)value)->expr());
-            expr->setRight(right);
-        }
-    } else {
-        NOT_SUPPORT();
-    }
     if (ClauseGuard::InClause(geax::frontend::AstNodeType::kNode, cur_types_)) {
+        Property p;
+        p.field = key;
+        if (value->type() == geax::frontend::AstNodeType::kVString) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VString*)value)->val());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::VString>();
+                std::string str = ((geax::frontend::VString*)value)->val();
+                right->setVal(std::move(str));
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kVInt) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VInt*)value)->val());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::VInt>();
+                right->setVal(((geax::frontend::VInt*)value)->val());
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kVBool) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VBool*)value)->val());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::VBool>();
+                right->setVal(((geax::frontend::VBool*)value)->val());
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kVDouble) {
+            p.type = Property::VALUE;
+            p.value = lgraph::FieldData(((geax::frontend::VDouble*)value)->val());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::VDouble>();
+                right->setVal(((geax::frontend::VDouble*)value)->val());
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kRef) {
+            p.type = Property::VARIABLE;
+            p.value = lgraph::FieldData(((geax::frontend::Ref*)value)->name());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::Ref>();
+                auto val = ((geax::frontend::Ref*)value)->name();
+                right->setName(std::move(val));
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kParam) {
+            p.type = Property::PARAMETER;
+            p.value = lgraph::FieldData(((geax::frontend::Param*)value)->name());
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::Ref>();
+                auto val = ((geax::frontend::Param*)value)->name();
+                right->setName(std::move(val));
+                expr->setRight(right);
+            }
+        } else if (value->type() == geax::frontend::AstNodeType::kGetField) {
+            p.type = Property::VARIABLE;
+            p.value_alias = ((geax::frontend::Ref*)((
+                             (geax::frontend::GetField*)value)->expr()))->name();
+            p.value = lgraph::FieldData(p.value_alias);
+            p.map_field_name = ((geax::frontend::GetField*)value)->fieldName();
+            if (is_end_path_) {
+                auto right = objAlloc_.allocate<geax::frontend::GetField>();
+                auto field_name = ((geax::frontend::GetField*)value)->fieldName();
+                right->setFieldName(std::move(field_name));
+                right->setExpr(((geax::frontend::GetField*)value)->expr());
+                expr->setRight(right);
+            }
+        } else {
+            NOT_SUPPORT();
+        }
         node_t_->SetProperty(p);
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     } else if (ClauseGuard::InClause(geax::frontend::AstNodeType::kEdge, cur_types_)) {
-        NOT_SUPPORT();
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
     NOT_SUPPORT();
 }
@@ -999,7 +1063,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node
             cur_pattern_graph_ += 1;
             should_connect_[cur_pattern_graph_] = false;
             ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(statement));
-            op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]->children[0]);
+            if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
+                op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]->children[0]);
+            } else {
+                op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]);
+            }
         }
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
@@ -1060,7 +1128,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InlineProcedureCall* node) { 
 std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
     std::string name = std::get<std::string>(node->name());
     std::vector<OpBase*> expand_ops;
-    auto op = new GqlStandaloneCall(name, node->args(), node->yield(),
+    auto op = new OpGqlStandaloneCall(name, node->args(), node->yield(),
                                     pattern_graphs_[cur_pattern_graph_].symbol_table);
     expand_ops.emplace_back(op);
     auto produce = new ProduceResults();
@@ -1131,6 +1199,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         } else {
             error_msg_ = std::any_cast<std::string>(agg_expr_detector.reportError());
             return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+        }
+        if (std::get<2>(item)) {
+            continue;
         }
         // build header
         if (expr->type() == geax::frontend::AstNodeType::kRef) {
@@ -1220,7 +1291,6 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         std::vector<ArithExprNode> noneaggregated_expressions;
         std::vector<std::string> noneaggr_item_names;
         std::vector<std::string> item_names;
-        std::vector<ArithExprNode> arith_items;
         for (auto& item : items) {
             ArithExprNode ae(std::get<1>(item), pattern_graphs_[cur_pattern_graph_].symbol_table);
             auto alias = std::get<0>(item);
@@ -1279,6 +1349,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::InsertStatement* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto op = new OpGqlCreate(node->paths(), &pattern_graph);
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    result_info_.header.colums.clear();
+    result_info_.header.colums.emplace_back(
+        "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -1288,12 +1361,18 @@ std::any ExecutionPlanMaker::visit(geax::frontend::SetStatement* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
     auto op = new OpGqlSet(node->items(), &pattern_graph);
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    result_info_.header.colums.clear();
+    result_info_.header.colums.emplace_back(
+        "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
     auto op = new OpGqlDelete(node->items());
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    result_info_.header.colums.clear();
+    result_info_.header.colums.emplace_back(
+        "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
@@ -1317,6 +1396,9 @@ std::any ExecutionPlanMaker::visit(geax::frontend::MergeStatement* node) {
     auto op =
         new OpGqlMerge(node->onMatch(), node->onCreate(), node->pathPattern(), &pattern_graph);
     _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
+    result_info_.header.colums.clear();
+    result_info_.header.colums.emplace_back(
+        "<SUMMARY>", "", false, lgraph_api::LGraphType::STRING);
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 

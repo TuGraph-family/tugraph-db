@@ -27,6 +27,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     start_time = get_time();
     std::string output_file = "";
     size_t samples = 10;
+    std::string output_file = "";
     try {
         json input = json::parse(request);
         parse_from_json(samples, "samples", input);
@@ -54,9 +55,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // output
     start_time = get_time();
     if (output_file != "") {
-        olapondb.WriteToFile<double>(score, output_file);
+        olapondb.WriteToFile(score, output_file);
     }
-    // TODO(any): write score back to graph
     auto output_cost = get_time() - start_time;
 
     // return

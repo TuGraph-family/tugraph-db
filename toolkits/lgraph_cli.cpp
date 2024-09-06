@@ -64,6 +64,7 @@ bool FetchRecords(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator, Outpu
     std::string error;
     std::optional<std::vector<std::string>> header;
     tabulate::Table table;
+    table.format().trim_mode(tabulate::Format::TrimMode::kNone);
     while (true) {
         auto msg = ReadMessage(socket, hydrator);
         if (msg.type() == typeid(std::optional<bolt::Record>)) {

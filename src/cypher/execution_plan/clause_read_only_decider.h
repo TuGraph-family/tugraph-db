@@ -15,6 +15,7 @@
 #pragma once
 
 #include "cypher/utils/ast_node_visitor_impl.h"
+#include "procedure/procedure.h"
 
 namespace cypher {
 
@@ -35,11 +36,46 @@ class ClauseReadOnlyDecider : public cypher::AstNodeVisitorImpl {
  private:
     std::any visit(geax::frontend::AmbientLinearQueryStatement* node) override {
         read_only_ = true;
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->resultStatement());
+        for (auto query_statement : node->queryStatements()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_statement);
+        }
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
     std::any visit(geax::frontend::LinearDataModifyingStatement* node) override {
         read_only_ = false;
+        for (auto query_statement : node->queryStatements()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(query_statement);
+        }
+        for (auto modify_statement : node->modifyStatements()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(modify_statement);
+        }
+        if (node->resultStatement().has_value()) {
+            ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->resultStatement().value());
+        }
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::NamedProcedureCall* node) override {
+        std::string func_name = std::get<std::string>(node->name());
+        if (func_name == "db.plugin.callPlugin") {
+            read_only_ = false;
+        } else {
+            auto pp = cypher::global_ptable.GetProcedure(func_name);
+            if (pp && !pp->read_only) read_only_ = false;
+        }
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override {
+        std::string func_name = std::get<std::string>(node->name());
+        if (func_name == "db.plugin.callPlugin") {
+            read_only_ = false;
+        } else {
+            auto pp = cypher::global_ptable.GetProcedure(func_name);
+            if (pp && !pp->read_only) read_only_ = false;
+        }
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 

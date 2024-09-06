@@ -68,16 +68,10 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // prepare
     start_time = get_time();
-    std::string vertex_label_filter = "";
-    std::string edge_label_filter = "";
-    std::string wcc_value = "";
     std::string output_file = "";
     std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
-        parse_from_json(vertex_label_filter, "vertex_label_filter", input);
-        parse_from_json(edge_label_filter, "edge_label_filter", input);
-        parse_from_json(wcc_value, "wcc_value", input);
         parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
@@ -86,23 +80,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     }
 
     auto txn = db.CreateReadTxn();
-    std::function<bool(VertexIterator &)> vertex_filter = nullptr;
-    std::function<bool(OutEdgeIterator &, Empty &)> edge_filter = nullptr;
-
-    if (!vertex_label_filter.empty()) {
-        vertex_filter = [&vertex_label_filter](VertexIterator& vit) {
-            return vit.GetLabel() == vertex_label_filter;
-        };
-    }
-
-    if (!edge_label_filter.empty()) {
-        edge_filter = [&edge_label_filter](OutEdgeIterator& eit, Empty& edata) {
-            return eit.GetLabel() == edge_label_filter;
-        };
-    }
-
-    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED,
-            vertex_filter, edge_filter);
+    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED);
     auto prepare_cost = get_time() - start_time;
 
     // core
@@ -116,11 +94,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     if (output_file != "") {
         olapondb.WriteToFile<size_t>(label, output_file);
     }
-    txn.Commit();
 
-    if (wcc_value != "") {
-        olapondb.WriteToGraphDB<size_t>(label, wcc_value);
-    }
     size_t num_components, max_component;
     CountComp(olapondb, label, max_component, num_components);
     printf("max_component = %ld\n", max_component);

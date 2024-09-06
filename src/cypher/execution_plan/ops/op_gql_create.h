@@ -170,10 +170,7 @@ class OpGqlCreate : public OpBase {
                 .append(" vertices, created ")
                 .append(std::to_string(ctx->result_info_->statistics.edges_created))
                 .append(" edges.");
-            auto header = ctx->result_->Header();
-            header.clear();
-            header.emplace_back(std::make_pair("<SUMMARY>", lgraph_api::LGraphType::STRING));
-            ctx->result_->ResetHeader(header);
+            CYPHER_THROW_ASSERT(ctx->result_->Header().size() == 1);
             CYPHER_THROW_ASSERT(record);
             record->values.clear();
             record->AddConstant(lgraph::FieldData(summary));
@@ -205,7 +202,7 @@ class OpGqlCreate : public OpBase {
         for (auto child : children) {
             child->Initialize(ctx);
         }
-        auto sym_tab = pattern_graph_->symbol_table;
+        auto &sym_tab = pattern_graph_->symbol_table;
         record = children.empty() ? std::make_shared<Record>(sym_tab.symbols.size(),
                                      &sym_tab, ctx->param_tab_)
                                   : children[0]->record;

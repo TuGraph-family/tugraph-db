@@ -23,7 +23,9 @@ namespace cypher {
 
 class NodeByLabelScan : public OpBase {
     friend class LocateNodeByVid;
+    friend class LocateNodeByVidV2;
     friend class LocateNodeByIndexedProp;
+    friend class LocateNodeByIndexedPropV2;
 
     std::unique_ptr<lgraph::Transaction> *txn_ = nullptr;
     Node *node_ = nullptr;

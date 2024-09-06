@@ -36,6 +36,7 @@
 #include "cypher/rewriter/MultiPathPatternRewriter.h"
 #include "fma-common/file_system.h"
 #include "db/galaxy.h"
+#include "cypher/rewriter/PushDownFilterAstRewriter.h"
 #include "cypher/execution_plan/runtime_context.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
 #include "lgraph/lgraph_utils.h"
@@ -172,13 +173,15 @@ class TestCypherV2 : public TuGraphTest {
             parser::LcypherParser parser(&tokens);
             parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
             geax::common::ObjectArenaAllocator objAlloc_;
-            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher());
+            parser::CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher(), ctx_.get());
             AstNode* node = visitor.result();
             // rewrite ast
             cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
             node->accept(gen_anonymous_alias_rewriter);
             cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
             node->accept(multi_path_pattern_rewriter);
+            cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx_.get());
+            node->accept(push_down_filter_ast_writer);
             // dump
             AstDumper dumper;
             auto ret = dumper.handle(node);

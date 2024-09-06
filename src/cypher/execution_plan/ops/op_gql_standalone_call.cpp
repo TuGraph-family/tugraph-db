@@ -20,7 +20,7 @@
 #include "arithmetic/arithmetic_expression.h"
 #include "db/galaxy.h"
 
-cypher::OpBase::OpResult cypher::GqlStandaloneCall::RealConsume(RTContext *ctx) {
+cypher::OpBase::OpResult cypher::OpGqlStandaloneCall::RealConsume(RTContext *ctx) {
     auto names = fma_common::Split(func_name_, ".");
     if (names.size() > 2 && names[0] == "plugin") {
         std::string input, output;

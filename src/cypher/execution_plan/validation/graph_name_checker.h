@@ -64,6 +64,7 @@ class GraphNameCheckerVisitor : public Visitor {
     void Visit(const Skip &op) override{};
     void Visit(const Sort &op) override{};
     void Visit(const StandaloneCall &op) override { has_standalone_call = true; };
+    void Visit(const OpGqlStandaloneCall &op) override { has_standalone_call = true; };
     void Visit(const TopN &op) override{};
     void Visit(const Union &op) override{};
     void Visit(const Unwind &op) override{};
@@ -71,6 +72,14 @@ class GraphNameCheckerVisitor : public Visitor {
     void Visit(const VarLenExpandInto &op) override{};
     void Visit(const ImmediateArgument &op) override{};
     void Visit(const Traversal &op) override{};
+    void Visit(const OpGqlCreate &op) override {}
+    void Visit(const OpGqlDelete &op) override {}
+    void Visit(const GqlInQueryCall &op) override {}
+    void Visit(const OpGqlMerge &op) override {}
+    void Visit(const OpGqlRemove &op) override {}
+    void Visit(const OpGqlSet &op) override {}
+    void Visit(const OpGqlTraversal &op) override {}
+
 
  private:
     cypher::RTContext *ctx_ = nullptr;

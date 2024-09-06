@@ -160,6 +160,8 @@ class StateMachine {
 
     inline Galaxy* GetGalaxy() { return galaxy_.get(); }
 
+    inline bool IsCypherV2() { return global_config_->is_cypher_v2; }
+
 #ifndef _WIN32
     inline cypher::Scheduler* GetCypherScheduler() { return &cypher_scheduler_; }
 #endif

@@ -26,7 +26,9 @@ class AllNodeScan : public OpBase {
      * will become INVALID after reallocation.
      * TODO(anyone) Make sure not add nodes to the pattern graph, otherwise use NodeId instead.  */
     friend class LocateNodeByVid;
+    friend class LocateNodeByVidV2;
     friend class LocateNodeByIndexedProp;
+    friend class LocateNodeByIndexedPropV2;
 
     Node *node_ = nullptr;
     lgraph::VIter *it_ = nullptr;           // also can be derived from node

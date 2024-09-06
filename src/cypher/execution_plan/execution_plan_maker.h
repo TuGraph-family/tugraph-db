@@ -48,7 +48,6 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     OpBase* last_op_ = nullptr;
 
     std::shared_ptr<Node> node_t_;
-    std::shared_ptr<Node> start_t_;
     std::shared_ptr<Relationship> relp_t_;
     OpFilter* op_filter_ = nullptr;
     geax::common::ObjectArenaAllocator& objAlloc_;
