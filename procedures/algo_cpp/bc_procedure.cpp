@@ -25,7 +25,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // prepare
     start_time = get_time();
-    std::string output_file = "";
     size_t samples = 10;
     std::string output_file = "";
     try {
