@@ -30,6 +30,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     unsigned random_seed = 0;
     size_t threshold = 0;
     std::string weight = "";
+    std::string output_file = "";
     std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
@@ -40,6 +41,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         parse_from_json(random_seed, "random_seed", input);
         parse_from_json(weight, "weight", input);
         parse_from_json(threshold, "threshold", input);
+        parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
@@ -65,11 +67,14 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     start_time = get_time();
     ParallelVector<size_t> label = olapondb.AllocVertexArray<size_t>();
     LeidenCore(olapondb, label, random_seed, theta, gamma, threshold);
-    printf("label.size=%lu\n", label.Size());
     auto core_cost = get_time() - start_time;
 
     // output
     start_time = get_time();
+    if (output_file != "") {
+        olapondb.WriteToFile<size_t>(label, output_file);
+    }
+
     double output_cost = get_time() - start_time;
 
     // return

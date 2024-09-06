@@ -223,7 +223,7 @@ class TestExec:
 
     JIEMBEDOPT = {
         "cmd": "OMP_NUM_THREADS=6 algo/ji_embed ./testdb",
-        "result": ['''"ji_list":[[0,1,0.04597701149425287],[1,972,0.0],[101,202,0.045454545454545456]]''']
+        "result": ['''"ji_list":[["0","1",0.04597701149425287],["1","972",0.0],["101","202",0.045454545454545456]]''']
     }
 
     @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)

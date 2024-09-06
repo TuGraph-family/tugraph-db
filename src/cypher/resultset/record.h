@@ -96,6 +96,8 @@ struct Entry {
 
     bool IsScalar() const { return type == CONSTANT && constant.type == cypher::FieldData::SCALAR; }
 
+    bool IsConstant() const { return IsNull() || IsScalar() || IsArray() || IsMap(); }
+
     bool IsBool() const { return type == CONSTANT && constant.IsBool(); }
 
     bool IsInteger() const { return type == CONSTANT && constant.IsInteger(); }

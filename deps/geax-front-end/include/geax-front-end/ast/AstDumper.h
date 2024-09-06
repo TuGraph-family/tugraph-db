@@ -163,6 +163,19 @@ class AstDumper : public AstNodeVisitor {
         return GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    template <typename T1, typename T2, typename T3>
+    std::any visit(const std::tuple<T1, T2, T3>& t) {
+        INDET_GUARD();
+        VARIABLE_GUARD();
+        cur_var_ = "tuple<0>";
+        VISIT_AND_CHECK_WITH_MSG(std::get<0>(t));
+        cur_var_ = "tuple<1>";
+        VISIT_AND_CHECK_WITH_MSG(std::get<1>(t));
+        cur_var_ = "tuple<2>";
+        VISIT_AND_CHECK_WITH_MSG(std::get<2>(t));
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
+
     template <typename T1, typename T2>
     std::any visit(const std::variant<T1, T2>& t) {
         INDET_GUARD();

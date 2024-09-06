@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
         LOG_ERROR() << e.what();
         return -1;
     }
-    if (config->ha_first_snapshot_start_time != "") {
+    if (!config->ha_first_snapshot_start_time.empty()) {
         std::tm tm = {};
         std::istringstream ss(config->ha_first_snapshot_start_time);
         ss >> std::get_time(&tm, "%H:%M:%S");

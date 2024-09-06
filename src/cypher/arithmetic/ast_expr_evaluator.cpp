@@ -324,7 +324,10 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::AggFunc* node) {
         // Evalute Mode
         if (visit_mode_ == VisitMode::EVALUATE) {
             if (agg_pos_ >= agg_ctxs_.size()) {
-                return Entry(cypher::FieldData(lgraph_api::FieldData(0)));
+                if (func_name == "count") {
+                    return Entry(cypher::FieldData(lgraph_api::FieldData(0)));
+                }
+                return Entry(cypher::FieldData(lgraph_api::FieldData()));
             }
             return agg_ctxs_[agg_pos_++]->result;
         } else if (visit_mode_ == VisitMode::AGGREGATE) {
@@ -362,7 +365,7 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BAggFunc* node) {
         // Evalute Mode
         if (visit_mode_ == VisitMode::EVALUATE) {
             if (agg_pos_ >= agg_ctxs_.size()) {
-                return Entry(cypher::FieldData(lgraph_api::FieldData(0)));
+                return Entry(cypher::FieldData(lgraph_api::FieldData()));
             }
             return agg_ctxs_[agg_pos_++]->result;
         } else if (visit_mode_ == VisitMode::AGGREGATE) {
@@ -399,11 +402,13 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MkList* node) {
     std::vector<cypher::FieldData> list;
     for (auto& e : elems) {
         auto entry = std::any_cast<Entry>(e->accept(*this));
-        if (!entry.IsMap() && !entry.IsScalar()) NOT_SUPPORT_AND_THROW();
+        if (!entry.IsConstant()) NOT_SUPPORT_AND_THROW();
         if (entry.IsScalar()) {
             list.emplace_back(entry.constant.scalar);
-        } else {
-            list.emplace_back(*entry.constant.map);
+        } else if (entry.IsArray()) {
+            list.emplace_back(*entry.constant.array);
+        } else if (entry.IsMap()) {
+             list.emplace_back(*entry.constant.map);
         }
     }
     return Entry(cypher::FieldData(list));
@@ -416,11 +421,13 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::MkMap* node) {
         auto key = std::any_cast<Entry>(std::get<0>(pair)->accept(*this));
         auto val = std::any_cast<Entry>(std::get<1>(pair)->accept(*this));
         if (!key.IsString()) NOT_SUPPORT_AND_THROW();
-        if (!val.IsScalar() && !val.IsArray()) NOT_SUPPORT_AND_THROW();
+        if (!val.IsConstant()) NOT_SUPPORT_AND_THROW();
         if (val.IsScalar()) {
             map.emplace(key.constant.ToString(), val.constant.scalar);
-        } else {
+        } else if (val.IsArray()) {
             map.emplace(key.constant.ToString(), *val.constant.array);
+        } else if (val.IsMap()) {
+            map.emplace(key.constant.ToString(), *val.constant.map);
         }
     }
     return Entry(cypher::FieldData(map));
