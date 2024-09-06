@@ -1,5 +1,5 @@
 
-// Generated from src/cypher/grammar/Lcypher.g4 by ANTLR 4.12.0
+// Generated from src/cypher/grammar/Lcypher.g4 by ANTLR 4.13.0
 
 
 #include "LcypherLexer.h"
@@ -43,10 +43,19 @@ struct LcypherLexerStaticData final {
 };
 
 ::antlr4::internal::OnceFlag lcypherlexerLexerOnceFlag;
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+static thread_local
+#endif
 LcypherLexerStaticData *lcypherlexerLexerStaticData = nullptr;
 
 void lcypherlexerLexerInitialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  if (lcypherlexerLexerStaticData != nullptr) {
+    return;
+  }
+#else
   assert(lcypherlexerLexerStaticData == nullptr);
+#endif
   auto staticData = std::make_unique<LcypherLexerStaticData>(
     std::vector<std::string>{
       "T__0", "T__1", "T__2", "T__3", "T__4", "T__5", "T__6", "T__7", "T__8", 
@@ -649,5 +658,9 @@ const atn::ATN& LcypherLexer::getATN() const {
 
 
 void LcypherLexer::initialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  lcypherlexerLexerInitialize();
+#else
   ::antlr4::internal::call_once(lcypherlexerLexerOnceFlag, lcypherlexerLexerInitialize);
+#endif
 }

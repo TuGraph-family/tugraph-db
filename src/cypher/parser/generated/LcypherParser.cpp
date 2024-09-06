@@ -1,5 +1,5 @@
 
-// Generated from src/cypher/grammar/Lcypher.g4 by ANTLR 4.12.0
+// Generated from src/cypher/grammar/Lcypher.g4 by ANTLR 4.13.0
 
 
 #include "LcypherVisitor.h"
@@ -38,10 +38,19 @@ struct LcypherParserStaticData final {
 };
 
 ::antlr4::internal::OnceFlag lcypherParserOnceFlag;
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+static thread_local
+#endif
 LcypherParserStaticData *lcypherParserStaticData = nullptr;
 
 void lcypherParserInitialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  if (lcypherParserStaticData != nullptr) {
+    return;
+  }
+#else
   assert(lcypherParserStaticData == nullptr);
+#endif
   auto staticData = std::make_unique<LcypherParserStaticData>(
     std::vector<std::string>{
       "oC_Cypher", "oC_Statement", "oC_Query", "oC_RegularQuery", "oC_Union", 
@@ -11117,5 +11126,9 @@ LcypherParser::OC_DashContext* LcypherParser::oC_Dash() {
 }
 
 void LcypherParser::initialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  lcypherParserInitialize();
+#else
   ::antlr4::internal::call_once(lcypherParserOnceFlag, lcypherParserInitialize);
+#endif
 }
