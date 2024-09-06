@@ -20,42 +20,14 @@ using namespace lgraph_api;
 using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
-/**
- * Processes a request on a GraphDB.
- *
- * @param db The reference to the GraphDB object on which the request will be processed.
- * @param request The input request in JSON format.
- *        The request should contain the following parameters:
- *        - "root_value": The value of the root vertex.
- *        - "root_label": The label of the root vertex.
- *        - "root_field": The field of the root vertex.
- *        - "vertex_label_filter": Filter vertex sets based on vertex labels
- *        - "edge_label_filter": Filter edge sets based on edge labels
- *        - "parent_id": Vertex field name to be written back into the database.
- *        - "output_file": Parent id to be written to the file.
- * @param response The output response in JSON format.
- *        The response will contain the following parameters:
- *        - "found_vertices": The number of vertices found.
- *        - "num_vertices": The number of vertices in the graph.
- *        - "num_edges": The number of edges in the graph.
- *        - "prepare_cost": The time cost of preparing the graph data.
- *        - "core_cost": The time cost of the core algorithm.
- *        - "output_cost": The time cost of writing the result to a file.
- *        - "total_cost": The total time cost.
- * @return True if the request is processed successfully, false otherwise.
- */
-
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
     auto start_time = get_time();
 
     // prepare
     start_time = get_time();
     std::string root_value = "0";
-    std::string root_label = "";
-    std::string root_field = "";
-    std::string vertex_label_filter = "";
-    std::string edge_label_filter = "";
-    std::string parent_id = "";
+    std::string root_label = "node";
+    std::string root_field = "id";
     std::string output_file = "";
     std::cout << "Input: " << request << std::endl;
     try {
@@ -63,9 +35,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         parse_from_json(root_value, "root_value", input);
         parse_from_json(root_label, "root_label", input);
         parse_from_json(root_field, "root_field", input);
-        parse_from_json(vertex_label_filter, "vertex_label_filter", input);
-        parse_from_json(edge_label_filter, "edge_label_filter", input);
-        parse_from_json(parent_id, "parent_id", input);
         parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
@@ -74,60 +43,27 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     }
 
     auto txn = db.CreateReadTxn();
-
-    std::function<bool(VertexIterator &)> vertex_filter = nullptr;
-    std::function<bool(OutEdgeIterator &, Empty &)> edge_filter = nullptr;
-
-    if (!vertex_label_filter.empty()) {
-        vertex_filter = [&vertex_label_filter](VertexIterator& vit) {
-            return vit.GetLabel() == vertex_label_filter;
-        };
-    }
-
-    if (!edge_label_filter.empty()) {
-        edge_filter = [&edge_label_filter](OutEdgeIterator& eit, Empty& edata) {
-            return eit.GetLabel() == edge_label_filter;
-        };
-    }
-
-    if (root_label.empty() || root_field.empty()) {
-        if (root_label.empty() && root_field.empty()) {
-            root_label = "node";
-            root_field = "id";
-        } else {
-            THROW_CODE(InputError, "root_label or root_field is empty");
-        }
-    }
-
-    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL, vertex_filter, edge_filter);
-    int64_t root_vid = txn.GetVertexIndexIterator(root_label,
-                root_field, root_value, root_value).GetVid();
+    int64_t root_vid =
+        txn.GetVertexIndexIterator(root_label, root_field, root_value, root_value).GetVid();
+    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
     ParallelVector<size_t> parent = olapondb.AllocVertexArray<size_t>();
     size_t count = BFSCore(olapondb, olapondb.MappedVid(root_vid), parent);
+    printf("found_vertices = %ld\n", count);
     auto core_cost = get_time() - start_time;
 
     // output
     start_time = get_time();
-#pragma omp parallel for
-    for (size_t i = 0; i < parent.Size(); i++) {
-        if (parent[i] != (size_t)-1) {
-            parent[i] = olapondb.OriginalVid(parent[i]);
-        }
-    }
+    // TODO(any): write parent back to graph
     if (output_file != "") {
-        olapondb.WriteToFile<size_t>(parent, output_file);
-    }
-    txn.Commit();
-
-    if (parent_id != "") {
-        olapondb.WriteToGraphDB<size_t>(parent, parent_id);
+        olapondb.WriteToFile<size_t>(parent, output_file, [&](size_t vid, size_t vdata) -> bool {
+            return vdata != (size_t)-1;
+        });
     }
 
-    printf("found_vertices = %ld\n", count);
     auto output_cost = get_time() - start_time;
 
     // return
