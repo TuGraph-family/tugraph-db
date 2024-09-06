@@ -476,7 +476,7 @@ struct ArithOperandNode {
                 CYPHER_TODO();
             }
         } else if (type == AR_OPERAND_PARAMETER) {
-            if (std::isdigit(variadic.alias[0])) {
+            if (std::isdigit(variadic.alias[1])) {
                 // query plan parameters
                 return Entry(ctx->query_params_[variadic.alias_idx]);
             }

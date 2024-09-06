@@ -67,13 +67,13 @@ add_executable(${TARGET_LGRAPH_PEEK} lgraph_peek.cpp)
 target_link_libraries(${TARGET_LGRAPH_PEEK} lgraph_server_lib)
 
 ###test
-# set(TARGET_LGRAPH_CACHE lgraph_plan_cache)
+set(TARGET_LGRAPH_CACHE lgraph_plan_cache)
 
-# add_executable(${TARGET_LGRAPH_CACHE} test_query_plan.cpp)
-# target_link_libraries(${TARGET_LGRAPH_CACHE}
-#         lgraph_server_lib
-#         lgraph_cypher_lib
-#         librocksdb.a)
+add_executable(${TARGET_LGRAPH_CACHE} test_query_plan.cpp)
+target_link_libraries(${TARGET_LGRAPH_CACHE}
+        lgraph_server_lib
+        lgraph_cypher_lib
+        librocksdb.a)
 
 
 ############### lgraph_peer ######################

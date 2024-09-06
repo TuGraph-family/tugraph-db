@@ -1419,9 +1419,11 @@ void ArithOperandNode::SetEntity(const std::string &alias, const std::string &pr
 }
 
 void ArithOperandNode::SetParameter(const std::string &param, const SymbolTable &sym_tab) {
-    if (std::isdigit(param[0])) {
+    if (std::isdigit(param[1])) {
         // query plan parameter
-        variadic.alias_idx = std::stoi(param);
+        type = AR_OPERAND_PARAMETER;
+        variadic.alias = param;
+        variadic.alias_idx = std::stoi(param.substr(1));
     } else {
         // named parameter
         type = AR_OPERAND_PARAMETER;

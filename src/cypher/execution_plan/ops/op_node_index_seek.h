@@ -73,6 +73,7 @@ class NodeIndexSeek : public OpBase {
         if (pf.type == Property::VALUE) {
             target_values_.emplace_back(pf.value);
         } else if (pf.type == Property::PARAMETER) {
+            std::cout << pf.value_alias[0]<<std::endl;
             if (std::isdigit(pf.value_alias[0])) {
                 // for plan cache (e.g. $n)
                 target_values_.emplace_back(ctx->query_params_[std::stoi(pf.value_alias)].scalar);
