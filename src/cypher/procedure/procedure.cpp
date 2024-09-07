@@ -539,7 +539,16 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
         for (auto& item : *line.map) {
             auto iter = fd_type.find(item.first);
             if (iter != fd_type.end()) {
-                auto fd = item.second.scalar;
+                lgraph_api::FieldData fd;
+                if (item.second.IsArray()) {
+                    std::vector<float> vec;
+                    for (const auto& a : *item.second.array) {
+                        vec.push_back(a.AsDouble());
+                    }
+                    fd = lgraph_api::FieldData(vec);
+                } else {
+                    fd = item.second.scalar;
+                }
                 if (fd.IsNull()) {
                     success = false;
                     break;
@@ -787,7 +796,16 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
         }
         for (auto& item : *line.map) {
             if (item.first == start_json_key) {
-                auto fd = item.second.scalar;
+                lgraph_api::FieldData fd;
+                if (item.second.IsArray()) {
+                    std::vector<float> vec;
+                    for (const auto& a : *item.second.array) {
+                        vec.push_back(a.AsDouble());
+                    }
+                    fd = lgraph_api::FieldData(vec);
+                } else {
+                    fd = item.second.scalar;
+                }
                 if (fd.IsNull()) {
                     success = false;
                     break;
@@ -801,7 +819,16 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                 start_vid = iiter.GetVid();
                 continue;
             } else if (item.first == end_json_key) {
-                auto fd = item.second.scalar;
+                lgraph_api::FieldData fd;
+                if (item.second.IsArray()) {
+                    std::vector<float> vec;
+                    for (const auto& a : *item.second.array) {
+                        vec.push_back(a.AsDouble());
+                    }
+                    fd = lgraph_api::FieldData(vec);
+                } else {
+                    fd = item.second.scalar;
+                }
                 if (fd.IsNull()) {
                     success = false;
                     break;
@@ -817,7 +844,16 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
             } else {
                 auto iter = fd_type.find(item.first);
                 if (iter != fd_type.end()) {
-                    auto fd = item.second.scalar;
+                    lgraph_api::FieldData fd;
+                    if (item.second.IsArray()) {
+                        std::vector<float> vec;
+                        for (const auto& a : *item.second.array) {
+                            vec.push_back(a.AsDouble());
+                        }
+                        fd = lgraph_api::FieldData(vec);
+                    } else {
+                        fd = item.second.scalar;
+                    }
                     if (fd.IsNull()) {
                         success = false;
                         break;

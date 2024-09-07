@@ -480,7 +480,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
         auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
 
-
         // Read from TuGraph
         if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
             this->out_index_.Resize(this->num_vertices_ + 1, (size_t)0);
@@ -962,7 +961,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
     /**
      * @brief Generate a graph with LightningGraph. For V1/V2 Procedures
      */
-    OlapOnDB(GraphDB* db, Transaction &txn, size_t flags = 0,
+    OlapOnDB(GraphDB *db, Transaction &txn, size_t flags = 0,
              std::function<bool(VertexIterator &)> vertex_filter = nullptr,
              std::function<bool(OutEdgeIterator &, EdgeData &)> out_edge_filter = nullptr)
         : db_(db),
@@ -1490,23 +1489,17 @@ class OlapOnDB : public OlapBase<EdgeData> {
      *
      */
     template <typename VertexData>
-    void WriteToFile(ParallelVector<VertexData> &vertex_data, const std::string &output_file) {
-        FILE* fout = fopen(output_file.c_str(), "w");
-        if (fout == nullptr) {
-            THROW_CODE(InputError, "Unable to open file for writting!");
-        }
+    void WriteToFile(ParallelVector<VertexData> &vertex_data, const std::string &output_file,
+                     std::function<bool(size_t vid, VertexData &vdata)> output_filter = nullptr) {
+        fma_common::OutputFmaStream fout;
+        fout.Open(output_file, 64 << 20);
         for (size_t i = 0; i < this->num_vertices_; ++i) {
-            auto vit = txn_.GetVertexIterator(OriginalVid(i));
-            auto vit_label = vit.GetLabel();
-            auto primary_field = txn_.GetVertexPrimaryField(vit_label);
-            auto field_data = vit.GetField(primary_field);
-            json curJson;
-            curJson["vid"] = OriginalVid(i);
-            curJson["label"] = vit_label;
-            curJson["primary_field"] = primary_field;
-            curJson["field_data"] = field_data.ToString();
-            curJson["result"] = vertex_data[i];
-            fprintf(fout, "%s\n", curJson.dump().c_str());
+            if (output_filter != nullptr && !output_filter(i, vertex_data[i])) {
+                continue;
+            }
+            std::string line =
+                fma_common::StringFormatter::Format("{} {}\n", OriginalVid(i), vertex_data[i]);
+            fout.Write(line.c_str(), line.size());
         }
     }
 
