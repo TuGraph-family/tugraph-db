@@ -24,6 +24,7 @@
  * ‘EOF’ was not declared in this scope.
  * For the former (include/butil) uses macro EOF, which is undefined in antlr4. */
 #include "./graph_factory.h"
+#include "cypher/execution_plan/plan_cache/plan_cache_param.h"
 #include "./antlr4-runtime.h"
 
 #include "cypher/execution_plan/execution_plan.h"
@@ -126,6 +127,44 @@ void eval_scripts_check(cypher::RTContext *ctx, const std::vector<std::string> &
         execution_plan.Execute(ctx);
         UT_LOG() << "Result:\n" << ctx->result_->Dump(false);
         if (scripts.size() == check.size()) UT_EXPECT_EQ(ctx->result_->Size(), check[i]);
+    }
+}
+
+void eval_scripts_with_plan_cache(cypher::RTContext *ctx, const std::vector<std::string> &scripts) {
+    for (int i = 0; i < (int)scripts.size(); i++) {
+        auto s = scripts[i];
+        UT_LOG() << i << "th:" << s;
+        ANTLRInputStream input(s);
+        LcypherLexer lexer(&input);
+        CommonTokenStream tokens(&lexer);
+        LcypherParser parser(&tokens);
+        parser.addErrorListener(&CypherErrorListener::INSTANCE);
+        CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
+        cypher::ExecutionPlan execution_plan;
+        execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
+        execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
+        execution_plan.Validate(ctx);
+        execution_plan.DumpGraph();
+        execution_plan.DumpPlan(0, false);
+        execution_plan.Execute(ctx);
+        std::string orcle_res = ctx->result_->Dump(false);
+        
+        // Evaluation result of parameterized query plan.
+        std::string param_query = fastQueryParam(ctx, s);
+        ANTLRInputStream param_input(param_query);
+        LcypherLexer param_lexer(&param_input);
+        CommonTokenStream param_tokens(&param_lexer);
+        LcypherParser param_parser(&param_tokens);
+        param_parser.addErrorListener(&CypherErrorListener::INSTANCE);
+        CypherBaseVisitor param_visitor(ctx, param_parser.oC_Cypher());
+        cypher::ExecutionPlan param_execution_plan;
+        param_execution_plan.PreValidate(ctx, param_visitor.GetNodeProperty(), param_visitor.GetRelProperty());
+        param_execution_plan.Build(param_visitor.GetQuery(), param_visitor.CommandType(), ctx);
+        param_execution_plan.Validate(ctx);
+        param_execution_plan.Execute(ctx);
+        std::string param_res = ctx->result_->Dump(false);
+
+        UT_EXPECT_EQ(orcle_res, param_res);
     }
 }
 

@@ -74,7 +74,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     // parameterize the query
     std::string param_query = fastQueryParam(ctx, script);
     if(!plan_cache_.get_plan(ctx, param_query, cache_val)) {
-        ANTLRInputStream input(script);
+        ANTLRInputStream input(param_query);
         LcypherLexer lexer(&input);
         CommonTokenStream tokens(&lexer);
         LcypherParser parser(&tokens);
