@@ -3634,7 +3634,8 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
                         pp->ContainsYieldItem("totalCost") && pp->ContainsYieldItem("path"));
     Record r;
-    r.AddConstant(lgraph::FieldData(static_cast<int32_t>(path.Length() == 0 ? 0 : path.Length() + 1)));
+    r.AddConstant(lgraph::FieldData(static_cast<int32_t>(path.Length()
+                                                                 == 0 ? 0 : path.Length() + 1)));
     r.AddConstant(lgraph::FieldData(static_cast<float>(path.Length())));
     r.AddConstant(lgraph::FieldData(path.ToString()));
     records->emplace_back(r.Snapshot());
@@ -3678,20 +3679,6 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record,
     auto pp = global_ptable.GetProcedure("algo.allShortestPaths");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeIds") &&
                         pp->ContainsYieldItem("relationshipIds") && pp->ContainsYieldItem("cost"));
-    std::unordered_map<std::string, std::function<void(const cypher::Path &, Record &)>> lmap = {
-        {"nodeIds",
-         [&](const cypher::Path &path, Record &r) {
-
-         }},
-        {"relationshipIds",
-         [&](const cypher::Path &path, Record &r) {
-
-         }},
-        {"cost",
-         [&](const cypher::Path &path, Record &r) {
-
-         }},
-    };
     for (auto &path : paths) {
         Record r;
         auto ids = cypher::FieldData::Array(0);
