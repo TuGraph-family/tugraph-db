@@ -121,8 +121,8 @@ cypher::OpBase::OpResult cypher::OpGqlStandaloneCall::RealConsume(RTContext *ctx
             for (size_t idx = 0; idx < header.size(); idx++) {
                 auto title = header[idx].first;
                 auto type = header[idx].second;
-                auto v = yield_.has_value() ? r.values[idx] :
-                                            r.values[_yield_idx_[idx]];
+                auto v = yield_.has_value() ? r.values[_yield_idx_[idx]] :
+                                            r.values[idx];
                 switch (type) {
                 case lgraph_api::LGraphType::NODE:
                     CYPHER_TODO();
