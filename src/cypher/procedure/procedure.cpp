@@ -53,22 +53,17 @@ typedef std::unordered_map<std::string, std::unordered_map<std::string, lgraph::
 const std::unordered_map<std::string, lgraph::FieldType> BuiltinProcedure::type_map_ =
     lgraph::field_data_helper::_detail::_FieldName2TypeDict_();
 
-cypher::VEC_STR ProcedureTitles(const std::string &procedure_name,
+void CheckProcedureYieldItem(const std::string &procedure_name,
                                 const cypher::VEC_STR &yield_items) {
-    cypher::VEC_STR titles;
     auto pp = global_ptable.GetProcedure(procedure_name);
 
-    if (yield_items.empty()) {
-        for (auto &res : pp->signature.result_list) titles.emplace_back(res.name);
-    } else {
+    if (!yield_items.empty()) {
         for (auto &item : yield_items) {
             if (!pp->ContainsYieldItem(item)) {
                 throw lgraph::CypherException("Unknown procedure output: " + item);
             }
-            titles.emplace_back(item);
         }
     }
-    return titles;
 }
 
 static bool ParseIsVertex(const std::string &token) {
@@ -2385,8 +2380,7 @@ void BuiltinProcedure::DbmsSecurityModRoleFieldAccessLevel(RTContext *ctx, const
     CYPHER_ARG_CHECK(args[3].IsString(), "field type should be string")
     CYPHER_ARG_CHECK(args[4].IsString(), "label_type type should be string")
     CYPHER_ARG_CHECK(args[5].IsString(), "field_access_level type should be string")
-    cypher::VEC_STR titles =
-        ProcedureTitles("dbms.security.modRoleFieldAccessLevel", yield_items);
+    CheckProcedureYieldItem("dbms.security.modRoleFieldAccessLevel", yield_items);
     std::string role = args[0].constant.scalar.AsString();
     std::string graph = args[1].constant.scalar.AsString();
     std::string label = args[2].constant.scalar.AsString();
@@ -3569,6 +3563,7 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
     CYPHER_ARG_CHECK(args[0].IsNode() && args[1].IsNode() && (args.size() == 2 || args[2].IsMap()),
                      "wrong type")
+    CheckProcedureYieldItem("algo.shortestPath", yield_items);
     std::vector<EdgeFilter> edge_filters;
     parser::LinkDirection direction = parser::LinkDirection::DIR_NOT_SPECIFIED;
     size_t max_hops = 20;
@@ -3638,20 +3633,10 @@ void AlgoFunc::ShortestPath(RTContext *ctx, const Record *record, const cypher::
     auto pp = global_ptable.GetProcedure("algo.shortestPath");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeCount") &&
                         pp->ContainsYieldItem("totalCost") && pp->ContainsYieldItem("path"));
-    cypher::VEC_STR titles = ProcedureTitles("algo.shortestPath", yield_items);
-    std::unordered_map<std::string, std::function<void(Record &)>> lmap = {
-        {"nodeCount",
-         [&](Record &r) {
-             r.AddConstant(lgraph::FieldData(
-                 static_cast<int32_t>(path.Length() == 0 ? 0 : path.Length() + 1)));
-         }},
-        {"totalCost",
-         [&](Record &r) { r.AddConstant(lgraph::FieldData(static_cast<float>(path.Length()))); }},
-        {"path", [&](Record &r) { r.AddConstant(lgraph::FieldData(path.ToString())); }}};
     Record r;
-    for (auto &title : titles) {
-        lmap.find(title)->second(r);
-    }
+    r.AddConstant(lgraph::FieldData(static_cast<int32_t>(path.Length() == 0 ? 0 : path.Length() + 1)));
+    r.AddConstant(lgraph::FieldData(static_cast<float>(path.Length())));
+    r.AddConstant(lgraph::FieldData(path.ToString()));
     records->emplace_back(r.Snapshot());
 }
 
@@ -3663,6 +3648,7 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record,
     CYPHER_ARG_CHECK(args.size() / 2 == 1, "wrong arguments number")
     CYPHER_ARG_CHECK(args[0].IsNode() && args[1].IsNode() && (args.size() == 2 || args[2].IsMap()),
                      "wrong type")
+    CheckProcedureYieldItem("algo.allShortestPaths", yield_items);
     std::vector<std::string> edge_labels;
     if (args.size() == 3) {
         auto &map = *args[2].constant.map;
@@ -3692,35 +3678,34 @@ void AlgoFunc::AllShortestPaths(RTContext *ctx, const Record *record,
     auto pp = global_ptable.GetProcedure("algo.allShortestPaths");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("nodeIds") &&
                         pp->ContainsYieldItem("relationshipIds") && pp->ContainsYieldItem("cost"));
-    cypher::VEC_STR titles = ProcedureTitles("algo.allShortestPaths", yield_items);
     std::unordered_map<std::string, std::function<void(const cypher::Path &, Record &)>> lmap = {
         {"nodeIds",
          [&](const cypher::Path &path, Record &r) {
-             auto ids = cypher::FieldData::Array(0);
-             for (int i = 0; i <= (int)path.Length(); i++) {
-                 ids.array->emplace_back(lgraph::FieldData(static_cast<int64_t>(path.ids_[i * 2])));
-             }
-             r.AddConstant(ids);
+
          }},
         {"relationshipIds",
          [&](const cypher::Path &path, Record &r) {
-             auto ids = cypher::FieldData::Array(0);
-             for (int i = 0; i < (int)path.Length(); i++) {
-                 ids.array->emplace_back(
-                     lgraph::FieldData(_detail::EdgeUid2String(path.GetNthEdge(i))));
-             }
-             r.AddConstant(ids);
+
          }},
         {"cost",
          [&](const cypher::Path &path, Record &r) {
-             r.AddConstant(lgraph::FieldData(static_cast<float>(path.Length())));
+
          }},
     };
     for (auto &path : paths) {
         Record r;
-        for (auto &title : titles) {
-            lmap.find(title)->second(path, r);
+        auto ids = cypher::FieldData::Array(0);
+        for (int i = 0; i <= (int)path.Length(); i++) {
+            ids.array->emplace_back(lgraph::FieldData(static_cast<int64_t>(path.ids_[i * 2])));
         }
+        r.AddConstant(ids);
+        ids = cypher::FieldData::Array(0);
+        for (int i = 0; i < (int)path.Length(); i++) {
+            ids.array->emplace_back(
+                lgraph::FieldData(_detail::EdgeUid2String(path.GetNthEdge(i))));
+        }
+        r.AddConstant(ids);
+        r.AddConstant(lgraph::FieldData(static_cast<float>(path.Length())));
         records->emplace_back(r.Snapshot());
     }
 }
@@ -3793,6 +3778,7 @@ void AlgoFunc::PageRank(RTContext *ctx, const cypher::Record *record,
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() == 1, "args number should be 1");
     CYPHER_ARG_CHECK(args[0].IsInteger(), "arg is not int");
+    CheckProcedureYieldItem("algo.pagerank", yield_items);
 
     std::map<int64_t, std::pair<double, int>> node_prs_curr;
     std::map<int64_t, std::pair<double, int>> node_prs_next;
@@ -3831,20 +3817,12 @@ void AlgoFunc::PageRank(RTContext *ctx, const cypher::Record *record,
         node_prs_curr = node_prs_next;
         num_iterations--;
     }
-    cypher::VEC_STR titles = ProcedureTitles("algo.pagerank", yield_items);
-    std::unordered_map<std::string, bool> title_exsited;
-    std::transform(titles.begin(), titles.end(), std::inserter(title_exsited, title_exsited.end()),
-                   [](const std::string &title) { return std::make_pair(title, true); });
     for (auto &node_pr : node_prs_curr) {
         cypher::Record r;
         cypher::Node n;
-        if (title_exsited.find("node") != title_exsited.end()) {
-            n.SetVid(node_pr.first);
-            r.AddNode(&n);
-        }
-        if (title_exsited.find("pr") != title_exsited.end()) {
-            r.AddConstant(lgraph::FieldData(node_pr.second.first));
-        }
+        n.SetVid(node_pr.first);
+        r.AddNode(&n);
+        r.AddConstant(lgraph::FieldData(node_pr.second.first));
         records->emplace_back(r.Snapshot());
     }
 }
@@ -3854,6 +3832,7 @@ void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record,
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() == 2, "args number should be 2");
+    CheckProcedureYieldItem("algo.jaccard", yield_items);
     auto lef_entry = args[0];
     auto rig_entry = args[1];
     CYPHER_ARG_CHECK(lef_entry.IsArray(), "args[0] is not list");
@@ -3873,18 +3852,12 @@ void AlgoFunc::Jaccard(RTContext *ctx, const cypher::Record *record,
         CYPHER_ARG_CHECK(item.IsInteger(), "item is not integer");
         union_set.emplace(item.AsInt64());
     }
-    std::unordered_set<std::string> title_exsited;
-    cypher::VEC_STR titles = ProcedureTitles("algo.jaccard", yield_items);
-    std::transform(titles.begin(), titles.end(), std::inserter(title_exsited, title_exsited.end()),
-                   [](const std::string &title) { return title; });
-    if (title_exsited.find("similarity") != title_exsited.end()) {
-        auto f = union_set.empty()
-                     ? lgraph::FieldData()
-                     : lgraph::FieldData(float(intersection.size()) / union_set.size());
-        cypher::Record r;
-        r.AddConstant(f);
-        records->emplace_back(r.Snapshot());
-    }
+    auto f = union_set.empty()
+                 ? lgraph::FieldData()
+                 : lgraph::FieldData(float(intersection.size()) / union_set.size());
+    cypher::Record r;
+    r.AddConstant(f);
+    records->emplace_back(r.Snapshot());
 }
 
 void SpatialFunc::Distance(RTContext *ctx, const Record *record,
