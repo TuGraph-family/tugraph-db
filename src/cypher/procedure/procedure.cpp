@@ -322,31 +322,11 @@ void BuiltinProcedure::DbmsProcedures(RTContext *ctx, const Record *record,
                                            args.size()))
     auto pp = global_ptable.GetProcedure("dbms.procedures");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("name") && pp->ContainsYieldItem("signature"));
-    cypher::VEC_STR titles;
-    if (yield_items.empty()) {
-        titles.push_back("name");
-        titles.push_back("signature");
-        titles.push_back("read_only");
-    } else {
-        for (auto &item : yield_items) titles.emplace_back(item);
-    }
-    std::unordered_map<std::string, std::function<void(const Procedure &, Record &)>> lmap = {
-        {"name",
-         [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.proc_name)); }},
-        {"signature",
-         [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.Signature())); }},
-        {"read_only",
-         [](const Procedure &p, Record &r) { r.AddConstant(lgraph::FieldData(p.read_only)); }}};
     for (auto &p : global_procedures) {
         Record r;
-        for (auto &title : titles) {
-            auto it = lmap.find(title);
-            if (it == lmap.end()) {
-                THROW_CODE(CypherException, "yield filed {} is not in procedure", title);
-            } else {
-                it->second(p, r);
-            }
-        }
+        r.AddConstant(lgraph::FieldData(p.proc_name));
+        r.AddConstant(lgraph::FieldData(p.Signature()));
+        r.AddConstant(lgraph::FieldData(p.read_only));
         records->emplace_back(r.Snapshot());
     }
 }
@@ -3737,25 +3717,8 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
 
     auto pp = global_ptable.GetProcedure("algo.native.extract");
     CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("value"));
-    cypher::VEC_STR titles;
-    if (yield_items.empty()) {
-        for (auto &res : pp->signature.result_list) titles.emplace_back(res.name);
-    } else {
-        for (auto &item : yield_items) {
-            if (!pp->ContainsYieldItem(item)) {
-                throw lgraph::CypherException("Unknown procedure output: " + item);
-            }
-            titles.emplace_back(item);
-        }
-    }
-    std::unordered_map<std::string, std::function<
-        void(const cypher::FieldData &, Record &)>> lmap = {
-            {"value", [&](const cypher::FieldData &d, Record &r) { r.AddConstant(d); }},
-        };
     Record r;
-    for (auto &title : titles) {
-        lmap.find(title)->second(value, r);
-    }
+    r.AddConstant(value);
     records->emplace_back(r.Snapshot());
 }
 
