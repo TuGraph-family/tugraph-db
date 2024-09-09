@@ -19,7 +19,7 @@
 
 1. Add code type to the list plugin return result. (#642)
 2. Enrich the result content returned by algo procedure and support output to files. (#634)(#637)(#641)(#643)
-3. Support using DataX to input TuGraph. (#629)
+3. Support using DataX to import TuGraph. (#629)
 
 
 # 4.3.2 (2024-07-25)
