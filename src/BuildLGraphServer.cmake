@@ -51,6 +51,7 @@ add_library(${TARGET_SERVER_LIB} STATIC
         import/import_online.cpp
         import/import_v2.cpp
         import/import_v3.cpp
+        import/graphar_parser.cpp
         restful/server/rest_server.cpp
         restful/server/stdafx.cpp
         http/http_server.cpp
@@ -84,6 +85,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             snappy
             OpenSSL::ssl
             OpenSSL::crypto
+            libgraphar.a
             # end static linking
             -Wl,-Bdynamic
             dl
@@ -98,6 +100,7 @@ else ()
             ${BRPC_LIB}
             ${LEVELDB_LIB}
             ${PROTOBUF_LIBRARY}
+            libgraphar.a
             "-framework CoreFoundation"
             "-framework CoreGraphics"
             "-framework CoreData"
