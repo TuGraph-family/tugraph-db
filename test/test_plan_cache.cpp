@@ -13,7 +13,8 @@
  */
 
 #include "./antlr4-runtime.h"
-#include "cypher/execution_plan/plan_cache_param.h"
+#include "cypher/execution_plan/plan_cache/plan_cache_param.h"
+#include "cypher/execution_plan/plan_cache/plan_cache.h"
 
 #include "gtest/gtest.h"
 #include "./ut_utils.h"
@@ -22,6 +23,37 @@
 
 class TestPlanCache : public TuGraphTest {};
 
-TEST_F(TestPlanCache, QueryParam) {
-    
+TEST_F(TestPlanCache, basicCaching) {
+    cypher::LRUPlanCache<int> cache(512);
+
+    cache.add_plan("1", 1);
+    int value;
+    cache.get_plan("1", value);
+    ASSERT_EQ(value, 1);
+
+    cache.add_plan("2", 2);
+    cache.get_plan("2", value);
+    ASSERT_EQ(value, 2);
+
+    ASSERT_EQ(cache.current_size(), 2);
+}
+
+TEST_F(TestPlanCache, eviction) {
+    cypher::LRUPlanCache<int> cache(512);
+
+    for (int i = 0; i < 522; i++) {
+        cache.add_plan(std::to_string(i), i);
+    }
+
+    for (int i = 0; i < 10; i++) {
+        int val;
+        bool res = cache.get_plan(std::to_string(i), val);
+        ASSERT_EQ(res, false);
+    }
+
+    for (int i = 10; i < 522; i++) {
+        int val;
+        bool res = cache.get_plan(std::to_string(i), val);
+        ASSERT_EQ(res, true);
+    }
 }

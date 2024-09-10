@@ -73,7 +73,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     ASTCacheObj cache_val;
     // parameterize the query
     std::string param_query = fastQueryParam(ctx, script);
-    if(!plan_cache_.get_plan(ctx, param_query, cache_val)) {
+    if(!plan_cache_.get_plan(param_query, cache_val)) {
         ANTLRInputStream input(param_query);
         LcypherLexer lexer(&input);
         CommonTokenStream tokens(&lexer);
@@ -90,7 +90,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
         plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
         stmt = visitor.GetQuery();
         cmd = visitor.CommandType();
-        plan_cache_.add_plan(ctx, ASTCacheObj(stmt, cmd));
+        plan_cache_.add_plan(param_query, ASTCacheObj(stmt, cmd));
     } else {
         ASTCacheObj ast(cache_val);
         stmt = ast.Stmt();

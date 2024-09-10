@@ -81,8 +81,8 @@ class NodeIndexSeekDynamic : public OpBase {
             break;
         case Property::PARAMETER:
             {
-                if (std::isdigit(pf.value_alias[0])) {
-                    value_ = ctx->query_params_[std::stoi(pf.value_alias)].scalar;
+                if (std::isdigit(pf.value_alias[1])) {
+                    value_ = ctx->query_params_[std::stoi(pf.value_alias.substr(1))].scalar;
                 } else {
                     auto it = ctx->param_tab_.find(pf.value_alias);
                     if (it == ctx->param_tab_.end())

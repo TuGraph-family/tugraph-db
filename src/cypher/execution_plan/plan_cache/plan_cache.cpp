@@ -12,4 +12,3 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 #include "cypher/execution_plan/plan_cache/plan_cache.h"
-

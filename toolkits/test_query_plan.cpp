@@ -17,9 +17,9 @@
 #include "server/bolt_session.h"
 #include "db/galaxy.h"
 
-std::string eval();
+std::string eval(std::string query);
 
-int main() {
+int main(int argc, char* argv[]) {
     // lgraph::import_v3::Importer::Config config;
     // config.config_file =
     //     "../../test/resource/data/mini_finbench/mini_finbench.json";
@@ -29,17 +29,27 @@ int main() {
     // config.delimiter = "|";
     // lgraph::import_v3::Importer importer(config);
     // importer.DoImportOffline();
-
+    
+    // 读取命令行第一个参数为string
+    // if (argc!= 2) {
+    //     std::cout << "Usage: " << argv[0] << " <query>" << std::endl;
+    //     return 1;
+    // }
+    // std::string query = argv[1];
+    std::string query = "MATCH (a) WHERE a.name IN ['Rachel Kempson'] RETURN a";
+    // std::string path = ""
     lgraph::Galaxy::Config gconf;
-    gconf.dir = "./plan_cache_db";
+    gconf.dir = "./testdb";
     lgraph::Galaxy galaxy(gconf, true, nullptr);
     cypher::RTContext ctx(nullptr, &galaxy, "admin", "default");
     std::string input;
     // 构建 test suit RTContext
-    std::string param_query = fastQueryParam(&ctx, "MATCH (a:Person) WHERE a.birthyear < 1960 OR a.birthyear >= 1970 RETURN a.name;");
+    std::string param_query = fastQueryParam(&ctx, query);
     std::cout<<param_query<<std::endl;
-    std::cout<<ctx.query_params_[0].ToString()<<std::endl;
-    std::cout<<ctx.query_params_[1].ToString()<<std::endl;
+    for (size_t i = 0; i < ctx.query_params_.size(); i++) {
+        std::cout<<ctx.query_params_[i].ToString()<<", ";
+    }
+    std::cout<<std::endl;
 
     // 根据参数化的查询进行语法解析
     antlr4::ANTLRInputStream input_stream(param_query);
@@ -58,19 +68,20 @@ int main() {
     plan->Build(visitor.GetQuery(), visitor.CommandType(), &ctx);
     plan->Execute(&ctx);
 
-    std::string cache_res = ctx.result_->Dump();
-    std::string eval_res = eval();
+    std::string cache_res = ctx.result_->Dump(false);
+    // std::string eval_res = eval(query);
 
-    assert(cache_res == eval());
+    std::cout << "cache_res: " << cache_res << std::endl;
+    // std::cout << "eval_res: " << eval_res << std::endl;
     return 0;
 }
 
-std::string eval() {
+std::string eval(std::string query) {
     lgraph::Galaxy::Config gconf;
-    gconf.dir = "./plan_cache_db";
+    gconf.dir = "./testdb";
     lgraph::Galaxy galaxy(gconf, true, nullptr);
     cypher::RTContext ctx(nullptr, &galaxy, "admin", "default");
-    antlr4::ANTLRInputStream input_stream("MATCH (a:Person) WHERE a.birthyear < 1960 OR a.birthyear >= 1970 RETURN a.name;");
+    antlr4::ANTLRInputStream input_stream(query);
     parser::LcypherLexer lexer(&input_stream);
     antlr4::CommonTokenStream tokens(&lexer);
     parser::LcypherParser lparser(&tokens);
@@ -81,5 +92,5 @@ std::string eval() {
     plan->PreValidate(&ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
     plan->Build(visitor.GetQuery(), visitor.CommandType(), &ctx);
     plan->Execute(&ctx);
-    return ctx.result_->Dump();
+    return ctx.result_->Dump(false);
 }

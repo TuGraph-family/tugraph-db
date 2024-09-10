@@ -445,7 +445,12 @@ struct ArithOperandNode {
                    const SymbolTable &sym_tab);
     void SetParameter(const std::string &param) {
         type = AR_OPERAND_PARAMETER;
-        variadic.alias = param;
+        if (std::isdigit(param[1])) {
+            variadic.alias = param;
+            variadic.alias_idx = std::stoi(param.substr(1));
+        } else {
+            variadic.alias = param;
+        }
     }
 
     void SetParameter(const std::string &param, const SymbolTable &sym_tab);

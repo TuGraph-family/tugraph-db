@@ -18,7 +18,6 @@
 
 #include "parser/clause.h"
 #include "parser/data_typedef.h"
-#include "execution_plan/runtime_context.h"
 
 namespace cypher {
 class ASTCacheObj {
@@ -50,16 +49,15 @@ class PlanCacheEntry {
     PlanCacheEntry(const std::string &key, const T &value) : key(key), value(value) {}
 };
 
-template<typename T>
+template<typename Value>
 class LRUPlanCache {
-    typedef PlanCacheEntry<T> Entry;
+    typedef PlanCacheEntry<Value> Entry;
     std::list<Entry> _item_list;
     std::unordered_map<std::string, decltype(_item_list.begin())> _item_map;
-    size_t _cache_size;
+    size_t _max_size;
     mutable std::shared_mutex _mutex;
-    void _KickOut() {
-        std::unique_lock<std::shared_mutex> _guard(_mutex);
-        while (_item_map.size() > _cache_size) {
+    inline void _KickOut() {
+        while (_item_map.size() > _max_size) {
             auto last_it = _item_list.end();
             last_it--;
             _item_map.erase(last_it->key);
@@ -68,37 +66,43 @@ class LRUPlanCache {
     }
 
  public:
-    explicit LRUPlanCache(size_t cache_size) : _cache_size(cache_size) {}
+    explicit LRUPlanCache(size_t max_size) : _max_size(max_size) {}
 
-    LRUPlanCache() : _cache_size(512) {}
+    LRUPlanCache() : _max_size(512) {}
 
-    void add_plan(RTContext *ctx, const T &val) {
-        std::string query = ctx->param_query_;
-
-        std::unique_lock<std::shared_mutex> _guard(_mutex);
-        auto it = _item_map.find(query);
+    
+    void add_plan(std::string param_query, const Value &val) {
+        std::unique_lock<std::shared_mutex> lock(_mutex);
+        auto it = _item_map.find(param_query);
         if (it == _item_map.end()) {
-            _item_list.push_front(Entry(query, val));
-            _item_map.emplace(query, _item_list.begin());
+            _item_list.emplace_front(std::move(param_query), val);
+            _item_map.emplace(_item_list.begin()->key, _item_list.begin());
             _KickOut();
         } else {
+            // Overwrite the cached value if the query is already present in the cache.
+            // And move the entry to the front of the list.
             it->second->value = val;
             _item_list.splice(_item_list.begin(), _item_list, it->second);
         }
     }
 
-    bool get_plan(RTContext *ctx, const std::string &param_query, T &val) {
+    // Get the cached value for the given parameterized query. Before calling this function,
+    // you MUST parameterize the query using the fastQueryParam().
+    bool get_plan(const std::string &param_query, Value &val) {
         // parameterized raw query
-        std::shared_lock<std::shared_mutex> _guard(_mutex); 
+        std::shared_lock<std::shared_mutex> lock(_mutex); 
         auto it = _item_map.find(param_query);
         if (it == _item_map.end()) {
-            ctx->param_query_ = std::move(param_query);
             return false;
         }
         _item_list.splice(_item_list.begin(), _item_list, it->second);
         val = it->second->value;
         return true;
     }
+
+    size_t max_size() const { return _max_size; }
+
+    size_t current_size() const { return _item_map.size(); }
 };
 
 typedef LRUPlanCache<ASTCacheObj> ASTCache;

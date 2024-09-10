@@ -24,6 +24,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     size_t delete_size = 0;
     std::string param_query = query;
     
+    bool prev_limit_skip = false;
     for (size_t i = 0; i < tokens.size(); i++) {
         parser::Expression expr;
         bool is_param;
@@ -49,6 +50,9 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
         case parser::LcypherParser::HexInteger:
         case parser::LcypherParser::DecimalInteger:
         case parser::LcypherParser::OctalInteger: {
+            if (prev_limit_skip) {
+                break;
+            }
             // Integer literal
             expr.type = parser::Expression::DataType::INT;
             expr.data = std::stol(tokens[i]->getText());
@@ -88,10 +92,16 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
             size_t start_index = tokens[i]->getStartIndex() - delete_size;
             size_t end_index = tokens[i]->getStopIndex() - delete_size;
             // Indicate the position in raw parameterized query
-            std::string count = "$" + std::to_string(ctx->query_params_.size());
+            std::string count = "$" + std::to_string(ctx->query_params_.size() - 1);
             param_query.replace(start_index, end_index - start_index + 1, count);
             delete_size += (end_index - start_index + 1) - count.size();
             is_param = false;
+        }
+        if (tokens[i]->getType() == parser::LcypherParser::LIMIT ||
+            tokens[i]->getType() == parser::LcypherParser::L_SKIP) {
+            prev_limit_skip = true;
+        } else if (tokens[i]->getType() < parser::LcypherParser::SP) {
+            prev_limit_skip = false;
         }
     }
     return param_query;
