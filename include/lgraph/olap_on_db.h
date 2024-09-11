@@ -1504,6 +1504,43 @@ class OlapOnDB : public OlapBase<EdgeData> {
     }
 
     /**
+     * @brief    Write vertex data(include label、primary_field、field_data) to a file.
+     *
+     * @param    detail_output  always true
+     * @param    vertex_data    The parallel vector storing the vertex data.
+     * @param    output_file    The path to the output file.
+     *
+     */
+    template <typename VertexData>
+    void WriteToFile(bool detail_output, ParallelVector<VertexData> &vertex_data,
+                     const std::string &output_file,
+                     std::function<bool(size_t vid, VertexData &vdata)> output_filter = nullptr) {
+        if (!detail_output) {
+            THROW_CODE(InputError, "Just support deatail output!");
+        }
+        FILE* fout = fopen(output_file.c_str(), "w");
+        if (fout == nullptr) {
+            THROW_CODE(InputError, "Unable to open file for writting!");
+        }
+        for (size_t i = 0; i < this->num_vertices_; ++i) {
+            if (output_filter != nullptr && !output_filter(i, vertex_data[i])) {
+                continue;
+            }
+            auto vit = txn_.GetVertexIterator(OriginalVid(i));
+            auto vit_label = vit.GetLabel();
+            auto primary_field = txn_.GetVertexPrimaryField(vit_label);
+            auto field_data = vit.GetField(primary_field);
+            json curJson;
+            curJson["vid"] = OriginalVid(i);
+            curJson["label"] = vit_label;
+            curJson["primary_field"] = primary_field;
+            curJson["field_data"] = field_data.ToString();
+            curJson["result"] = vertex_data[i];
+            fprintf(fout, "%s\n", curJson.dump().c_str());
+        }
+    }
+
+    /**
      * @brief    Write vertex data to the graph database.
      *
      * @param [in,out]   vertex_data    The parallel vector storing the vertex data.
