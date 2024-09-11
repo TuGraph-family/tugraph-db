@@ -13,7 +13,7 @@ export PROJECT_SOURCE_DIR=${SCRIPT_DIR}/../../../
 cd ${PROJECT_SOURCE_DIR}/deps/antlr4
 mvn clean
 MAVEN_OPTS="-Xmx1G" mvn -DskipTests package
-LOCATION=${PROJECT_SOURCE_DIR}/deps/antlr4/tool/target/antlr4-4.12.0-complete.jar
+LOCATION=${PROJECT_SOURCE_DIR}/deps/antlr4/tool/target/antlr4-4.13.0-complete.jar
 GENERATED_DIR=${PROJECT_SOURCE_DIR}/src/cypher/parser/generated
 if [ -d "$GENERATED_DIR" ]; then
     echo "directory '$GENERATED_DIR' already exists!" && exit 1

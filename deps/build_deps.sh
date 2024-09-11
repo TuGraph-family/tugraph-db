@@ -19,10 +19,12 @@ echo "Building tugraph-db-browser"
 echo "======================================"
 
 cd tugraph-db-browser
-yarn bootstrap
-rm -rf client/dist
-yarn build
+#yarn bootstrap
+rm -rf dist
+#yarn build
+npm install --force
+npm run build
 BROWSER_RESOURCE_DIR=${SCRIPT_DIR}/../src/restful/server/browser-resource
 rm -rf ${BROWSER_RESOURCE_DIR}
-cp -r client/dist/resource ${BROWSER_RESOURCE_DIR}
-cp -r client/src/constants/demo_data ${BROWSER_RESOURCE_DIR}/
+cp -r dist/resource ${BROWSER_RESOURCE_DIR}
+cp -r src/constants/demo_data ${BROWSER_RESOURCE_DIR}/
