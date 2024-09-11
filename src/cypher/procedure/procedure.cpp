@@ -84,7 +84,7 @@ void FillProcedureYieldItem(const std::string &procedure_name,
         }
         for (auto &r : *records) {
             Record tmp = r;
-            r.values.clear();
+            tmp.values.clear();
             for (auto i : _yield_idx_) {
                 tmp.values.emplace_back(r.values[i]);
             }
