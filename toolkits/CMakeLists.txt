@@ -18,7 +18,9 @@ target_link_libraries(${TARGET_LGRAPH_IMPORT}
         lgraph_cypher_lib
         lgraph_server_lib
         librocksdb.a
-        graphar)
+        graphar
+        Arrow::arrow_static
+        ArrowDataset::arrow_dataset_static)
 
 if (NOT ENABLE_ASAN)
     target_link_libraries(${TARGET_LGRAPH_IMPORT} libjemalloc.a)

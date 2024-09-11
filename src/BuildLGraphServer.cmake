@@ -85,7 +85,9 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             snappy
             OpenSSL::ssl
             OpenSSL::crypto
-            libgraphar.a
+            graphar
+            Arrow::arrow_static
+            ArrowDataset::arrow_dataset_static
             # end static linking
             -Wl,-Bdynamic
             dl
@@ -119,6 +121,9 @@ else ()
             pthread
             OpenSSL::ssl
             OpenSSL::crypto
+            graphar
+            Arrow::arrow_static
+            ArrowDataset::arrow_dataset_static
             z
             )
 endif ()

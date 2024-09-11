@@ -126,7 +126,7 @@ inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path)
     auto vertex_infos = graph_info->GetVertexInfos();
     for (const auto& vertex_info : vertex_infos) {
         nlohmann::json schema_node;
-        schema_node["label"] = vertex_info->GetLabel();
+        schema_node["label"] = vertex_info->GetType();
         schema_node["type"] = "VERTEX";
         std::string primary;
         nlohmann::json properties;
@@ -139,7 +139,7 @@ inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path)
         nlohmann::json file_node;
         file_node["path"] = path;
         file_node["format"] = "GraphAr";
-        file_node["label"] = vertex_info->GetLabel();
+        file_node["label"] = vertex_info->GetType();
         file_node["columns"] = prop_names;
         gar_conf["files"].push_back(file_node);
     }
@@ -148,7 +148,7 @@ inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path)
     // The map of edge_label and its properties
     std::unordered_map<std::string, nlohmann::json> edge_labels;
     for (const auto& edge_info : edge_infos) {
-        std::string label = edge_info->GetEdgeLabel();
+        std::string label = edge_info->GetEdgeType();
         nlohmann::json properties;
         std::vector<std::string> prop_names = {"SRC_ID", "DST_ID"};
         WalkEdge(*edge_info, properties, prop_names);
@@ -170,9 +170,9 @@ inline void ParserGraphArConf(nlohmann::json& gar_conf, const std::string& path)
         nlohmann::json file_node;
         file_node["path"] = path;
         file_node["format"] = "GraphAr";
-        file_node["label"] = edge_info->GetEdgeLabel();
-        file_node["SRC_ID"] = edge_info->GetSrcLabel();
-        file_node["DST_ID"] = edge_info->GetDstLabel();
+        file_node["label"] = edge_info->GetEdgeType();
+        file_node["SRC_ID"] = edge_info->GetSrcType();
+        file_node["DST_ID"] = edge_info->GetDstType();
         file_node["columns"] = prop_names;
         gar_conf["files"].push_back(file_node);
     }

@@ -37,7 +37,7 @@ graphar::Property GraphArParser::GetPrimaryKey(const graphar::VertexInfo& ver_in
     for (const auto& ver_props : ver_groups)
         for (const auto& prop : ver_props->GetProperties())
             if (prop.is_primary) return prop;
-    THROW_CODE(InputError, "The primary key of [" + ver_info.GetLabel() + "] is not found!");
+    THROW_CODE(InputError, "The primary key of [" + ver_info.GetType() + "] is not found!");
 }
 
 /**
@@ -118,7 +118,7 @@ graphar::AdjListType GraphArParser::GetOneAdjListType(
         return graphar::AdjListType::ordered_by_source;
     if (edge_info.HasAdjacentListType(graphar::AdjListType::ordered_by_dest))
         return graphar::AdjListType::ordered_by_dest;
-    THROW_CODE(InputError, "The GraphAr edge" + edge_info.GetEdgeLabel() + " has not AdjListType!");
+    THROW_CODE(InputError, "The GraphAr edge" + edge_info.GetEdgeType() + " has not AdjListType!");
 }
 
 /**
@@ -134,9 +134,8 @@ bool GraphArParser::ReadBlock(std::vector<std::vector<FieldData>>& buf) {
         auto vertices = graphar::VerticesCollection::Make(graph_info, cd_.label).value();
         auto ver_info = graph_info->GetVertexInfo(cd_.label);
         for (auto it = vertices->begin(); it != vertices->end(); ++it) {
-            std::cout << it->id() << std::endl;
+            auto vertex = *it;
             std::vector<FieldData> temp_vf;
-            std::cout << "GraphArParser::ReadBlock: " << cd_.label << std::endl;
             for (std::string& prop : cd_.columns) {
                 auto data_type = ver_info->GetPropertyType(prop).value();
                 if(!vertex.IsValid(prop)) {
@@ -148,7 +147,6 @@ bool GraphArParser::ReadBlock(std::vector<std::vector<FieldData>>& buf) {
             }
             buf.emplace_back(std::move(temp_vf));
         }
-        std::cout << "GraphArParser::ReadBlock: " << cd_.label << std::endl;
         return true;
     } else {
         auto edge_info = graph_info->GetEdgeInfo(cd_.edge_src.label, cd_.label, cd_.edge_dst.label);

@@ -43,6 +43,9 @@ find_package(OpenSSL REQUIRED)
 # boost
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.68 REQUIRED COMPONENTS log system filesystem)
+# arrow
+find_package(Arrow REQUIRED)
+find_package(ArrowDataset REQUIRED)
 
 # target
 set(GEAX_ENABLE_GLOG OFF)
