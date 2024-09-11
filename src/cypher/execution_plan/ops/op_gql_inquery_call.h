@@ -162,24 +162,6 @@ class GqlInQueryCall : public OpBase {
                 }
             }
         } else {
-            std::unordered_set<int> _inner_yield_idx_;
-            if (yield_.has_value()) {
-                auto p = global_ptable.GetProcedure(func_name_);
-                for (auto &pair : yield_.value()->items()) {
-                    auto title = std::get<0>(pair);
-                    size_t idx = 0;
-                    for (; idx < p->signature.result_list.size(); ++idx) {
-                        if (p->signature.result_list[idx].name == title) {
-                            break;
-                        }
-                    }
-                    if (idx != p->signature.result_list.size()) {
-                        _inner_yield_idx_.insert(idx);
-                    } else {
-                        throw lgraph::CypherException("Unknown procedure output: " + title);
-                    }
-                }
-            }
             if (children.empty()) {
                 if (HandOff(ctx, record) == OP_OK) return OP_OK;
                 if (state == StreamDepleted) return OP_DEPLETED;
@@ -202,13 +184,6 @@ class GqlInQueryCall : public OpBase {
                 }
                 p->function(ctx, record.get(), parameters, _yield_items, &buffer_);
                 std::reverse(buffer_.begin(), buffer_.end());
-                for (auto &rec : buffer_) {
-                    for (int i = rec.values.size() - 1; i >= 0; --i) {
-                        if (!_inner_yield_idx_.count(i)) {
-                            rec.values.erase(rec.values.begin() + i);
-                        }
-                    }
-                }
                 state = StreamDepleted;
                 return HandOff(ctx, record);
             } else {
@@ -234,13 +209,6 @@ class GqlInQueryCall : public OpBase {
                     }
                     p->function(ctx, record.get(), parameters, _yield_items, &buffer_);
                     std::reverse(buffer_.begin(), buffer_.end());
-                    for (auto &rec : buffer_) {
-                        for (int i = rec.values.size() - 1; i >= 0; --i) {
-                            if (!_inner_yield_idx_.count(i)) {
-                                rec.values.erase(rec.values.begin() + i);
-                            }
-                        }
-                    }
                     if (HandOff(ctx, record) == OP_OK) return OP_OK;
                 }
                 return OP_DEPLETED;

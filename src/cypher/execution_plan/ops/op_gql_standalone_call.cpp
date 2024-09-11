@@ -89,22 +89,9 @@ cypher::OpBase::OpResult cypher::OpGqlStandaloneCall::RealConsume(RTContext *ctx
         }
         std::vector<Record> records;
         std::vector<std::string> _yield_items;
-        std::vector<int> _yield_idx_;
         if (yield_.has_value()) {
             for (auto &pair : yield_.value()->items()) {
-                auto title = std::get<0>(pair);
-                _yield_items.emplace_back(title);
-                size_t idx = 0;
-                for (; idx < p->signature.result_list.size(); ++idx) {
-                    if (p->signature.result_list[idx].name == title) {
-                        break;
-                    }
-                }
-                if (idx != p->signature.result_list.size()) {
-                    _yield_idx_.push_back(idx);
-                } else {
-                    throw lgraph::CypherException("Unknown procedure output: " + title);
-                }
+                _yield_items.emplace_back(std::get<0>(pair));
             }
         }
         std::vector<Entry> parameters;
@@ -118,11 +105,10 @@ cypher::OpBase::OpResult cypher::OpGqlStandaloneCall::RealConsume(RTContext *ctx
         auto &header = ctx->result_->Header();
         for (auto &r : records) {
             auto record = ctx->result_->MutableRecord();
-            for (size_t idx = 0; idx < header.size(); idx++) {
+            int idx = 0;
+            for (auto &v : r.values) {
                 auto title = header[idx].first;
                 auto type = header[idx].second;
-                auto v = yield_.has_value() ? r.values[_yield_idx_[idx]] :
-                                            r.values[idx];
                 switch (type) {
                 case lgraph_api::LGraphType::NODE:
                     CYPHER_TODO();
@@ -169,6 +155,7 @@ cypher::OpBase::OpResult cypher::OpGqlStandaloneCall::RealConsume(RTContext *ctx
                         record->Insert(title, v.constant.scalar);
                     }
                 }
+                idx++;
             }
         }
     }
