@@ -184,6 +184,10 @@ class BuiltinProcedure {
     static void DbmsMetaRefreshCount(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                      const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbmsSecurityIsDefaultUserPassword(RTContext *ctx, const Record *record,
+                                                  const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                  std::vector<Record> *records);
+
     static void DbmsSecurityChangePassword(RTContext *ctx, const Record *record,
                                            const VEC_EXPR &args, const VEC_STR &yield_items,
                                            std::vector<Record> *records);
@@ -744,6 +748,12 @@ static std::vector<Procedure> global_procedures = {
     Procedure("dbms.meta.refreshCount", BuiltinProcedure::DbmsMetaRefreshCount,
               Procedure::SIG_SPEC{}, Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}},
               false, true),
+    Procedure("dbms.security.isDefaultUserPassword",
+              BuiltinProcedure::DbmsSecurityIsDefaultUserPassword,
+              Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"isDefaultUserPassword", {0, lgraph_api::LGraphType::BOOLEAN}}
+              }, true, false),
     Procedure("dbms.security.changePassword", BuiltinProcedure::DbmsSecurityChangePassword,
               Procedure::SIG_SPEC{
                   {"current_password", {0, lgraph_api::LGraphType::STRING}},
