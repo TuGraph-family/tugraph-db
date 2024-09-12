@@ -1,5 +1,27 @@
 # Change Log for TuGraph
 
+# 4.5.0 (2024-09-05)
+
+**Breaking Changes:**
+
+1. Cypher & gql ast are unified, and the query engine is fully upgraded. (#597)(#604)(#644)(#651)
+2. The browser front-end architecture is upgraded to support graph analysis. (#658)
+
+**Improvements And Bug Fixes:**
+
+1. Cypher supports parsing emoji symbols. (#657)
+2. The format of lgraph_cli output execution plan is optimized. (#648)
+3. Optimize the performance of variable-length path queries. (#622)
+4. Support using pair unique index to upsert edges. (#636)
+5. Cypher supports map type parameters when querying points and edges. (#603)
+
+**Interface Modification:**
+
+1. Add code type to the list plugin return result. (#642)
+2. Enrich the result content returned by algo procedure and support output to files. (#634)(#637)(#641)(#643)
+3. Support using DataX to import TuGraph. (#629)
+
+
 # 4.3.2 (2024-07-25)
 
 **Breaking Changes:**
