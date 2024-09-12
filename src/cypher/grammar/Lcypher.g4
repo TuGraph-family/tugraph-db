@@ -394,8 +394,8 @@ THEN : ( 'T' | 't' ) ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'N' | 'n' )  ;
 
 oC_Variable : oC_SymbolicName ;
 
-StringLiteral : ( '"' ( StringLiteral_0 | EscapedChar )* '"' )
-                 | ( '\'' ( StringLiteral_1 | EscapedChar )* '\'' )
+StringLiteral : ( '"' ( ~'"' | '\\"' )* '"' )
+                 | ( '\'' ( ~'\'' | '\\\'' )* '\'' )
                  ;
 
 EscapedChar : '\\' ( '\\' | '\'' | '"' | ( 'B' | 'b' ) | ( 'F' | 'f' ) | ( 'N' | 'n' ) | ( 'R' | 'r' ) | ( 'T' | 't' ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit ) ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit ) ) ) ;

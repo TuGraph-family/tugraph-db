@@ -192,3 +192,7 @@ CALL plugin.cpp.custom_algo() YIELD res RETURN res;
 [{"res":"custom algo result"}]
 CALL plugin.cpp.custom_algo();
 [{"res":"custom algo result"}]
+CALL dbms.procedures() YIELD namea, signature;
+[CypherException] CypherException: Unknown procedure output: namea
+CALL db.getLabelSchema('vertex', 'Person') YIELD type;
+[{"type":"INT16"},{"type":"STRING"}]
