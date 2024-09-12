@@ -99,3 +99,5 @@ CALL plugin.cpp.peek_some_node_salt(10) YIELD node, salt WITH node, salt MATCH(n
 MATCH p = (n {name:"Rachel Kempson"})-[*0..3]->() CALL plugin.cpp.custom_path_process(nodes(p)) YIELD idSum RETURN idSum;
 CALL plugin.cpp.custom_algo() YIELD res RETURN res;
 CALL plugin.cpp.custom_algo();
+CALL dbms.procedures() YIELD namea, signature;
+CALL db.getLabelSchema('vertex', 'Person') YIELD type;
