@@ -45,8 +45,13 @@ class OpGqlCreate : public OpBase {
                 } else {
                     std::vector<float> float_vector;
                     for (const auto &item : *value.constant.array) {
-                        CYPHER_THROW_ASSERT(item.IsReal());
-                        float_vector.push_back(item.AsDouble());
+                        if (item.IsReal()) {
+                            float_vector.push_back(item.AsDouble());
+                        } else if (item.IsInteger()) {
+                            float_vector.push_back(item.AsInt32());
+                        } else {
+
+                        }
                     }
                     values.emplace_back(float_vector);
                 }
