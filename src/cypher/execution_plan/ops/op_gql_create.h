@@ -48,9 +48,9 @@ class OpGqlCreate : public OpBase {
                         if (item.IsReal()) {
                             float_vector.push_back(item.AsDouble());
                         } else if (item.IsInteger()) {
-                            float_vector.push_back(item.AsInt32());
+                            float_vector.push_back(item.AsInt64());
                         } else {
-
+                            THROW_CODE(CypherParameterTypeError, "vector type only support real & int");
                         }
                     }
                     values.emplace_back(float_vector);
