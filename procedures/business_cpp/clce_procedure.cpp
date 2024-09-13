@@ -21,26 +21,15 @@ using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
-    auto start_time = get_time();
+    double start_time;
 
     // prepare
     start_time = get_time();
-    double gamma = 0.2;
-    double theta = 0.1;
-    unsigned random_seed = 0;
-    size_t threshold = 0;
-    std::string weight = "";
+    size_t samples = 64;
     std::string output_file = "";
-    std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
-        parse_from_json(gamma, "gamma", input);
-        assert(gamma > 0 && gamma <= 1);
-        parse_from_json(theta, "theta", input);
-        assert(theta > 0 && theta <= 1);
-        parse_from_json(random_seed, "random_seed", input);
-        parse_from_json(weight, "weight", input);
-        parse_from_json(threshold, "threshold", input);
+        parse_from_json(samples, "samples", input);
         parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
@@ -48,38 +37,46 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         return false;
     }
     auto txn = db.CreateReadTxn();
-    auto edge_convert = [&](OutEdgeIterator& eit, double& edge_data) -> bool {
-        if (weight.length() == 0) {
-            edge_data = 1;
-            return true;
-        }
-        edge_data = eit.GetField(weight).real();
-        if (edge_data > 0.0) return true;
-        return false;
-    };
-    OlapOnDB<double> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED, nullptr,
-                              edge_convert);
-    printf("|V| = %lu\n", olapondb.NumVertices());
-    printf("|E| = %lu\n", olapondb.NumEdges());
+
+    OlapOnDB<double> olapondb(db, txn, SNAPSHOT_PARALLEL, nullptr, edge_convert_default<double>);
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    ParallelVector<size_t> label = olapondb.AllocVertexArray<size_t>();
-    LeidenCore(olapondb, label, random_seed, theta, gamma, threshold);
+    auto score = olapondb.AllocVertexArray<double>();
+    auto path_num = olapondb.AllocVertexArray<size_t>();
+    CLCECore(olapondb, samples, score, path_num);
+    auto active_all = olapondb.AllocVertexSubset();
+    active_all.Fill();
+    size_t max_score_vi = 0;
+    olapondb.ProcessVertexActive<size_t>([&](size_t vi) {
+        if (path_num[vi] > samples / 5 && score[vi] > score[max_score_vi]) {
+            max_score_vi = vi;
+        }
+        return 0;
+    }, active_all);
+    double max_length = score[max_score_vi];
     auto core_cost = get_time() - start_time;
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_score_vi), false);
+    auto vit_label = vit.GetLabel();
+    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+    auto field_data = vit.GetField(primary_field);
 
     // output
     start_time = get_time();
     if (output_file != "") {
-        olapondb.WriteToFile<size_t>(label, output_file);
+        olapondb.WriteToFile<double>(true, score, output_file);
     }
-
-    double output_cost = get_time() - start_time;
+    auto output_cost = get_time() - start_time;
 
     // return
     {
         json output;
+        output["max_length_vid"] = olapondb.OriginalVid(max_score_vi);
+        output["max_length_label"] = vit_label;
+        output["max_length_primaryfield"] = primary_field;
+        output["max_length_fielddata"] = field_data.ToString();
+        output["max_length"] = max_length;
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;

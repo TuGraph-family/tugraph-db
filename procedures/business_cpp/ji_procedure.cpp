@@ -58,7 +58,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // core
     start_time = get_time();
-    std::vector<std::tuple<std::string, std::string, double>> result_list;
+        std::vector< std::tuple<size_t, std::string, std::string, std::string,
+                        size_t, std::string, std::string, std::string, double> > result_list;
 
     for (auto search_pair : search_list) {
         auto src_string = search_pair.first;
@@ -69,7 +70,24 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
             txn.GetVertexIndexIterator(dst_label, dst_field, dst_string, dst_string).GetVid();
         auto id_pair = std::make_pair(src_vid, dst_vid);
         double score = JiCore(olapondb, id_pair);
-        result_list.push_back(std::make_tuple(src_string, dst_string, score));
+
+        auto vit_first = txn.GetVertexIterator(src_vid, false);
+        auto vit_first_label = vit_first.GetLabel();
+        auto vit_first_primary_field = txn.GetVertexPrimaryField(vit_first_label);
+        auto vit_first_field_data = vit_first.GetField(vit_first_primary_field);
+        auto vit_second = txn.GetVertexIterator(dst_vid, false);
+        auto vit_second_label = vit_second.GetLabel();
+        auto vit_second_primary_field = txn.GetVertexPrimaryField(vit_second_label);
+        auto vit_second_field_data = vit_second.GetField(vit_second_primary_field);
+        result_list.push_back(std::make_tuple(src_vid,
+                                                vit_first_label,
+                                                vit_first_primary_field,
+                                                vit_first_field_data.ToString(),
+                                                dst_vid,
+                                                vit_second_label,
+                                                vit_second_primary_field,
+                                                vit_second_field_data.ToString(),
+                                                score));
     }
 
     auto core_cost = get_time() - start_time;

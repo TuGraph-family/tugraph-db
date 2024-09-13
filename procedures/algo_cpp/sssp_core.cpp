@@ -21,9 +21,9 @@ using namespace lgraph_api::olap;
 void SSSPCore(OlapBase<double>& graph, size_t root, ParallelVector<double>& distance) {
     auto active_in = graph.AllocVertexSubset();
     active_in.Add(root);
-    std::cout<< "root:" << root << std::endl;
+    std::cout << "root:" << root << std::endl;
     auto active_out = graph.AllocVertexSubset();
-    distance.Fill((double)2e10);
+    distance.Fill(SSSP_INIT_VALUE);
 
     distance[root] = 0.0;
     size_t num_activations = 1;

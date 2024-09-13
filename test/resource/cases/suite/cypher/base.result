@@ -38,3 +38,5 @@ WITH 'Vanessa Redgrave' as names, 'Camelot' as films MATCH (n1:Film {title: film
 [{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0}}]
 WITH {a: 'Camelot', b: 'Vanessa Redgrave'} as pair MATCH (n1:Film {title: pair.a})<-[r]-(n2:Person {name: pair.b}) RETURN r;
 [{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0}}]
+create(n:Person {name:'😎'}) return n;
+[{"n":{"identity":21,"label":"Person","properties":{"birthyear":null,"name":"😎"}}}]

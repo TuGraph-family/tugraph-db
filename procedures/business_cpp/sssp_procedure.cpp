@@ -79,7 +79,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // output
     start_time = get_time();
     if (output_file != "") {
-        olapondb.WriteToFile<double>(distance, output_file, [&](size_t vid, double& vdata) -> bool {
+        olapondb.WriteToFile<double>(true, distance, output_file,
+                                    [&](size_t vid, double& vdata) -> bool {
             return vdata != SSSP_INIT_VALUE;
         });
     }

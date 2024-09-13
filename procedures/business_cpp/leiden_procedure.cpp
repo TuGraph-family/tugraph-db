@@ -72,7 +72,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // output
     start_time = get_time();
     if (output_file != "") {
-        olapondb.WriteToFile<size_t>(label, output_file);
+        olapondb.WriteToFile<size_t>(true, label, output_file);
     }
 
     double output_cost = get_time() - start_time;
