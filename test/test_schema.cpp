@@ -27,10 +27,10 @@ class TestSchema : public TuGraphTest {};
 static Schema ConstructSimpleSchema() {
     Schema s;
     s.SetSchema(true,
-                std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, false),
-                                        FieldSpec("string", FieldType::STRING, true),
-                                        FieldSpec("blob", FieldType::BLOB, true),
-                                        FieldSpec("date", FieldType::DATE, false)}),
+                std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, false, 0),
+                                        FieldSpec("string", FieldType::STRING, true, 1),
+                                        FieldSpec("blob", FieldType::BLOB, true, 2),
+                                        FieldSpec("date", FieldType::DATE, false, 3)}),
                 "int16", "", {}, {});
     return s;
 }
@@ -76,14 +76,22 @@ TEST_F(TestSchema, SetSchema) {
     Schema s;
     UT_EXPECT_THROW_CODE(
         s.SetSchema(true,
-                    std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, true),
-                                            FieldSpec("int16", FieldType::INT16, true)}),
+                    std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, true, 0),
+                                            FieldSpec("int16", FieldType::INT16, true, 1)}),
                     "int16", "", {}, {}),
         FieldAlreadyExists);
     UT_EXPECT_THROW_CODE(
         s.SetSchema(true, std::vector<FieldSpec>({FieldSpec("int16", FieldType::NUL, true)}),
                     "int16", "", {}, {}),
         FieldCannotBeNullType);
+        UT_EXPECT_THROW_CODE(
+        s.SetSchema(true,
+                    std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, true, 0),
+                                            FieldSpec("int16", FieldType::INT16, true, 1), 
+                                            FieldSpec("int16", FieldType::INT16, true, 1),
+                                            }),
+                    "int16", "", {}, {}),
+        FieldIdConflict);
     std::vector<FieldSpec> fs;
     for (size_t i = 0; i < _detail::MAX_NUM_FIELDS + 1; i++)
         fs.emplace_back(UT_FMT("f_{}", i), FieldType::INT16, true);

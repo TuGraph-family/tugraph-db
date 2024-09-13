@@ -44,19 +44,27 @@ class SchemaManager;
 
 /** A schema is the description of data types in one record.
  ** The record is layout as the following:
- **     [LabelId] [Null-array] [Fixed-fields] [V-offsets] [V-data]
+ ** [Version][LabelId][Field-count][Null-array][Offset-array][Fixed-data and V-data Pointer]
+ [V-data]
  ** in which:
+ **     Version:        indicates the version of the schema.[1 byte]
  **     LabelId:        indicates the label of the record, different
  **                     label has different schema.
                         LabelId is left out for edges since edges are
                         sorted by LabelId so it becomes part of the key.
- **     Null-array:     records whether a field is null. Each nullable
- **                     field takes one bit
- **     Fixed-fields:   stores all the fixed-length fields one by one
- **     V-offsets:      stores the offsets of the variable-length fields.
- **                     Note that only the offsets from field 1 to N-1
+ **                     [2 bytes]
+ **     Field-count:    indicates the number of fields in the record.[2 bytes]
+ **     Null-array:     records whether a field is null. [Field-count +7 / 8 bytes]
+ **     Offset-array:   stores the offsets of the fields in the record.
+ **                     Note that the offsets from field 1 to N-1
  **                     are recorded, since the first offset is obvious.
- **     V-data:         stores the data of the variable-length fields
+ **                     The last offset is Fixed-fields end position.[Field-count * 4 bytes]
+ **     Fixed-data and V-data Pointer:
+ **                     Store fixed-length data and pointers to the locations
+ **                     of variable-length data, with their order determined
+ **                     by the attribute IDs. [Fixed-data size + num_vfields * 4 bytes]
+ **     V-data:         stores the data of the variable-length fields. Store them as
+ **                     [Length][Data] pairs.
 */
 class Schema {
     friend class SchemaManager;
@@ -69,10 +77,6 @@ class Schema {
 
     std::vector<_detail::FieldExtractor> fields_;
     std::unordered_map<std::string, size_t> name_to_idx_;
-    size_t n_fixed_ = 0;
-    size_t n_variable_ = 0;
-    size_t n_nullable_ = 0;
-    size_t v_offset_start_ = 0;
 
     std::unordered_set<size_t> indexed_fields_;
     std::vector<size_t> blob_fields_;
@@ -101,22 +105,20 @@ class Schema {
 
     bool GetDeleted() const { return deleted_; }
 
-    std::string GetCompositeIndexMapKey(const std::vector<std::string> &fields) {
+    std::string GetCompositeIndexMapKey(const std::vector<std::string>& fields) {
         std::string res = std::to_string(name_to_idx_[fields[0]]);
         int n = fields.size();
         for (int i = 1; i < n; ++i) {
-            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR +
-                   std::to_string(name_to_idx_[fields[i]]);
+            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR + std::to_string(name_to_idx_[fields[i]]);
         }
         return res;
     }
 
-    std::string GetCompositeIndexMapKey(const std::vector<size_t> &field_ids) {
+    std::string GetCompositeIndexMapKey(const std::vector<size_t>& field_ids) {
         std::string res = std::to_string(field_ids[0]);
         int n = field_ids.size();
         for (int i = 1; i < n; ++i) {
-            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR +
-                   std::to_string(field_ids[i]);
+            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR + std::to_string(field_ids[i]);
         }
         return res;
     }
@@ -180,8 +182,7 @@ class Schema {
         edge_constraints_lids_ = std::move(lids);
     }
 
-    const std::unordered_map<LabelId, std::unordered_set<LabelId>>&
-    GetEdgeConstraintsLids() const {
+    const std::unordered_map<LabelId, std::unordered_set<LabelId>>& GetEdgeConstraintsLids() const {
         return edge_constraints_lids_;
     }
 
@@ -276,8 +277,13 @@ class Schema {
         fds.reserve(n_fields);
         for (size_t i = 0; i < n_fields; i++) {
             const _detail::FieldExtractor* fe = GetFieldExtractor(fields[i]);
-            if (fe->GetIsNull(record)) return FieldData();
-            fds.push_back(GetFieldDataFromField(fe, record));
+            if (fe->GetIsNull(record)) {
+                fds.push_back(FieldData());
+            } else if (fe->GetRecordCount(record) < fields_.size() && fe->HasInitedValue()) {
+                fds.push_back(fe->GetInitedValue());
+            } else {
+                fds.push_back(GetFieldDataFromField(fe, record));
+            }
         }
         return fds;
     }
@@ -291,8 +297,13 @@ class Schema {
         fds.reserve(n_fields);
         for (size_t i = 0; i < n_fields; i++) {
             const _detail::FieldExtractor* fe = GetFieldExtractor(fields[i]);
-            if (fe->GetIsNull(record)) return FieldData();
-            fds.push_back(GetFieldDataFromField(fe, record));
+            if (fe->GetIsNull(record)) {
+                fds.push_back(FieldData());
+            } else if (fe->GetRecordCount(record) < fields_.size() && fe->HasInitedValue()) {
+                fds.push_back(fe->GetInitedValue());
+            } else {
+                fds.push_back(GetFieldDataFromField(fe, record));
+            }
         }
         return fds;
     }
@@ -303,7 +314,7 @@ class Schema {
         Value& record, const FieldT& name_or_num, const DataT& value) const {
         auto extractor = GetFieldExtractor(name_or_num);
         FMA_DBG_ASSERT(extractor->Type() != FieldType::BLOB);
-        extractor->ParseAndSet(record, value);
+        ParseAndSet(record, value, extractor);
     }
 
     // sets blob field
@@ -316,6 +327,22 @@ class Schema {
         extractor->ParseAndSet(record, value, on_large_blob);
     }
 
+    void ParseAndSet(Value& record, const FieldData& data,
+                     const _detail::FieldExtractor* extractor) const;
+    void ParseAndSet(Value& record, const std::string& data,
+                     const _detail::FieldExtractor* extractor) const;
+    template <FieldType FT>
+    void _ParseStringAndSet(Value& record, const std::string& data,
+                            const ::lgraph::_detail::FieldExtractor* extractor) const;
+
+#define ENABLE_IF_FIXED_FIELD(_TYPE_, _RT_) \
+    template <typename _TYPE_>              \
+    typename std::enable_if<                \
+        std::is_integral<_TYPE_>::value || std::is_floating_point<_TYPE_>::value, _RT_>::type
+
+    ENABLE_IF_FIXED_FIELD(T, void)
+    SetFixedSizeValue(Value& record, const T& data,
+                      const ::lgraph::_detail::FieldExtractor* extractor) const;
     //// get non-blob field
     // template <typename FieldT>
     // typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type GetField(
@@ -353,7 +380,7 @@ class Schema {
             const DataT& data = values[i];
             const _detail::FieldExtractor* extr = GetFieldExtractor(name_or_num);
             is_set[extr->GetFieldId()] = true;
-            extr->ParseAndSet(v, data);
+            ParseAndSet(v, data, extr);
         }
         for (size_t i = 0; i < fields_.size(); i++) {
             auto& f = fields_[i];
@@ -361,6 +388,26 @@ class Schema {
                 throw FieldCannotBeSetNullException(f.Name());
         }
         return v;
+    }
+
+    // parse and set a blob
+    // data can be string or FieldData
+    // store_blob is a function of type std::function<BlobKey(const Value&)>
+    template <typename DataT, typename StoreBlobAndGetKeyFunc>
+    void ParseAndSetBlob(Value& record, const DataT& data, const StoreBlobAndGetKeyFunc& store_blob,
+                         const _detail::FieldExtractor* extr) const {
+        FMA_DBG_ASSERT(extr->Type() == FieldType::BLOB);
+        bool is_null;
+        Value v = extr->ParseBlob(data, is_null);
+        extr->SetIsNull(record, is_null);
+        if (is_null) return;
+        if (v.Size() <= _detail::MAX_IN_PLACE_BLOB_SIZE) {
+            _SetVariableLengthValue(record, BlobManager::ComposeSmallBlobData(v), extr);
+        } else {
+            BlobManager::BlobKey key = store_blob(v);
+            v.Clear();
+            _SetVariableLengthValue(record, BlobManager::ComposeLargeBlobData(key), extr);
+        }
     }
 
     // create property with data, which contains blobs in raw format.
@@ -378,9 +425,9 @@ class Schema {
             const _detail::FieldExtractor* extr = GetFieldExtractor(name_or_num);
             is_set[extr->GetFieldId()] = true;
             if (_F_UNLIKELY(extr->Type() == FieldType::BLOB)) {
-                extr->ParseAndSetBlob(prop, data, on_large_blob);
+                ParseAndSetBlob(prop, data, on_large_blob, extr);
             } else {
-                extr->ParseAndSet(prop, data);
+                ParseAndSet(prop, data, extr);
             }
         }
         for (size_t i = 0; i < fields_.size(); i++) {
@@ -444,7 +491,7 @@ class Schema {
         fields_[field_idx].SetEdgeIndex(nullptr);
     }
 
-    void UnVertexCompositeIndex(const std::vector<std::string> &fields) {
+    void UnVertexCompositeIndex(const std::vector<std::string>& fields) {
         composite_index_map.erase(GetCompositeIndexMapKey(fields));
     }
 
@@ -482,6 +529,8 @@ class Schema {
 
     void DeleteEdgeFullTextIndex(EdgeUid euid, std::vector<FTIndexEntry>& buffers);
 
+    void _SetVariableLengthValue(Value& record, const Value& data,
+                                 const ::lgraph::_detail::FieldExtractor* extractor) const;
     /**
      * Delete the residual indexes of the vertex at `vid` (excluding the unique index value).
      * Note: Currently this function is only used to delete and clean up residual indexes
@@ -494,7 +543,7 @@ class Schema {
                           std::vector<size_t>& created);
 
     void AddVertexToCompositeIndex(KvTransaction& txn, VertexId vid, const Value& record,
-                          std::vector<std::string >& created);
+                                   std::vector<std::string>& created);
     bool VertexUniqueIndexConflict(KvTransaction& txn, const Value& record);
 
     void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
@@ -510,25 +559,25 @@ class Schema {
     void AddEdgeToFullTextIndex(EdgeUid euid, const Value& record,
                                 std::vector<FTIndexEntry>& buffers);
 
-    void SetCompositeIndex(const std::vector<std::string> &fields, CompositeIndex* index) {
+    void SetCompositeIndex(const std::vector<std::string>& fields, CompositeIndex* index) {
         composite_index_map.emplace(GetCompositeIndexMapKey(fields),
                                     std::make_shared<CompositeIndex>(*index));
     }
 
-    CompositeIndex* GetCompositeIndex(const std::vector<std::string> &fields) {
+    CompositeIndex* GetCompositeIndex(const std::vector<std::string>& fields) {
         auto it = composite_index_map.find(GetCompositeIndexMapKey(fields));
         if (it == composite_index_map.end()) return nullptr;
         return it->second.get();
     }
 
-    CompositeIndex* GetCompositeIndex(const std::vector<size_t> &field_ids) {
+    CompositeIndex* GetCompositeIndex(const std::vector<size_t>& field_ids) {
         auto it = composite_index_map.find(GetCompositeIndexMapKey(field_ids));
         if (it == composite_index_map.end()) return nullptr;
         return it->second.get();
     }
 
     std::vector<std::vector<std::string>> GetRelationalCompositeIndexKey(
-        const std::vector<size_t> &fields);
+        const std::vector<size_t>& fields);
 
     //----------------------
     // serialize/deserialize
@@ -569,8 +618,44 @@ class Schema {
         s = BinaryRead(buf, detach_property_);
         if (!s) return 0;
         bytes_read += s;
-        SetSchema(is_vertex_, fds, primary_field_, temporal_field_, temporal_order_,
-                  edge_constraints_);
+        ProCount pro_count = 0;
+        fields_.reserve(fds.size());
+        name_to_idx_.clear();
+        indexed_fields_.clear();
+        fulltext_fields_.clear();
+        bool found_primary = false;
+        for (const auto& f : fds) {
+            fields_[f.id] = _detail::FieldExtractor(f);
+            if (f.id >= pro_count) {
+                pro_count = f.id;
+            }
+            if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end())) {
+                throw FieldAlreadyExistsException(f.name);
+            }
+            name_to_idx_[f.name] = f.id;
+            if (fields_[f.id].GetVertexIndex() || fields_[f.id].GetEdgeIndex()) {
+                indexed_fields_.emplace_hint(indexed_fields_.end(), f.id);
+                if (f.name == primary_field_) {
+                    FMA_ASSERT(!found_primary);
+                    found_primary = true;
+                }
+            }
+            if (fields_[f.id].FullTextIndexed()) {
+                fulltext_fields_.emplace(f.id);
+            }
+        }
+
+        if (is_vertex_ && !indexed_fields_.empty()) {
+            FMA_ASSERT(found_primary);
+        }
+
+        if (pro_count != fds.size() - 1) {
+            std::string err_msg =
+                FMA_FMT("Schema fields deserialize error, fields num: {}, max id: {}.",
+                        _detail::MAX_GRAPH_SIZE, fds.size(), pro_count);
+            throw std::runtime_error(err_msg);
+        }
+
         return bytes_read;
     }
 
@@ -607,7 +692,5 @@ class Schema {
                                         const Value& record, const GetBlobFunc& get_blob) const {
         return FieldData::Blob(extractor->GetBlobConstRef(record, get_blob).AsString());
     }
-
-    void RefreshLayout();
 };  // Schema
 }  // namespace lgraph

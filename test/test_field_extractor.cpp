@@ -209,7 +209,7 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
         Value value_tmp("teststringconstructor");
         value_tmp = Value(1024, 0);  // make sure this buffer is large enough for following tests
 
-        FieldSpec fd_nul("FieldSpec", lgraph::FieldType::INT8, true);
+        FieldSpec fd_nul("FieldSpec", lgraph::FieldType::INT8, true, 0);
         _detail::FieldExtractor fe_nul_1(fd_nul);
         fe_nul_1.ParseAndSet(value_tmp, FieldData());
         UT_EXPECT_TRUE(fe_nul_1.GetConstRef(value_tmp).Empty());
