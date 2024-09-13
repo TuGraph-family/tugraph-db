@@ -284,43 +284,10 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         }
     case FieldType::FLOAT_VECTOR:
         {
-            if (data.type != FieldType::FLOAT_VECTOR && data.type != FieldType::STRING) {
-                throw ParseFieldDataException(Name(), data, Type());
-            } else if (data.type == FieldType::STRING) {
-                std::vector<float> vec;
-                // check if there are only numbers and commas
-                std::regex nonNumbersAndCommas("[^0-9,.]");
-                if (std::regex_search(*data.data.buf, nonNumbersAndCommas)) {
-                    throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
-                }
-                // Check if the string conforms to the following format
-                // 1.000000,2.000000,3.000000,...
-                std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
-                if (!std::regex_match(*data.data.buf, vector)) {
-                    throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
-                }
-                // check if there are 1.000,,2.000 & 1.000,2.000,
-                if ((*data.data.buf).front() == ',' || (*data.data.buf).back() == ',' ||
-                    (*data.data.buf).find(",,") != std::string::npos) {
-                        throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
-                }
-                std::regex pattern("-?[0-9]+\\.?[0-9]*");
-                std::sregex_iterator begin_it((*data.data.buf).begin(),
-                                              (*data.data.buf).end(), pattern), end_it;
-                while (begin_it != end_it) {
-                    std::smatch match = *begin_it;
-                    vec.push_back(std::stof(match.str()));
-                    ++begin_it;
-                }
-                if (vec.size() <= 0) {
-                   throw ParseFieldDataException(Name(), data, FieldType::FLOAT_VECTOR);
-                }
-                return _SetVariableLengthValue(record, Value::ConstRef(vec));
-            } else if (data.type == FieldType::FLOAT_VECTOR) {
-                return _SetVariableLengthValue(record, Value::ConstRef(*data.data.vp));
-            } else {
+            if (data.type != FieldType::FLOAT_VECTOR) {
                 throw ParseFieldDataException(Name(), data, Type());
             }
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.vp));
         }
     default:
         LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type)
