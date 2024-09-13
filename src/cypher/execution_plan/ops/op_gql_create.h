@@ -50,7 +50,8 @@ class OpGqlCreate : public OpBase {
                         } else if (item.IsInteger()) {
                             float_vector.push_back(item.AsInt64());
                         } else {
-                            THROW_CODE(CypherParameterTypeError, "vector type only support real & int");
+                            THROW_CODE(CypherParameterTypeError, "vector type "
+                                       "only support real & int");
                         }
                     }
                     values.emplace_back(float_vector);
