@@ -69,10 +69,6 @@ class Schema {
 
     std::vector<_detail::FieldExtractor> fields_;
     std::unordered_map<std::string, size_t> name_to_idx_;
-    size_t n_fixed_ = 0;
-    size_t n_variable_ = 0;
-    size_t n_nullable_ = 0;
-    size_t v_offset_start_ = 0;
 
     std::unordered_set<size_t> indexed_fields_;
     std::vector<size_t> blob_fields_;
@@ -100,22 +96,20 @@ class Schema {
 
     bool GetDeleted() const { return deleted_; }
 
-    std::string GetCompositeIndexMapKey(const std::vector<std::string> &fields) {
+    std::string GetCompositeIndexMapKey(const std::vector<std::string>& fields) {
         std::string res = std::to_string(name_to_idx_[fields[0]]);
         int n = fields.size();
         for (int i = 1; i < n; ++i) {
-            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR +
-                   std::to_string(name_to_idx_[fields[i]]);
+            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR + std::to_string(name_to_idx_[fields[i]]);
         }
         return res;
     }
 
-    std::string GetCompositeIndexMapKey(const std::vector<size_t> &field_ids) {
+    std::string GetCompositeIndexMapKey(const std::vector<size_t>& field_ids) {
         std::string res = std::to_string(field_ids[0]);
         int n = field_ids.size();
         for (int i = 1; i < n; ++i) {
-            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR +
-                   std::to_string(field_ids[i]);
+            res += _detail::COMPOSITE_INDEX_KEY_SEPARATOR + std::to_string(field_ids[i]);
         }
         return res;
     }
@@ -179,8 +173,7 @@ class Schema {
         edge_constraints_lids_ = std::move(lids);
     }
 
-    const std::unordered_map<LabelId, std::unordered_set<LabelId>>&
-    GetEdgeConstraintsLids() const {
+    const std::unordered_map<LabelId, std::unordered_set<LabelId>>& GetEdgeConstraintsLids() const {
         return edge_constraints_lids_;
     }
 
@@ -432,7 +425,7 @@ class Schema {
         fields_[field_idx].SetEdgeIndex(nullptr);
     }
 
-    void UnVertexCompositeIndex(const std::vector<std::string> &fields) {
+    void UnVertexCompositeIndex(const std::vector<std::string>& fields) {
         composite_index_map.erase(GetCompositeIndexMapKey(fields));
     }
 
@@ -476,7 +469,7 @@ class Schema {
                           std::vector<size_t>& created);
 
     void AddVertexToCompositeIndex(KvTransaction& txn, VertexId vid, const Value& record,
-                          std::vector<std::string >& created);
+                                   std::vector<std::string>& created);
     bool VertexUniqueIndexConflict(KvTransaction& txn, const Value& record);
 
     void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
@@ -488,25 +481,25 @@ class Schema {
     void AddEdgeToFullTextIndex(EdgeUid euid, const Value& record,
                                 std::vector<FTIndexEntry>& buffers);
 
-    void SetCompositeIndex(const std::vector<std::string> &fields, CompositeIndex* index) {
+    void SetCompositeIndex(const std::vector<std::string>& fields, CompositeIndex* index) {
         composite_index_map.emplace(GetCompositeIndexMapKey(fields),
                                     std::make_shared<CompositeIndex>(*index));
     }
 
-    CompositeIndex* GetCompositeIndex(const std::vector<std::string> &fields) {
+    CompositeIndex* GetCompositeIndex(const std::vector<std::string>& fields) {
         auto it = composite_index_map.find(GetCompositeIndexMapKey(fields));
         if (it == composite_index_map.end()) return nullptr;
         return it->second.get();
     }
 
-    CompositeIndex* GetCompositeIndex(const std::vector<size_t> &field_ids) {
+    CompositeIndex* GetCompositeIndex(const std::vector<size_t>& field_ids) {
         auto it = composite_index_map.find(GetCompositeIndexMapKey(field_ids));
         if (it == composite_index_map.end()) return nullptr;
         return it->second.get();
     }
 
     std::vector<std::vector<std::string>> GetRelationalCompositeIndexKey(
-        const std::vector<size_t> &fields);
+        const std::vector<size_t>& fields);
 
     //----------------------
     // serialize/deserialize
@@ -547,8 +540,44 @@ class Schema {
         s = BinaryRead(buf, detach_property_);
         if (!s) return 0;
         bytes_read += s;
-        SetSchema(is_vertex_, fds, primary_field_, temporal_field_, temporal_order_,
-                  edge_constraints_);
+        ProCount pro_count = 0;
+        fields_.reserve(fds.size());
+        name_to_idx_.clear();
+        indexed_fields_.clear();
+        fulltext_fields_.clear();
+        bool found_primary = false;
+        for (const auto& f : fds) {
+            fields_[f.id] = _detail::FieldExtractor(f);
+            if (f.id >= pro_count) {
+                pro_count = f.id;
+            }
+            if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end())) {
+                throw std::FieldAlreadyExistsException(f.name);
+            }
+            name_to_idx_[f.name] = f.id;
+            if (fields[f.id].GetVertexIndex() || fields[f.id].GetEdgeIndex()) {
+                indexed_fields_.emplace_hint(indexed_fields_.end(), f.id);
+                if (f.name == primary_field_) {
+                    FMA_ASSERT(!found_primary);
+                    found_primary = true;
+                }
+            }
+            if (fields[f.id].FullTextIndexed()) {
+                fulltext_fields_.emplace(f.id);
+            }
+        }
+
+        if (is_vertex_ && !indexed_fields_.empty()) {
+            FMA_ASSERT(found_primary);
+        }
+
+        if (pro_count != fds.size() - 1) {
+            std::string err_msg =
+                FMA_FMT("Schema fields deserialize error, fields num: {}, max id: {}.",
+                        _detail::MAX_GRAPH_SIZE, fds.size(), pro_count);
+            throw std::runtime_error(err_msg);
+        }
+
         return bytes_read;
     }
 
@@ -585,7 +614,5 @@ class Schema {
                                         const Value& record, const GetBlobFunc& get_blob) const {
         return FieldData::Blob(extractor->GetBlobConstRef(record, get_blob).AsString());
     }
-
-    void RefreshLayout();
 };  // Schema
 }  // namespace lgraph
