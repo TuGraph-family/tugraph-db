@@ -501,6 +501,8 @@ std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json& j_obj
             return lgraph_api::FieldData(lgraph_api::Date(j_object.get<std::string>()));
         case lgraph_api::FieldType::DATETIME:
             return lgraph_api::FieldData(lgraph_api::DateTime(j_object.get<std::string>()));
+        case lgraph_api::FieldType::FLOAT_VECTOR:
+            return lgraph_api::FieldData(j_object.get<std::vector<float>>());
         default:
             return {};
         }
@@ -562,11 +564,18 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
             if (iter != fd_type.end()) {
                 lgraph_api::FieldData fd;
                 if (item.second.IsArray()) {
-                    std::vector<float> vec;
+                    std::vector<float> float_vector;
                     for (const auto& a : *item.second.array) {
-                        vec.push_back(a.AsDouble());
+                        if (a.IsReal()) {
+                            float_vector.push_back(a.AsDouble());
+                        } else if (a.IsInteger()) {
+                            float_vector.push_back(a.AsInt64());
+                        } else {
+                            THROW_CODE(CypherParameterTypeError, "vector type "
+                                       "only support real & int");
+                        }
                     }
-                    fd = lgraph_api::FieldData(vec);
+                    fd = lgraph_api::FieldData(float_vector);
                 } else {
                     fd = item.second.scalar;
                 }
@@ -824,11 +833,18 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
             if (item.first == start_json_key) {
                 lgraph_api::FieldData fd;
                 if (item.second.IsArray()) {
-                    std::vector<float> vec;
+                    std::vector<float> float_vector;
                     for (const auto& a : *item.second.array) {
-                        vec.push_back(a.AsDouble());
+                        if (a.IsReal()) {
+                            float_vector.push_back(a.AsDouble());
+                        } else if (a.IsInteger()) {
+                            float_vector.push_back(a.AsInt64());
+                        } else {
+                            THROW_CODE(CypherParameterTypeError, "vector type "
+                                       "only support real & int");
+                        }
                     }
-                    fd = lgraph_api::FieldData(vec);
+                    fd = lgraph_api::FieldData(float_vector);
                 } else {
                     fd = item.second.scalar;
                 }
@@ -847,11 +863,18 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
             } else if (item.first == end_json_key) {
                 lgraph_api::FieldData fd;
                 if (item.second.IsArray()) {
-                    std::vector<float> vec;
+                    std::vector<float> float_vector;
                     for (const auto& a : *item.second.array) {
-                        vec.push_back(a.AsDouble());
+                        if (a.IsReal()) {
+                            float_vector.push_back(a.AsDouble());
+                        } else if (a.IsInteger()) {
+                            float_vector.push_back(a.AsInt64());
+                        } else {
+                            THROW_CODE(CypherParameterTypeError, "vector type "
+                                       "only support real & int");
+                        }
                     }
-                    fd = lgraph_api::FieldData(vec);
+                    fd = lgraph_api::FieldData(float_vector);
                 } else {
                     fd = item.second.scalar;
                 }
@@ -872,11 +895,18 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                 if (iter != fd_type.end()) {
                     lgraph_api::FieldData fd;
                     if (item.second.IsArray()) {
-                        std::vector<float> vec;
+                        std::vector<float> float_vector;
                         for (const auto& a : *item.second.array) {
-                            vec.push_back(a.AsDouble());
+                            if (a.IsReal()) {
+                                float_vector.push_back(a.AsDouble());
+                            } else if (a.IsInteger()) {
+                                float_vector.push_back(a.AsInt64());
+                            } else {
+                                THROW_CODE(CypherParameterTypeError, "vector type "
+                                           "only support real & int");
+                            }
                         }
-                        fd = lgraph_api::FieldData(vec);
+                        fd = lgraph_api::FieldData(float_vector);
                     } else {
                         fd = item.second.scalar;
                     }
