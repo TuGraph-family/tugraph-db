@@ -19,7 +19,7 @@
 #include "core/vertex_index.h"
 #include "core/edge_index.h"
 #include "core/schema_common.h"
-#include "core/vector_index_layer.h"
+#include "core/vector_index.h"
 #include "core/vsag_hnsw.h"
 
 namespace lgraph {

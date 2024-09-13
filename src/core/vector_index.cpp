@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "core/vector_index_layer.h"
+#include "core/vector_index.h"
 
 namespace lgraph {
 VectorIndex::VectorIndex(const std::string& label, const std::string& name,

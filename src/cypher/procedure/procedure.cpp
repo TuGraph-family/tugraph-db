@@ -4010,7 +4010,7 @@ void VectorFunc::AddVectorIndex(RTContext *ctx, const cypher::Record *record,
     auto index_type = args[2].constant.AsString();
     auto vec_dimension = args[3].constant.AsInt64();
     auto distance_type = args[4].constant.AsString();
-    lgraph::IndexType type = lgraph::IndexType::GlobalUniqueIndex;
+    lgraph::IndexType type = lgraph::IndexType::NonuniqueIndex;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     bool success = ac_db.AddVectorIndex(label, field, index_type,
                             vec_dimension, distance_type, index_spec, type);

@@ -20,7 +20,7 @@
 #include <unordered_set>
 #include <fstream>
 #include "tools/json.hpp"
-#include "core/vector_index_layer.h"
+#include "core/vector_index.h"
 #include "vsag/vsag.h"
 
 namespace lgraph {

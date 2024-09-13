@@ -51,7 +51,7 @@ set(LGRAPH_CORE_SRC
         core/thread_id.cpp
         core/transaction.cpp
         core/vertex_index.cpp
-        core/vector_index_layer.cpp
+        core/vector_index.cpp
         core/vector_index_counter.cpp
         core/vsag_hnsw.cpp
         core/wal.cpp
