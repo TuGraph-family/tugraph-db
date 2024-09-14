@@ -964,7 +964,7 @@ static std::vector<Procedure> global_procedures = {
                   {"query_spec", {4, lgraph_api::LGraphType::INTEGER}},
               },
               Procedure::SIG_SPEC{
-                  {"vid", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"node", {0, lgraph_api::LGraphType::NODE}},
                   {"label_name", {1, lgraph_api::LGraphType::STRING}},
                   {"field_name", {2, lgraph_api::LGraphType::STRING}},
                   {"vec", {3, lgraph_api::LGraphType::STRING}},

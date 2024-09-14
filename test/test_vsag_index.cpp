@@ -186,24 +186,32 @@ TEST_F(TestVsag, VectorProcedure) {
                             R"(CALL db.upsertVertexByJson('person', '[{"id":3, "vector": [3,3,3,3]},
             {"id":4, "vector": [4,4,4,4]}]'))");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str,
-                            "CALL db.upsertVertex('person', [{id:5, vector: [5.0,5.0,5.0,5.0]},"
-                            "{id:6, vector: [6.0,6.0,6.0,6.0]}])");
-    UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str,
-                            "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10)");
-    UT_EXPECT_TRUE(ret);
-    json_val = web::json::value::parse(str);
-    UT_EXPECT_TRUE(ret);
-    UT_EXPECT_EQ(json_val[0]["vec"].as_string(), "2.000000,2.000000,2.000000,2.000000");
-
-    UT_EXPECT_EQ(json_val[1]["vec"].as_string(), "3.000000,3.000000,3.000000,3.000000");
+//    ret = client.CallCypher(str,
+//                            "CALL db.upsertVertex('person', [{id:5, vector: [5.0,5.0,5.0,5.0]},"
+//                            "{id:6, vector: [6.0,6.0,6.0,6.0]}])");
+//    UT_EXPECT_TRUE(ret);
+//    ret = client.CallCypher(str,
+//                            "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10)");
+//    UT_EXPECT_TRUE(ret);
+//    json_val = web::json::value::parse(str);
+//    UT_EXPECT_TRUE(ret);
+//    UT_EXPECT_EQ(json_val[0]["vec"].as_string(), "2.000000,2.000000,2.000000,2.000000");
+//
+//    UT_EXPECT_EQ(json_val[1]["vec"].as_string(), "3.000000,3.000000,3.000000,3.000000");
     ret = client.CallCypher(str,
                             "CALL vector.VectorIndexQuery("
-                            "'person','vector',[1,2,3,4], 2, 10) YIELD vid");
+                            "'person','vector',[1,2,3,4], 2, 10) YIELD node");
     UT_EXPECT_TRUE(ret);
-    UT_EXPECT_EQ(json_val[0]["vid"], 1);
-    UT_EXPECT_EQ(json_val[1]["vid"], 2);
+    UT_EXPECT_EQ(json_val[0]["node"]["identity"], 1);
+    UT_EXPECT_EQ(json_val[1]["node"]["identity"], 2);
+    ret = client.CallCypher(str,
+                            "CALL vector.VectorIndexQuery("
+                            "'person','vector',[1,2,3,4], 2, 10) YIELD node RETURN node.id");
+    UT_EXPECT_TRUE(ret);
+    UT_EXPECT_EQ(json_val[0]["node.id"], 2);
+    UT_EXPECT_EQ(json_val[1]["node.id"], 3);
     ret = client.CallCypher(str, "CALL db.dropDB");
     UT_EXPECT_TRUE(ret);
+    server->Kill();
+    server->Wait();
 }

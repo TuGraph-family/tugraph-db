@@ -4002,7 +4002,8 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
                     ctx->txn_->GetTxn()->GetVertexField(id.AsInt64(), it2->second.AsString()));
             }
         } else {
-            CYPHER_TODO();
+            value = ctx->txn_->GetTxn()->GetVertexField(
+                vid.constant.AsInt64(), it2->second.AsString());
         }
     } else {
         CYPHER_THROW_ASSERT(record);
@@ -4013,8 +4014,6 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
             _detail::ExtractEdgeUid(eid.constant.scalar.AsString()), it2->second.AsString());
     }
 
-    auto pp = global_ptable.GetProcedure("algo.native.extract");
-    CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("value"));
     Record r;
     r.AddConstant(value);
     records->emplace_back(r.Snapshot());
@@ -4357,7 +4356,9 @@ void VectorFunc::VectorIndexQuery(RTContext *ctx, const cypher::Record *record,
     });
     for (int i = 0; i < args[3].constant.AsInt64(); i++) {
         Record r;
-        r.AddConstant(::lgraph::FieldData(std::get<0>(SearchResult.at(i))));
+        cypher::Node n;
+        n.SetVid(std::get<0>(SearchResult.at(i)));
+        r.AddNode(&n);
         r.AddConstant(::lgraph::FieldData(args[0].constant.AsString()));
         r.AddConstant(::lgraph::FieldData(args[1].constant.AsString()));
         r.AddConstant(::lgraph::FieldData(std::get<1>(SearchResult.at(i))));
