@@ -30,24 +30,16 @@ namespace _detail {
     typename std::enable_if<                \
         std::is_integral<_TYPE_>::value || std::is_floating_point<_TYPE_>::value, _RT_>::type
 
+static const size_t LABEL_OFFSET = 1;
+static const size_t COUNT_OFFSET = LABEL_OFFSET + sizeof(LabelId);
+static const size_t NULL_ARRAY_OFFSET = COUNT_OFFSET + sizeof(ProCount);
+
 /** A field extractor can be used to get/set a field in the record. */
 class FieldExtractor {
     friend class lgraph::Schema;
     // type information
     FieldSpec def_;
-    // layout
-    size_t field_id_ = 0;
     bool is_vfield_ = false;
-    union {
-        size_t data_off = 0;
-        struct {
-            size_t idx;  // index of this field in all the vfields
-            size_t v_offs;
-            size_t last_idx;
-        };
-    } offset_;
-    size_t nullable_array_off_ = 0;  // offset of nullable array in record
-    size_t null_bit_off_ = 0;
     // index
     std::unique_ptr<VertexIndex> vertex_index_;
     std::unique_ptr<EdgeIndex> edge_index_;
@@ -55,17 +47,13 @@ class FieldExtractor {
     bool fulltext_indexed_ = false;
 
  public:
-    FieldExtractor() : null_bit_off_(0), vertex_index_(nullptr), edge_index_(nullptr) {}
+    FieldExtractor() : vertex_index_(nullptr), edge_index_(nullptr) {}
 
     ~FieldExtractor() {}
 
     FieldExtractor(const FieldExtractor& rhs) {
         def_ = rhs.def_;
-        field_id_ = rhs.field_id_;
         is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        nullable_array_off_ = rhs.nullable_array_off_;
-        null_bit_off_ = rhs.null_bit_off_;
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
@@ -74,11 +62,7 @@ class FieldExtractor {
     FieldExtractor& operator=(const FieldExtractor& rhs) {
         if (this == &rhs) return *this;
         def_ = rhs.def_;
-        field_id_ = rhs.field_id_;
         is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        null_bit_off_ = rhs.null_bit_off_;
-        nullable_array_off_ = rhs.nullable_array_off_;
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
@@ -87,11 +71,7 @@ class FieldExtractor {
 
     FieldExtractor(FieldExtractor&& rhs) noexcept {
         def_ = std::move(rhs.def_);
-        field_id_ = rhs.field_id_;
         is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        null_bit_off_ = rhs.null_bit_off_;
-        nullable_array_off_ = rhs.nullable_array_off_;
         vertex_index_ = std::move(rhs.vertex_index_);
         edge_index_ = std::move(rhs.edge_index_);
         rhs.vertex_index_ = nullptr;
@@ -102,11 +82,7 @@ class FieldExtractor {
     FieldExtractor& operator=(FieldExtractor&& rhs) noexcept {
         if (this == &rhs) return *this;
         def_ = std::move(rhs.def_);
-        field_id_ = rhs.field_id_;
         is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        null_bit_off_ = rhs.null_bit_off_;
-        nullable_array_off_ = rhs.nullable_array_off_;
         vertex_index_ = std::move(rhs.vertex_index_);
         edge_index_ = std::move(rhs.edge_index_);
         fulltext_indexed_ = rhs.fulltext_indexed_;
@@ -118,8 +94,6 @@ class FieldExtractor {
         is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         vertex_index_ = nullptr;
         edge_index_ = nullptr;
-        null_bit_off_ = 0;
-        if (is_vfield_) SetVLayoutInfo(d.optional ? 1 : 0, 1, 0);
     }
 
     const FieldSpec& GetFieldSpec() const { return def_; }
@@ -130,7 +104,7 @@ class FieldExtractor {
         } else {
             // get the Kth bit from NullArray
             char* arr = GetNullArray(record);
-            return arr[null_bit_off_ / 8] & (0x1 << (null_bit_off_ % 8));
+            return arr[def_.id / 8] & (0x1 << (def_.id % 8));
         }
     }
 
@@ -145,9 +119,54 @@ class FieldExtractor {
      */
     ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const {
         FMA_DBG_ASSERT(field_data_helper::FieldTypeSize(def_.type) == sizeof(T));
-        FMA_DBG_ASSERT(offset_.data_off + field_data_helper::FieldTypeSize(def_.type) <=
-                       record.Size());
-        memcpy(&data, (char*)record.Data() + offset_.data_off, sizeof(T));
+        size_t offset = GetFieldOffset(def_.id);
+        size_t size = GetDataSize(record);
+        if (size == sizeof(T)) {
+            memcpy(&data, (char*)record.Data() + offset_.data_off, sizeof(T));
+        } else {
+            ConvertData(&data, (char*)record.Data() + offset, size);
+        }
+    }
+
+    ENABLE_IF_FIXED_FIELD(T, void) ConvertData(T* dst, const char* data, size_t size) {
+        if (std::is_integral<T>::value) {
+            int64_t temp = 0;
+            switch (size) {
+            case 1:
+                temp = *reinterpret_cast<const int8_t*>(data);
+                break;
+            case 2:
+                temp = *reinterpret_cast<const int16_t*>(data);
+                break;
+            case 4:
+                temp = *reinterpret_cast<const int32_t*>(data);
+                break;
+            case 8:
+                temp = *reinterpret_cast<const int64_t*>(data);
+                break;
+            default:
+                FMA_ASSERT(false) << "Invalid size";
+            }
+
+            if (temp > std::numeric_limits<T>::max()) {
+                *dst = std::numeric_limits<T>::max();
+            } else if (temp < std::numeric_limits<T>::min()) {
+                *dst = std::numeric_limits<T>::min();
+            } else {
+                *dst = static_cast<T>(temp);
+            }
+        } else if (std::is_floating_point<T>::value) {
+            switch(size) {
+                case 4:
+                    *dst = static_cast<T>(*reinterpret_cast<const float*>(data));
+                    break;
+                case 8:
+                    *dst = static_cast<T>(*reinterpret_cast<const double*>(data));
+                    break;
+                default:
+                    FMA_ASSERT(false) << "Invalid size";
+            }
+        }
     }
 
     /**
@@ -267,7 +286,7 @@ class FieldExtractor {
 
     bool FullTextIndexed() const { return fulltext_indexed_; }
 
-    size_t GetFieldId() const { return field_id_; }
+    uint16_t GetFieldId() const { return def_.id; }
 
  private:
     void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
@@ -275,23 +294,7 @@ class FieldExtractor {
     void SetEdgeIndex(EdgeIndex* edgeindex) { edge_index_.reset(edgeindex); }
     void SetFullTextIndex(bool fulltext_indexed) { fulltext_indexed_ = fulltext_indexed; }
 
-    void SetFixedLayoutInfo(size_t offset) {
-        is_vfield_ = false;
-        offset_.data_off = offset;
-    }
-
-    void SetVLayoutInfo(size_t voff, size_t nv, size_t idx) {
-        is_vfield_ = true;
-        offset_.v_offs = voff;
-        offset_.last_idx = nv - 1;
-        offset_.idx = idx;
-    }
-
-    void SetNullableOff(size_t offset) { null_bit_off_ = offset; }
-
-    void SetNullableArrayOff(size_t offset) { nullable_array_off_ = offset; }
-
-    void SetFieldId(size_t n) { field_id_ = n; }
+    void SetFieldId(uint16_t n) { def_.id = n; }
 
     //-----------------------
     // record accessors
@@ -383,9 +386,9 @@ class FieldExtractor {
         // set the Kth bit from NullArray
         char* arr = GetNullArray(record);
         if (is_null) {
-            arr[null_bit_off_ / 8] |= (0x1 << (null_bit_off_ % 8));
+            arr[def_.id / 8] |= (0x1 << (def_.id % 8));
         } else {
-            arr[null_bit_off_ / 8] &= ~(0x1 << (null_bit_off_ % 8));
+            arr[def_.id / 8] &= ~(0x1 << (def_.id % 8));
         }
     }
 
@@ -405,39 +408,33 @@ class FieldExtractor {
         memcpy(data, record.Data() + off, size);
     }
 
-    char* GetNullArray(const Value& record) const { return record.Data() + nullable_array_off_; }
+    char* GetNullArray(const Value& record) const { return record.Data() + NULL_ARRAY_OFFSET; }
 
     size_t GetDataSize(const Value& record) const {
         if (is_vfield_) {
-            return GetNextOffset(record) - GetFieldOffset(record);
+            DataOffset var_off_value = ::lgraph::_detail::UnalignedGet<DataOffset>(
+                record.Data() + GetFieldOffset(record, def_.id));
+            DataOffset var_off =
+                ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + var_off_value);
+            // The length is stored at the beginning of the variable-length field data area.
+            return ::lgraph::_detail::UnalignedGet<size_t>(record.Data() + var_off);
         } else {
-            return field_data_helper::FieldTypeSize(def_.type);
+            return GetFieldOffset(def_.id + 1) - GetFieldOffset(def_.id);
         }
     }
 
-    size_t GetFieldOffset(const Value& record) const {
-        if (is_vfield_) {
-            size_t off =
-                (offset_.idx == 0)
-                    ? (offset_.v_offs + sizeof(DataOffset) * (offset_.last_idx))
-                    : ::lgraph::_detail::UnalignedGet<DataOffset>(
-                          record.Data() + offset_.v_offs + (offset_.idx - 1) * sizeof(DataOffset));
-            return off;
-        } else {
-            return offset_.data_off;
-        }
+    uint16_t GetRecordCount(const Value& record) const {
+        return ::lgraph::_detail::UnalignedGet<uint16_t>(record.Data() + COUNT_OFFSET);
     }
 
-    size_t GetNextOffset(const Value& record) const {
-        if (is_vfield_) {
-            size_t off =
-                (offset_.idx == offset_.last_idx)
-                    ? record.Size()
-                    : ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + offset_.v_offs +
-                                                                  offset_.idx * sizeof(DataOffset));
-            return off;
+    size_t GetFieldOffset(const Value& record, ProCount id) const {
+        uint16_t count = GetRecordCount(record);
+        if (0 == id) {
+            return NULL_ARRAY_OFFSET + (count + 7) / 8 + count * sizeof(DataOffset);
         } else {
-            return offset_.data_off + field_data_helper::FieldTypeSize(def_.type);
+            size_t offset = 0;
+            offset = NULL_ARRAY_OFFSET + (count + 7) / 8 + id * sizeof(DataOffset);
+            return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + offset);
         }
     }
 
