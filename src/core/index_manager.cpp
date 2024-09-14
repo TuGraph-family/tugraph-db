@@ -321,7 +321,9 @@ bool IndexManager::DeleteVectorIndex(KvTransaction& txn, const std::string& labe
 
 bool IndexManager::GetVectorIndexListTableName(KvTransaction& txn,
                                                std::vector<std::string>& table_name) {
-    for (auto it = index_list_table_->GetIterator(txn); it->IsValid(); it->Next()) {
+    auto it = index_list_table_->GetIterator(txn);
+    it->GotoFirstKey();
+    for (; it->IsValid(); it->Next()) {
         auto key = it->GetKey();
         auto name = key.AsString();
         auto find = name.find(_detail::VECTOR_INDEX);
