@@ -33,7 +33,7 @@
 using namespace utility;               // Common utilities like string conversions
 using namespace concurrency::streams;  // Asynchronous streams
 
-class VSAGTest : public TuGraphTest {
+class TestVsag : public TuGraphTest {
  protected:
     int64_t dim = 4;
     int64_t num_vectors = 10000;
@@ -41,7 +41,7 @@ class VSAGTest : public TuGraphTest {
     std::vector<int64_t> vids;
     std::unique_ptr<lgraph::HNSW> vector_index;
     std::vector<int> index_spec = {24, 100};
-    VSAGTest() : vectors(num_vectors, std::vector<float>(dim)), vids(num_vectors) {}
+    TestVsag() : vectors(num_vectors, std::vector<float>(dim)), vids(num_vectors) {}
     void SetUp() override {
         std::mt19937 rng(47);
         std::uniform_real_distribution<> distrib_real;
@@ -57,14 +57,14 @@ class VSAGTest : public TuGraphTest {
     void TearDown() override {}
 };
 
-TEST_F(VSAGTest, BuildIndex) { ASSERT_TRUE(vector_index->Build()); }
+TEST_F(TestVsag, BuildIndex) { ASSERT_TRUE(vector_index->Build()); }
 
-TEST_F(VSAGTest, AddVectors) {
+TEST_F(TestVsag, AddVectors) {
     ASSERT_TRUE(vector_index->Build());
     ASSERT_TRUE(vector_index->Add(vectors, vids, num_vectors));
 }
 
-TEST_F(VSAGTest, SearchIndex) {
+TEST_F(TestVsag, SearchIndex) {
     ASSERT_TRUE(vector_index->Build());
     ASSERT_TRUE(vector_index->Add(vectors, vids, num_vectors));
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
@@ -74,7 +74,7 @@ TEST_F(VSAGTest, SearchIndex) {
     ASSERT_EQ(indices[0], vids[0]);
 }
 
-TEST_F(VSAGTest, SaveAndLoadIndex) {
+TEST_F(TestVsag, SaveAndLoadIndex) {
     ASSERT_TRUE(vector_index->Build());
     ASSERT_TRUE(vector_index->Add(vectors, vids, num_vectors));
     std::vector<uint8_t> serialized_index = vector_index->Save();
@@ -89,7 +89,7 @@ TEST_F(VSAGTest, SaveAndLoadIndex) {
     ASSERT_EQ(indices[0], vids[0]);
 }
 
-TEST_F(VSAGTest, DeleteVectors) {
+TEST_F(TestVsag, DeleteVectors) {
     ASSERT_TRUE(vector_index->Build());
     ASSERT_TRUE(vector_index->Add(vectors, vids, num_vectors));
     std::vector<int64_t> delete_vids = {vids[0], vids[1]};
@@ -254,10 +254,12 @@ void test_vector_index(lgraph::RpcClient& client) {
     "CREATE (n:person {id:2, vector: [2.0,2.0,2.0,2.0]})");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-    "CREATE (n:person {id:3, vector: [3.0,3.0,3.0,3.0]})");
+    R"(CALL db.upsertVertexByJson('person', '[{"id":3, "vector": [3,3,3,3]},
+            {"id":4, "vector": [4,4,4,4]}]'))");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-    "CREATE (n:person {id:4, vector: [4.0,4.0,4.0,4.0]})");
+    "CALL db.upsertVertex('person', [{id:5, vector: [5.0,5.0,5.0,5.0]},"
+                            "{id:6, vector: [6.0,6.0,6.0,6.0]}])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
     "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10)");
@@ -268,6 +270,11 @@ void test_vector_index(lgraph::RpcClient& client) {
     "3.000000,3.000000,3.000000,3.000000", "vec"), 1);
     UT_EXPECT_EQ(ElementCount_vector(json_val,
     "2.000000,2.000000,2.000000,2.000000", "vec"), 1);
+    ret = client.CallCypher(str,
+         "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10) YIELD vid");
+    UT_EXPECT_TRUE(ret);
+    UT_EXPECT_EQ(json_val[0]["vid"], 1);
+    UT_EXPECT_EQ(json_val[1]["vid"], 2);
     ret = client.CallCypher(str, "CALL db.dropDB");
     UT_EXPECT_TRUE(ret);
 }
@@ -289,7 +296,7 @@ void* test_vector_rpc_client(void*) {
     return nullptr;
 }
 
-TEST_F(VSAGTest, VectorProcedure) {
+TEST_F(TestVsag, VectorProcedure) {
     // fma_common::Logger::Get().SetLevel(fma_common::LogLevel::LL_DEBUG);
     std::thread tid_https[2] = {std::thread(test_vector_rpc_server, nullptr),
                                 std::thread(test_vector_rpc_client, nullptr)};

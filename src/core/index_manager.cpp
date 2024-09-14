@@ -316,33 +316,19 @@ bool IndexManager::DeleteVectorIndex(KvTransaction& txn, const std::string& labe
     if (!index_list_table_->DeleteKey(txn, Value::ConstRef(table_name)))
         return false;  // does not exist
                        // now delete the index table
-    bool r = db_->GetStore().DeleteTable(txn, table_name);
-    FMA_DBG_ASSERT(r);
     return true;
 }
 
 bool IndexManager::GetVectorIndexListTableName(KvTransaction& txn,
                                                std::vector<std::string>& table_name) {
-    // get index list table key number
-    auto num = index_list_table_->GetKeyCount(txn);
-    // get index list table name
-    auto it = index_list_table_->GetIterator(txn);
-    std::string name;
-    if (it->GotoFirstKey()) {
-        for (size_t i = 0; i < num; i++) {
-            auto key = it->GetKey();
-            name = key.AsString();
-            auto find = name.find(_detail::VECTOR_INDEX);
-            if (find != std::string::npos) {
-                table_name.emplace_back(name);
-            }
-            it->Next();
+    for (auto it = index_list_table_->GetIterator(txn); it->IsValid(); it->Next()) {
+        auto key = it->GetKey();
+        auto name = key.AsString();
+        auto find = name.find(_detail::VECTOR_INDEX);
+        if (find != std::string::npos) {
+            table_name.emplace_back(name);
         }
     }
-    if (table_name.size() != 0) {
-        return true;
-    } else {
-        return false;
-    }
+    return !table_name.empty();
 }
 }  // namespace lgraph

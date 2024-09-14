@@ -2255,9 +2255,8 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             return true;
         }
     }
-    LOG_INFO() << "only support detach mode now";
-    txn.Commit();
-    schema_.Assign(new_schema.release());
+    LOG_INFO() << "only support detach mode in vertex now";
+    txn.Abort();
     return false;
 }
 
