@@ -199,17 +199,15 @@ TEST_F(TestVsag, VectorProcedure) {
 
     UT_EXPECT_EQ(json_val[1]["vec"].as_string(), "3.000000,3.000000,3.000000,3.000000");
     ret = client.CallCypher(str,
-                            "CALL vector.VectorIndexQuery("
-                            "'person','vector',[1,2,3,4], 2, 10) YIELD node");
+    "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10) YIELD node");
     UT_EXPECT_TRUE(ret);
     UT_EXPECT_EQ(json_val[0]["node"]["identity"], 1);
     UT_EXPECT_EQ(json_val[1]["node"]["identity"], 2);
     ret = client.CallCypher(str,
-                            "CALL vector.VectorIndexQuery("
-                            "'person','vector',[1,2,3,4], 2, 10) YIELD node RETURN node.vid");
+    "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10) YIELD node RETURN node.id");
     UT_EXPECT_TRUE(ret);
-    UT_EXPECT_EQ(json_val[0]["node.vid"], 2);
-    UT_EXPECT_EQ(json_val[1]["node.vid"], 3);
+    UT_EXPECT_EQ(json_val[0]["node.id"], 2);
+    UT_EXPECT_EQ(json_val[1]["node.id"], 3);
     ret = client.CallCypher(str, "CALL db.dropDB");
     UT_EXPECT_TRUE(ret);
     server->Kill();
