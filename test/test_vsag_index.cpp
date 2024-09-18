@@ -211,7 +211,8 @@ TEST_F(TestVsag, VectorProcedure) {
     UT_EXPECT_EQ(json_val[0]["node.id"], 2);
     UT_EXPECT_EQ(json_val[1]["node.id"], 3);
     ret = client.CallCypher(str,
-          "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10) YIELD node RETURN node.vector");
+          "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 2, 10) "
+                 "YIELD node RETURN node.vector");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_TRUE(ret);
