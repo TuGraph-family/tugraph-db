@@ -138,7 +138,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 auto type = header[idx].second;
                 switch (type) {
                 case lgraph_api::LGraphType::NODE:
-                    CYPHER_TODO();
+                    record->Insert(title, v.node->GetVid(), ctx->txn_.get());
                     break;
                 case lgraph_api::LGraphType::RELATIONSHIP:
                     CYPHER_TODO();

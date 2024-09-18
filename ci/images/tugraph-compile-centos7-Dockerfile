@@ -345,6 +345,12 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-d
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
+# install epel
+RUN yum install -y epel-release && yum makecache
+
+# install openblas
+RUN yum install -y openblas-devel
+
 # install swig
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/swig-4.0.2.tar.gz \
     && tar -xzvf swig-4.0.2.tar.gz && cd swig-4.0.2 && ./configure \

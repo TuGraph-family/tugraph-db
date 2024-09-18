@@ -704,8 +704,8 @@ template <>
 inline size_t ParseStringIntoFieldData<FieldType::FLOAT_VECTOR>(const char* beg, const char* end,
                                                                 FieldData& fd) {
     // string copy
-    std::string cd(beg, end);
-    size_t s = cd.length();
+    std::string cd;
+    size_t s = fma_common::TextParserUtils::ParseCsvString(beg, end, cd);
     if (s == 0) return 0;
     // check if there are only numbers and commas
     std::regex nonNumbersAndCommas("[^0-9,.]");

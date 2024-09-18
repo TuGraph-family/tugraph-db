@@ -410,6 +410,12 @@ class Schema {
         fields_[field_idx].SetEdgeIndex(edge_index);
     }
 
+    void MarkVectorIndexed(size_t field_idx, VectorIndex* index) {
+        FMA_DBG_ASSERT(field_idx < fields_.size());
+        indexed_fields_.insert(field_idx);
+        fields_[field_idx].SetVectorIndex(index);
+    }
+
     bool IsVertexIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         return fields_[field_idx].GetVertexIndex() == nullptr;
@@ -418,6 +424,11 @@ class Schema {
     bool IsEdgeIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         return fields_[field_idx].GetEdgeIndex() == nullptr;
+    }
+
+    bool IsVectorIndex(size_t field_idx) {
+        FMA_DBG_ASSERT(field_idx < fields_.size());
+        return fields_[field_idx].GetVectorIndex() == nullptr;
     }
 
     void UnVertexIndex(size_t field_idx) {
@@ -434,6 +445,12 @@ class Schema {
 
     void UnVertexCompositeIndex(const std::vector<std::string> &fields) {
         composite_index_map.erase(GetCompositeIndexMapKey(fields));
+    }
+
+    void UnVectorIndex(size_t field_idx) {
+        FMA_DBG_ASSERT(field_idx < fields_.size());
+        indexed_fields_.erase(field_idx);
+        fields_[field_idx].SetVectorIndex(nullptr);
     }
 
     void MarkFullTextIndexed(size_t field_idx, bool fulltext_indexed) {
@@ -482,6 +499,10 @@ class Schema {
     void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                         std::vector<size_t>& created);
     bool EdgeUniqueIndexConflict(KvTransaction& txn, const Value& record);
+
+    void AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record);
+
+    void DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
     void AddVertexToFullTextIndex(VertexId vid, const Value& record,
                                   std::vector<FTIndexEntry>& buffers);

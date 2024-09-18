@@ -111,8 +111,13 @@ cypher::OpBase::OpResult cypher::OpGqlStandaloneCall::RealConsume(RTContext *ctx
                 auto type = header[idx].second;
                 switch (type) {
                 case lgraph_api::LGraphType::NODE:
-                    CYPHER_TODO();
-                    break;
+                    {
+                        auto vid =
+                            std::stoi(v.constant.scalar.string().substr(2,
+                                      v.constant.scalar.string().size() - 3));
+                        record->Insert(title, vid, ctx->txn_.get());
+                        break;
+                    }
                 case lgraph_api::LGraphType::RELATIONSHIP:
                     CYPHER_TODO();
                     break;

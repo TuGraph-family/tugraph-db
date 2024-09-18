@@ -18,6 +18,7 @@
 #include "core/kv_store.h"
 #include "core/lightning_graph.h"
 #include "core/transaction.h"
+#include "core/vsag_hnsw.h"
 
 namespace lgraph {
 IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
@@ -30,6 +31,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
     size_t c_index_len = strlen(_detail::COMPOSITE_INDEX);
     size_t v_ft_index_len = strlen(_detail::VERTEX_FULLTEXT_INDEX);
     size_t e_ft_index_len = strlen(_detail::EDGE_FULLTEXT_INDEX);
+    size_t vector_index_len = strlen(_detail::VECTOR_INDEX);
     auto it = index_list_table_->GetIterator(txn);
     for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
         std::string index_name = it->GetKey().AsString();
@@ -91,6 +93,52 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 std::move(tbl), idx.field_types, idx.index_type);  // creates index table
             index->SetReady();
             schema->SetCompositeIndex(idx.field_names, index.release());
+        } else if (index_name.size() > vector_index_len &&
+                   index_name.substr(index_name.size() - vector_index_len) ==
+                       _detail::VECTOR_INDEX) {
+            LOG_INFO() << "Rebuild vector index soon";
+            _detail::IndexEntry idx = LoadIndex(it->GetValue());
+            FMA_DBG_CHECK_EQ(idx.table_name, it->GetKey().AsString());
+            Schema* schema = v_schema_manager->GetSchema(idx.label);
+            FMA_DBG_ASSERT(schema);
+            const _detail::FieldExtractor* fe = schema->GetFieldExtractor(idx.field);
+            FMA_DBG_ASSERT(fe);
+            std::vector<std::string> vector_index;
+            std::regex re(R"(_@lgraph@_|vector_index)");
+            auto words_begin = std::sregex_token_iterator(index_name.begin(),
+                                index_name.end(), re, -1,
+                                std::regex_constants::match_not_bol |
+                                std::regex_constants::match_not_eol);
+            auto words_end = std::sregex_token_iterator();
+            for (std::sregex_token_iterator i = words_begin; i != words_end; ++i) {
+                if (!i->str().empty()) {
+                    vector_index.emplace_back(i->str());
+                }
+            }
+            auto label = vector_index[0];
+            auto field = vector_index[1];
+            auto index_type = vector_index[2];
+            auto distance_type = vector_index[4];
+            int vec_dimension = std::stoi(vector_index[3]);
+            std::vector<int> index_spec;
+            std::regex pattern("-?[0-9]+\\.?[0-9]*");
+            std::sregex_iterator begin_it(vector_index[5].begin(),
+                                 vector_index[5].end(), pattern), end_it;
+            while (begin_it != end_it) {
+                std::smatch match = *begin_it;
+                index_spec.push_back(std::stof(match.str()));
+                ++begin_it;
+            }
+            if (index_type == "HNSW") {
+                LOG_INFO() << "Begin to rebuild vector index";
+                if (db->RebuildVectorIndex(label, field, index_type, vec_dimension,
+                    distance_type, index_spec, IndexType::GlobalUniqueIndex,
+                    true, txn)) {
+                    LOG_INFO() << "Rebuild vector index successfully";
+                } else {
+                    LOG_INFO() << "Can not build vector index successfully";
+                }
+            }
         } else {
             LOG_ERROR() << "Unknown index type: " << index_name;
         }
@@ -132,6 +180,35 @@ bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
 
     auto tbl = VertexIndex::OpenTable(txn, db_->GetStore(), idx.table_name, dt, type);
     index.reset(new VertexIndex(std::move(tbl), dt, type));  // creates index table
+    return true;
+}
+
+bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
+                                  const std::string& field, const std::string& index_type,
+                                  int vec_dimension, const std::string& distance_type,
+                                  std::vector<int>& index_spec, FieldType dt, IndexType type,
+                                  std::unique_ptr<VertexIndex>& index,
+                                  std::unique_ptr<VectorIndex>& vector_index) {
+    _detail::IndexEntry idx;
+    idx.label = label;
+    idx.field = field;
+    idx.table_name = GetVectorIndexTableName(label, field, index_type,
+                                vec_dimension, distance_type, index_spec);
+    idx.type = type;
+
+    auto it = index_list_table_->GetIterator(txn, Value::ConstRef(idx.table_name));
+    if (it->IsValid()) return false;  // already exist
+
+    Value idxv;
+    StoreIndex(idx, idxv);
+    it->AddKeyValue(Value::ConstRef(idx.table_name), idxv);
+
+    index = std::make_unique<VertexIndex>(nullptr, dt, type);  // no need to creates index table
+
+    if (index_type == "HNSW") {
+        vector_index.reset(dynamic_cast<lgraph::VectorIndex*> (new HNSW(label, field, distance_type,
+                            index_type, vec_dimension, index_spec)));
+    }
     return true;
 }
 
@@ -227,4 +304,32 @@ bool IndexManager::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
     return true;
 }
 
+bool IndexManager::DeleteVectorIndex(KvTransaction& txn, const std::string& label,
+                                     const std::string& field, const std::string& index_type,
+                                     int vec_dimension, const std::string& distance_type) {
+    std::string closest_table_name = label + _detail::NAME_SEPARATOR + field +
+               _detail::NAME_SEPARATOR + index_type + _detail::NAME_SEPARATOR +
+               std::to_string(vec_dimension) + _detail::NAME_SEPARATOR;
+    auto table_name = (index_list_table_->GetClosestIterator(txn,
+                        Value::ConstRef(closest_table_name))->GetKey()).AsString();
+    // delete the entry from index list table
+    if (!index_list_table_->DeleteKey(txn, Value::ConstRef(table_name)))
+        return false;  // does not exist
+                       // now delete the index table
+    return true;
+}
+
+bool IndexManager::GetVectorIndexListTableName(KvTransaction& txn,
+                                               std::vector<std::string>& table_name) {
+    auto it = index_list_table_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        auto key = it->GetKey();
+        auto name = key.AsString();
+        auto find = name.find(_detail::VECTOR_INDEX);
+        if (find != std::string::npos) {
+            table_name.emplace_back(name);
+        }
+    }
+    return !table_name.empty();
+}
 }  // namespace lgraph

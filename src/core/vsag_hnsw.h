@@ -16,39 +16,42 @@
 
 #include <vector>
 #include <cstdint>
-#include "core/vector_index_layer.h"
-#include "faiss/index_io.h"
-#include "faiss/impl/io.h"
-#include "faiss/IndexFlat.h"
-#include "faiss/IndexIVFFlat.h"
+#include <string>
+#include <unordered_set>
+#include <fstream>
+#include "tools/json.hpp"
+#include "core/vector_index.h"
+#include "vsag/vsag.h"
 
 namespace lgraph {
 
-class FaissIVFFlat : public VectorIndex {
+class HNSW : public VectorIndex {
   friend class Schema;
   friend class LightningGraph;
   friend class Transaction;
   friend class IndexManager;
 
-  faiss::IndexFlatL2* L2quantizer_;
-  faiss::IndexFlatIP* IPquantizer_;
-  faiss::IndexIVFFlat* index_;
+  std::shared_ptr<vsag::Index> createindex_;
+  vsag::Index* index_;
 
  public:
-  FaissIVFFlat(const std::string& label, const std::string& name,
+  HNSW(const std::string& label, const std::string& name,
                 const std::string& distance_type, const std::string& index_type,
-                int vec_dimension, std::vector<int> index_spec, std::shared_ptr<KvTable> table);
+                int vec_dimension, std::vector<int> index_spec);
 
-  FaissIVFFlat(const FaissIVFFlat& rhs);
+  HNSW(const HNSW& rhs);
 
-  FaissIVFFlat(FaissIVFFlat&& rhs) = delete;
+  HNSW(HNSW&& rhs) = delete;
 
-  FaissIVFFlat& operator=(const FaissIVFFlat& rhs) = delete;
+  ~HNSW() { index_ = nullptr; }
 
-  FaissIVFFlat& operator=(FaissIVFFlat&& rhs) = delete;
+  HNSW& operator=(const HNSW& rhs) = delete;
+
+  HNSW& operator=(HNSW&& rhs) = delete;
 
   // add vector to index and build index
-  bool Add(const std::vector<std::vector<float>>& vectors, size_t num_vectors) override;
+  bool Add(const std::vector<std::vector<float>>& vectors,
+           const std::vector<int64_t>& vids, int64_t num_vectors) override;
 
   // build index
   bool Build() override;
@@ -60,11 +63,17 @@ class FaissIVFFlat : public VectorIndex {
   void Load(std::vector<uint8_t>& idx_bytes) override;
 
   // search vector in index
-  bool Search(const std::vector<float> query, size_t num_results,
+  bool Search(const std::vector<float>& query, int64_t num_results,
               std::vector<float>& distances, std::vector<int64_t>& indices) override;
 
-  bool GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
-                           size_t num_results, std::vector<float>& distances,
-                           std::vector<int64_t>& indices) override;
+  template <typename T>
+  static void writeBinaryPOD(std::ostream& out, const T& podRef) {
+      out.write((char*)&podRef, sizeof(T));
+  }
+
+  template <typename T>
+  static void readBinaryPOD(std::istream& in, T& podRef) {
+      in.read((char*)&podRef, sizeof(T));
+  }
 };
 }  // namespace lgraph
