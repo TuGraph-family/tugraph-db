@@ -534,7 +534,7 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
     auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].constant.AsString());
     std::unordered_map<size_t, bool> unique_indexs;
     for (auto& index : index_fds) {
-        if (index.label == pf) {
+        if (index.field == pf) {
             continue;
         }
         if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
@@ -650,7 +650,7 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].constant.AsString());
     std::unordered_map<size_t, bool> unique_indexs;
     for (auto& index : index_fds) {
-        if (index.label == pf) {
+        if (index.field == pf) {
             continue;
         }
         if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
