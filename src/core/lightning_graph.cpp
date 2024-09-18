@@ -2230,6 +2230,7 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             uint64_t count = 0;
             std::vector<std::vector<float>> floatvector;
             std::vector<int64_t> vids;
+            auto dim = index->GetVecDimension();
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto prop = kv_iter->GetValue();
@@ -2238,15 +2239,18 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
                 }
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
-                floatvector.emplace_back(vector);
+                if (vector.size() != (size_t)dim) {
+                    THROW_CODE(InputError, "vector size error, size:{}, dim:{}", vector.size(), dim);
+                }
+                floatvector.emplace_back(std::move(vector));
                 vids.emplace_back(vid);
                 count++;
             }
-            LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model",
+            LOG_INFO() << FMA_FMT("start building vertex vector index for {}:{} in detached model",
                                     label, field);
             index->Build();
             index->Add(floatvector, vids, count);
-            LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model",
+            LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
                                     label, field);
             kv_iter.reset();
             LOG_DEBUG() << "index count: " << count;
@@ -2255,85 +2259,8 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
             return true;
         }
     }
-    LOG_INFO() << "only support detach mode in vertex now";
+    LOG_WARN() << "only support detach mode in vertex vector index now";
     txn.Abort();
-    return false;
-}
-
-bool LightningGraph::RebuildVectorIndex(const std::string& label, const std::string& field,
-                                const std::string& index_type, int vec_dimension,
-                                const std::string& distance_type, std::vector<int>& index_spec,
-                                IndexType type, bool is_vertex, KvTransaction& txn,
-                                bool known_vid_range,
-                                VertexId start_vid, VertexId end_vid) {
-    _HoldWriteLock(meta_lock_);
-    std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
-    Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
-                               : new_schema->e_schema_manager.GetSchema(label);
-    if (!schema) {
-        if (is_vertex)
-            THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
-        else
-            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
-    }
-    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
-    if (!extractor) {
-        if (is_vertex)
-            THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
-        else
-            THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
-    }
-    if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
-        return false;  // index already exist
-    if (is_vertex) {
-        std::unique_ptr<VertexIndex> vertex_index;
-        std::unique_ptr<VectorIndex> vector_index;
-        vertex_index = std::make_unique<VertexIndex>(nullptr, extractor->Type(), type);
-        if (index_type == "HNSW") {
-            vector_index.reset(dynamic_cast<lgraph::VectorIndex*> (
-                new HNSW(label, field, distance_type, index_type, vec_dimension, index_spec)));
-        }
-
-        vertex_index->SetReady();
-        schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
-        schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
-
-        if (extractor->GetVectorIndex() != nullptr) {
-            LOG_INFO() <<
-                FMA_FMT("set the vector index for {}:{}", label, field);
-        }
-
-        // detach property
-        if (schema->DetachProperty()) {
-            VectorIndex* index = extractor->GetVectorIndex();
-            uint64_t count = 0;
-            std::vector<std::vector<float>> floatvector;
-            std::vector<int64_t> vids;
-            auto kv_iter = schema->GetPropertyTable().GetIterator(txn);
-            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                auto prop = kv_iter->GetValue();
-                if (extractor->GetIsNull(prop)) {
-                    continue;
-                }
-                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
-                auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
-                floatvector.emplace_back(vector);
-                vids.emplace_back(vid);
-                count++;
-            }
-            LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model",
-                                    label, field);
-            index->Build();
-            index->Add(floatvector, vids, count);
-            LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model",
-                                    label, field);
-            kv_iter.reset();
-            LOG_DEBUG() << "index count: " << count;
-            schema_.Assign(new_schema.release());
-            return true;
-        }
-        return false;
-    }
     return false;
 }
 
@@ -2871,7 +2798,6 @@ bool LightningGraph::DeleteVectorIndex(const std::string& label, const std::stri
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
     bool index_exist =
         (is_vertex && extractor->GetVertexIndex()) || (!is_vertex && extractor->GetEdgeIndex());
-    LOG_DEBUG() << index_exist;
     if (!index_exist) return false;
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
     schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)

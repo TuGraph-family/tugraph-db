@@ -96,13 +96,10 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
         } else if (index_name.size() > vector_index_len &&
                    index_name.substr(index_name.size() - vector_index_len) ==
                        _detail::VECTOR_INDEX) {
-            LOG_INFO() << "Rebuild vector index soon";
             _detail::IndexEntry idx = LoadIndex(it->GetValue());
             FMA_DBG_CHECK_EQ(idx.table_name, it->GetKey().AsString());
             Schema* schema = v_schema_manager->GetSchema(idx.label);
             FMA_DBG_ASSERT(schema);
-            const _detail::FieldExtractor* fe = schema->GetFieldExtractor(idx.field);
-            FMA_DBG_ASSERT(fe);
             std::vector<std::string> vector_index;
             std::regex re(R"(_@lgraph@_|vector_index)");
             auto words_begin = std::sregex_token_iterator(index_name.begin(),
@@ -129,16 +126,43 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 index_spec.push_back(std::stof(match.str()));
                 ++begin_it;
             }
-            if (index_type == "HNSW") {
-                LOG_INFO() << "Begin to rebuild vector index";
-                if (db->RebuildVectorIndex(label, field, index_type, vec_dimension,
-                    distance_type, index_spec, IndexType::GlobalUniqueIndex,
-                    true, txn)) {
-                    LOG_INFO() << "Rebuild vector index successfully";
-                } else {
-                    LOG_INFO() << "Can not build vector index successfully";
+            FMA_DBG_ASSERT(index_type == "HNSW");
+            FMA_DBG_ASSERT(schema->DetachProperty());
+            LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model",
+                                  label, field);
+            const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(idx.field);
+            FMA_DBG_ASSERT(extractor);
+            std::unique_ptr<VectorIndex> vsag_index;
+            vsag_index.reset(dynamic_cast<lgraph::VectorIndex*> (
+                new HNSW(label, field, distance_type, index_type, vec_dimension, index_spec)));
+            uint64_t count = 0;
+            std::vector<std::vector<float>> floatvector;
+            std::vector<int64_t> vids;
+            auto kv_iter = schema->GetPropertyTable().GetIterator(txn);
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto prop = kv_iter->GetValue();
+                if (extractor->GetIsNull(prop)) {
+                    continue;
                 }
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
+                floatvector.emplace_back(vector);
+                vids.emplace_back(vid);
+                count++;
             }
+            vsag_index->Build();
+            vsag_index->Add(floatvector, vids, count);
+            kv_iter.reset();
+            LOG_DEBUG() << "index count: " << count;
+
+            std::unique_ptr<VertexIndex> vertex_index;
+            vertex_index = std::make_unique<VertexIndex>(nullptr, extractor->Type(), IndexType::NonuniqueIndex);
+            vertex_index->SetReady();
+            schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
+            schema->MarkVectorIndexed(extractor->GetFieldId(), vsag_index.release());
+
+            LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model",
+                                  label, field);
         } else {
             LOG_ERROR() << "Unknown index type: " << index_name;
         }

@@ -319,18 +319,18 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
         if (fe.GetIsNull(record)) continue;
         VectorIndex* index = fe.GetVectorIndex();
         if (fe.Type() == FieldType::FLOAT_VECTOR) {
-            // count++ and update vector index
             if (index->GetIndexType() == "HNSW") {
+                auto dim = index->GetVecDimension();
                 std::vector<std::vector<float>> floatvector;
                 std::vector<int64_t> vids;
                 floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
                 vids.push_back(vid);
-                if (!index->Add(floatvector, vids, 1)) {
+                if (floatvector.back().size() != (size_t)dim) {
                     THROW_CODE(InputError,
-                    "Failed to index vertex [{}] with field "
-                                                 "value [{}:{}]: index value already exists.",
-                            vid, fe.Name(), fe.FieldToString(record));
+                               "vector index dimension mismatch, vector size:{}, dim:{}",
+                               floatvector.back().size(), dim);
                 }
+                index->Add(floatvector, vids, 1);
             }
         }
     }
@@ -342,18 +342,10 @@ void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& re
         if (fe.GetIsNull(record)) continue;
         VectorIndex* index = fe.GetVectorIndex();
         if (fe.Type() == FieldType::FLOAT_VECTOR) {
-            // count++ and update vector index
             if (index->GetIndexType() == "HNSW") {
-                std::vector<std::vector<float>> floatvector;
                 std::vector<int64_t> vids;
-                floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
                 vids.push_back(vid);
-                if (!index->Add(floatvector, vids, 0)) {
-                    THROW_CODE(InputError,
-                    "Failed to un-index vertex [{}] with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                            vid, fe.Name(), fe.FieldToString(record));
-                }
+                index->Add({}, vids, 0);
             }
         }
     }
