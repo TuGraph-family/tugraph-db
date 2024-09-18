@@ -44,6 +44,9 @@ install(FILES
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../release/local/etc/lgraph.json
         DESTINATION etc)
+install(FILES
+        /usr/local/lib64/libvsag.so
+        DESTINATION lib64)
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../include
         DESTINATION ./)
 
