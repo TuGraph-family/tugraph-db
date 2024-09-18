@@ -156,7 +156,8 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             LOG_DEBUG() << "index count: " << count;
 
             std::unique_ptr<VertexIndex> vertex_index;
-            vertex_index = std::make_unique<VertexIndex>(nullptr, extractor->Type(), IndexType::NonuniqueIndex);
+            vertex_index = std::make_unique<VertexIndex>(
+                nullptr, extractor->Type(), IndexType::NonuniqueIndex);
             vertex_index->SetReady();
             schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
             schema->MarkVectorIndexed(extractor->GetFieldId(), vsag_index.release());

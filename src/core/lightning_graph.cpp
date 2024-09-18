@@ -2240,7 +2240,8 @@ bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std:
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
                 if (vector.size() != (size_t)dim) {
-                    THROW_CODE(InputError, "vector size error, size:{}, dim:{}", vector.size(), dim);
+                    THROW_CODE(InputError, "vector size error, size:{}, dim:{}",
+                               vector.size(), dim);
                 }
                 floatvector.emplace_back(std::move(vector));
                 vids.emplace_back(vid);

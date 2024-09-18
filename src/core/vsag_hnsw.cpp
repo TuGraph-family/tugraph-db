@@ -11,12 +11,11 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-
+#include <utility>
 #include "core/vsag_hnsw.h"
 #include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
 #include "lgraph/lgraph_exceptions.h"
-#include <utility>
 
 namespace lgraph {
 HNSW::HNSW(const std::string& label, const std::string& name,
@@ -44,7 +43,8 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
                     THROW_CODE(InputError, "failed to remove vector from index, vid:{}", vids[i]);
                 }
             } else {
-                THROW_CODE(InputError, "failed to remove vector from index, vid:{}, error:{}", vids[i], result.error().message);
+                THROW_CODE(InputError, "failed to remove vector from index, vid:{}, error:{}",
+                           vids[i], result.error().message);
             }
         }
         return true;

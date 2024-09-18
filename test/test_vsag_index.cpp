@@ -160,8 +160,8 @@ TEST_F(TestVsag, restart) {
         ret = client.CallCypher(str,
                                 "CALL db.upsertVertex('person', [{id:3, vector: [3.0,3.0,3.0,3.0]},"
                                 "{id:4, vector: [4.0,4.0,4.0,4.0]}])");
-        ret = client.CallCypher(str,
-                                "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 4, 10) YIELD node RETURN node.id");
+        ret = client.CallCypher(str,"CALL vector.VectorIndexQuery"  //NOLINT
+                                "('person','vector',[1,2,3,4], 4, 10) YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
         UT_EXPECT_TRUE(ret);
         server->Kill();
@@ -173,8 +173,9 @@ TEST_F(TestVsag, restart) {
         RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                          _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
         std::string str;
-        auto ret = client.CallCypher(str,
-                                "CALL vector.VectorIndexQuery('person','vector',[1,2,3,4], 4, 10) YIELD node RETURN node.id");
+        auto ret = client.CallCypher(str, "CALL vector.VectorIndexQuery"
+                                     "('person','vector',[1,2,3,4], 4, 10) "
+                                     "YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
         UT_EXPECT_TRUE(ret);
         server->Kill();
