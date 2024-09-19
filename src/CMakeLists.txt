@@ -56,8 +56,7 @@ install(FILES
         /usr/local/lib64/libmkl_intel_thread.so
         /usr/local/lib64/libiomp5.so
         /lib64/libgfortran.so.5
-        /usr/local/lib64/libgcc_s.so.1
-        /usr/local/lib64/libquadmath.so.0
+        /lib64/libgfortran.so.5.0.0
         DESTINATION lib64)
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../include
         DESTINATION ./)
