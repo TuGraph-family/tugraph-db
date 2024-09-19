@@ -445,12 +445,7 @@ struct ArithOperandNode {
                    const SymbolTable &sym_tab);
     void SetParameter(const std::string &param) {
         type = AR_OPERAND_PARAMETER;
-        if (std::isdigit(param[1])) {
-            variadic.alias = param;
-            variadic.alias_idx = std::stoi(param.substr(1));
-        } else {
-            variadic.alias = param;
-        }
+        variadic.alias = param;
     }
 
     void SetParameter(const std::string &param, const SymbolTable &sym_tab);
@@ -481,10 +476,6 @@ struct ArithOperandNode {
                 CYPHER_TODO();
             }
         } else if (type == AR_OPERAND_PARAMETER) {
-            if (std::isdigit(variadic.alias[1])) {
-                // query plan parameters
-                return Entry(ctx->query_params_[variadic.alias_idx]);
-            }
             if (record.values[variadic.alias_idx].type == Entry::UNKNOWN) {
                 throw lgraph::CypherException("Undefined parameter: " + ToString());
             }
@@ -727,9 +718,17 @@ struct ArithExprNode {
 
     void SetOperand(ArithOperandNode::ArithOperandType operand_type,
                     const cypher::FieldData &data) {
+        // @todo(anyone) below assertion throws excpetion when set parameter operand.
         CYPHER_THROW_ASSERT(operand_type == ArithOperandNode::AR_OPERAND_CONSTANT);
         type = AR_EXP_OPERAND;
         operand.SetConstant(data);
+    }
+
+    void SetOperandParameter(ArithOperandNode::ArithOperandType operand_type,
+                    const std::string &param, const SymbolTable &sym_tab) {
+        CYPHER_THROW_ASSERT(operand_type == ArithOperandNode::AR_OPERAND_PARAMETER);
+        type = AR_EXP_OPERAND;
+        operand.SetParameter(param, sym_tab);
     }
 
     void SetOperandVariable(ArithOperandNode::ArithOperandType operand_type,

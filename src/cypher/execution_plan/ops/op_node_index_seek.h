@@ -73,19 +73,13 @@ class NodeIndexSeek : public OpBase {
         if (pf.type == Property::VALUE) {
             target_values_.emplace_back(pf.value);
         } else if (pf.type == Property::PARAMETER) {
-            if (std::isdigit(pf.value_alias[1])) {
-                // for plan cache (e.g. $n)
-                target_values_.emplace_back(ctx->query_params_[std::stoi(pf.value_alias.substr(1))].scalar);
-            } else {
-                // for named parameter
-                auto it = ctx->param_tab_.find(pf.value_alias);
-                if (it == ctx->param_tab_.end())
-                    throw lgraph::CypherException("invalid parameter: " + pf.value_alias);
-                if (it->second.type != cypher::FieldData::SCALAR) {
-                    throw lgraph::CypherException("parameter with wrong type: " + pf.value_alias);
-                }
-                target_values_.emplace_back(it->second.scalar);
+            auto it = ctx->param_tab_.find(pf.value_alias);
+            if (it == ctx->param_tab_.end())
+                throw lgraph::CypherException("invalid parameter: " + pf.value_alias);
+            if (it->second.type != cypher::FieldData::SCALAR) {
+                throw lgraph::CypherException("parameter with wrong type: " + pf.value_alias);
             }
+            target_values_.emplace_back(it->second.scalar);
         } else if (pf.type == Property::VARIABLE) {
             CYPHER_TODO();
         }

@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     //     return 1;
     // }
     // std::string query = argv[1];
-    std::string query = "MATCH (a) WHERE a.name IN ['Rachel Kempson'] RETURN a";
+    std::string query = "MATCH (a:Person {name:'Vanessa Redgrave'}) RETURN a,-2,9.78,'im a string'";
     // std::string path = ""
     lgraph::Galaxy::Config gconf;
     gconf.dir = "./testdb";
@@ -46,11 +46,14 @@ int main(int argc, char* argv[]) {
     // 构建 test suit RTContext
     std::string param_query = fastQueryParam(&ctx, query);
     std::cout<<param_query<<std::endl;
-    for (size_t i = 0; i < ctx.query_params_.size(); i++) {
-        std::cout<<ctx.query_params_[i].ToString()<<", ";
+    std::cout<<std::endl;
+    for (auto param: ctx.param_tab_) {
+        std::cout<<param.first<<": "<<param.second.ToString()<<", ";
     }
     std::cout<<std::endl;
 
+    // std::string eval_res = eval(query);
+    // std::cout << "eval_res: " << eval_res << std::endl;
     // 根据参数化的查询进行语法解析
     antlr4::ANTLRInputStream input_stream(param_query);
     parser::LcypherLexer lexer(&input_stream);
@@ -66,13 +69,12 @@ int main(int argc, char* argv[]) {
     plan = std::make_shared<cypher::ExecutionPlan>();
     plan->PreValidate(&ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
     plan->Build(visitor.GetQuery(), visitor.CommandType(), &ctx);
+    std::cout<<plan->DumpPlan(0, false)<<std::endl;
     plan->Execute(&ctx);
 
     std::string cache_res = ctx.result_->Dump(false);
-    // std::string eval_res = eval(query);
 
     std::cout << "cache_res: " << cache_res << std::endl;
-    // std::cout << "eval_res: " << eval_res << std::endl;
     return 0;
 }
 

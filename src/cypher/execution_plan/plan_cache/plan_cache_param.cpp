@@ -25,6 +25,11 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     std::string param_query = query;
     
     bool prev_limit_skip = false;
+    int param_num = 0;
+    if (tokens[0]->getType() == parser::LcypherParser::CALL) {
+        // Don't parameterize plugin CALL statements
+        return query;
+    }
     for (size_t i = 0; i < tokens.size(); i++) {
         parser::Expression expr;
         bool is_param;
@@ -43,7 +48,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
             }
             expr.type = parser::Expression::STRING;
             expr.data = std::make_shared<std::string>(std::move(res));
-            ctx->query_params_.emplace_back(MakeFieldData(expr));
+            ctx->param_tab_.emplace("$" + std::to_string(param_num), MakeFieldData(expr));
             is_param = true;
             break;
         }
@@ -56,7 +61,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
             // Integer literal
             expr.type = parser::Expression::DataType::INT;
             expr.data = std::stol(tokens[i]->getText());
-            ctx->query_params_.emplace_back(MakeFieldData(expr));
+            ctx->param_tab_.emplace("$" + std::to_string(param_num), MakeFieldData(expr));
             is_param = true;
             break;
         }
@@ -65,21 +70,21 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
             // Double literal
             expr.type = parser::Expression::DataType::DOUBLE;
             expr.data = std::stod(tokens[i]->getText());
-            ctx->query_params_.emplace_back(MakeFieldData(expr));
+            ctx->param_tab_.emplace("$" + std::to_string(param_num), MakeFieldData(expr));
             is_param = true;
             break;
         }
         case parser::LcypherParser::TRUE_: {
             expr.type = parser::Expression::DataType::BOOL;
             expr.data = true;
-            ctx->query_params_.emplace_back(MakeFieldData(expr));
+            ctx->param_tab_.emplace("$" + std::to_string(param_num), MakeFieldData(expr));
             is_param = true;
             break;
         }
         case parser::LcypherParser::FALSE_: {
             expr.type = parser::Expression::DataType::BOOL;
             expr.data = false;
-            ctx->query_params_.emplace_back(MakeFieldData(expr));
+            ctx->param_tab_.emplace("$" + std::to_string(param_num), MakeFieldData(expr));
             is_param = true;
             break;
         }
@@ -92,10 +97,11 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
             size_t start_index = tokens[i]->getStartIndex() - delete_size;
             size_t end_index = tokens[i]->getStopIndex() - delete_size;
             // Indicate the position in raw parameterized query
-            std::string count = "$" + std::to_string(ctx->query_params_.size() - 1);
+            std::string count = "$" + std::to_string(param_num);
             param_query.replace(start_index, end_index - start_index + 1, count);
             delete_size += (end_index - start_index + 1) - count.size();
             is_param = false;
+            param_num++;
         }
         if (tokens[i]->getType() == parser::LcypherParser::LIMIT ||
             tokens[i]->getType() == parser::LcypherParser::L_SKIP) {

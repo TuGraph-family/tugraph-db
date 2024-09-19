@@ -928,7 +928,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             std::string parameter_val = ctx->oC_Parameter()->getText();
             if (ctx_->bolt_parameters_) {
                 auto iter = ctx_->bolt_parameters_->find(parameter_val);
-                if (iter == ctx_->bolt_parameters_->end()) {
+                if (iter != ctx_->bolt_parameters_->end()) {
                     throw lgraph::CypherException(
                         FMA_FMT("Parameter {} missing value", parameter_val));
                 }
@@ -938,6 +938,7 @@ class CypherBaseVisitor : public LcypherVisitor {
                 }
                 return std::make_tuple(iter->second, parameter);
             }
+
         }
         CYPHER_TODO();
     }
@@ -1805,10 +1806,7 @@ class CypherBaseVisitor : public LcypherVisitor {
     }
 
     std::any visitOC_Parameter(LcypherParser::OC_ParameterContext *ctx) override {
-        Expression expr;
-        expr.type = Expression::PARAMETER;
-        expr.data = std::stol(ctx->getText());
-        return expr;
+        return visitChildren(ctx);
     }
 
     std::any visitOC_PropertyExpression(
