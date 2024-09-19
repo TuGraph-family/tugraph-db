@@ -372,8 +372,8 @@ RUN wget -O /tmp/vsag.tar.gz https://tugraph-web.oss-cn-beijing.aliyuncs.com/tug
     && make install && rm -rf /tmp/vsag /tmp/vsag.tar.gz /opt/intel
 
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
-    LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
-    PYTHONPATH=/usr/local/lib64:$PYTHONPATH \
+    LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lgraph/lib64:/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
 
 # set locale

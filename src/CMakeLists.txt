@@ -16,7 +16,7 @@ include(BuildBoltLib.cmake)
 
 install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_db_python
         RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib64)
+        LIBRARY DESTINATION lgraph/lib64)
 install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
         DESTINATION share/lgraph)
@@ -57,7 +57,7 @@ install(FILES
         /usr/local/lib64/libiomp5.so
         /lib64/libgfortran.so.5
         /lib64/libgfortran.so.5.0.0
-        DESTINATION lib64)
+        DESTINATION lgraph/lib64)
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../include
         DESTINATION ./)
 
