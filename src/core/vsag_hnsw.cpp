@@ -11,10 +11,11 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-
-#include "core/vsag_hnsw.h"
-
 #include <utility>
+#include "core/vsag_hnsw.h"
+#include "tools/lgraph_log.h"
+#include "fma-common/string_formatter.h"
+#include "lgraph/lgraph_exceptions.h"
 
 namespace lgraph {
 HNSW::HNSW(const std::string& label, const std::string& name,
@@ -37,8 +38,13 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
     if (num_vectors == 0) {
         for (size_t i = 0; i < vids.size(); i++) {
             auto result = index_->Remove(static_cast<int64_t>(vids[i]));
-            if (!result.has_value() || !result.value()) {
-                return false;
+            if (result.has_value()) {
+                if (!result.value()) {
+                    THROW_CODE(InputError, "failed to remove vector from index, vid:{}", vids[i]);
+                }
+            } else {
+                THROW_CODE(InputError, "failed to remove vector from index, vid:{}, error:{}",
+                           vids[i], result.error().message);
             }
         }
         return true;
@@ -56,6 +62,13 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
         dataset->Dim(vec_dimension_)->NumElements(num_vectors)
                ->Ids(ids)->Float32Vectors(index_vectors);
         auto result = index_->Add(dataset);
+        if (result.has_value()) {
+            if (!result.value().empty()) {
+                THROW_CODE(InputError, "add vector into index, {} failed", result.value().size());
+            }
+        } else {
+            THROW_CODE(InputError, "add vector into index, error:{}", result.error().message);
+        }
         return result.has_value();
     } else {
         delete[] ids;
@@ -92,6 +105,7 @@ bool HNSW::Build() {
         createindex_ = std::move(temp.value());
         index_ = createindex_.get();
     } else {
+        LOG_WARN() << FMA_FMT("create vsag index error: {}", temp.error().message);
         return false;
     }
     return true;
