@@ -39,7 +39,7 @@ class HNSW : public VectorIndex {
                 const std::string& distance_type, const std::string& index_type,
                 int vec_dimension, std::vector<int> index_spec);
 
-  HNSW(const HNSW& rhs);
+  HNSW(const HNSW& rhs) = delete;
 
   HNSW(HNSW&& rhs) = delete;
 

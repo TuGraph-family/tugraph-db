@@ -52,7 +52,7 @@ class TestVsag : public TuGraphTest {
             }
         }
         vector_index =
-            std::make_unique<lgraph::HNSW>("label", "name", "L2", "HNSW", dim, index_spec);
+            std::make_unique<lgraph::HNSW>("label", "name", "l2", "hnsw", dim, index_spec);
     }
     void TearDown() override {}
 };
@@ -79,7 +79,7 @@ TEST_F(TestVsag, SaveAndLoadIndex) {
     EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
     std::vector<uint8_t> serialized_index = vector_index->Save();
     ASSERT_FALSE(serialized_index.empty());
-    lgraph::HNSW vector_index_loaded("label", "name", "L2", "HNSW", dim, index_spec);
+    lgraph::HNSW vector_index_loaded("label", "name", "l2", "hnsw", dim, index_spec);
     ASSERT_TRUE(vector_index_loaded.Build());
     vector_index_loaded.Load(serialized_index);
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
@@ -148,7 +148,7 @@ TEST_F(TestVsag, restart) {
                               "'person','id','id','int64',false,'vector','float_vector',true)");
         UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(
-            str, "CALL db.AddVertexVectorIndex('person','vector', {dimension:4})");
+            str, "CALL db.addVertexVectorIndex('person','vector', {dimension:4})");
         UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(str, "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
         UT_EXPECT_TRUE(ret);
@@ -157,9 +157,26 @@ TEST_F(TestVsag, restart) {
         ret = client.CallCypher(str,
                                 "CALL db.upsertVertex('person', [{id:3, vector: [3.0,3.0,3.0,3.0]},"
                                 "{id:4, vector: [4.0,4.0,4.0,4.0]}])");
+        UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(str,"CALL db.vertexVectorIndexQuery"  //NOLINT
-                                "('person','vector',[1,2,3,4], 4, 10) YIELD node RETURN node.id");
+                                "('person','vector',[1,2,3,4], {top_k:4, hnsw_ef_search:10}) YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
+        UT_EXPECT_TRUE(ret);
+        server->Kill();
+        server->Wait();
+    }
+    {
+        auto server = StartLGraphServer(conf);
+        // create graphs
+        RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
+                         _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
+        std::string str;
+        auto ret = client.CallCypher(str, "CALL db.vertexVectorIndexQuery"
+                                     "('person','vector',[1,2,3,4], {top_k:4, hnsw_ef_search:10}) "
+                                     "YIELD node RETURN node.id");
+        UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "CALL db.alterLabelDelFields('vertex', 'person', ['vector'])");
         UT_EXPECT_TRUE(ret);
         server->Kill();
         server->Wait();
@@ -173,8 +190,7 @@ TEST_F(TestVsag, restart) {
         auto ret = client.CallCypher(str, "CALL db.vertexVectorIndexQuery"
                                      "('person','vector',[1,2,3,4], 4, 10) "
                                      "YIELD node RETURN node.id");
-        UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
-        UT_EXPECT_TRUE(ret);
+        UT_EXPECT_FALSE(ret);
         server->Kill();
         server->Wait();
     }

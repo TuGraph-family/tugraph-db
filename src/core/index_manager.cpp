@@ -194,10 +194,8 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
     Value idxv;
     StoreVectorIndex(idx, idxv);
     it->AddKeyValue(Value::ConstRef(table_name), idxv);
-    if (index_type == "hnsw") {
-        vector_index = std::make_unique<HNSW>(label, field, distance_type,
+    vector_index = std::make_unique<HNSW>(label, field, distance_type,
                             index_type, vec_dimension, index_spec);
-    }
     return true;
 }
 

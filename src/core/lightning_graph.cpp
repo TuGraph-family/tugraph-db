@@ -832,6 +832,8 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
                 // delete fulltext index
                 index_manager_->DeleteFullTextIndex(txn.GetTxn(), is_vertex, label,
                                                     extractor->Name());
+            } else if (extractor->GetVectorIndex()) {
+                index_manager_->DeleteVectorIndex(txn.GetTxn(), label, extractor->Name());
             }
         }
         auto composite_index_key = curr_schema->GetRelationalCompositeIndexKey(fids);

@@ -26,11 +26,6 @@ HNSW::HNSW(const std::string& label, const std::string& name,
                     vec_dimension, std::move(index_spec)),
       createindex_(nullptr), index_(createindex_.get()) {}
 
-HNSW::HNSW(const HNSW& rhs)
-    : VectorIndex(rhs),
-      createindex_(rhs.createindex_),
-      index_(createindex_.get()) {}
-
 // add vector to index
 void HNSW::Add(const std::vector<std::vector<float>>& vectors,
                const std::vector<int64_t>& vids, int64_t num_vectors) {
@@ -190,11 +185,9 @@ HNSW::Search(const std::vector<float>& query, int64_t num_results, int ef_search
     nlohmann::json parameters{
         {"hnsw", {{"ef_search", ef_search}}},
     };
-    LOG_INFO() << "index_->GetNumElements(): " << index_->GetNumElements();
     std::vector<std::pair<int64_t, float>> ret;
     auto result = index_->KnnSearch(dataset, num_results, parameters.dump());
     if (result.has_value()) {
-        LOG_INFO() << "result.value()->GetDim():" << result.value()->GetDim();
         for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
             ret.emplace_back(result.value()->GetIds()[i], result.value()->GetDistances()[i]);
         }

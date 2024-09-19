@@ -56,7 +56,7 @@ class FieldExtractor {
     // fulltext index
     bool fulltext_indexed_ = false;
     // vector index
-    std::unique_ptr<VectorIndex> vector_index_;
+    std::shared_ptr<VectorIndex> vector_index_;
 
  public:
     FieldExtractor() : null_bit_off_(0), vertex_index_(nullptr),
@@ -74,16 +74,7 @@ class FieldExtractor {
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
-        if (rhs.vector_index_ != nullptr) {
-            if (rhs.vector_index_->GetIndexType() == "HNSW") {
-                vector_index_.reset(new HNSW(
-                    dynamic_cast<HNSW&>(*rhs.vector_index_)));
-            } else {
-                vector_index_.reset(nullptr);
-            }
-        } else {
-            vector_index_.reset(nullptr);
-        }
+        vector_index_ = rhs.vector_index_;
     }
 
     FieldExtractor& operator=(const FieldExtractor& rhs) {
@@ -97,16 +88,7 @@ class FieldExtractor {
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
-        if (rhs.vector_index_ != nullptr) {
-            if (rhs.vector_index_->GetIndexType() == "HNSW") {
-                vector_index_.reset(new HNSW(
-                    dynamic_cast<HNSW&>(*rhs.vector_index_)));
-            } else {
-                vector_index_.reset(nullptr);
-            }
-        } else {
-            vector_index_.reset(nullptr);
-        }
+        vector_index_ = rhs.vector_index_;
         return *this;
     }
 
