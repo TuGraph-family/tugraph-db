@@ -301,8 +301,8 @@ bool IndexManager::DeleteVectorIndex(KvTransaction& txn, const std::string& labe
     return true;
 }
 
-std::vector<_detail::VectorIndexEntry> IndexManager::ListVectorIndex(KvTransaction& txn) {
-    std::vector<_detail::VectorIndexEntry> ret;
+std::vector<VectorIndexSpec> IndexManager::ListVectorIndex(KvTransaction& txn) {
+    std::vector<VectorIndexSpec> ret;
     auto it = index_list_table_->GetIterator(txn);
     for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
         auto key = it->GetKey();
@@ -310,7 +310,16 @@ std::vector<_detail::VectorIndexEntry> IndexManager::ListVectorIndex(KvTransacti
         auto name = key.AsString();
         auto find = name.find(_detail::VERTEX_VECTOR_INDEX);
         if (find != std::string::npos) {
-            ret.push_back(LoadVectorIndex(val));
+            auto vi = LoadVectorIndex(val);
+            VectorIndexSpec vs;
+            vs.label = vi.label;
+            vs.field = vi.field;
+            vs.index_type = vi.index_type;
+            vs.dimension = vi.dimension;
+            vs.distance_type = vi.distance_type;
+            vs.hnsm_m = vi.hnsm_m;
+            vs.hnsm_ef_construction = vi.hnsm_ef_construction;
+            ret.emplace_back(vs);
         }
     }
     return ret;

@@ -97,7 +97,7 @@ class LightningGraph {
         if (fulltext_index_) fulltext_index_->Commit();
     }
 
-    std::vector<_detail::VectorIndexEntry> ListVectorIndex(KvTransaction& txn);
+    std::vector<VectorIndexSpec> ListVectorIndex(KvTransaction& txn);
 
     /** Drop all the data in the graph. */
     void DropAllData();

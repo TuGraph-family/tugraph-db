@@ -4189,14 +4189,14 @@ void VectorFunc::AddVertexVectorIndex(RTContext *ctx, const cypher::Record *reco
     CYPHER_ARG_CHECK((distance_type == "l2" || distance_type == "ip"),
                      "Distance type should be one of them : l2, ip");
     int hnsm_m = 16;
-    if (parameter.count("hnsm.m")) {
-        hnsm_m = (int)parameter.at("hnsm.m").AsInt64();
+    if (parameter.count("hnsm_m")) {
+        hnsm_m = (int)parameter.at("hnsm_m").AsInt64();
     }
     CYPHER_ARG_CHECK((hnsm_m < 2048 && hnsm_m > 2),
                      "M should be an integer in the range (2,2048)");
     int hnsm_ef_construction = 100;
-    if (parameter.count("hnsm.ef_construction")) {
-        hnsm_ef_construction = (int)parameter.at("hnsm.ef_construction").AsInt64();
+    if (parameter.count("hnsm_ef_construction")) {
+        hnsm_ef_construction = (int)parameter.at("hnsm_ef_construction").AsInt64();
     }
     CYPHER_ARG_CHECK((hnsm_ef_construction < 65536 && hnsm_ef_construction > 1),
                      "efConstruction should be an integer in the range (1,65536)");
@@ -4293,27 +4293,21 @@ void VectorFunc::VertexVectorIndexQuery(RTContext *ctx, const cypher::Record *re
         }
         query_vector.push_back(fltValue);
     }
-    auto SchemaInfo = ctx->txn_->GetTxn()->GetSchemaInfo();
-    ::lgraph::Schema* schema =
-        SchemaInfo.v_schema_manager.GetSchema(args[0].constant.AsString());
-    auto extr = schema->GetFieldExtractor(args[1].constant.AsString());
-    if (!extr->GetVertexIndex()) {
-        throw lgraph::VectorIndexNotExistException(args[0].constant.AsString(),
-                                                   args[1].constant.AsString());
-    }
+    auto label = args[0].constant.AsString();
+    auto field = args[1].constant.AsString();
+    auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(label, field);
     int top_k = 10;
     auto parameter =  *args[3].constant.map;
     if (parameter.count("top_k")) {
         top_k = parameter.at("top_k").AsInt64();
     }
     int ef_search = 100;
-    if (parameter.count("hnsw.ef_search")) {
-        ef_search = parameter.at("hnsw.ef_search").AsInt64();
+    if (parameter.count("hnsw_ef_search")) {
+        ef_search = parameter.at("hnsw_ef_search").AsInt64();
     }
     CYPHER_ARG_CHECK((ef_search <= 65536 && ef_search >= top_k),
                      "Please check the parameter,"
                      "ef should be an integer in the range [top_k, 65536]");
-    lgraph::VectorIndex* index = extr->GetVectorIndex();
     auto res = index->Search(query_vector, top_k, ef_search);
     for (auto& item : res) {
         Record r;

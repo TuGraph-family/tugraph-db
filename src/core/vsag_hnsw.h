@@ -50,7 +50,7 @@ class HNSW : public VectorIndex {
   HNSW& operator=(HNSW&& rhs) = delete;
 
   // add vector to index and build index
-  bool Add(const std::vector<std::vector<float>>& vectors,
+  void Add(const std::vector<std::vector<float>>& vectors,
            const std::vector<int64_t>& vids, int64_t num_vectors) override;
 
   // build index

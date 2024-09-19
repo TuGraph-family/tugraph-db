@@ -2851,7 +2851,7 @@ void LightningGraph::DropAllIndex() {
     }
 }
 
-std::vector<_detail::VectorIndexEntry> LightningGraph::ListVectorIndex(KvTransaction& txn) {
+std::vector<VectorIndexSpec> LightningGraph::ListVectorIndex(KvTransaction& txn) {
     return index_manager_->ListVectorIndex(txn);
 }
 

@@ -65,7 +65,7 @@ class VectorIndex {
     int GetVecDimension() { return vec_dimension_; }
 
     // add vector to index and build index
-    virtual bool Add(const std::vector<std::vector<float>>& vectors,
+    virtual void Add(const std::vector<std::vector<float>>& vectors,
                  const std::vector<int64_t>& vids, int64_t num_vectors) = 0;
 
     // build index

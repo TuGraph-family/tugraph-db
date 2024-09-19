@@ -170,18 +170,6 @@ class IndexManager {
                _detail::VERTEX_VECTOR_INDEX;
     }
 
-    static void GetLabelAndFieldFromTableName(const std::string& table_name, std::string& label,
-                                              std::string& field) {
-        size_t sep_len = strlen(_detail::NAME_SEPARATOR);
-        size_t pos = table_name.find(_detail::NAME_SEPARATOR);
-        FMA_ASSERT(pos != table_name.npos);
-        label = table_name.substr(0, pos);
-        pos += sep_len;
-        size_t next_pos = table_name.find(_detail::NAME_SEPARATOR, pos);
-        FMA_ASSERT(next_pos != table_name.npos);
-        field = table_name.substr(pos, next_pos - pos);
-    }
-
     static _detail::IndexEntry LoadIndex(const Value& v) {
         fma_common::BinaryBuffer buf(v.Data(), v.Size());
         _detail::IndexEntry idx;
@@ -296,7 +284,7 @@ class IndexManager {
     bool DeleteFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                              const std::string& field);
 
-    std::vector<_detail::VectorIndexEntry> ListVectorIndex(KvTransaction& txn);
+    std::vector<VectorIndexSpec> ListVectorIndex(KvTransaction& txn);
 
     // vertex index
     std::pair<std::vector<IndexSpec>, std::vector<CompositeIndexSpec>> ListAllIndexes(
