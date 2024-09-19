@@ -125,6 +125,105 @@ int ElementCount_vector(const web::json::value& val,
     return count;
 }
 
+TEST_F(TestVsag, restart) {
+    using namespace lgraph;
+    lgraph::GlobalConfig conf;
+    conf.db_dir = "./testdb";
+    conf.http_port = 7774;
+    conf.enable_rpc = true;
+    conf.rpc_port = 9394;
+    conf.bind_host = "127.0.0.1";
+#ifdef __SANITIZE_ADDRESS__
+    conf.use_pthread = true;
+#endif
+    AutoCleanDir cleaner(conf.db_dir);
+    {
+        auto server = StartLGraphServer(conf);
+        // create graphs
+        RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
+                         _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
+        UT_LOG() << "test AddVectorIndex , DeleteVectorIndex , ShowVectorIndex , VectorIndexQuery";
+        std::string str;
+        // vector.AddVectorIndex test
+        bool ret =
+            client.CallCypher(str,
+                              "CALL db.createVertexLabel("
+                              "'person','id','id','int64',false,'vector','float_vector',true)");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(
+            str, "CALL vector.AddVectorIndex('person','vector','HNSW',4,'L2',24,100)");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str, "CREATE (n:person {id:2, vector: [2.0,2.0,2.0,2.0]})");
+        UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(str,
+                                "CALL db.upsertVertex('person', [{id:3, vector: [3.0,3.0,3.0,3.0]},"
+                                "{id:4, vector: [4.0,4.0,4.0,4.0]}])");
+        ret = client.CallCypher(str,"CALL vector.VectorIndexQuery"  //NOLINT
+                                "('person','vector',[1,2,3,4], 4, 10) YIELD node RETURN node.id");
+        UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
+        UT_EXPECT_TRUE(ret);
+        server->Kill();
+        server->Wait();
+    }
+    {
+        auto server = StartLGraphServer(conf);
+        // create graphs
+        RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
+                         _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
+        std::string str;
+        auto ret = client.CallCypher(str, "CALL vector.VectorIndexQuery"
+                                     "('person','vector',[1,2,3,4], 4, 10) "
+                                     "YIELD node RETURN node.id");
+        UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
+        UT_EXPECT_TRUE(ret);
+        server->Kill();
+        server->Wait();
+    }
+}
+
+TEST_F(TestVsag, error) {
+    using namespace lgraph;
+    lgraph::GlobalConfig conf;
+    conf.db_dir = "./testdb";
+    conf.http_port = 7774;
+    conf.enable_rpc = true;
+    conf.rpc_port = 9394;
+    conf.bind_host = "127.0.0.1";
+#ifdef __SANITIZE_ADDRESS__
+    conf.use_pthread = true;
+#endif
+
+    AutoCleanDir cleaner(conf.db_dir);
+    auto server = StartLGraphServer(conf);
+    // create graphs
+    RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
+                     _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
+    UT_LOG() << "test AddVectorIndex , DeleteVectorIndex , ShowVectorIndex , VectorIndexQuery";
+    std::string str;
+    // vector.AddVectorIndex test
+    bool ret = client.CallCypher(str,
+                                 "CALL db.createVertexLabel("
+                                 "'person','id','id','int64',false,'vector','float_vector',true)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL vector.AddVectorIndex('person','vector','HNSW',4,'L2',24,100)");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CREATE (n:person {id:2, vector: [1.0,1.0,1.0]})");
+    UT_EXPECT_FALSE(ret);
+    UT_EXPECT_TRUE(str.find("dimension mismatch") != std::string::npos);
+    ret = client.CallCypher(str, R"(CALL db.upsertVertex('person', [{id:3, vector: [4.0,4.0,4.0]}]))");
+    UT_EXPECT_FALSE(ret);
+    UT_EXPECT_TRUE(str.find("dimension mismatch") != std::string::npos);
+    server->Kill();
+    server->Wait();
+}
+
 TEST_F(TestVsag, VectorProcedure) {
     using namespace lgraph;
     lgraph::GlobalConfig conf;
