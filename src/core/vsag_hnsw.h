@@ -63,8 +63,7 @@ class HNSW : public VectorIndex {
   void Load(std::vector<uint8_t>& idx_bytes) override;
 
   // search vector in index
-  bool Search(const std::vector<float>& query, int64_t num_results,
-              std::vector<float>& distances, std::vector<int64_t>& indices) override;
+  std::vector<std::pair<int64_t, float>> Search(const std::vector<float>& query, int64_t num_results, int ef_search) override;
 
   template <typename T>
   static void writeBinaryPOD(std::ostream& out, const T& podRef) {

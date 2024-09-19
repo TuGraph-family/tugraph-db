@@ -82,24 +82,12 @@ bool HNSW::Build() {
         {"max_degree", index_spec_[0]},
         {"ef_construction", index_spec_[1]}
     };
-    nlohmann::json index_parameters;
-    if (distance_type_ == "L2") {
-        index_parameters = {
-            {"dtype", "float32"},
-            {"metric_type", "l2"},
-            {"dim", vec_dimension_},
-            {"hnsw", hnsw_parameters}
-        };
-    } else if (distance_type_ == "IP") {
-        index_parameters = {
-            {"dtype", "float32"},
-            {"metric_type", "ip"},
-            {"dim", vec_dimension_},
-            {"hnsw", hnsw_parameters}
-        };
-    } else {
-        return false;
-    }
+    nlohmann::json index_parameters {
+        {"dtype", "float32"},
+        {"metric_type", distance_type_},
+        {"dim", vec_dimension_},
+        {"hnsw", hnsw_parameters}
+    };
     auto temp = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
     if (temp.has_value()) {
         createindex_ = std::move(temp.value());
@@ -199,31 +187,27 @@ void HNSW::Load(std::vector<uint8_t>& idx_bytes) {
 }
 
 // search vector in index
-bool HNSW::Search(const std::vector<float>& query, int64_t num_results,
-                          std::vector<float>& distances, std::vector<int64_t>& indices) {
-    if (!index_) {
-        return false;
-    }
-    float* query_copy = new float[query.size()];
+std::vector<std::pair<int64_t, float>>
+HNSW::Search(const std::vector<float>& query, int64_t num_results, int ef_search) {
+    auto* query_copy = new float[query.size()];
     std::copy(query.begin(), query.end(), query_copy);
     auto dataset = vsag::Dataset::Make();
     dataset->Dim(vec_dimension_)
            ->NumElements(1)
            ->Float32Vectors(query_copy);
     nlohmann::json parameters{
-        {"hnsw", {{"ef_search", query_spec_}}},
+        {"hnsw", {{"ef_search", ef_search}}},
     };
-    if (index_->GetNumElements() < num_results) {
-        return false;
-    }
+    std::vector<std::pair<int64_t, float>> ret;
     auto result = index_->KnnSearch(dataset, num_results, parameters.dump());
     if (result.has_value()) {
         for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
-            indices.push_back(result.value()->GetIds()[i]);
-            distances.push_back(result.value()->GetDistances()[i]);
+            ret.emplace_back(result.value()->GetIds()[i], result.value()->GetDistances()[i]);
         }
-        return true;
+    } else {
+        THROW_CODE(VectorIndexException, result.error().message);
     }
-    return false;
+    return ret;
 }
+
 }  // namespace lgraph

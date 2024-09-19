@@ -231,13 +231,14 @@ bool lgraph::AccessControlledDB::AddEdgeIndex(const std::string& label, const st
     return graph_->BlockingAddIndex(label, field, type, false);
 }
 
-bool lgraph::AccessControlledDB::AddVectorIndex(const std::string& label, const std::string& field,
+bool lgraph::AccessControlledDB::AddVectorIndex(bool is_vertex, const std::string& label,
+                                                const std::string& field,
                                                 const std::string& index_type,
                                                 int vec_dimension, const std::string& distance_type,
-                                                std::vector<int>& index_spec, IndexType type) {
+                                                std::vector<int>& index_spec) {
     CheckFullAccess();
-    return graph_->BlockingAddVectorIndex(label, field, index_type, vec_dimension,
-                                            distance_type, index_spec, type, true);
+    return graph_->BlockingAddVectorIndex(is_vertex, label, field, index_type, vec_dimension,
+                                            distance_type, index_spec);
 }
 
 bool lgraph::AccessControlledDB::AddFullTextIndex(bool is_vertex, const std::string& label,
@@ -295,13 +296,10 @@ bool lgraph::AccessControlledDB::DeleteVertexCompositeIndex(const std::string& l
     return graph_->DeleteCompositeIndex(label, fields, true);
 }
 
-bool lgraph::AccessControlledDB::DeleteVectorIndex(const std::string& label,
-                                                   const std::string& field,
-                                                   const std::string& index_type,
-                                                   int vec_dimension,
-                                                   const std::string& distance_type) {
+bool lgraph::AccessControlledDB::DeleteVectorIndex(bool is_vertex, const std::string& label,
+                                                   const std::string& field) {
     CheckFullAccess();
-    return graph_->DeleteVectorIndex(label, field, index_type, vec_dimension, distance_type, true);
+    return graph_->DeleteVectorIndex(is_vertex, label, field);
 }
 
 bool lgraph::AccessControlledDB::IsVertexIndexed(const std::string& label,

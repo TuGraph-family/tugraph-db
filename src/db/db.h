@@ -111,10 +111,9 @@ class AccessControlledDB {
 
     bool AddEdgeIndex(const std::string& label, const std::string& field, IndexType type);
 
-    bool AddVectorIndex(const std::string& label, const std::string& field,
+    bool AddVectorIndex(bool is_vertex, const std::string& label, const std::string& field,
                         const std::string& index_type, int vec_dimension,
-                        const std::string& distance_type, std::vector<int>& index_spec,
-                        IndexType type);
+                        const std::string& distance_type, std::vector<int>& index_spec);
 
     bool DeleteVertexIndex(const std::string& label, const std::string& field);
 
@@ -123,9 +122,7 @@ class AccessControlledDB {
     bool DeleteVertexCompositeIndex(const std::string& label,
                                     const std::vector<std::string>& fields);
 
-    bool DeleteVectorIndex(const std::string& label, const std::string& field,
-                           const std::string& index_type, int vec_dimension,
-                           const std::string& distance_type);
+    bool DeleteVectorIndex(bool is_vertex, const std::string& label, const std::string& field);
 
     bool IsVertexIndexed(const std::string& label, const std::string& field);
 

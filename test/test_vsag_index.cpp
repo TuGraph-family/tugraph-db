@@ -151,7 +151,7 @@ TEST_F(TestVsag, restart) {
                               "'person','id','id','int64',false,'vector','float_vector',true)");
         UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(
-            str, "CALL vector.AddVectorIndex('person','vector','HNSW',4,'L2',24,100)");
+            str, "CALL vector.AddVectorIndex('person','vector', {dimension:4})");
         UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(str, "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
         UT_EXPECT_TRUE(ret);
@@ -208,7 +208,7 @@ TEST_F(TestVsag, error) {
                                  "'person','id','id','int64',false,'vector','float_vector',true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-                            "CALL vector.AddVectorIndex('person','vector','HNSW',4,'L2',24,100)");
+                            "CALL vector.AddVectorIndex('person','vector', {dimension:4}))");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
@@ -249,7 +249,7 @@ TEST_F(TestVsag, VectorProcedure) {
                                  "'person','id','id','int64',false,'vector','float_vector',true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-                            "CALL vector.AddVectorIndex('person','vector','HNSW',4,'L2',24,100)");
+                            "CALL vector.AddVectorIndex('person','vector', {dimension:4})");
     UT_EXPECT_TRUE(ret);
 
     // vector.ShowVectorIndex test
