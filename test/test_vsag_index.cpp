@@ -303,7 +303,7 @@ TEST_F(TestVsag, VectorProcedure) {
                             "{id:6, vector: [6.0,6.0,6.0,6.0]}])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(
-        str,"CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], "
+        str,"CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], " // NOLINT
         "{top_k:2, hnsw_ef_search:10})");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
