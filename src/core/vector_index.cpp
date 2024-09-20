@@ -27,6 +27,6 @@ VectorIndex::VectorIndex(const VectorIndex& rhs)
       distance_type_(rhs.distance_type_),
       index_type_(rhs.index_type_),
       vec_dimension_(rhs.vec_dimension_),
-      index_spec_(rhs.index_spec_){}
+      index_spec_(rhs.index_spec_) {}
 
 }  // namespace lgraph

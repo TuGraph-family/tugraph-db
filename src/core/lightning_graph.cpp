@@ -2231,7 +2231,8 @@ bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& l
         auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
         auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
         if (vector.size() != (size_t)dim) {
-            THROW_CODE(VectorIndexException, "vector size error, size:{}, dim:{}", vector.size(), dim);
+            THROW_CODE(VectorIndexException,
+                       "vector size error, size:{}, dim:{}", vector.size(), dim);
         }
         floatvector.emplace_back(std::move(vector));
         vids.emplace_back(vid);
@@ -2766,7 +2767,8 @@ bool LightningGraph::DeleteCompositeIndex(const std::string& label,
     return false;
 }
 
-bool LightningGraph::DeleteVectorIndex(bool is_vertex, const std::string& label, const std::string& field) {
+bool LightningGraph::DeleteVectorIndex(
+    bool is_vertex, const std::string& label, const std::string& field) {
     if (!is_vertex) {
         THROW_CODE(VectorIndexException, "Only vertex supports vector index");
     }

@@ -248,7 +248,8 @@ bool GraphDB::IsVertexCompositeIndexed(const std::string& label,
     return db_->IsVertexCompositeIndexed(label, field);
 }
 
-bool GraphDB::DeleteVectorIndex(bool is_vertex, const std::string& label, const std::string& field) {
+bool GraphDB::DeleteVectorIndex(
+    bool is_vertex, const std::string& label, const std::string& field) {
     THROW_IF_INVALID();
     THROW_IF_RO();
     return db_->DeleteVectorIndex(is_vertex, label, field);

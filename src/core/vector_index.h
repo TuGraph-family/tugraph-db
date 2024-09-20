@@ -79,6 +79,6 @@ class VectorIndex {
 
     // search vector in index
     virtual std::vector<std::pair<int64_t, float>>
-    Search(const std::vector<float>& query, int64_t num_results,int ef_search) = 0;
+    Search(const std::vector<float>& query, int64_t num_results, int ef_search) = 0;
 };
 }  // namespace lgraph

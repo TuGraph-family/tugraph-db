@@ -31,8 +31,8 @@ void HNSW::Add(const std::vector<std::vector<float>>& vectors,
                const std::vector<int64_t>& vids, int64_t num_vectors) {
     // reduce dimension
     if (num_vectors == 0) {
-        for (long vid : vids) {
-            auto result = index_->Remove(static_cast<int64_t>(vid));
+        for (auto vid : vids) {
+            auto result = index_->Remove(vid);
             if (result.has_value()) {
                 if (!result.value()) {
                     THROW_CODE(InputError, "failed to remove vector from index, vid:{}", vid);
@@ -57,7 +57,8 @@ void HNSW::Add(const std::vector<std::vector<float>>& vectors,
     auto result = index_->Add(dataset);
     if (result.has_value()) {
         if (!result.value().empty()) {
-            THROW_CODE(VectorIndexException, "add vector into index, {} failed", result.value().size());
+            THROW_CODE(VectorIndexException,
+                       "add vector into index, {} failed", result.value().size());
         }
     } else {
         THROW_CODE(VectorIndexException, "add vector into index, error:{}", result.error().message);

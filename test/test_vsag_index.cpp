@@ -159,7 +159,7 @@ TEST_F(TestVsag, restart) {
                                 "{id:4, vector: [4.0,4.0,4.0,4.0]}])");
         UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(str,"CALL db.vertexVectorIndexQuery"  //NOLINT
-                                "('person','vector',[1,2,3,4], {top_k:4, hnsw_ef_search:10}) YIELD node RETURN node.id");
+        "('person','vector',[1,2,3,4], {top_k:4, hnsw_ef_search:10}) YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
         UT_EXPECT_TRUE(ret);
         server->Kill();
@@ -302,19 +302,22 @@ TEST_F(TestVsag, VectorProcedure) {
                             "CALL db.upsertVertex('person', [{id:5, vector: [5.0,5.0,5.0,5.0]},"
                             "{id:6, vector: [6.0,6.0,6.0,6.0]}])");
     UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str,
-                            "CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], {top_k:2, hnsw_ef_search:10})");
+    ret = client.CallCypher(
+        str,"CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], "
+        "{top_k:2, hnsw_ef_search:10})");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size(), 2);
     ret = client.CallCypher(str,
-    "CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) YIELD node");
+    "CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], "
+                            "{top_k:2, hnsw_ef_search:10}) YIELD node");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["node"]["identity"], 1);
     UT_EXPECT_EQ(json_val[1]["node"]["identity"], 2);
     ret = client.CallCypher(str,
-    "CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) YIELD node RETURN node.id");
+    "CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], "
+                            "{top_k:2, hnsw_ef_search:10}) YIELD node RETURN node.id");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_TRUE(ret);

@@ -165,7 +165,8 @@ class IndexManager {
                (is_vertex ? _detail::VERTEX_FULLTEXT_INDEX : _detail::EDGE_FULLTEXT_INDEX);
     }
 
-    static std::string GetVertexVectorIndexTableName(const std::string& label, const std::string& field) {
+    static std::string GetVertexVectorIndexTableName(const std::string& label,
+                                                     const std::string& field) {
         return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
                _detail::VERTEX_VECTOR_INDEX;
     }
@@ -209,7 +210,8 @@ class IndexManager {
         fma_common::BinaryBuffer buf(v.Data(), v.Size());
         _detail::VectorIndexEntry idx;
         size_t r = fma_common::BinaryRead(buf, idx);
-        if (r != v.Size()) THROW_CODE(InternalError, "Failed to load vector index meta info from buffer");
+        if (r != v.Size()) THROW_CODE(InternalError,
+                                      "Failed to load vector index meta info from buffer");
         return idx;
     }
 

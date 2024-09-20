@@ -316,7 +316,6 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
 void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : vector_index_fields_) {
         auto& fe = fields_[idx];
-        std::string a = fe.Name();
         if (fe.GetIsNull(record)) continue;
         VectorIndex* index = fe.GetVectorIndex();
         auto dim = index->GetVecDimension();
