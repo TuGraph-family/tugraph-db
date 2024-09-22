@@ -347,6 +347,8 @@ class FieldExtractor {
      */
     void _SetVariableLengthValue(Value& record, const Value& data) const;
 
+    void SetVariableOffset(Value& record, )
+
     /**
      * Sets the value of the field in record. Valid only for fixed-length fields.
      *
@@ -362,9 +364,21 @@ class FieldExtractor {
         // "Type size mismatch"
         FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
         // copy the buffer so we don't accidentally overwrite memory
-        record.Resize(record.Size());
-        char* ptr = (char*)record.Data() + offset_.data_off;
-        ::lgraph::_detail::UnalignedSet<T>(ptr, data);
+        int data_size = GetDataSize(record);
+        size_t offset = GetFieldOffset(record);
+        char* ptr = (char*)record.Data();
+        if (_F_LIKELY(data_size == sizeof(data))) {
+            record.Resize(record.Size());
+            char* ptr = ptr + offset;
+            ::lgraph::_detail::UnalignedSet<T>(ptr, data);
+        } else {
+            record.Resize(record.Size());
+            memmove(ptr + offset + sizeof(data), ptr + offset + data_size, record.Size() - (offset + data_size));
+            record.Resize(record.Size() - data_size + sizeof(data));
+            ptr = (char*)record.Data();
+            ::lgraph::_detail::UnalignedSet<T>(ptr + offset, data);
+        }
+
     }
 
     void _SetFixedSizeValueRaw(Value& record, const Value& data) const {
@@ -372,8 +386,9 @@ class FieldExtractor {
         FMA_DBG_ASSERT(!is_vfield_);
         // "Type size mismatch"
         FMA_DBG_CHECK_EQ(data.Size(), field_data_helper::FieldTypeSize(def_.type));
+        FMA_DMG_CHECK_EQ(data.Size(), GetDataSize(record));
         // copy the buffer so we don't accidentally overwrite memory
-        char* ptr = (char*)record.Data() + offset_.data_off;
+        char* ptr = (char*)record.Data() + GetFieldOffset(record);
         memcpy(ptr, data.Data(), data.Size());
     }
 

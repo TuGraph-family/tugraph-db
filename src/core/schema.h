@@ -44,18 +44,23 @@ class SchemaManager;
 
 /** A schema is the description of data types in one record.
  ** The record is layout as the following:
- **     [LabelId] [Null-array] [Fixed-fields] [V-offsets] [V-data]
+ ** [Version][LabelId][Field-count][Null-array][Offset-array][Fixed-data and V-data Pointer] [V-data]
  ** in which:
+ **     Version:        indicates the version of the schema
  **     LabelId:        indicates the label of the record, different
  **                     label has different schema.
                         LabelId is left out for edges since edges are
                         sorted by LabelId so it becomes part of the key.
- **     Null-array:     records whether a field is null. Each nullable
- **                     field takes one bit
- **     Fixed-fields:   stores all the fixed-length fields one by one
- **     V-offsets:      stores the offsets of the variable-length fields.
- **                     Note that only the offsets from field 1 to N-1
+ **     Field-count:    indicates the number of fields in the record
+ **     Null-array:     records whether a field is null.
+ **     Offset-array:   stores the offsets of the fields in the record.
+ **                     Note that the offsets from field 1 to N-1
  **                     are recorded, since the first offset is obvious.
+ **                     The last offset is Fixed-fields end position.
+ **     Fixed-data and V-data Pointer:
+ **                     Store fixed-length data and pointers to the locations
+ **                     of variable-length data, with their order determined 
+ **                     by the attribute IDs.
  **     V-data:         stores the data of the variable-length fields
 */
 class Schema {
