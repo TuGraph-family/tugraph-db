@@ -56,6 +56,9 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/ops/op_traversal.cpp
         cypher/execution_plan/ops/op_gql_remove.cpp
         cypher/execution_plan/scheduler.cpp
+        cypher/experimental/data_type/field_data.h
+        cypher/experimental/expressions/cexpr.cpp
+        cypher/experimental/expressions/kernal/binary.cpp
         cypher/filter/filter.cpp
         cypher/filter/iterator.cpp
         cypher/graph/graph.cpp
@@ -88,9 +91,15 @@ target_include_directories(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
         ${ANTLR4_INCLUDE_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/cypher)
 
+include_directories(${CMAKE_SOURCE_DIR}/deps/buildit/include)
+
+target_link_directories(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC 
+        ${CMAKE_SOURCE_DIR}/deps/buildit/lib)
+
 target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
         ${ANTRL4_LIBRARY}
         geax_isogql
+        ${CMAKE_SOURCE_DIR}/deps/buildit/build/libbuildit.a
         lgraph)
 
 target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PRIVATE
