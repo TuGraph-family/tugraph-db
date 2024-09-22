@@ -347,7 +347,10 @@ class FieldExtractor {
      */
     void _SetVariableLengthValue(Value& record, const Value& data) const;
 
-    void SetVariableOffset(Value& record, )
+    void SetVariableOffset(Value& record, ProCount id, DataOffset offset) const {
+        size_t off = GetFieldOffset(record, id);
+        ::lgraph::_detail::UnalignedSet<DataOffset>(record.Data() + off, offset);
+    }
 
     /**
      * Sets the value of the field in record. Valid only for fixed-length fields.
