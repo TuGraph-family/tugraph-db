@@ -54,7 +54,7 @@ class HNSW : public VectorIndex {
            const std::vector<int64_t>& vids, int64_t num_vectors) override;
 
   // build index
-  bool Build() override;
+  void Build() override;
 
   // serialize index
   std::vector<uint8_t> Save() override;

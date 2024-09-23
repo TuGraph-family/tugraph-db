@@ -100,7 +100,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             Schema* schema = v_schema_manager->GetSchema(idx.label);
             FMA_DBG_ASSERT(schema);
             FMA_DBG_ASSERT(schema->DetachProperty());
-            LOG_INFO() << FMA_FMT("start building vertex index for {}:{} in detached model",
+            LOG_INFO() << FMA_FMT("start building vertex vector index for {}:{} in detached model",
                                   idx.label, idx.field);
             const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(idx.field);
             FMA_DBG_ASSERT(extractor);
@@ -128,7 +128,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             kv_iter.reset();
             LOG_DEBUG() << "index count: " << count;
             schema->MarkVectorIndexed(extractor->GetFieldId(), vsag_index.release());
-            LOG_INFO() << FMA_FMT("end building vector index for {}:{} in detached model",
+            LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
                                   idx.label, idx.field);
         } else {
             LOG_ERROR() << "Unknown index type: " << index_name;
