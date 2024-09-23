@@ -14,7 +14,7 @@
 
 #include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
-#include "./algo.h"
+#include "../algo_cpp/algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
