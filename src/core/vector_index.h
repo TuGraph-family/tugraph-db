@@ -69,7 +69,7 @@ class VectorIndex {
                  const std::vector<int64_t>& vids, int64_t num_vectors) = 0;
 
     // build index
-    virtual bool Build() = 0;
+    virtual void Build() = 0;
 
     // serialize index
     virtual std::vector<uint8_t> Save() = 0;

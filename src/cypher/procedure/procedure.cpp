@@ -4192,14 +4192,14 @@ void VectorFunc::AddVertexVectorIndex(RTContext *ctx, const cypher::Record *reco
     if (parameter.count("hnsm_m")) {
         hnsm_m = (int)parameter.at("hnsm_m").AsInt64();
     }
-    CYPHER_ARG_CHECK((hnsm_m < 2048 && hnsm_m > 2),
-                     "M should be an integer in the range (2,2048)");
+    CYPHER_ARG_CHECK((hnsm_m <= 64 && hnsm_m >= 5),
+                     "hnsm.m should be an integer in the range [5, 64]");
     int hnsm_ef_construction = 100;
     if (parameter.count("hnsm_ef_construction")) {
         hnsm_ef_construction = (int)parameter.at("hnsm_ef_construction").AsInt64();
     }
-    CYPHER_ARG_CHECK((hnsm_ef_construction < 65536 && hnsm_ef_construction > 1),
-                     "efConstruction should be an integer in the range (1,65536)");
+    CYPHER_ARG_CHECK((hnsm_ef_construction <= 1000 && hnsm_ef_construction >= hnsm_m),
+                     "hnsm.efConstruction should be an integer in the range [hnsm.m,1000]");
     std::vector<int> index_spec = {hnsm_m, hnsm_ef_construction};
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     bool success = ac_db.AddVectorIndex(true, label, field, index_type,
@@ -4301,13 +4301,13 @@ void VectorFunc::VertexVectorIndexQuery(RTContext *ctx, const cypher::Record *re
     if (parameter.count("top_k")) {
         top_k = parameter.at("top_k").AsInt64();
     }
-    int ef_search = 100;
+    CYPHER_ARG_CHECK((top_k >= 1), "top_k must be greater than 0");
+    int ef_search = 200;
     if (parameter.count("hnsw_ef_search")) {
         ef_search = parameter.at("hnsw_ef_search").AsInt64();
     }
-    CYPHER_ARG_CHECK((ef_search <= 65536 && ef_search >= top_k),
-                     "Please check the parameter,"
-                     "ef should be an integer in the range [top_k, 65536]");
+    CYPHER_ARG_CHECK((ef_search <= 1000 && ef_search >= 1),
+                     "hnsw.ef_search should be an integer in the range [1, 1000]");
     auto res = index->Search(query_vector, top_k, ef_search);
     for (auto& item : res) {
         Record r;

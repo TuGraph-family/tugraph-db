@@ -65,7 +65,7 @@ void HNSW::Add(const std::vector<std::vector<float>>& vectors,
     }
 }
 
-bool HNSW::Build() {
+void HNSW::Build() {
     nlohmann::json hnsw_parameters{
         {"max_degree", index_spec_[0]},
         {"ef_construction", index_spec_[1]}
@@ -81,10 +81,8 @@ bool HNSW::Build() {
         createindex_ = std::move(temp.value());
         index_ = createindex_.get();
     } else {
-        LOG_WARN() << FMA_FMT("create vsag index error: {}", temp.error().message);
-        return false;
+        THROW_CODE(VectorIndexException, temp.error().message);
     }
-    return true;
 }
 
 // serialize index
