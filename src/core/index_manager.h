@@ -105,6 +105,29 @@ struct CompositeIndexEntry {
     }
 };
 
+struct VectorIndexEntry {
+    std::string label;
+    std::string field;
+    std::string index_type;
+    int dimension;
+    std::string distance_type;
+    int hnsm_m;
+    int hnsm_ef_construction;
+    template <typename StreamT>
+    size_t Serialize(StreamT& buf) const {
+        return BinaryWrite(buf, label) + BinaryWrite(buf, field) + BinaryWrite(buf, index_type) +
+               BinaryWrite(buf, dimension) + BinaryWrite(buf, distance_type) +
+               BinaryWrite(buf, hnsm_m) + BinaryWrite(buf, hnsm_ef_construction);
+    }
+
+    template <typename StreamT>
+    size_t Deserialize(StreamT& buf) {
+        return BinaryRead(buf, label) + BinaryRead(buf, field) + BinaryRead(buf, index_type) +
+               BinaryRead(buf, dimension) + BinaryRead(buf, distance_type) +
+               BinaryRead(buf, hnsm_m) + BinaryRead(buf, hnsm_ef_construction);
+    }
+};
+
 }  // namespace _detail
 }  // namespace lgraph
 
@@ -142,34 +165,10 @@ class IndexManager {
                (is_vertex ? _detail::VERTEX_FULLTEXT_INDEX : _detail::EDGE_FULLTEXT_INDEX);
     }
 
-    static std::string GetVectorIndexTableName(const std::string& label, const std::string& field,
-                                               const std::string& index_type, int vec_dimension,
-                                               const std::string& distance_type,
-                                               std::vector<int>& index_spec) {
-        std::string INDEX_SPEC;
-        INDEX_SPEC += '[';
-        for (auto spec : index_spec) {
-            INDEX_SPEC += std::to_string(spec) + ',';
-        }
-        INDEX_SPEC.pop_back();
-        INDEX_SPEC += ']';
-        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR + index_type +
-               _detail::NAME_SEPARATOR + std::to_string(vec_dimension) +
-               _detail::NAME_SEPARATOR + distance_type +
-               _detail::NAME_SEPARATOR + INDEX_SPEC +
-               _detail::NAME_SEPARATOR + _detail::VECTOR_INDEX;
-    }
-
-    static void GetLabelAndFieldFromTableName(const std::string& table_name, std::string& label,
-                                              std::string& field) {
-        size_t sep_len = strlen(_detail::NAME_SEPARATOR);
-        size_t pos = table_name.find(_detail::NAME_SEPARATOR);
-        FMA_ASSERT(pos != table_name.npos);
-        label = table_name.substr(0, pos);
-        pos += sep_len;
-        size_t next_pos = table_name.find(_detail::NAME_SEPARATOR, pos);
-        FMA_ASSERT(next_pos != table_name.npos);
-        field = table_name.substr(pos, next_pos - pos);
+    static std::string GetVertexVectorIndexTableName(const std::string& label,
+                                                     const std::string& field) {
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
+               _detail::VERTEX_VECTOR_INDEX;
     }
 
     static _detail::IndexEntry LoadIndex(const Value& v) {
@@ -199,6 +198,21 @@ class IndexManager {
         fma_common::BinaryBuffer buf;
         fma_common::BinaryWrite(buf, idx);
         v.Copy(Value(buf.GetBuf(), buf.GetSize()));
+    }
+
+    static void StoreVectorIndex(const _detail::VectorIndexEntry& idx, Value& v) {
+        fma_common::BinaryBuffer buf;
+        fma_common::BinaryWrite(buf, idx);
+        v.Copy(Value(buf.GetBuf(), buf.GetSize()));
+    }
+
+    static _detail::VectorIndexEntry LoadVectorIndex(const Value& v) {
+        fma_common::BinaryBuffer buf(v.Data(), v.Size());
+        _detail::VectorIndexEntry idx;
+        size_t r = fma_common::BinaryRead(buf, idx);
+        if (r != v.Size()) THROW_CODE(InternalError,
+                                      "Failed to load vector index meta info from buffer");
+        return idx;
     }
 
     LightningGraph* db_;
@@ -250,8 +264,7 @@ class IndexManager {
     bool AddVectorIndex(KvTransaction& txn, const std::string& label,
                         const std::string& field, const std::string& index_type,
                         int vec_dimension, const std::string& distance_type,
-                        std::vector<int>& index_spec, FieldType dt, IndexType type,
-                        std::unique_ptr<VertexIndex>& index,
+                        std::vector<int>& index_spec,
                         std::unique_ptr<VectorIndex>& vector_index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
@@ -268,13 +281,12 @@ class IndexManager {
                                     const std::vector<std::string>& fields);
 
     bool DeleteVectorIndex(KvTransaction& txn, const std::string& label,
-                           const std::string& field, const std::string& index_type,
-                           int vec_dimension, const std::string& distance_type);
+                           const std::string& field);
 
     bool DeleteFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                              const std::string& field);
 
-    bool GetVectorIndexListTableName(KvTransaction& txn, std::vector<std::string>& table_name);
+    std::vector<VectorIndexSpec> ListVectorIndex(KvTransaction& txn);
 
     // vertex index
     std::pair<std::vector<IndexSpec>, std::vector<CompositeIndexSpec>> ListAllIndexes(

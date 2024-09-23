@@ -832,6 +832,8 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
                 // delete fulltext index
                 index_manager_->DeleteFullTextIndex(txn.GetTxn(), is_vertex, label,
                                                     extractor->Name());
+            } else if (extractor->GetVectorIndex()) {
+                index_manager_->DeleteVectorIndex(txn.GetTxn(), label, extractor->Name());
             }
         }
         auto composite_index_key = curr_schema->GetRelationalCompositeIndexKey(fids);
@@ -2180,89 +2182,71 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
     return true;
 }
 
-bool LightningGraph::BlockingAddVectorIndex(const std::string& label, const std::string& field,
+bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& label,
+                                            const std::string& field,
                                             const std::string& index_type, int vec_dimension,
                                             const std::string& distance_type,
-                                            std::vector<int>& index_spec,
-                                            IndexType type, bool is_vertex, bool known_vid_range,
-                                            VertexId start_vid, VertexId end_vid) {
+                                            std::vector<int>& index_spec) {
+    if (!is_vertex) {
+        THROW_CODE(VectorIndexException, "Only vertex supports vector index");
+    }
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
     std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*schema_.GetScopedRef().Get()));
-    Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
-                               : new_schema->e_schema_manager.GetSchema(label);
+    Schema* schema = new_schema->v_schema_manager.GetSchema(label);
     if (!schema) {
-        if (is_vertex)
-            THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
-        else
-            THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
+        THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
     }
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
     if (!extractor) {
-        if (is_vertex)
-            THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
-        else
-            THROW_CODE(InputError, "Edge field \"{}\":\"{}\" does not exist.", label, field);
+        THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
     }
-    if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
+    if (extractor->GetVertexIndex() || extractor->GetVectorIndex())
         return false;  // index already exist
-    if (is_vertex) {
-        std::unique_ptr<VertexIndex> vertex_index;
-        std::unique_ptr<VectorIndex> vector_index;
-        bool success = index_manager_->AddVectorIndex(txn.GetTxn(), label, field, index_type,
-                                   vec_dimension, distance_type, index_spec,
-                                   extractor->Type(), type, vertex_index, vector_index);
-        if (!success)
-            THROW_CODE(InputError, "build index {}-{} failed", label, field);
-
-        vertex_index->SetReady();
-        schema->MarkVertexIndexed(extractor->GetFieldId(), vertex_index.release());
-        schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
-
-        if (extractor->GetVectorIndex() != nullptr) {
-            LOG_INFO() <<
-                FMA_FMT("set the vector index for {}:{}", label, field);
-        }
-
-        // detach property
-        if (schema->DetachProperty()) {
-            VectorIndex* index = extractor->GetVectorIndex();
-            uint64_t count = 0;
-            std::vector<std::vector<float>> floatvector;
-            std::vector<int64_t> vids;
-            auto dim = index->GetVecDimension();
-            auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
-            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-                auto prop = kv_iter->GetValue();
-                if (extractor->GetIsNull(prop)) {
-                    continue;
-                }
-                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
-                auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
-                if (vector.size() != (size_t)dim) {
-                    THROW_CODE(InputError, "vector size error, size:{}, dim:{}",
-                               vector.size(), dim);
-                }
-                floatvector.emplace_back(std::move(vector));
-                vids.emplace_back(vid);
-                count++;
-            }
-            LOG_INFO() << FMA_FMT("start building vertex vector index for {}:{} in detached model",
-                                    label, field);
-            index->Build();
-            index->Add(floatvector, vids, count);
-            LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
-                                    label, field);
-            kv_iter.reset();
-            LOG_DEBUG() << "index count: " << count;
-            txn.Commit();
-            schema_.Assign(new_schema.release());
-            return true;
-        }
+    if (extractor->Type() != FieldType::FLOAT_VECTOR) {
+        THROW_CODE(VectorIndexException, "Only FLOAT_VECTOR type supports vector index");
     }
-    LOG_WARN() << "only support detach mode in vertex vector index now";
-    txn.Abort();
-    return false;
+    std::unique_ptr<VectorIndex> vector_index;
+    bool success = index_manager_->AddVectorIndex(txn.GetTxn(), label, field, index_type,
+                               vec_dimension, distance_type, index_spec, vector_index);
+    if (!success)
+        THROW_CODE(VectorIndexException, "failed to add vector index {}-{}", label, field);
+    schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
+    if (!schema->DetachProperty()) {
+        THROW_CODE(VectorIndexException, "vector index only support detached model");
+    }
+    LOG_INFO() << FMA_FMT("start building vertex vector index for {}:{} in detached model",
+                          label, field);
+    VectorIndex* index = extractor->GetVectorIndex();
+    uint64_t count = 0;
+    std::vector<std::vector<float>> floatvector;
+    std::vector<int64_t> vids;
+    auto dim = index->GetVecDimension();
+    auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
+    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+        auto prop = kv_iter->GetValue();
+        if (extractor->GetIsNull(prop)) {
+            continue;
+        }
+        auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+        auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
+        if (vector.size() != (size_t)dim) {
+            THROW_CODE(VectorIndexException,
+                       "vector size error, size:{}, dim:{}", vector.size(), dim);
+        }
+        floatvector.emplace_back(std::move(vector));
+        vids.emplace_back(vid);
+        count++;
+    }
+    index->Build();
+    index->Add(floatvector, vids, count);
+    LOG_INFO() << "index count: " << count;
+    LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
+                          label, field);
+    kv_iter.reset();
+    txn.Commit();
+    schema_.Assign(new_schema.release());
+    return true;
 }
 
 /**
@@ -2783,37 +2767,29 @@ bool LightningGraph::DeleteCompositeIndex(const std::string& label,
     return false;
 }
 
-bool LightningGraph::DeleteVectorIndex(const std::string& label, const std::string& field,
-                                       const std::string& index_type, int vec_dimension,
-                                       const std::string& distance_type, bool is_vertex) {
+bool LightningGraph::DeleteVectorIndex(
+    bool is_vertex, const std::string& label, const std::string& field) {
+    if (!is_vertex) {
+        THROW_CODE(VectorIndexException, "Only vertex supports vector index");
+    }
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
-    Schema* schema = is_vertex ? curr_schema->v_schema_manager.GetSchema(label)
-                               : curr_schema->e_schema_manager.GetSchema(label);
-    std::unique_ptr<SchemaInfo> old_schema_backup(new SchemaInfo(*curr_schema.Get()));
+    Schema* schema = curr_schema->v_schema_manager.GetSchema(label);
     if (!schema) throw LabelNotExistException(label);
     if (field == schema->GetPrimaryField()) {
         throw PrimaryIndexCannotBeDeletedException(field);
     }
+    std::unique_ptr<SchemaInfo> old_schema_backup(new SchemaInfo(*curr_schema.Get()));
     const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
-    bool index_exist =
-        (is_vertex && extractor->GetVertexIndex()) || (!is_vertex && extractor->GetEdgeIndex());
-    if (!index_exist) return false;
-    std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
-    schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
-                       : new_schema->e_schema_manager.GetSchema(label);
-    bool deleted = true;
-    if (is_vertex) {
-        schema->UnVertexIndex(extractor->GetFieldId());
-        schema->UnVectorIndex(extractor->GetFieldId());
-        deleted = index_manager_->DeleteVectorIndex(txn.GetTxn(), label, field,
-                                                index_type, vec_dimension, distance_type);
-    } else {
-        schema->UnEdgeIndex(extractor->GetFieldId());
-        deleted = index_manager_->DeleteEdgeIndex(txn.GetTxn(), label, field);
+    if (!extractor->GetVectorIndex()) {
+        return false;
     }
+    std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
+    schema = new_schema->v_schema_manager.GetSchema(label);
+    auto deleted = index_manager_->DeleteVectorIndex(txn.GetTxn(), label, field);
     if (deleted) {
+        schema->UnVectorIndex(extractor->GetFieldId());
         // install the new schema
         schema_.Assign(new_schema.release());
         AutoCleanupAction revert_assign_new_schema(
@@ -2879,8 +2855,8 @@ void LightningGraph::DropAllIndex() {
     }
 }
 
-bool LightningGraph::GetIndextableName(KvTransaction& txn, std::vector<std::string>& table_name) {
-    return index_manager_->GetVectorIndexListTableName(txn, table_name);
+std::vector<VectorIndexSpec> LightningGraph::ListVectorIndex(KvTransaction& txn) {
+    return index_manager_->ListVectorIndex(txn);
 }
 
 KvStore& LightningGraph::GetStore() { return *store_; }

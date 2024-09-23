@@ -459,7 +459,7 @@ class GraphDB {
      *                                      level.
      * @exception   InputError              Thrown if label:field does not exist, or not
      *                                      indexable.
-     *
+     * @param   is_vertex       vertex or edge.
      * @param   label           The label.
      * @param   field           The field.
      * @param   is_unique       True if the field content is unique for each vertex.
@@ -470,10 +470,9 @@ class GraphDB {
      * 
      * @returns True if it succeeds, false if the index already exists.
      */
-    bool AddVectorIndex(const std::string& label, const std::string& field,
+    bool AddVectorIndex(bool is_vertex, const std::string& label, const std::string& field,
                         const std::string& index_type, int vec_dimension,
-                        const std::string& distance_type, std::vector<int>& index_spec,
-                        IndexType type);
+                        const std::string& distance_type, std::vector<int>& index_spec);
 
     /**
      * @brief   Check if this vertex_label:field is indexed.
@@ -544,17 +543,13 @@ class GraphDB {
      * @exception   WriteNotAllowed    Thrown when called on a GraphDB with read-only access level.
      * @exception   InputError         Thrown if label or field does not exist.
      *
+     * @param   is_vertex       vertex or edge.
      * @param   label           The label.
      * @param   field           The field.
-     * @param   index_type      Type of the index
-     * @param   vec_dimension   Dimension of the vector
-     * @param   distance_type   Type of the distance
      * 
      * @returns True if it succeeds, false if the index does not exists.
      */
-    bool DeleteVectorIndex(const std::string& label, const std::string& field,
-                           const std::string& index_type, int vec_dimension,
-                           const std::string& distance_type);
+    bool DeleteVectorIndex(bool is_vertex, const std::string& label, const std::string& field);
 
     /**
      * @brief   Get graph description
