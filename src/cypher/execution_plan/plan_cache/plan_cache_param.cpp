@@ -15,6 +15,13 @@
 
 namespace cypher {
 std::string fastQueryParam(RTContext *ctx, const std::string query) {
+    /**
+     * We don't parameterize the queries or literals in query if:
+     * 1. The query is a CALL statement.
+     * 2. limit/skip `n`.
+     * 3. Range literals: ()->[e*..3]->(m)
+     * 4. the items in return body: return RETURN a,-2,9.78,'im a string' (@todo)
+     */
     antlr4::ANTLRInputStream input(query);
     parser::LcypherLexer lexer(&input);
     antlr4::CommonTokenStream token_stream(&lexer);
@@ -25,6 +32,8 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     std::string param_query = query;
     
     bool prev_limit_skip = false;
+    bool in_return_body = false;
+    bool prev_double_dots = false; // e*..3
     int param_num = 0;
     if (tokens[0]->getType() == parser::LcypherParser::CALL) {
         // Don't parameterize plugin CALL statements
@@ -33,6 +42,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     for (size_t i = 0; i < tokens.size(); i++) {
         parser::Expression expr;
         bool is_param;
+        std::cout<<tokens[i]->toString()<<std::endl;
         switch (tokens[i]->getType())
         {
         case parser::LcypherParser::StringLiteral: {
@@ -55,7 +65,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
         case parser::LcypherParser::HexInteger:
         case parser::LcypherParser::DecimalInteger:
         case parser::LcypherParser::OctalInteger: {
-            if (prev_limit_skip) {
+            if (prev_limit_skip || prev_double_dots) {
                 break;
             }
             // Integer literal
@@ -88,26 +98,35 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
             is_param = true;
             break;
         }
+        case parser::LcypherParser::RETURN: {
+            in_return_body = true;
+            break;
+        }
         default:
             break;
         }
 
         // Replace the token with placeholder
         if (is_param) {
-            size_t start_index = tokens[i]->getStartIndex() - delete_size;
-            size_t end_index = tokens[i]->getStopIndex() - delete_size;
-            // Indicate the position in raw parameterized query
-            std::string count = "$" + std::to_string(param_num);
-            param_query.replace(start_index, end_index - start_index + 1, count);
-            delete_size += (end_index - start_index + 1) - count.size();
+            if (!in_return_body) {
+                size_t start_index = tokens[i]->getStartIndex() - delete_size;
+                size_t end_index = tokens[i]->getStopIndex() - delete_size;
+                // Indicate the position in raw parameterized query
+                std::string count = "$" + std::to_string(param_num);
+                param_query.replace(start_index, end_index - start_index + 1, count);
+                delete_size += (end_index - start_index + 1) - count.size();
+                param_num++;
+            } 
             is_param = false;
-            param_num++;
         }
         if (tokens[i]->getType() == parser::LcypherParser::LIMIT ||
             tokens[i]->getType() == parser::LcypherParser::L_SKIP) {
             prev_limit_skip = true;
+        } else if (tokens[i]->getType() == parser::LcypherParser::T__11) {
+            prev_double_dots = true;
         } else if (tokens[i]->getType() < parser::LcypherParser::SP) {
             prev_limit_skip = false;
+            prev_double_dots = false;
         }
     }
     return param_query;

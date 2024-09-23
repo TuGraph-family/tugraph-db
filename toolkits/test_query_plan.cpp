@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     //     return 1;
     // }
     // std::string query = argv[1];
-    std::string query = "MATCH (a:Person {name:'Vanessa Redgrave'}) RETURN a,-2,9.78,'im a string'";
+    std::string query = "MATCH p=(n:Person)-[e*..2]->(m) where p.n = 'test' and p > 1 RETURN '123', 1+2 LIMIT 2";
     // std::string path = ""
     lgraph::Galaxy::Config gconf;
     gconf.dir = "./testdb";
@@ -47,34 +47,34 @@ int main(int argc, char* argv[]) {
     std::string param_query = fastQueryParam(&ctx, query);
     std::cout<<param_query<<std::endl;
     std::cout<<std::endl;
-    for (auto param: ctx.param_tab_) {
-        std::cout<<param.first<<": "<<param.second.ToString()<<", ";
-    }
-    std::cout<<std::endl;
+    // for (auto param: ctx.param_tab_) {
+    //     std::cout<<param.first<<": "<<param.second.ToString()<<", ";
+    // }
+    // std::cout<<std::endl;
 
     // std::string eval_res = eval(query);
     // std::cout << "eval_res: " << eval_res << std::endl;
     // 根据参数化的查询进行语法解析
-    antlr4::ANTLRInputStream input_stream(param_query);
-    parser::LcypherLexer lexer(&input_stream);
-    antlr4::CommonTokenStream tokens(&lexer);
-    parser::LcypherParser lparser(&tokens);
-    lparser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
-    parser::CypherBaseVisitor visitor(&ctx, lparser.oC_Cypher());
-    for (const auto &sql_query: visitor.GetQuery()) {
-        std::cout<< sql_query.ToString();
-    }
+    // antlr4::ANTLRInputStream input_stream(param_query);
+    // parser::LcypherLexer lexer(&input_stream);
+    // antlr4::CommonTokenStream tokens(&lexer);
+    // parser::LcypherParser lparser(&tokens);
+    // lparser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
+    // parser::CypherBaseVisitor visitor(&ctx, lparser.oC_Cypher());
+    // for (const auto &sql_query: visitor.GetQuery()) {
+    //     std::cout<< sql_query.ToString();
+    // }
 
-    std::shared_ptr<cypher::ExecutionPlan> plan;
-    plan = std::make_shared<cypher::ExecutionPlan>();
-    plan->PreValidate(&ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
-    plan->Build(visitor.GetQuery(), visitor.CommandType(), &ctx);
-    std::cout<<plan->DumpPlan(0, false)<<std::endl;
-    plan->Execute(&ctx);
+    // std::shared_ptr<cypher::ExecutionPlan> plan;
+    // plan = std::make_shared<cypher::ExecutionPlan>();
+    // plan->PreValidate(&ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
+    // plan->Build(visitor.GetQuery(), visitor.CommandType(), &ctx);
+    // std::cout<<plan->DumpPlan(0, false)<<std::endl;
+    // plan->Execute(&ctx);
 
-    std::string cache_res = ctx.result_->Dump(false);
+    // std::string cache_res = ctx.result_->Dump(false);
 
-    std::cout << "cache_res: " << cache_res << std::endl;
+    // std::cout << "cache_res: " << cache_res << std::endl;
     return 0;
 }
 
