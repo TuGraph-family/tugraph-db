@@ -85,6 +85,19 @@ std::vector<std::tuple<bool, std::string, int64_t>> Transaction::countDetail() {
     return ret;
 }
 
+VectorIndex* Transaction::GetVertexVectorIndex(const std::string& label, const std::string& field) {
+    auto s = curr_schema_->v_schema_manager.GetSchema(label);
+    if (!s) {
+        THROW_CODE(LabelNotExist, "No such vertex label:{}", label);
+    }
+    auto f = s->GetFieldExtractor(field);
+    auto ret = f->GetVectorIndex();
+    if (!ret) {
+        THROW_CODE(VectorIndexException, "No such vertex vector index, {}:{}", label, field);
+    }
+    return ret;
+}
+
 /**
  * Check if index is ready.
  *

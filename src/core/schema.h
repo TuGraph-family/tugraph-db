@@ -87,6 +87,7 @@ class Schema {
     bool detach_property_ = false;
     std::shared_ptr<KvTable> property_table_;
     std::unordered_map<std::string, std::shared_ptr<CompositeIndex>> composite_index_map;
+    std::unordered_set<size_t> vector_index_fields_;
 
     void SetStoreLabelInRecord(bool b) { label_in_record_ = b; }
 
@@ -412,7 +413,7 @@ class Schema {
 
     void MarkVectorIndexed(size_t field_idx, VectorIndex* index) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
-        indexed_fields_.insert(field_idx);
+        vector_index_fields_.insert(field_idx);
         fields_[field_idx].SetVectorIndex(index);
     }
 
@@ -449,7 +450,7 @@ class Schema {
 
     void UnVectorIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
-        indexed_fields_.erase(field_idx);
+        vector_index_fields_.erase(field_idx);
         fields_[field_idx].SetVectorIndex(nullptr);
     }
 

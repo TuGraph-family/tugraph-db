@@ -1290,6 +1290,16 @@ struct CompositeIndexSpec {
     CompositeIndexType type;
 };
 
+struct VectorIndexSpec {
+    std::string label;
+    std::string field;
+    std::string index_type;
+    int dimension;
+    std::string distance_type;
+    int hnsm_m;
+    int hnsm_ef_construction;
+};
+
 struct EdgeUid {
     EdgeUid() : src(0), dst(0), lid(0), tid(0), eid(0) {}
     EdgeUid(int64_t s, int64_t d, uint16_t l, int64_t t, int64_t e)

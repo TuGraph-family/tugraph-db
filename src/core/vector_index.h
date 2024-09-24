@@ -33,7 +33,6 @@ class VectorIndex {
   std::string index_type_;
   int vec_dimension_;
   std::vector<int> index_spec_;
-  int query_spec_;
 
  public:
     VectorIndex(const std::string& label, const std::string& name,
@@ -65,15 +64,12 @@ class VectorIndex {
     // get vector dimension
     int GetVecDimension() { return vec_dimension_; }
 
-    // set search specification
-    bool SetSearchSpec(int query_spec);
-
     // add vector to index and build index
-    virtual bool Add(const std::vector<std::vector<float>>& vectors,
+    virtual void Add(const std::vector<std::vector<float>>& vectors,
                  const std::vector<int64_t>& vids, int64_t num_vectors) = 0;
 
     // build index
-    virtual bool Build() = 0;
+    virtual void Build() = 0;
 
     // serialize index
     virtual std::vector<uint8_t> Save() = 0;
@@ -82,7 +78,7 @@ class VectorIndex {
     virtual void Load(std::vector<uint8_t>& idx_bytes) = 0;
 
     // search vector in index
-    virtual bool Search(const std::vector<float>& query, int64_t num_results,
-                        std::vector<float>& distances, std::vector<int64_t>& indices) = 0;
+    virtual std::vector<std::pair<int64_t, float>>
+    Search(const std::vector<float>& query, int64_t num_results, int ef_search) = 0;
 };
 }  // namespace lgraph

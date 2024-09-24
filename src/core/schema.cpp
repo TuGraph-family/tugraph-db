@@ -314,40 +314,32 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
 }
 
 void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
-    for (auto& idx : indexed_fields_) {
+    for (auto& idx : vector_index_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         VectorIndex* index = fe.GetVectorIndex();
-        if (fe.Type() == FieldType::FLOAT_VECTOR) {
-            if (index->GetIndexType() == "HNSW") {
-                auto dim = index->GetVecDimension();
-                std::vector<std::vector<float>> floatvector;
-                std::vector<int64_t> vids;
-                floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
-                vids.push_back(vid);
-                if (floatvector.back().size() != (size_t)dim) {
-                    THROW_CODE(InputError,
-                               "vector index dimension mismatch, vector size:{}, dim:{}",
-                               floatvector.back().size(), dim);
-                }
-                index->Add(floatvector, vids, 1);
-            }
+        auto dim = index->GetVecDimension();
+        std::vector<std::vector<float>> floatvector;
+        std::vector<int64_t> vids;
+        floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+        vids.push_back(vid);
+        if (floatvector.back().size() != (size_t)dim) {
+            THROW_CODE(InputError,
+                       "vector index dimension mismatch, vector size:{}, dim:{}",
+                       floatvector.back().size(), dim);
         }
+        index->Add(floatvector, vids, 1);
     }
 }
 
 void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
-    for (auto& idx : indexed_fields_) {
+    for (auto& idx : vector_index_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         VectorIndex* index = fe.GetVectorIndex();
-        if (fe.Type() == FieldType::FLOAT_VECTOR) {
-            if (index->GetIndexType() == "HNSW") {
-                std::vector<int64_t> vids;
-                vids.push_back(vid);
-                index->Add({}, vids, 0);
-            }
-        }
+        std::vector<int64_t> vids;
+        vids.push_back(vid);
+        index->Add({}, vids, 0);
     }
 }
 
