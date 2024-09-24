@@ -1419,12 +1419,11 @@ void ArithOperandNode::SetEntity(const std::string &alias, const std::string &pr
 }
 
 void ArithOperandNode::SetParameter(const std::string &param, const SymbolTable &sym_tab) {
-    // if (std::isdigit(param[1])) {
-    //     // query plan parameter
-    //     type = AR_OPERAND_PARAMETER;
-    //     variadic.alias = param;
-    //     variadic.alias_idx = std::stoi(param.substr(1));
-    // } else {
+    if (std::isdigit(param[1])) {
+        // query plan parameter
+        type = AR_OPERAND_CONSTANT;
+        constant = sym_tab.param_tab_->at(param);
+    } else {
         // named parameter
         type = AR_OPERAND_PARAMETER;
         variadic.alias = param;
@@ -1436,7 +1435,7 @@ void ArithOperandNode::SetParameter(const std::string &param, const SymbolTable 
             throw lgraph::CypherException("Parameter not defined: " + param);
         }
         variadic.alias_idx = it->second.id;
-    // }
+    }
 }
 
 void ArithOperandNode::RealignAliasId(const SymbolTable &sym_tab) {
@@ -1446,17 +1445,18 @@ void ArithOperandNode::RealignAliasId(const SymbolTable &sym_tab) {
     variadic.alias_idx = it->second.id;
 }
 
-cypher::FieldData GenerateCypherFieldData(const parser::Expression &expr) {
-    if (expr.type != parser::Expression::LIST && expr.type != parser::Expression::MAP) {
+cypher::FieldData GenerateCypherFieldData(const parser::Expression &expr, const SymbolTable &sym_tab) {
+    if (expr.type == parser::Expression::PARAMETER) {
+        return cypher::FieldData(sym_tab.param_tab_->at(expr.String()));
+    } else if (expr.type != parser::Expression::LIST && expr.type != parser::Expression::MAP) {
         return cypher::FieldData(parser::MakeFieldData(expr));
-    }
-    if (expr.type == parser::Expression::LIST) {
+    } else if (expr.type == parser::Expression::LIST) {
         std::vector<cypher::FieldData> list;
-        for (auto &e : expr.List()) list.emplace_back(GenerateCypherFieldData(e));
+        for (auto &e : expr.List()) list.emplace_back(GenerateCypherFieldData(e, sym_tab));
         return cypher::FieldData(std::move(list));
     } else {
         std::unordered_map<std::string, cypher::FieldData> map;
-        for (auto &e : expr.Map()) map.emplace(e.first, GenerateCypherFieldData(e.second));
+        for (auto &e : expr.Map()) map.emplace(e.first, GenerateCypherFieldData(e.second, sym_tab));
         return cypher::FieldData(std::move(map));
     }
 }
@@ -1499,13 +1499,13 @@ void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sy
         {
             /* e.g. [1,3,5,7], [1,3,5.55,'seven'] */
             type = ArithOperandNode::AR_OPERAND_CONSTANT;
-            constant = GenerateCypherFieldData(expr);
+            constant = GenerateCypherFieldData(expr, sym_tab);
             break;
         }
     case parser::Expression::MAP:
         {
             type = ArithOperandNode::AR_OPERAND_CONSTANT;
-            constant = GenerateCypherFieldData(expr);
+            constant = GenerateCypherFieldData(expr, sym_tab);
             break;
         }
     default:
@@ -1655,7 +1655,7 @@ void ArithExprNode::Set(const parser::Expression &expr, const SymbolTable &sym_t
              * [n.name, n.age] as op  */
             bool is_operand = true;
             for (auto &e : expr.List()) {
-                if (!e.IsLiteral()) is_operand = false;
+                if (!e.IsLiteral() && e.type != parser::Expression::PARAMETER) is_operand = false;
                 if (e.type == parser::Expression::MAP) is_operand = true;
             }
             if (!is_operand) {

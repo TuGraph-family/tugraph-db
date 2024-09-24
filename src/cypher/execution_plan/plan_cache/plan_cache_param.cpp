@@ -21,6 +21,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
      * 2. limit/skip `n`.
      * 3. Range literals: ()->[e*..3]->(m)
      * 4. the items in return body: return RETURN a,-2,9.78,'im a string' (@todo)
+     * 5. match ... create: MATCH (c {name:$0}) CREATE (p:Person {name:$1, birthyear:$2})-[r:BORN_IN]->(c) RETURN p,r,c
      */
     antlr4::ANTLRInputStream input(query);
     parser::LcypherLexer lexer(&input);
@@ -34,6 +35,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     bool prev_limit_skip = false;
     bool in_return_body = false;
     bool prev_double_dots = false; // e*..3
+    bool in_rel = false; // -[n]->
     int param_num = 0;
     if (tokens[0]->getType() == parser::LcypherParser::CALL) {
         // Don't parameterize plugin CALL statements
@@ -42,9 +44,34 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     for (size_t i = 0; i < tokens.size(); i++) {
         parser::Expression expr;
         bool is_param;
-        std::cout<<tokens[i]->toString()<<std::endl;
         switch (tokens[i]->getType())
         {
+        case parser::LcypherParser::CREATE: {
+            // We don't parameterize the Create statements
+            // Remove the parsed parameters.
+            for (auto it = ctx->param_tab_.begin(); it!= ctx->param_tab_.end(); ) {
+                if (it->first[0] == '$' && std::isdigit(it->first[1])) {
+                    it = ctx->param_tab_.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            return query;
+        }
+        case parser::LcypherParser::T__13: { // '-'
+            size_t j = i;
+            while (++j < tokens.size() && tokens[j]->getType() == parser::LcypherParser::SP) {
+            }
+            if (j < tokens.size() && tokens[j]->getType() == parser::LcypherParser::T__7) {
+                in_rel = true;
+            }
+            i = j;
+            break;
+        }
+        case parser::LcypherParser::T__8: { // ']'
+            in_rel = false;
+            break;
+        }
         case parser::LcypherParser::StringLiteral: {
             // String literal
             auto str = tokens[i]->getText();
@@ -65,6 +92,11 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
         case parser::LcypherParser::HexInteger:
         case parser::LcypherParser::DecimalInteger:
         case parser::LcypherParser::OctalInteger: {
+            if (in_rel) {
+                // The integer literals in relationships are range literals.
+                // -[:HAS_CHILD*1..]->
+                break;
+            }
             if (prev_limit_skip || prev_double_dots) {
                 break;
             }
