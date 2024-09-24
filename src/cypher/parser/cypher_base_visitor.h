@@ -82,6 +82,14 @@ class CypherBaseVisitor : public LcypherVisitor {
      * MATCH (n) RETURN exists((n)-->()-->())  */
     size_t _anonymous_idx = 0;
 
+    void FillParam() {
+        for (auto& part: _query) {
+            for (auto& p : part.parts) {
+                p.symbol_table.param_tab_ = &ctx_->param_tab_;
+            }
+        }
+    }
+
     std::string GenAnonymousAlias(bool is_node) {
         std::string alias(ANONYMOUS);
         if (is_node) {
@@ -95,6 +103,9 @@ class CypherBaseVisitor : public LcypherVisitor {
 
     bool AddSymbol(const std::string &symbol_alias, cypher::SymbolNode::Type type,
                    cypher::SymbolNode::Scope scope) {
+        if (symbol_alias[0] == '$' && std::isdigit(symbol_alias[1])) {
+            return false;
+        }
         if (_InClauseRETURN() ||
             (_InClauseWHERE() && !symbol_alias.empty() && symbol_alias[0] != '$')) {
             // TODO(anyone): more situations
@@ -182,6 +193,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         _curr_part = 0;
         _symbol_idx = 0;
         _anonymous_idx = 0;
+        FillParam();
         visit(ctx->oC_SingleQuery());
         for (auto u : ctx->oC_Union()) {
             // initialize for the next single_query
@@ -206,6 +218,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             int part_num = ctx->oC_MultiPartQuery()->oC_With().size() + 1;
             _query[_curr_query].parts.resize(part_num);
         }
+        FillParam();
         return visitChildren(ctx);
     }
 
@@ -463,6 +476,7 @@ class CypherBaseVisitor : public LcypherVisitor {
         _curr_part = 0;
         _symbol_idx = 0;
         _anonymous_idx = 0;
+        FillParam();
 
         std::tuple<std::string, std::vector<Expression>> invocation;
         if (ctx->oC_ImplicitProcedureInvocation()) {
@@ -928,7 +942,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             std::string parameter_val = ctx->oC_Parameter()->getText();
             if (ctx_->bolt_parameters_) {
                 auto iter = ctx_->bolt_parameters_->find(parameter_val);
-                if (iter == ctx_->bolt_parameters_->end()) {
+                if (iter != ctx_->bolt_parameters_->end()) {
                     throw lgraph::CypherException(
                         FMA_FMT("Parameter {} missing value", parameter_val));
                 }
@@ -938,6 +952,7 @@ class CypherBaseVisitor : public LcypherVisitor {
 //                }
                 return std::make_tuple(iter->second, parameter);
             }
+
         }
         CYPHER_TODO();
     }

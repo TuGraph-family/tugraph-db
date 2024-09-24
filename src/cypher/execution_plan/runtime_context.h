@@ -67,6 +67,9 @@ class RTContext : public SubmitQueryContext {
     std::unique_ptr<ResultInfo> result_info_;
     std::unique_ptr<lgraph_api::Result> result_;
     bolt::BoltConnection* bolt_conn_ = nullptr;
+    // for plan cache
+    std::vector<cypher::FieldData> query_params_;
+    std::string param_query_;
 
     RTContext() = default;
 
