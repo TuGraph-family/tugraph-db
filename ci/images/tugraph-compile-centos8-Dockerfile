@@ -333,6 +333,28 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-d
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
+RUN yum install -y epel-release pcre-devel yum-utils
+
+# install swig
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/swig-4.0.2.tar.gz \
+    && tar -xzvf swig-4.0.2.tar.gz && cd swig-4.0.2 && ./configure \
+    && make && make install && cd .. \
+    && rm -rf swig-4.0.2 swig-4.0.2.tar.gz
+
+# install faiss
+RUN wget -O /tmp/openblas-faiss.tar.gz https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/openblas-faiss.tar.gz \
+    && tar -xzvf /tmp/openblas-faiss.tar.gz -C /tmp && cd /tmp/openblas-faiss/OpenBLAS && make && make install \
+    && cd /tmp/openblas-faiss/faiss && cmake -B build -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_OPT_LEVEL=avx2 -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib -DOpenMP_CXX_FLAGS="-fopenmp" -DOpenMP_CXX_LIB_NAMES="gomp" -DOpenMP_gomp_LIBRARY="/usr/lib64/libgomp.so.1" -DBLAS_LIBRARIES=/opt/OpenBLAS/lib/libopenblas.so . && make -C build && make -C build install \
+    && rm -rf /tmp/openblas-faiss /tmp/openblas-faiss.tar.gz && ldconfig
+
+# install vsag
+RUN wget -O /tmp/vsag.tar.gz https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/vsag.tar.gz \
+    && tar -xzvf /tmp/vsag.tar.gz -C /tmp \
+    && cd /tmp/vsag && sh ./scripts/deps/install_deps_centos.sh \
+    && yum install -y libgfortran && ln -s /usr/lib64/libgfortran.so.5 /usr/local/lib/libgfortran.so \
+    && ldconfig && make ${JFLAG} release VSAG_CMAKE_ARGS="-S. -Bbuild -DDISABLE_SSE_FORCE=OFF -DDISABLE_AVX_FORCE=OFF -DDISABLE_AVX2_FORCE=OFF -DDISABLE_AVX512_FORCE=ON" \
+    && make install && rm -rf /tmp/vsag /tmp/vsag.tar.gz /opt/intel
+
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
     LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lgraph/lib64:/usr/local/lib64:$PYTHONPATH \
