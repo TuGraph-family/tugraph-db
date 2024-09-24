@@ -22,7 +22,7 @@
 #include "lgraph/lgraph_exceptions.h"
 #include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
-#include "./algo.h"
+#include "../algo_cpp/algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
@@ -59,10 +59,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // output
     start_time = get_time();
     if (output_file != "") {
-        FILE* fout = fopen(output_file.c_str(), "w");
-        if (fout == nullptr) {
-            THROW_CODE(InputError, "Unable to open file for writting!");
-        }
+        fma_common::OutputFmaStream fout;
         json cur;
         json curNode;
         json communityNode;
@@ -88,10 +85,10 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
                 cur["cur"] = curNode;
                 cur["community"] = communityNode;
-                fprintf(fout, "%s\n", cur.dump().c_str());
+                auto content = cur.dump() + "\n";
+                fout.Write(content.c_str(), content.size());
             }
         }
-        fclose(fout);
     }
 
     double output_cost = get_time() - start_time;
