@@ -69,7 +69,7 @@ TEST_F(TestVsag, SearchIndex) {
     EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
     std::vector<std::pair<int64_t, float>> ret;
-    ret = vector_index->Search(query, 10, 10);
+    ret = vector_index->KnnSearch(query, 10, 10);
     ASSERT_TRUE(!ret.empty());
     ASSERT_EQ(ret[0].first, vids[0]);
 }
@@ -83,7 +83,7 @@ TEST_F(TestVsag, SaveAndLoadIndex) {
     EXPECT_NO_THROW(vector_index_loaded.Build());
     vector_index_loaded.Load(serialized_index);
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
-    auto ret = vector_index_loaded.Search(query, 10, 10);
+    auto ret = vector_index_loaded.KnnSearch(query, 10, 10);
     ASSERT_TRUE(!ret.empty());
     ASSERT_EQ(ret[0].first, vids[0]);
 }
@@ -94,7 +94,7 @@ TEST_F(TestVsag, DeleteVectors) {
     std::vector<int64_t> delete_vids = {vids[0], vids[1]};
     EXPECT_NO_THROW(vector_index->Add({}, delete_vids, 0));
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
-    auto ret = vector_index->Search(query, 10, 10);
+    auto ret = vector_index->KnnSearch(query, 10, 10);
     for (const auto& pair : ret) {
         ASSERT_TRUE(std::find(delete_vids.begin(),
                         delete_vids.end(), pair.first) == delete_vids.end());
@@ -158,7 +158,7 @@ TEST_F(TestVsag, restart) {
                                 "CALL db.upsertVertex('person', [{id:3, vector: [3.0,3.0,3.0,3.0]},"
                                 "{id:4, vector: [4.0,4.0,4.0,4.0]}])");
         UT_EXPECT_TRUE(ret);
-        ret = client.CallCypher(str,"CALL db.vertexVectorIndexQuery"  //NOLINT
+        ret = client.CallCypher(str,"CALL db.vertexVectorKnnSearch"  //NOLINT
         "('person','vector',[1,2,3,4], {top_k:4, hnsw_ef_search:10}) YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
         UT_EXPECT_TRUE(ret);
@@ -171,7 +171,7 @@ TEST_F(TestVsag, restart) {
         RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                          _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
         std::string str;
-        auto ret = client.CallCypher(str, "CALL db.vertexVectorIndexQuery"
+        auto ret = client.CallCypher(str, "CALL db.vertexVectorKnnSearch"
                                      "('person','vector',[1,2,3,4], {top_k:4, hnsw_ef_search:10}) "
                                      "YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
@@ -187,7 +187,7 @@ TEST_F(TestVsag, restart) {
         RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                          _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
         std::string str;
-        auto ret = client.CallCypher(str, "CALL db.vertexVectorIndexQuery"
+        auto ret = client.CallCypher(str, "CALL db.vertexVectorKnnSearch"
                                      "('person','vector',[1,2,3,4], 4, 10) "
                                      "YIELD node RETURN node.id");
         UT_EXPECT_FALSE(ret);
@@ -303,20 +303,20 @@ TEST_F(TestVsag, VectorProcedure) {
                             "{id:6, vector: [6.0,6.0,6.0,6.0]}])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(
-        str,"CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], " // NOLINT
+        str,"CALL db.vertexVectorKnnSearch('person','vector',[1,2,3,4], " // NOLINT
         "{top_k:2, hnsw_ef_search:10})");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val.size(), 2);
     ret = client.CallCypher(str,
-    "CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], "
+    "CALL db.vertexVectorKnnSearch('person','vector',[1,2,3,4], "
                             "{top_k:2, hnsw_ef_search:10}) YIELD node");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
     UT_EXPECT_EQ(json_val[0]["node"]["identity"], 1);
     UT_EXPECT_EQ(json_val[1]["node"]["identity"], 2);
     ret = client.CallCypher(str,
-    "CALL db.vertexVectorIndexQuery('person','vector',[1,2,3,4], "
+    "CALL db.vertexVectorKnnSearch('person','vector',[1,2,3,4], "
                             "{top_k:2, hnsw_ef_search:10}) YIELD node RETURN node.id");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);

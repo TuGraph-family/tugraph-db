@@ -424,8 +424,10 @@ class VectorFunc {
     static void ShowVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                              const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void VertexVectorIndexQuery(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void VertexVectorKnnSearch(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                              const VEC_STR &yield_items, std::vector<Record> *records);
+    static void VertexVectorRangeSearch(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                       const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 struct Procedure {
@@ -950,7 +952,7 @@ static std::vector<Procedure> global_procedures = {
                   {"hnsm.ef_construction", {6, lgraph_api::LGraphType::INTEGER}},
               }),
 
-    Procedure("db.vertexVectorIndexQuery", VectorFunc::VertexVectorIndexQuery,
+    Procedure("db.vertexVectorKnnSearch", VectorFunc::VertexVectorKnnSearch,
               Procedure::SIG_SPEC{
                   {"label_name", {0, lgraph_api::LGraphType::STRING}},
                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
@@ -959,7 +961,18 @@ static std::vector<Procedure> global_procedures = {
               },
               Procedure::SIG_SPEC{
                   {"node", {0, lgraph_api::LGraphType::NODE}},
-                  {"score", {1, lgraph_api::LGraphType::FLOAT}},
+                  {"distance", {1, lgraph_api::LGraphType::FLOAT}},
+              }),
+    Procedure("db.vertexVectorRangeSearch", VectorFunc::VertexVectorRangeSearch,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"parameter", {3, lgraph_api::LGraphType::MAP}},
+              },
+              Procedure::SIG_SPEC{
+                  {"node", {0, lgraph_api::LGraphType::NODE}},
+                  {"distance", {1, lgraph_api::LGraphType::FLOAT}},
               }),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,

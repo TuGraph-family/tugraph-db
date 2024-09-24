@@ -4258,13 +4258,13 @@ void VectorFunc::ShowVertexVectorIndex(RTContext *ctx, const cypher::Record *rec
     FillProcedureYieldItem("db.showVertexVectorIndex", yield_items, records);
 }
 
-void VectorFunc::VertexVectorIndexQuery(RTContext *ctx, const cypher::Record *record,
+void VectorFunc::VertexVectorKnnSearch(RTContext *ctx, const cypher::Record *record,
                        const cypher::VEC_EXPR &args,
                        const cypher::VEC_STR &yield_items,
                        struct std::vector<cypher::Record> *records) {
     CYPHER_DB_PROCEDURE_GRAPH_CHECK();
     CYPHER_ARG_CHECK(args.size() == 4,
-                     "e.g. db.vertexVectorIndexQuery(label_name, field_name,"
+                     "e.g. db.vertexVectorKnnSearch(label_name, field_name,"
                      " vec, parameter);")
     CYPHER_ARG_CHECK(args[0].IsString(),
                     "label_name type should be string")
@@ -4272,7 +4272,7 @@ void VectorFunc::VertexVectorIndexQuery(RTContext *ctx, const cypher::Record *re
                     "field_name type should be string")
     CYPHER_ARG_CHECK(args[2].IsArray(), "Please check the vector you entered, e.g. [1, 2, 3]")
     CYPHER_ARG_CHECK(args[3].IsMap(), "parameter type should be map")
-    CheckProcedureYieldItem("db.vertexVectorIndexQuery", yield_items);
+    CheckProcedureYieldItem("db.vertexVectorKnnSearch", yield_items);
     std::vector<float> query_vector;
     for (size_t i = 0; i < args[2].constant.AsConstantArray().size(); i++) {
         float fltValue;
@@ -4296,8 +4296,9 @@ void VectorFunc::VertexVectorIndexQuery(RTContext *ctx, const cypher::Record *re
     auto label = args[0].constant.AsString();
     auto field = args[1].constant.AsString();
     auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(label, field);
+
     int top_k = 10;
-    auto parameter =  *args[3].constant.map;
+    auto parameter = *args[3].constant.map;
     if (parameter.count("top_k")) {
         top_k = parameter.at("top_k").AsInt64();
     }
@@ -4308,7 +4309,7 @@ void VectorFunc::VertexVectorIndexQuery(RTContext *ctx, const cypher::Record *re
     }
     CYPHER_ARG_CHECK((ef_search <= 1000 && ef_search >= 1),
                      "hnsw.ef_search should be an integer in the range [1, 1000]");
-    auto res = index->Search(query_vector, top_k, ef_search);
+    auto res = index->KnnSearch(query_vector, top_k, ef_search);
     for (auto& item : res) {
         Record r;
         cypher::Node n;
@@ -4317,6 +4318,83 @@ void VectorFunc::VertexVectorIndexQuery(RTContext *ctx, const cypher::Record *re
         r.AddConstant(lgraph::FieldData(item.second));
         records->emplace_back(r.Snapshot());
     }
-    FillProcedureYieldItem("db.vertexVectorIndexQuery", yield_items, records);
+    FillProcedureYieldItem("db.vertexVectorKnnSearch", yield_items, records);
 }
+
+void VectorFunc::VertexVectorRangeSearch(RTContext *ctx, const cypher::Record *record,
+                                        const cypher::VEC_EXPR &args,
+                                        const cypher::VEC_STR &yield_items,
+                                        struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 4,
+                     "e.g. db.vertexVectorRangeSearch(label_name, field_name,"
+                     " vec, parameter);")
+    CYPHER_ARG_CHECK(args[0].IsString(),
+                     "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsString(),
+                     "field_name type should be string")
+    CYPHER_ARG_CHECK(args[2].IsArray(), "Please check the vector you entered, e.g. [1, 2, 3]")
+    CYPHER_ARG_CHECK(args[3].IsMap(), "parameter type should be map")
+    CheckProcedureYieldItem("db.vertexVectorRangeSearch", yield_items);
+    std::vector<float> query_vector;
+    for (size_t i = 0; i < args[2].constant.AsConstantArray().size(); i++) {
+        float fltValue;
+        if (args[2].constant.AsConstantArray().at(i).IsFloat()) {
+            float dblValue =
+                args[2].constant.AsConstantArray().at(i).AsFloat();
+            fltValue = static_cast<float>(dblValue);
+        } else if (args[2].constant.AsConstantArray().at(i).IsInteger()) {
+            int64_t dblValue =
+                args[2].constant.AsConstantArray().at(i).AsInt64();
+            fltValue = static_cast<float>(dblValue);
+        } else if (args[2].constant.AsConstantArray().at(i).IsDouble()) {
+            double dblValue =
+                args[2].constant.AsConstantArray().at(i).AsDouble();
+            fltValue = static_cast<float>(dblValue);
+        } else {
+            throw lgraph::ReminderException("Please check the vector");
+        }
+        query_vector.push_back(fltValue);
+    }
+    auto label = args[0].constant.AsString();
+    auto field = args[1].constant.AsString();
+    auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(label, field);
+
+    float radius = 0.1;
+    auto parameter = *args[3].constant.map;
+    if (parameter.count("radius")) {
+        if (parameter.at("radius").scalar.IsDouble()) {
+            radius = (float)parameter.at("radius").AsDouble();
+        } else if (parameter.at("radius").scalar.IsInteger()) {
+            radius = (float)parameter.at("radius").AsInt64();
+        } else {
+            throw lgraph::ReminderException("radius type error");
+        }
+    } else {
+        throw lgraph::ReminderException("radius is required for vector range search");
+    }
+    CYPHER_ARG_CHECK((radius > 0), "radius must be greater than 0");
+    int ef_search = 200;
+    if (parameter.count("hnsw_ef_search")) {
+        ef_search = parameter.at("hnsw_ef_search").AsInt64();
+    }
+    CYPHER_ARG_CHECK((ef_search <= 1000 && ef_search >= 1),
+                     "hnsw.ef_search should be an integer in the range [1, 1000]");
+    int limit = -1;
+    if (parameter.count("limit")) {
+        limit = parameter.at("limit").AsInt64();
+    }
+    CYPHER_ARG_CHECK((limit != 0), "limit must not be 0");
+    auto res = index->RangeSearch(query_vector, radius, ef_search, limit);
+    for (auto& item : res) {
+        Record r;
+        cypher::Node n;
+        n.SetVid(item.first);
+        r.AddNode(&n);
+        r.AddConstant(lgraph::FieldData(item.second));
+        records->emplace_back(r.Snapshot());
+    }
+    FillProcedureYieldItem("db.vertexVectorRangeSearch", yield_items, records);
+}
+
 }  // namespace cypher
