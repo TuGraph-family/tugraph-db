@@ -49,6 +49,8 @@ dyn_var<long> foo(void) {
 
 int main() {
     builder::builder_context context;
+    std::cout<<"#include <iostream>"<<std::endl;
     block::c_code_generator::generate_code(context.extract_function_ast(foo, "foo"), std::cout, 0);
+    std::cout<< "int main() {\n  std::cout << foo() << std::endl;\n  return 0;\n}";
     return 0;
 }

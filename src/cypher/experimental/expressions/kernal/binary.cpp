@@ -21,7 +21,6 @@ CFieldData CFieldData::operator+(const CFieldData &other) const {
     } else if ((is_integer() || is_real()) && (other.is_integer() || other.is_real())) {
         if (is_integer() && other.is_integer()) {
             ret.scalar = CScalarData(scalar.Int64() + other.scalar.Int64());
-            std::cout<<"ret"<<ret.scalar.is_constant_<<std::endl;
         } else {
             dyn_var<double> x_n = is_integer() ? (dyn_var<double>)scalar.integer() : scalar.real();
             dyn_var<double> y_n = is_integer()? (dyn_var<double>)other.scalar.integer() : other.scalar.real();
@@ -59,18 +58,18 @@ static CFieldData sub(const CFieldData& x, const CFieldData& y) {
 }
 
 static CFieldData div(const CFieldData& x,  const CFieldData y) {
-    if (is_null() || other.is_null()) return CFieldData();
+    if (x.is_null() || y.is_null()) return CFieldData();
     if (!(x.is_integer() || x.is_real()) || !(y.is_integer() || y.is_real())) 
         throw lgraph::CypherException("Type mismatch: expect Integer or Float in div expr");
     CFieldData ret;
-    if (is_integer() && other.is_integer()) {
+    if (x.is_integer() && y.is_integer()) {
         dyn_var<long> x_n = x.scalar.integer();
         dyn_var<long> y_n = y.scalar.integer();
         if (y_n == 0) throw lgraph::CypherException("divide by zero");
         ret.scalar = std::move(CScalarData(x_n / y_n));
     } else {
-        dyn_var<double> x_n = is_integer() ? (dyn_var<double>)scalar.integer() : scalar.real();
-        dyn_var<double> y_n = is_integer()? (dyn_var<double>)other.scalar.integer() : other.scalar.real();
+        dyn_var<double> x_n = x.is_integer() ? (dyn_var<double>) x.scalar.integer() : x.scalar.real();
+        dyn_var<double> y_n = y.is_integer()? (dyn_var<double>) y.scalar.integer() : y.scalar.real();
         if (y_n == 0) CYPHER_TODO();
         ret.scalar = std::move(CScalarData(x_n - y_n));
     }
@@ -129,7 +128,7 @@ std::any ExprEvaluator::visit(geax::frontend::BSmallerThan* node) { CYPHER_TODO(
 std::any ExprEvaluator::visit(geax::frontend::BNotGreaterThan* node) { CYPHER_TODO(); }
 std::any ExprEvaluator::visit(geax::frontend::BSafeEqual* node) { CYPHER_TODO(); }
 std::any ExprEvaluator::visit(geax::frontend::BSub* node) { DO_BINARY_EXPR(sub); }
-std::any ExprEvaluator::visit(geax::frontend::BDiv* node) { CYPHER_TODO(); }
+std::any ExprEvaluator::visit(geax::frontend::BDiv* node) { DO_BINARY_EXPR(div); }
 std::any ExprEvaluator::visit(geax::frontend::BMul* node) { CYPHER_TODO(); }
 std::any ExprEvaluator::visit(geax::frontend::BMod* node) { CYPHER_TODO(); }
 std::any ExprEvaluator::visit(geax::frontend::BSquare* node) { CYPHER_TODO(); }
