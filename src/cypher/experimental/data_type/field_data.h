@@ -14,24 +14,9 @@ using lgraph::FieldType;
 
 namespace cypher {
 namespace compilation {
-#define GET_CONSTANT(type) \
-    if (is_constant_) { \
-        return std::get<static_var<type>>(constant_); \
-    } else { \
-        return std::get<dyn_var<type>>(dyn_); \
-    }
 
 struct CScalarData {
     static constexpr const char* type_name = "CScalarData";
-    std::variant<
-        std::monostate, // Represent the null state
-        static_var<short>,
-        static_var<int>,
-        static_var<long>,
-        static_var<float>,
-        static_var<double>
-    > constant_;
-
     std::variant<
         std::monostate, // Represent the null state
         dyn_var<short>,
@@ -39,82 +24,63 @@ struct CScalarData {
         dyn_var<long>,
         dyn_var<float>,
         dyn_var<double>
-    > dyn_;
+    > constant_;
 
-    bool is_constant_;
-    // for string type
     lgraph::FieldType type_;
 
     CScalarData() {
         type_ = lgraph_api::FieldType::NUL;
-        is_constant_ = false;
     }
 
     CScalarData(CScalarData &&data)
-    : constant_(std::move(data.constant_)), dyn_(std::move(data.dyn_)), 
-    is_constant_(data.is_constant_), type_(data.type_) {}
+    : constant_(std::move(data.constant_)), type_(data.type_) {}
 
     CScalarData(const CScalarData& other)
-    : constant_(other.constant_), dyn_(other.dyn_),
-    is_constant_(other.is_constant_), type_(other.type_) {}
+    : constant_(other.constant_), type_(other.type_) {}
 
-    CScalarData(const lgraph::FieldData& other, bool is_constant = false) {
+    CScalarData(const lgraph::FieldData& other) {
         type_ = other.type;
-        is_constant_ = is_constant;
-        if (is_constant_) {
-            switch (other.type) {
-            case lgraph::FieldType::NUL:
-                constant_.emplace<std::monostate>();
-                break;
-            case lgraph::FieldType::INT64:
-                constant_.emplace<static_var<long>>((long)other.integer());
-                break;
-            default:
-                CYPHER_TODO();
-            }
-        } else {
-            switch (other.type) {
-            case lgraph::FieldType::NUL:
-                dyn_.emplace<std::monostate>();
-                break;
-            case lgraph::FieldType::INT64:
-                dyn_.emplace<dyn_var<long>>((long)other.integer());
-                break;
-            default:
-                CYPHER_TODO();
-            }
-
+        switch (other.type) {
+        case lgraph::FieldType::NUL:
+            constant_.emplace<std::monostate>();
+            break;
+        case lgraph::FieldType::INT64:
+            constant_.emplace<dyn_var<long>>((long)other.integer());
+            break;
+        default:
+            CYPHER_TODO();
         }
     }
 
-    explicit CScalarData(long integer, bool is_constant = true) {
-        is_constant_ = is_constant;
-        if (is_constant) {
-            constant_.emplace<static_var<long>>(integer);
-        } else {
-            dyn_.emplace<dyn_var<long>>(integer);
-        }
+    explicit CScalarData(long integer) {
+        constant_.emplace<dyn_var<long>>(integer);
         type_ = lgraph::FieldType::INT64;
     }
     
     explicit CScalarData(const static_var<long> &integer)
-    : constant_(integer), is_constant_(true), type_(FieldType::INT64)  {}
+    : type_(FieldType::INT64) {
+        constant_ = (dyn_var<long>) integer;
+    }
 
     explicit CScalarData(const dyn_var<long> &integer)
-    : dyn_(integer), is_constant_(false), type_(FieldType::INT64) {}
+    : constant_(integer), type_(FieldType::INT64) {}
 
     explicit CScalarData(dyn_var<long>&& integer)
-    : dyn_(std::move(integer)), is_constant_(false), type_(FieldType::INT64) {}
+    : constant_(std::move(integer)), type_(FieldType::INT64) {}
 
     inline dyn_var<long> integer() const {
         switch (type_) {
         case FieldType::NUL:
         case FieldType::BOOL:
             throw std::bad_cast();
-        case FieldType::INT8: GET_CONSTANT(short)
-        case FieldType::INT16: GET_CONSTANT(short)
-        case FieldType::INT32: GET_CONSTANT(int)
-        case FieldType::INT64: GET_CONSTANT(long)
+        case FieldType::INT8:
+            return std::get<dyn_var<short>>(constant_);
+        case FieldType::INT16:
+            return std::get<dyn_var<short>>(constant_);
+        case FieldType::INT32:
+            return std::get<dyn_var<int>>(constant_);
+        case FieldType::INT64:
+            return std::get<dyn_var<long>>(constant_);
         case FieldType::FLOAT:
         case FieldType::DOUBLE:
         case FieldType::DATE:
@@ -141,9 +107,9 @@ struct CScalarData {
         case FieldType::INT64:
             throw std::bad_cast();
         case FieldType::FLOAT:
-            GET_CONSTANT(float);
+            std::get<dyn_var<float>>(constant_);
         case FieldType::DOUBLE:
-            GET_CONSTANT(double);
+            std::get<dyn_var<double>>(constant_);
         case FieldType::DATE:
         case FieldType::DATETIME:
         case FieldType::STRING:
@@ -159,7 +125,7 @@ struct CScalarData {
     }
 
     dyn_var<long> Int64() const {
-        GET_CONSTANT(long)
+        return std::get<dyn_var<long>>(constant_);
     }
 
     inline bool is_integer() const {
@@ -177,9 +143,7 @@ struct CScalarData {
     CScalarData& operator=(CScalarData&& other) noexcept {
         if (this != &other) {
             constant_ = std::move(other.constant_);
-            dyn_ = std::move(other.dyn_);
             type_ = std::move(other.type_);
-            is_constant_ = std::move(other.is_constant_);
         }
         return *this;
     }
@@ -187,9 +151,7 @@ struct CScalarData {
     CScalarData& operator=(const CScalarData& other) {
         if (this != &other) {
             constant_ = other.constant_;
-            dyn_ = other.dyn_;
             type_ = other.type_;
-            is_constant_ = other.is_constant_;
         }
         return *this;
     }

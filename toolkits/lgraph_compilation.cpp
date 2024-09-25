@@ -25,7 +25,7 @@ dyn_var<long> bar(void) {
 dyn_var<long> foo(void) {
     cypher::SymbolTable sym_tab;
 
-    CFieldData a(std::move(CScalarData(10, false)));
+    CFieldData a(std::move(CScalarData(10)));
     geax::frontend::Ref ref1;
     ref1.setName(std::string("a"));
     sym_tab.symbols.emplace("a", cypher::SymbolNode(0, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
