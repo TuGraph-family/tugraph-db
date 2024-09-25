@@ -60,6 +60,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     start_time = get_time();
     if (output_file != "") {
         fma_common::OutputFmaStream fout;
+        fout.Open(output_file, 64 << 20);
         json cur;
         json curNode;
         json communityNode;
