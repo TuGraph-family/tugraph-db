@@ -883,6 +883,8 @@ class Transaction {
 
     std::vector<std::tuple<bool, std::string, int64_t>> countDetail();
 
+    VectorIndex* GetVertexVectorIndex(const std::string& label, const std::string& field);
+
     /**
      * Check if index is ready.
      *

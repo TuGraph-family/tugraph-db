@@ -39,7 +39,7 @@ class HNSW : public VectorIndex {
                 const std::string& distance_type, const std::string& index_type,
                 int vec_dimension, std::vector<int> index_spec);
 
-  HNSW(const HNSW& rhs);
+  HNSW(const HNSW& rhs) = delete;
 
   HNSW(HNSW&& rhs) = delete;
 
@@ -50,11 +50,11 @@ class HNSW : public VectorIndex {
   HNSW& operator=(HNSW&& rhs) = delete;
 
   // add vector to index and build index
-  bool Add(const std::vector<std::vector<float>>& vectors,
+  void Add(const std::vector<std::vector<float>>& vectors,
            const std::vector<int64_t>& vids, int64_t num_vectors) override;
 
   // build index
-  bool Build() override;
+  void Build() override;
 
   // serialize index
   std::vector<uint8_t> Save() override;
@@ -63,8 +63,11 @@ class HNSW : public VectorIndex {
   void Load(std::vector<uint8_t>& idx_bytes) override;
 
   // search vector in index
-  bool Search(const std::vector<float>& query, int64_t num_results,
-              std::vector<float>& distances, std::vector<int64_t>& indices) override;
+  std::vector<std::pair<int64_t, float>> KnnSearch(
+      const std::vector<float>& query, int64_t top_k, int ef_search) override;
+
+  std::vector<std::pair<int64_t, float>> RangeSearch(
+      const std::vector<float>& query, float radius, int ef_search, int limit) override;
 
   template <typename T>
   static void writeBinaryPOD(std::ostream& out, const T& podRef) {

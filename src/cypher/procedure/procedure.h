@@ -415,17 +415,19 @@ class SpatialFunc {
 
 class VectorFunc {
  public:
-    static void AddVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void AddVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                              const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void DeleteVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void DeleteVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                              const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void ShowVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void ShowVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                              const VEC_STR &yield_items, std::vector<Record> *records);
 
-    static void VectorIndexQuery(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void VertexVectorKnnSearch(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                              const VEC_STR &yield_items, std::vector<Record> *records);
+    static void VertexVectorRangeSearch(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                       const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 struct Procedure {
@@ -924,51 +926,53 @@ static std::vector<Procedure> global_procedures = {
                  {"Spatial2", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"distance", {0, lgraph_api::LGraphType::DOUBLE}}}),
 
-    Procedure("vector.AddVectorIndex", VectorFunc::AddVectorIndex,
+    Procedure("db.addVertexVectorIndex", VectorFunc::AddVertexVectorIndex,
               Procedure::SIG_SPEC{
                   {"label_name", {0, lgraph_api::LGraphType::STRING}},
                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                  {"index_type", {2, lgraph_api::LGraphType::STRING}},
-                  {"vec_dimension", {3, lgraph_api::LGraphType::INTEGER}},
-                  {"distance_type", {4, lgraph_api::LGraphType::STRING}},
-                  {"index_spec", {5, lgraph_api::LGraphType::LIST}},
+                  {"parameter", {2, lgraph_api::LGraphType::MAP}},
               },
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
-    Procedure("vector.DeleteVectorIndex", VectorFunc::DeleteVectorIndex,
+    Procedure("db.deleteVertexVectorIndex", VectorFunc::DeleteVertexVectorIndex,
               Procedure::SIG_SPEC{
                   {"label_name", {0, lgraph_api::LGraphType::STRING}},
                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
-                  {"index_type", {2, lgraph_api::LGraphType::STRING}},
-                  {"vec_dimension", {3, lgraph_api::LGraphType::INTEGER}},
-                  {"distance_type", {4, lgraph_api::LGraphType::STRING}},
               },
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
-    Procedure("vector.ShowVectorIndex", VectorFunc::ShowVectorIndex, Procedure::SIG_SPEC{},
+    Procedure("db.showVertexVectorIndex", VectorFunc::ShowVertexVectorIndex, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{
                   {"label_name", {0, lgraph_api::LGraphType::STRING}},
                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
                   {"index_type", {2, lgraph_api::LGraphType::STRING}},
-                  {"vec_dimension", {3, lgraph_api::LGraphType::STRING}},
+                  {"dimension", {3, lgraph_api::LGraphType::INTEGER}},
                   {"distance_type", {4, lgraph_api::LGraphType::STRING}},
-                  {"index_spec", {5, lgraph_api::LGraphType::STRING}},
+                  {"hnsm.m", {5, lgraph_api::LGraphType::INTEGER}},
+                  {"hnsm.ef_construction", {6, lgraph_api::LGraphType::INTEGER}},
               }),
 
-    Procedure("vector.VectorIndexQuery", VectorFunc::VectorIndexQuery,
+    Procedure("db.vertexVectorKnnSearch", VectorFunc::VertexVectorKnnSearch,
               Procedure::SIG_SPEC{
                   {"label_name", {0, lgraph_api::LGraphType::STRING}},
                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
                   {"vec", {2, lgraph_api::LGraphType::LIST}},
-                  {"num_of_return", {3, lgraph_api::LGraphType::INTEGER}},
-                  {"query_spec", {4, lgraph_api::LGraphType::INTEGER}},
+                  {"parameter", {3, lgraph_api::LGraphType::MAP}},
               },
               Procedure::SIG_SPEC{
                   {"node", {0, lgraph_api::LGraphType::NODE}},
-                  {"label_name", {1, lgraph_api::LGraphType::STRING}},
-                  {"field_name", {2, lgraph_api::LGraphType::STRING}},
-                  {"vec", {3, lgraph_api::LGraphType::STRING}},
-                  {"score", {4, lgraph_api::LGraphType::FLOAT}},
+                  {"distance", {1, lgraph_api::LGraphType::FLOAT}},
+              }),
+    Procedure("db.vertexVectorRangeSearch", VectorFunc::VertexVectorRangeSearch,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"parameter", {3, lgraph_api::LGraphType::MAP}},
+              },
+              Procedure::SIG_SPEC{
+                  {"node", {0, lgraph_api::LGraphType::NODE}},
+                  {"distance", {1, lgraph_api::LGraphType::FLOAT}},
               }),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,

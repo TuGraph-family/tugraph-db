@@ -19,8 +19,7 @@ VectorIndex::VectorIndex(const std::string& label, const std::string& name,
                          const std::string& distance_type, const std::string& index_type,
                          int vec_dimension, std::vector<int> index_spec)
     : label_(label), name_(name), distance_type_(distance_type), index_type_(index_type),
-      vec_dimension_(vec_dimension), index_spec_(index_spec),
-      query_spec_(10) {}
+      vec_dimension_(vec_dimension), index_spec_(index_spec) {}
 
 VectorIndex::VectorIndex(const VectorIndex& rhs)
     : label_(rhs.label_),
@@ -28,11 +27,6 @@ VectorIndex::VectorIndex(const VectorIndex& rhs)
       distance_type_(rhs.distance_type_),
       index_type_(rhs.index_type_),
       vec_dimension_(rhs.vec_dimension_),
-      index_spec_(rhs.index_spec_),
-      query_spec_{rhs.query_spec_} {}
+      index_spec_(rhs.index_spec_) {}
 
-bool VectorIndex::SetSearchSpec(int query_spec) {
-    query_spec_ = query_spec;
-    return true;
-}
 }  // namespace lgraph

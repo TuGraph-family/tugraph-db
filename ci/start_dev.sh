@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-DOCKER_IMAGE="tugraph/tugraph-compile-centos8:1.3.2"
+DOCKER_IMAGE="tugraph/tugraph-compile-centos8:1.3.3-dev"
 
 WORKING_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_DIR="$(git rev-parse --show-toplevel)"

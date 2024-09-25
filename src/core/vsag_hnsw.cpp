@@ -26,28 +26,22 @@ HNSW::HNSW(const std::string& label, const std::string& name,
                     vec_dimension, std::move(index_spec)),
       createindex_(nullptr), index_(createindex_.get()) {}
 
-HNSW::HNSW(const HNSW& rhs)
-    : VectorIndex(rhs),
-      createindex_(rhs.createindex_),
-      index_(createindex_.get()) {}
-
 // add vector to index
-bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
+void HNSW::Add(const std::vector<std::vector<float>>& vectors,
                const std::vector<int64_t>& vids, int64_t num_vectors) {
     // reduce dimension
     if (num_vectors == 0) {
-        for (size_t i = 0; i < vids.size(); i++) {
-            auto result = index_->Remove(static_cast<int64_t>(vids[i]));
+        for (auto vid : vids) {
+            auto result = index_->Remove(vid);
             if (result.has_value()) {
                 if (!result.value()) {
-                    THROW_CODE(InputError, "failed to remove vector from index, vid:{}", vids[i]);
+                    THROW_CODE(InputError, "failed to remove vector from index, vid:{}", vid);
                 }
             } else {
                 THROW_CODE(InputError, "failed to remove vector from index, vid:{}, error:{}",
-                           vids[i], result.error().message);
+                           vid, result.error().message);
             }
         }
-        return true;
     }
     auto* index_vectors = new float[num_vectors * vec_dimension_];
     auto* ids = new int64_t[num_vectors];
@@ -57,58 +51,38 @@ bool HNSW::Add(const std::vector<std::vector<float>>& vectors,
     for (int64_t i = 0; i < num_vectors; i++) {
         ids[i] = vids[i];
     }
-    if (index_type_ == "HNSW") {
-        auto dataset = vsag::Dataset::Make();
-        dataset->Dim(vec_dimension_)->NumElements(num_vectors)
-               ->Ids(ids)->Float32Vectors(index_vectors);
-        auto result = index_->Add(dataset);
-        if (result.has_value()) {
-            if (!result.value().empty()) {
-                THROW_CODE(InputError, "add vector into index, {} failed", result.value().size());
-            }
-        } else {
-            THROW_CODE(InputError, "add vector into index, error:{}", result.error().message);
+    auto dataset = vsag::Dataset::Make();
+    dataset->Dim(vec_dimension_)->NumElements(num_vectors)
+           ->Ids(ids)->Float32Vectors(index_vectors);
+    auto result = index_->Add(dataset);
+    if (result.has_value()) {
+        if (!result.value().empty()) {
+            THROW_CODE(VectorIndexException,
+                       "add vector into index, {} failed", result.value().size());
         }
-        return result.has_value();
     } else {
-        delete[] ids;
-        delete[] index_vectors;
-        return true;
+        THROW_CODE(VectorIndexException, "add vector into index, error:{}", result.error().message);
     }
 }
 
-bool HNSW::Build() {
+void HNSW::Build() {
     nlohmann::json hnsw_parameters{
         {"max_degree", index_spec_[0]},
         {"ef_construction", index_spec_[1]}
     };
-    nlohmann::json index_parameters;
-    if (distance_type_ == "L2") {
-        index_parameters = {
-            {"dtype", "float32"},
-            {"metric_type", "l2"},
-            {"dim", vec_dimension_},
-            {"hnsw", hnsw_parameters}
-        };
-    } else if (distance_type_ == "IP") {
-        index_parameters = {
-            {"dtype", "float32"},
-            {"metric_type", "ip"},
-            {"dim", vec_dimension_},
-            {"hnsw", hnsw_parameters}
-        };
-    } else {
-        return false;
-    }
+    nlohmann::json index_parameters {
+        {"dtype", "float32"},
+        {"metric_type", distance_type_},
+        {"dim", vec_dimension_},
+        {"hnsw", hnsw_parameters}
+    };
     auto temp = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
     if (temp.has_value()) {
         createindex_ = std::move(temp.value());
         index_ = createindex_.get();
     } else {
-        LOG_WARN() << FMA_FMT("create vsag index error: {}", temp.error().message);
-        return false;
+        THROW_CODE(VectorIndexException, temp.error().message);
     }
-    return true;
 }
 
 // serialize index
@@ -199,31 +173,50 @@ void HNSW::Load(std::vector<uint8_t>& idx_bytes) {
 }
 
 // search vector in index
-bool HNSW::Search(const std::vector<float>& query, int64_t num_results,
-                          std::vector<float>& distances, std::vector<int64_t>& indices) {
-    if (!index_) {
-        return false;
-    }
-    float* query_copy = new float[query.size()];
+std::vector<std::pair<int64_t, float>>
+HNSW::KnnSearch(const std::vector<float>& query, int64_t top_k, int ef_search) {
+    auto* query_copy = new float[query.size()];
     std::copy(query.begin(), query.end(), query_copy);
     auto dataset = vsag::Dataset::Make();
     dataset->Dim(vec_dimension_)
            ->NumElements(1)
            ->Float32Vectors(query_copy);
     nlohmann::json parameters{
-        {"hnsw", {{"ef_search", query_spec_}}},
+        {"hnsw", {{"ef_search", ef_search}}},
     };
-    if (index_->GetNumElements() < num_results) {
-        return false;
-    }
-    auto result = index_->KnnSearch(dataset, num_results, parameters.dump());
+    std::vector<std::pair<int64_t, float>> ret;
+    auto result = index_->KnnSearch(dataset, top_k, parameters.dump());
     if (result.has_value()) {
         for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
-            indices.push_back(result.value()->GetIds()[i]);
-            distances.push_back(result.value()->GetDistances()[i]);
+            ret.emplace_back(result.value()->GetIds()[i], result.value()->GetDistances()[i]);
         }
-        return true;
+    } else {
+        THROW_CODE(VectorIndexException, result.error().message);
     }
-    return false;
+    return ret;
 }
+
+std::vector<std::pair<int64_t, float>>
+HNSW::RangeSearch(const std::vector<float>& query, float radius, int ef_search, int limit) {
+    auto* query_copy = new float[query.size()];
+    std::copy(query.begin(), query.end(), query_copy);
+    auto dataset = vsag::Dataset::Make();
+    dataset->Dim(vec_dimension_)
+        ->NumElements(1)
+        ->Float32Vectors(query_copy);
+    nlohmann::json parameters{
+        {"hnsw", {{"ef_search", ef_search}}},
+    };
+    std::vector<std::pair<int64_t, float>> ret;
+    auto result = index_->RangeSearch(dataset, radius, parameters.dump(), limit);
+    if (result.has_value()) {
+        for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
+            ret.emplace_back(result.value()->GetIds()[i], result.value()->GetDistances()[i]);
+        }
+    } else {
+        THROW_CODE(VectorIndexException, result.error().message);
+    }
+    return ret;
+}
+
 }  // namespace lgraph
