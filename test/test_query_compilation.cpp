@@ -47,7 +47,7 @@ std::string execute(const std::string& command) {
 
 std::string execute_func(std::string &func_body) {
     const std::string file_name = "test_add.cpp";
-    const std::string output_name = "test_add"
+    const std::string output_name = "test_add";
     std::ofstream out_file(file_name);
     if (!out_file) {
         std::cerr << "Failed to open file for writing!" << std::endl;
@@ -65,7 +65,7 @@ std::string execute_func(std::string &func_body) {
     // define and execute command
     std::string output = execute("./a");
     // delete files
-    if (std::remove(file_name) && std::remove(output_name)) {
+    if (std::remove(file_name.c_str()) && std::remove(output_name.c_str())) {
         std::cerr << "Failed to delete files: " << file_name 
                   << ", " << output_name << std::endl;
     }
