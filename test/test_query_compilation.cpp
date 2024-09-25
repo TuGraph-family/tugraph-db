@@ -46,7 +46,8 @@ std::string execute(const std::string& command) {
 }
 
 std::string execute_func(std::string &func_body) {
-    const std::string file_name = "a.cpp";
+    const std::string file_name = "test_add.cpp";
+    const std::string output_name = "test_add"
     std::ofstream out_file(file_name);
     if (!out_file) {
         std::cerr << "Failed to open file for writing!" << std::endl;
@@ -54,18 +55,20 @@ std::string execute_func(std::string &func_body) {
     }
     out_file << func_body;
     out_file.close();
-
     // define and execute compiler commands
-    std::string compile_cmd = "g++ " + file_name + " -o ./a";
+    std::string compile_cmd = "g++ " + file_name + " -o " + output_name;
     int compile_res = system(compile_cmd.c_str());
     if (compile_res != 0) {
         std::cerr << "Compilation failed!" << std::endl;
         return "";
     }
-
     // define and execute command
     std::string output = execute("./a");
-
+    // delete files
+    if (std::remove(file_name) && std::remove(output_name)) {
+        std::cerr << "Failed to delete files: " << file_name 
+                  << ", " << output_name << std::endl;
+    }
     return output;
 }
 class TestQueryCompilation : public TuGraphTest {};
