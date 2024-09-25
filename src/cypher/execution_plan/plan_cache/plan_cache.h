@@ -21,7 +21,7 @@
 
 namespace cypher {
 class ASTCacheObj {
-    public:
+ public:
     std::vector<parser::SglQuery> stmts;
     parser::CmdType cmd;
 
@@ -42,7 +42,7 @@ class ASTCacheObj {
 
 template<typename T>
 class PlanCacheEntry {
-    public:
+ public:
     std::string key;
     T value;
 
@@ -70,7 +70,6 @@ class LRUPlanCache {
 
     LRUPlanCache() : _max_size(512) {}
 
-    
     void add_plan(std::string param_query, const Value &val) {
         std::unique_lock<std::shared_mutex> lock(_mutex);
         auto it = _item_map.find(param_query);
@@ -90,7 +89,7 @@ class LRUPlanCache {
     // you MUST parameterize the query using the fastQueryParam().
     bool get_plan(const std::string &param_query, Value &val) {
         // parameterized raw query
-        std::shared_lock<std::shared_mutex> lock(_mutex); 
+        std::shared_lock<std::shared_mutex> lock(_mutex);
         auto it = _item_map.find(param_query);
         if (it == _item_map.end()) {
             return false;

@@ -17,7 +17,6 @@
 #include "parser/generated/LcypherLexer.h"
 #include "parser/generated/LcypherParser.h"
 
-#include "cypher_types.h"
 #include "execution_plan/runtime_context.h"
 #include "parser/clause.h"
 #include "parser/expression.h"

@@ -604,8 +604,9 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
                 if (pf.type == Property::PARAMETER) {
                     // TODO(anyone) use record
                     // Fix bugs of parameterized execution:
-                    // MATCH (rachel:Person {name: $name1})-[]->(family:Person)-[:ACTED_IN]->(film)<-[:ACTED_IN]-(richard:Person {name: $name2}) RETURN family.name;
-                    ae2.SetOperandParameter(ArithOperandNode::AR_OPERAND_PARAMETER, 
+                    // MATCH (rachel:Person {name: $name1})-[]->(family:Person)-[:ACTED_IN]->(film)
+                    // <-[:ACTED_IN]-(richard:Person {name: $name2}) RETURN family.name;
+                    ae2.SetOperandParameter(ArithOperandNode::AR_OPERAND_PARAMETER,
                         pf.value_alias, pattern_graph.symbol_table);
                 } else if (pf.type == Property::VARIABLE) {
                     ae2.SetOperandVariable(ArithOperandNode::AR_OPERAND_VARIABLE,

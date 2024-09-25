@@ -1434,9 +1434,6 @@ void ArithOperandNode::SetParameter(const std::string &param, const SymbolTable 
         type = AR_OPERAND_PARAMETER;
         variadic.alias = param;
         auto it = sym_tab.symbols.find(param);
-        for (auto entry :sym_tab.symbols) {
-            std::cout<<entry.first<<std::endl;
-        }
         if (it == sym_tab.symbols.end()) {
             throw lgraph::CypherException("Parameter not defined: " + param);
         }
@@ -1451,10 +1448,12 @@ void ArithOperandNode::RealignAliasId(const SymbolTable &sym_tab) {
     variadic.alias_idx = it->second.id;
 }
 
-cypher::FieldData GenerateCypherFieldData(const parser::Expression &expr, const SymbolTable &sym_tab) {
+cypher::FieldData GenerateCypherFieldData(const parser::Expression &expr,
+                                          const SymbolTable &sym_tab) {
     if (expr.type == parser::Expression::PARAMETER) {
         return cypher::FieldData(sym_tab.param_tab_->at(expr.String()));
-    } else if (expr.type != parser::Expression::LIST && expr.type != parser::Expression::MAP) {
+    } else if (expr.type != parser::Expression::LIST
+            && expr.type != parser::Expression::MAP) {
         return cypher::FieldData(parser::MakeFieldData(expr));
     } else if (expr.type == parser::Expression::LIST) {
         std::vector<cypher::FieldData> list;

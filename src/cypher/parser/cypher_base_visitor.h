@@ -83,7 +83,7 @@ class CypherBaseVisitor : public LcypherVisitor {
     size_t _anonymous_idx = 0;
 
     void FillParam() {
-        for (auto& part: _query) {
+        for (auto& part : _query) {
             for (auto& p : part.parts) {
                 p.symbol_table.param_tab_ = &ctx_->param_tab_;
             }
@@ -952,7 +952,6 @@ class CypherBaseVisitor : public LcypherVisitor {
 //                }
                 return std::make_tuple(iter->second, parameter);
             }
-
         }
         CYPHER_TODO();
     }

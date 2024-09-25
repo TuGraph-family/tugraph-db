@@ -31,11 +31,11 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     std::vector<antlr4::Token *> tokens = token_stream.getTokens();
     size_t delete_size = 0;
     std::string param_query = query;
-    
+
     bool prev_limit_skip = false;
     bool in_return_body = false;
-    bool prev_double_dots = false; // e*..3
-    bool in_rel = false; // -[n]->
+    bool prev_double_dots = false;  // e*..3
+    bool in_rel = false;  // -[n]->
     int param_num = 0;
     if (tokens[0]->getType() == parser::LcypherParser::CALL) {
         // Don't parameterize plugin CALL statements
@@ -44,8 +44,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     for (size_t i = 0; i < tokens.size(); i++) {
         parser::Expression expr;
         bool is_param;
-        switch (tokens[i]->getType())
-        {
+        switch (tokens[i]->getType()) {
         case parser::LcypherParser::CREATE: {
             // We don't parameterize the Create statements
             // Remove the parsed parameters.
@@ -58,7 +57,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
             }
             return query;
         }
-        case parser::LcypherParser::T__13: { // '-'
+        case parser::LcypherParser::T__13: {  // '-'
             size_t j = i;
             while (++j < tokens.size() && tokens[j]->getType() == parser::LcypherParser::SP) {
             }
@@ -68,7 +67,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
             i = j;
             break;
         }
-        case parser::LcypherParser::T__8: { // ']'
+        case parser::LcypherParser::T__8: {  // ']'
             in_rel = false;
             break;
         }
@@ -148,7 +147,7 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
                 param_query.replace(start_index, end_index - start_index + 1, count);
                 delete_size += (end_index - start_index + 1) - count.size();
                 param_num++;
-            } 
+            }
             is_param = false;
         }
         if (tokens[i]->getType() == parser::LcypherParser::LIMIT ||
@@ -163,4 +162,4 @@ std::string fastQueryParam(RTContext *ctx, const std::string query) {
     }
     return param_query;
 }
-}
+}  // namespace cypher

@@ -38,6 +38,7 @@
 #include "cypher/execution_plan/execution_plan.h"
 #include "cypher/execution_plan/scheduler.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
+#include "cypher/execution_plan/lru_cache.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 #include "cypher/rewriter/MultiPathPatternRewriter.h"
 #include "cypher/rewriter/PushDownFilterAstRewriter.h"
@@ -80,7 +81,7 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     ASTCacheObj cache_val;
     // parameterize the query
     std::string param_query = fastQueryParam(ctx, script);
-    if(!plan_cache_.get_plan(param_query, cache_val)) {
+    if (!plan_cache_.get_plan(param_query, cache_val)) {
         ANTLRInputStream input(param_query);
         LcypherLexer lexer(&input);
         CommonTokenStream tokens(&lexer);
