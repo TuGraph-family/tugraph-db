@@ -46,7 +46,7 @@ std::string execute(const std::string& command) {
 }
 
 std::string execute_func(std::string &func_body) {
-    const std::string file_name = "/tmp/a.cpp";
+    const std::string file_name = "a.cpp";
     std::ofstream out_file(file_name);
     if (!out_file) {
         std::cerr << "Failed to open file for writing!" << std::endl;
@@ -56,7 +56,7 @@ std::string execute_func(std::string &func_body) {
     out_file.close();
 
     // define and execute compiler commands
-    std::string compile_cmd = "g++ " + file_name + " -o /tmp/a";
+    std::string compile_cmd = "g++ " + file_name + " -o ./a";
     int compile_res = system(compile_cmd.c_str());
     if (compile_res != 0) {
         std::cerr << "Compilation failed!" << std::endl;
@@ -64,7 +64,7 @@ std::string execute_func(std::string &func_body) {
     }
 
     // define and execute command
-    std::string output = execute("/tmp/a");
+    std::string output = execute("./a");
 
     return output;
 }
