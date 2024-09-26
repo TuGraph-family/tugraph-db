@@ -118,7 +118,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
             bool ok = db.AddLabel(v.is_vertex, v.name, fds, *options);
             if (ok) {
                 LOG_INFO() << FMA_FMT("Add {} label:{} success", v.is_vertex ? "vertex" : "edge",
-                                     v.name);
+                                      v.name);
             } else {
                 throw std::runtime_error(
                     FMA_FMT("Add {} label:{} error", v.is_vertex ? "vertex" : "edge", v.name));
@@ -126,7 +126,7 @@ void lgraph::import_v2::Importer::DoImportOffline() {
         }
     }
 
-    auto import_index = [&](){
+    auto import_index = [&]() {
         for (auto& v : schema.label_desc) {
             for (auto& spec : v.columns) {
                 if (v.is_vertex && spec.index && !spec.primary &&
@@ -134,47 +134,45 @@ void lgraph::import_v2::Importer::DoImportOffline() {
                     // create index, ID column has creadted
                     if (db.AddVertexIndex(v.name, spec.name, spec.idxType)) {
                         LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
-                                             v.name, spec.name, static_cast<int>(spec.idxType));
+                                              v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
-                        THROW_CODE(InputError,
-                            "Vertex index [label:{}, field:{}] already exists",
-                                    v.name, spec.name);
+                        THROW_CODE(InputError, "Vertex index [label:{}, field:{}] already exists",
+                                   v.name, spec.name);
                     }
                 } else if (v.is_vertex && spec.index && !spec.primary &&
                            (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
                             spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
                     THROW_CODE(InputError,
-                        "offline import does not support to create a unique "
-                                "index [label:{}, field:{}]. You should create an index for "
-                                "an attribute column after the import is complete",
-                                v.name, spec.name);
+                               "offline import does not support to create a unique "
+                               "index [label:{}, field:{}]. You should create an index for "
+                               "an attribute column after the import is complete",
+                               v.name, spec.name);
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
                     if (db.AddEdgeIndex(v.name, spec.name, spec.idxType)) {
                         LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
-                                             v.name, spec.name, static_cast<int>(spec.idxType));
+                                              v.name, spec.name, static_cast<int>(spec.idxType));
                     } else {
-                        THROW_CODE(InputError,
-                            "Edge index [label:{}, field:{}] already exists",
-                                    v.name, spec.name);
+                        THROW_CODE(InputError, "Edge index [label:{}, field:{}] already exists",
+                                   v.name, spec.name);
                     }
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
                     THROW_CODE(InputError,
-                        "offline import does not support to create a unique "
-                                "index [label:{}, field:{}]. You should create an index for "
-                                "an attribute column after the import is complete",
-                                v.name, spec.name);
+                               "offline import does not support to create a unique "
+                               "index [label:{}, field:{}]. You should create an index for "
+                               "an attribute column after the import is complete",
+                               v.name, spec.name);
                 }
                 if (spec.fulltext) {
                     bool ok = db.AddFullTextIndex(v.is_vertex, v.name, spec.name);
                     if (ok) {
                         LOG_INFO() << FMA_FMT("Add fulltext index [{} label:{}, field:{}]",
-                                             v.is_vertex ? "vertex" : "edge", v.name, spec.name);
+                                              v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     } else {
                         THROW_CODE(InputError,
-                            "Fulltext index [{} label:{}, field:{}] already exists",
-                            v.is_vertex ? "vertex" : "edge", v.name, spec.name);
+                                   "Fulltext index [{} label:{}, field:{}] already exists",
+                                   v.is_vertex ? "vertex" : "edge", v.name, spec.name);
                     }
                 }
             }
@@ -232,40 +230,40 @@ void lgraph::import_v2::Importer::DoImportOffline() {
     for (auto& act : actions) {
         switch (act.type) {
         case PlanExecutor::Action::LOAD_VERTEX:
-            {
-                const std::string& vlabel = vid_label[act.vid];
-                LOG_INFO() << "Load vertex label " << vlabel;
-                if (!config_.dry_run) {
-                    LoadVertexFiles(db.GetLightningGraph(), v_label_files[vlabel],
-                                    schema.FindVertexLabel(vlabel));
-                }
-                break;
+        {
+            const std::string& vlabel = vid_label[act.vid];
+            LOG_INFO() << "Load vertex label " << vlabel;
+            if (!config_.dry_run) {
+                LoadVertexFiles(db.GetLightningGraph(), v_label_files[vlabel],
+                                schema.FindVertexLabel(vlabel));
             }
+            break;
+        }
         case PlanExecutor::Action::LOAD_EDGE:
-            {
-                const std::string& src_label = vid_label[act.edge.first];
-                const std::string& dst_label = vid_label[act.edge.second];
-                LOG_INFO() << "Load edges from vertex " << src_label << " to " << dst_label;
-                if (!config_.dry_run) {
-                    std::map<std::string, std::vector<CsvDesc*>>& elabel_files =
-                        src_dst_files[std::make_pair(src_label, dst_label)];
-                    for (auto& kv : elabel_files) {
-                        LoadEdgeFiles(db.GetLightningGraph(), src_label, dst_label,
-                                      schema.FindEdgeLabel(kv.first), kv.second);
-                    }
+        {
+            const std::string& src_label = vid_label[act.edge.first];
+            const std::string& dst_label = vid_label[act.edge.second];
+            LOG_INFO() << "Load edges from vertex " << src_label << " to " << dst_label;
+            if (!config_.dry_run) {
+                std::map<std::string, std::vector<CsvDesc*>>& elabel_files =
+                    src_dst_files[std::make_pair(src_label, dst_label)];
+                for (auto& kv : elabel_files) {
+                    LoadEdgeFiles(db.GetLightningGraph(), src_label, dst_label,
+                                  schema.FindEdgeLabel(kv.first), kv.second);
                 }
-                break;
             }
+            break;
+        }
         case PlanExecutor::Action::DUMP_VERTEX:
-            {
-                const std::string& vlabel = vid_label[act.vid];
-                LOG_INFO() << "Write vertex label " << vlabel;
-                const ColumnSpec& key_spec = schema.FindVertexLabel(vlabel).GetPrimaryField();
-                if (!config_.dry_run) {
-                    WriteVertex(db.GetLightningGraph(), vlabel, key_spec.name, key_spec.type);
-                }
-                break;
+        {
+            const std::string& vlabel = vid_label[act.vid];
+            LOG_INFO() << "Write vertex label " << vlabel;
+            const ColumnSpec& key_spec = schema.FindVertexLabel(vlabel).GetPrimaryField();
+            if (!config_.dry_run) {
+                WriteVertex(db.GetLightningGraph(), vlabel, key_spec.name, key_spec.type);
             }
+            break;
+        }
         case PlanExecutor::Action::DONE:
             break;
         }
@@ -415,12 +413,12 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
                                     ret.emplace_back(record.AsString(), start_vid);
                                     start_vid++;
                                 } catch (std::exception& e) {
-                                    OnErrorOffline(fma_common::StringFormatter::Format(
-                                                       "Failed to pack data fields into a record: "
-                                                       "{}.\nField data is:\n[{}]",
-                                                       e.what(),
-                                                       LimitedLengthStr(fma_common::ToString(v))),
-                                                   config_.continue_on_error);
+                                    OnErrorOffline(
+                                        fma_common::StringFormatter::Format(
+                                            "Failed to pack data fields into a record: "
+                                            "{}.\nField data is:\n[{}]",
+                                            e.what(), LimitedLengthStr(fma_common::ToString(v))),
+                                        config_.continue_on_error);
                                 }
                             }
                         }
@@ -452,7 +450,7 @@ void lgraph::import_v2::Importer::LoadVertexFiles(LightningGraph* db,
                     double percent = (double)(nblock * config_.parse_block_size) * 100 /
                                      std::max<size_t>(desc->size, 1);
                     LOG_INFO() << "\t " << percent << "% - Read " << nlines << " lines at "
-                              << (double)nlines / (t2 - t1) / 1000 << " KLine/S";
+                               << (double)nlines / (t2 - t1) / 1000 << " KLine/S";
                 }
             }
         } catch (const std::exception& e) {
@@ -552,7 +550,7 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
             txn.Abort();
         }
         std::vector<size_t> unique_index_pos;
-        for (auto & cs : ld.GetColumnSpecs()) {
+        for (auto& cs : ld.GetColumnSpecs()) {
             if (cs.index && (cs.idxType == lgraph::IndexType::PairUniqueIndex)) {
                 unique_index_pos.push_back(desc->FindIdxExcludeSkip(cs.name));
             }
@@ -611,8 +609,7 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                         {
                             for (const auto& pos : unique_index_pos) {
                                 const FieldData& unique_index_col = edge[pos];
-                                if (unique_index_col.IsNull() ||
-                                    unique_index_col.is_empty_buf()) {
+                                if (unique_index_col.IsNull() || unique_index_col.is_empty_buf()) {
                                     OnErrorOffline("Invalid unique index key",
                                                    config_.continue_on_error);
                                     continue;
@@ -620,8 +617,8 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                                 if (unique_index_col.IsString() &&
                                     unique_index_col.string().size() >
                                         lgraph::_detail::MAX_KEY_SIZE) {
-                                    OnErrorOffline("Unique index string key is too long: "
-                                                   + unique_index_col.string().substr(0, 1024),
+                                    OnErrorOffline("Unique index string key is too long: " +
+                                                       unique_index_col.string().substr(0, 1024),
                                                    config_.continue_on_error);
                                     continue;
                                 }
@@ -636,7 +633,7 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                                 lgraph::import_v3::AppendFieldData(unique_key, unique_index_col);
                                 if (!unique_index_keys.insert(unique_key, 0)) {
                                     OnErrorOffline("Duplicate unique index field: " +
-                                                   unique_index_col.ToString(),
+                                                       unique_index_col.ToString(),
                                                    config_.continue_on_error);
                                     resolve_success = false;
                                     break;
@@ -661,12 +658,12 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                                 ret.second.emplace_back(dst_vid, static_cast<LabelId>(label_id),
                                                         tid, src_vid, record.AsString());
                             } catch (std::exception& e) {
-                                OnErrorOffline(fma_common::StringFormatter::Format(
-                                                   "Failed to pack data fields into a record: "
-                                                   "{}.\nField data is:\n[{}]",
-                                                   e.what(),
-                                                   LimitedLengthStr(fma_common::ToString(edge))),
-                                               config_.continue_on_error);
+                                OnErrorOffline(
+                                    fma_common::StringFormatter::Format(
+                                        "Failed to pack data fields into a record: "
+                                        "{}.\nField data is:\n[{}]",
+                                        e.what(), LimitedLengthStr(fma_common::ToString(edge))),
+                                    config_.continue_on_error);
                             }
                         }
                     }
@@ -691,7 +688,7 @@ void lgraph::import_v2::Importer::LoadEdgeFiles(LightningGraph* db, std::string 
                     double t2 = fma_common::GetTime();
                     double percent = (double)(nblock * config_.parse_block_size) * 100 / desc->size;
                     LOG_INFO() << "\t " << percent << "% - Read " << nlines << " lines at "
-                              << (double)nlines / (t2 - t1) / 1000 << " KLine/S";
+                               << (double)nlines / (t2 - t1) / 1000 << " KLine/S";
                 }
             }
         } catch (...) {
@@ -818,7 +815,7 @@ void lgraph::import_v2::Importer::WriteVertex(LightningGraph* db, const std::str
             double t2 = fma_common::GetTime();
             double percent = (double)total_committed * 100 / n_vertices;
             LOG_INFO() << "\t " << percent << "% - Committed " << total_committed
-                      << ", time to write batch=" << t2 - t1;
+                       << ", time to write batch=" << t2 - t1;
         },
         nullptr, 0, 1, 1);
     // packer packs vertex property, out-edges and in-edges into KVs
@@ -981,7 +978,7 @@ void lgraph::import_v2::Importer::OnErrorOffline(const std::string& msg, bool co
     LOG_WARN() << msg;
     if (!continue_on_error) {
         LOG_ERROR() << "If you wish to ignore the errors, use "
-                     "--continue_on_error true";
+                       "--continue_on_error true";
         exit(-1);
     }
 }

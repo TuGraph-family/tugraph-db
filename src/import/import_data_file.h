@@ -176,7 +176,7 @@ class ImportDataFile {
                                   std::make_tuple(), std::make_tuple(&writers_));
             if (!src_oe_files_[i].Good()) {
                 LOG_ERROR() << "Error opening intermediate file [" << src_oe_files_[i].Path()
-                          << "] for write";
+                            << "] for write";
             }
         }
 
@@ -192,7 +192,7 @@ class ImportDataFile {
                                   std::make_tuple(), std::make_tuple(&writers_));
             if (!dst_ie_files_[i].Good()) {
                 LOG_ERROR() << "Error opening intermediate file [" << dst_ie_files_[i].Path()
-                          << "] for write";
+                            << "] for write";
             }
         }
     }
