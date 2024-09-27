@@ -14,7 +14,7 @@
 
 #include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
-#include "./algo.h"
+#include "../algo_cpp/algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
@@ -23,42 +23,32 @@ using json = nlohmann::json;
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
     auto start_time = get_time();
 
-    std::vector<std::unordered_set<size_t>> query;
+    int make_symmetric = 1;
     std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
-        for (auto &query_item : input["query"].array()) {
-            std::unordered_set<size_t> q;
-            for (auto &inner : query_item) {
-                q.insert(inner.get<int>());
-            }
-            query.push_back(q);
-        }
+        parse_from_json(make_symmetric, "make_symmetric", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
         return false;
     }
 
-    if (query.empty()) {
-        query.emplace_back(std::unordered_set<size_t>{1, 2});
-        query.emplace_back(std::unordered_set<size_t>{2});
-        query.emplace_back(std::unordered_set<size_t>{});
-//        throw std::runtime_error("query is empty.");
+    size_t construct_param = SNAPSHOT_PARALLEL | SNAPSHOT_IDMAPPING;
+    if (make_symmetric != 0) {
+        construct_param = SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED;
     }
-
     auto txn = db.CreateReadTxn();
-
-    OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
+    OlapOnDB<Empty> olapondb(db, txn, construct_param);
 
     auto preprocessing_time = get_time();
-    auto counts = olapondb.AllocVertexArray<size_t>();
-    size_t subgraph_num = SubgraphIsomorphismCore(olapondb, query, counts);
+    auto mis = olapondb.AllocVertexArray<bool>();
+    size_t mis_size = 0;
+    MISCore(olapondb, mis, mis_size);
     auto exec_time = get_time();
 
     json output;
-    // TODO(any): write count back to graph
-    output["match_subgraph_num"] = subgraph_num;
+    output["MIS_size"] = mis_size;
     auto output_time = get_time();
 
     output["preprocessing_time"] = (double)(preprocessing_time - start_time);

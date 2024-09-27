@@ -491,9 +491,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
                         num_threads = omp_get_num_threads();
                     }
                 };
+                num_threads = std::min(16, num_threads);
 
                 std::vector<size_t> out_edges_partition_offset(num_threads + 1, 0);
-#pragma omp parallel
+#pragma omp parallel num_threads(num_threads)
                 {
                     ParallelVector<size_t> local_out_index(this->num_vertices_);
                     ParallelVector<AdjUnit<EdgeData>> local_out_edges(MAX_NUM_EDGES);
