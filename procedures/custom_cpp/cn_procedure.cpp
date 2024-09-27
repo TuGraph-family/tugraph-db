@@ -41,8 +41,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         if (input["search_pairs"].is_array()) {
             search_list.clear();
             for (auto &e : input["search_pairs"]) {
-                int64_t src_id = e[0];
-                int64_t dst_id = e[1];
+                std::string src_id = e[0].get<std::string>();
+                std::string dst_id = e[1].get<std::string>();
                 lgraph_api::FieldData src_field_data(src_id);
                 lgraph_api::FieldData dst_field_data(dst_id);
                 size_t src = txn.GetVertexIndexIterator(src_label, src_field,

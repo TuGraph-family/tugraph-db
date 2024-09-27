@@ -33,7 +33,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         json input = json::parse(request);
         parse_from_json(root_label, "root_label", input);
         parse_from_json(root_field, "root_field", input);
-        for (const auto &item : input["root_values"].array()) {
+        for (const auto &item : input["root_values"]) {
             root_values.push_back(item.get<std::string>());
         }
         parse_from_json(output_file, "output_file", input);

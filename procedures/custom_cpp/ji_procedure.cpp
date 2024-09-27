@@ -39,14 +39,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         parse_from_json(dst_label, "dst_label", input);
         parse_from_json(dst_field, "dst_field", input);
         parse_from_json(search_list, "search_pairs", input);
-        if (input["search_pairs"].is_array()) {
-            search_list.clear();
-            for (auto& e : input["search_pairs"]) {
-                std::string src_string = static_cast<std::string>(e[0]);
-                std::string dst_string = static_cast<std::string>(e[1]);
-                search_list.push_back(std::make_pair(src_string, dst_string));
-            }
-        }
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
