@@ -27,7 +27,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
-        for (auto &query_item : input["query"].array()) {
+        for (auto &query_item : input["query"]) {
             std::unordered_set<size_t> q;
             for (auto &inner : query_item) {
                 q.insert(inner.get<int>());
