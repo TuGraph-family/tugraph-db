@@ -66,6 +66,7 @@ class RTContext : public SubmitQueryContext {
     std::unique_ptr<lgraph_api::Transaction> txn_;
     std::unique_ptr<ResultInfo> result_info_;
     std::unique_ptr<lgraph_api::Result> result_;
+    std::shared_ptr<cypher::DataChunk> data_chunk_;
     bolt::BoltConnection* bolt_conn_ = nullptr;
 
     RTContext() = default;
@@ -73,7 +74,8 @@ class RTContext : public SubmitQueryContext {
     RTContext(lgraph::StateMachine *sm, lgraph::Galaxy *galaxy,
               const std::string &user, const std::string &graph,
               bool is_cypher_v2 = true)
-        : SubmitQueryContext(sm, galaxy, user, graph, is_cypher_v2) {}
+        : SubmitQueryContext(sm, galaxy, user, graph, is_cypher_v2),
+          data_chunk_(std::make_shared<DataChunk>()) {}
 
     bool Check(std::string &msg) const {
         if (!SubmitQueryContext::Check(msg)) return false;
@@ -84,6 +86,10 @@ class RTContext : public SubmitQueryContext {
             return false;
         }
         return true;
+    }
+
+    void moveDataChunk(std::shared_ptr<DataChunk> &column_data_) {
+        data_chunk_ = column_data_;
     }
 
     void SetBoltConnection(bolt::BoltConnection* c) {
