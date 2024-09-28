@@ -4,6 +4,7 @@ find_package(PythonInterp 3)
 find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
 #antlr4-runtime
 find_package(antlr4-runtime REQUIRED)
+find_package(LLVM REQUIRED CONFIG)
 set(ANTRL4_LIBRARY antlr4-runtime.a)
 
 set(TARGET_LGRAPH_CYPHER_LIB lgraph_cypher_lib)
@@ -59,6 +60,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/experimental/data_type/field_data.h
         cypher/experimental/expressions/cexpr.cpp
         cypher/experimental/expressions/kernal/binary.cpp
+        cypher/experimental/jit/TuJIT.cpp
         cypher/filter/filter.cpp
         cypher/filter/iterator.cpp
         cypher/graph/graph.cpp
@@ -91,7 +93,10 @@ target_include_directories(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
         ${ANTLR4_INCLUDE_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/cypher)
 
-include_directories(${CMAKE_SOURCE_DIR}/deps/buildit/include)
+include_directories(
+        ${CMAKE_SOURCE_DIR}/deps/buildit/include
+        ${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
 
 target_link_directories(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC 
         ${CMAKE_SOURCE_DIR}/deps/buildit/lib)
@@ -104,3 +109,6 @@ target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PUBLIC
 
 target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PRIVATE
         lgraph_server_lib)
+
+llvm_map_components_to_libnames(llvm_libs Core Support)
+target_link_libraries(${TARGET_LGRAPH_CYPHER_LIB} PRIVATE ${llvm_libs})
