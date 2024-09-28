@@ -19,6 +19,8 @@
 
 namespace cypher {
 
+DEFINE_bool(is_columnar, false, "build plan in column manner");
+
 // Locates all "taps" (entry points) of root.
 static void _StreamTaps(OpBase* root, std::vector<OpBase*>& taps) {
     if (!root->children.empty()) {
@@ -235,6 +237,8 @@ void ExecutionPlanMaker::_AddScanOp(const SymbolTable* sym_tab, Node* node,
             if (!node->Label().empty()) {
                 /* labeled */
                 scan_op = new NodeByLabelScan(node, sym_tab);
+            } else if (UNLIKELY(FLAGS_is_columnar)) {
+                scan_op = new AllNodeScanCol(node, sym_tab);
             } else {
                 /* Node not labeled, no other option but a full scan. */
                 scan_op = new AllNodeScan(node, sym_tab);
@@ -1053,7 +1057,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node
     if (!node->body().empty()) {
         auto op_union = new Union();
         op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]);
-        auto op_produce = new ProduceResults();
+        OpBase* op_produce = new ProduceResults();
+        // auto op_produce = new ProduceResults();
+        if (UNLIKELY(FLAGS_is_columnar)) {
+            op_produce = new ProduceResultsCol();
+        }
         op_produce->AddChild(op_union);
         pattern_graph_root_[cur_pattern_graph_] = op_produce;
         for (auto statement : node->body()) {
@@ -1128,7 +1136,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
     auto op = new OpGqlStandaloneCall(name, node->args(), node->yield(),
                                     pattern_graphs_[cur_pattern_graph_].symbol_table);
     expand_ops.emplace_back(op);
-    auto produce = new ProduceResults();
+    OpBase* produce = new ProduceResults();
+    // auto produce = new ProduceResults();
+    if (UNLIKELY(FLAGS_is_columnar)) {
+        produce = new ProduceResultsCol();
+    }
     expand_ops.emplace_back(produce);
     std::reverse(expand_ops.begin(), expand_ops.end());
     if (auto op = _SingleBranchConnect(expand_ops)) {
@@ -1233,11 +1245,18 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         }
     }
     if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
-        auto result = new ProduceResults();
+        OpBase* result = new ProduceResults();
+        if (UNLIKELY(FLAGS_is_columnar)) {
+            result = new ProduceResultsCol();
+        }
         ops.push_back(result);
     }
     if (node->limit().has_value()) {
-        ops.emplace_back(new Limit(std::get<0>(node->limit().value())));
+        if (UNLIKELY(FLAGS_is_columnar)) {
+            ops.emplace_back(new LimitCol(std::get<0>(node->limit().value())));
+        } else {
+            ops.emplace_back(new Limit(std::get<0>(node->limit().value())));
+        }
     }
     if (node->offset().has_value()) {
         ops.emplace_back(new Skip(std::get<0>(node->offset().value())));
@@ -1312,8 +1331,13 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         if (node->distinct()) {
             ops.emplace_back(new Distinct());
         }
-        ops.emplace_back(
-            new Project(arith_items, &pattern_graphs_[cur_pattern_graph_].symbol_table));
+        if (UNLIKELY(FLAGS_is_columnar)) {
+            ops.emplace_back(
+                new ProjectCol(arith_items, &pattern_graphs_[cur_pattern_graph_].symbol_table));
+        } else {
+            ops.emplace_back(
+                new Project(arith_items, &pattern_graphs_[cur_pattern_graph_].symbol_table));
+        }
     }
     if (auto op = _SingleBranchConnect(ops)) {
         _UpdateStreamRoot(op, pattern_graph_root_[cur_pattern_graph_]);
@@ -1336,7 +1360,10 @@ std::any ExecutionPlanMaker::visit(geax::frontend::LinearDataModifyingStatement*
         auto resultStatement = node->resultStatement().value();
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(resultStatement);
     } else {
-        auto result = new ProduceResults();
+        OpBase* result = new ProduceResults();
+        if (UNLIKELY(FLAGS_is_columnar)) {
+            result = new ProduceResultsCol();
+        }
         _UpdateStreamRoot(result, pattern_graph_root_[cur_pattern_graph_]);
     }
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
