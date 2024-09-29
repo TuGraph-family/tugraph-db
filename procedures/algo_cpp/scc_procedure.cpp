@@ -43,11 +43,14 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // prepare
     start_time = get_time();
-
+    std::string output_file = "";
+    std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
+        parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
         return false;
     }
     auto txn = db.CreateReadTxn();
@@ -64,7 +67,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // output
     start_time = get_time();
-    // TODO(any): write distance back to graph
+    if (output_file != "") {
+        olapondb.WriteToFile<size_t>(true, label, output_file);
+    }
     auto output_cost = get_time() - start_time;
 
     // return

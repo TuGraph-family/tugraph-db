@@ -38,7 +38,9 @@ if [[ "$TEST" == "ut" ]]; then
   ln -s ../../test/integration/data ./
   OMP_NUM_THREADS=2 ./fma_unit_test -t all
   if [[ "$ASAN" == "asan" ]]; then
-      export LSAN_OPTIONS=suppressions=$WORKSPACE/test/asan.suppress
+    export LSAN_OPTIONS=suppressions=$WORKSPACE/test/asan.suppress
+  else
+    export LD_PRELOAD=$WORKSPACE/build/output/liblgraph.so
   fi
   OMP_NUM_THREADS=2 ./unit_test --gtest_output=xml:$WORKSPACE/testresult/gtest/
   rm -rf testdb* .import_tmp
@@ -59,6 +61,7 @@ else
   #cp ogm/tugraph-db-ogm-test/target/tugraph-db-ogm-test-*.jar $WORKSPACE/build/output/
 
   # build cpp client test
+  export LD_PRELOAD=$WORKSPACE/build/output/liblgraph.so
   cd $WORKSPACE/test/test_rpc_client
   sh ./cpp/CppClientTest/compile.sh
   cp -r ./cpp/CppClientTest/build/clienttest $WORKSPACE/build/output/

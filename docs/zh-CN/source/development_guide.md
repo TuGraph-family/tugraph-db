@@ -140,7 +140,7 @@ CALL db.deleteIndex('node1', 'field1')
   "detach_property": true,
   "constraints": [
     ["node1", "node2"]
-  ]
+  ],
   "properties": [{
     "name": "id",
     "type": "INT32",

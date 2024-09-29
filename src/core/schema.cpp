@@ -18,6 +18,7 @@
 #include "core/edge_index.h"
 #include "core/schema.h"
 #include "import/import_config_parser.h"
+#include "core/vector_index.h"
 
 namespace lgraph {
 
@@ -48,13 +49,15 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
+        if (fe.Type() != FieldType::FLOAT_VECTOR) {
+            VertexIndex* index = fe.GetVertexIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
+                THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record));
+            }
         }
     }
 }
@@ -153,13 +156,15 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Add(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError,
+        if (fe.Type() != FieldType::FLOAT_VECTOR) {
+            VertexIndex* index = fe.GetVertexIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Add(txn, fe.GetConstRef(record), vid)) {
+                THROW_CODE(InputError,
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record));
+            }
         }
         created.push_back(idx);
     }
@@ -305,6 +310,36 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
                 fe.Name(), fe.FieldToString(record));
         }
         created.push_back(idx);
+    }
+}
+
+void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+    for (auto& idx : vector_index_fields_) {
+        auto& fe = fields_[idx];
+        if (fe.GetIsNull(record)) continue;
+        VectorIndex* index = fe.GetVectorIndex();
+        auto dim = index->GetVecDimension();
+        std::vector<std::vector<float>> floatvector;
+        std::vector<int64_t> vids;
+        floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+        vids.push_back(vid);
+        if (floatvector.back().size() != (size_t)dim) {
+            THROW_CODE(InputError,
+                       "vector index dimension mismatch, vector size:{}, dim:{}",
+                       floatvector.back().size(), dim);
+        }
+        index->Add(floatvector, vids, 1);
+    }
+}
+
+void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+    for (auto& idx : vector_index_fields_) {
+        auto& fe = fields_[idx];
+        if (fe.GetIsNull(record)) continue;
+        VectorIndex* index = fe.GetVectorIndex();
+        std::vector<int64_t> vids;
+        vids.push_back(vid);
+        index->Add({}, vids, 0);
     }
 }
 

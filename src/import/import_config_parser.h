@@ -116,7 +116,7 @@ class KeyWordFunc {
             auto& k2s = KeyWordToStrMap();
             std::map<KeyWord, FieldType> ret;
             for (auto& kv : k2s) {
-                if (kv.first > KeyWord::BLOB) break;
+                if (kv.first > KeyWord::FLOAT_VECTOR) break;
                 FieldType type = FieldType::NUL;
                 if (!field_data_helper::TryGetFieldType(kv.second, type)) {
                     LOG_ERROR() << FMA_FMT("Keyword string [{}] is invalid type string", kv.second);

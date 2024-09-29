@@ -596,3 +596,10 @@ TEST_F(TestCypherV2, TestEdgeIdQuery) {
     std::string dir = test_suite_dir_ + "/edge_id_query/cypher";
     test_files(dir);
 }
+
+TEST_F(TestCypherV2, TestVectorIndex) {
+    set_graph_type(GraphFactory::GRAPH_DATASET_TYPE::EMPTY);
+    set_query_type(lgraph::ut::QUERY_TYPE::NEWCYPHER);
+    std::string dir = test_suite_dir_ + "/vector_index/cypher";
+    test_files(dir);
+}
