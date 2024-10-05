@@ -1209,52 +1209,6 @@ struct FieldData {
                   "sizeof int64_t is supposed to be equal to Pointer types");
 };
 
-typedef union ProValue {
-    bool b;
-    int8_t i8;
-    int16_t i16;
-    int32_t i32;
-    int64_t i64;
-    float f;
-    double d;
-    ::lgraph_api::Date date;
-    ::lgraph_api::DateTime datetime;
-    ProValue() : i64(0) {}
-    ProValue(bool b) : b(b) {}
-    ProValue(int8_t i) : i8(i) {}
-    ProValue(int16_t i) : i16(i) {}
-    ProValue(int32_t i) : i32(i) {}
-    ProValue(int64_t i) : i64(i) {}
-    ProValue(float f) : f(f) {}
-    ProValue(double d) : d(d) {}
-    ProValue(const ::lgraph_api::Date& date) : date(date) {}
-    ProValue(const ::lgraph_api::DateTime& datetime) : datetime(datetime) {}
-    std::string print(FieldType type) const {
-        switch (type) {
-        case FieldType::BOOL:
-            return b ? "true" : "false";
-        case FieldType::INT8:
-            return std::to_string(i8);
-        case FieldType::INT16:
-            return std::to_string(i16);
-        case FieldType::INT32:
-            return std::to_string(i32);
-        case FieldType::INT64:
-            return std::to_string(i64);
-        case FieldType::FLOAT:
-            return std::to_string(f);
-        case FieldType::DOUBLE:
-            return std::to_string(d);
-        case FieldType::DATE:
-            return date.ToString();
-        case FieldType::DATETIME:
-            return datetime.ToString();
-        default:
-            return "";
-        }
-    }
-} ProValue;
-
 /** @brief   Specification for a field. */
 struct FieldSpec {
     /** @brief   name of the field */
@@ -1268,11 +1222,11 @@ struct FieldSpec {
     /** @brief   id of this field */
     uint16_t id;
     /** @brief   the value of the field is set when it is created. */
-    ProValue init_value;
+    FieldData init_value;
     /** @brief   is set init value? */
     bool inited_value;
     /** @brief  the default value when inserting data. */
-    ProValue default_value;
+    FieldData default_value;
     /** @brief  is set default value? */
     bool set_default_value;
 
@@ -1290,8 +1244,8 @@ struct FieldSpec {
         : name(n), type(t), optional(nu), id(id) {}
     FieldSpec(std::string&& n, FieldType t, bool nu, uint16_t id)
         : name(std::move(n)), type(t), optional(nu), id(id) {}
-    FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const ProValue& iv,
-              const ProValue& dv)
+    FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& iv,
+              const FeildData& dv)
         : name(n),
           type(t),
           optional(nu),

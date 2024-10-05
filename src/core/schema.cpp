@@ -591,7 +591,6 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     edge_constraints_ = edge_constraints;
 }
 
-// del fields, assuming fields is already de-duplicated
 void Schema::DelFields(const std::vector<std::string>& del_fields) {
     if (_F_UNLIKELY(del_fields.empty())) return;
     if (is_vertex_) {
@@ -622,14 +621,9 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
     for (const auto &k : composite_index_key) {
         UnVertexCompositeIndex(k);
     }
-    del_ids.push_back(fields_.size());
-    size_t put_pos = del_ids.front();
-    for (size_t i = 0; i < del_ids.size() - 1; i++) {
-        for (size_t get_pos = del_ids[i] + 1; get_pos < del_ids[i + 1]; get_pos++) {
-            fields_[put_pos++] = std::move(fields_[get_pos]);
-        }
+    for (size_t del_id : del_ids) {
+        fields_[del_id].MarkDeleted();
     }
-    fields_.erase(fields_.begin() + put_pos, fields_.end());
 }
 
 // add fields, assuming fields are already de-duplicated
@@ -644,6 +638,7 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
         }
         if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end()))
             throw FieldAlreadyExistsException(f.name);
+        f.id = fields_.size();
         fields_.push_back(_detail::FieldExtractor(f));
     }
     lgraph::CheckValidFieldNum(fields_.size());

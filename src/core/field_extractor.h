@@ -108,6 +108,13 @@ class FieldExtractor {
         }
     }
 
+    bool MarkDeleted() {
+        def_.deleted = true;
+        // free data space when marked deleted
+        def_.inited_value.~FieldData();
+        def_.default_value.~FieldData();
+    }
+
     /**
      * Extract a field from record into data of type T. T must be fixed-length
      * type.
