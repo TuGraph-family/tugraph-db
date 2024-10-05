@@ -1245,7 +1245,7 @@ struct FieldSpec {
     FieldSpec(std::string&& n, FieldType t, bool nu, uint16_t id)
         : name(std::move(n)), type(t), optional(nu), id(id) {}
     FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& iv,
-              const FeildData& dv)
+              const FieldData& dv)
         : name(n),
           type(t),
           optional(nu),
@@ -1265,8 +1265,8 @@ struct FieldSpec {
         return "lgraph_api::FieldSpec(name=[" + name + "],type=" + lgraph_api::to_string(type) +
                "),optional=" + std::to_string(optional) + ",fieldid=" + std::to_string(id) +
                ",isDeleted=" + std::to_string(deleted) +
-               (inited_value ? ",init_value=" + init_value.print(type) : "") +
-               (set_default_value ? ",default_value=" + default_value.print(type) : "");
+               (inited_value ? ",init_value=" + init_value.ToString() : "") +
+               (set_default_value ? ",default_value=" + default_value.ToString() : "");
     }
 };
 

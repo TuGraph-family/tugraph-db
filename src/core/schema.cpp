@@ -654,6 +654,7 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         UnVertexIndex(fid);
         UnEdgeIndex(fid);
         auto& extractor = fields_[fid];
+        f.id = fid;
         extractor = _detail::FieldExtractor(f);
         mod_ids.push_back(fid);
     }

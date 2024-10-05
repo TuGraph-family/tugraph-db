@@ -108,10 +108,10 @@ class FieldExtractor {
         }
     }
 
-    bool MarkDeleted() {
+    void MarkDeleted() {
         def_.deleted = true;
         // free data space when marked deleted
-        def_.inited_value.~FieldData();
+        def_.init_value.~FieldData();
         def_.default_value.~FieldData();
     }
 
@@ -126,10 +126,10 @@ class FieldExtractor {
      */
     ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const {
         FMA_DBG_ASSERT(field_data_helper::FieldTypeSize(def_.type) == sizeof(T));
-        size_t offset = GetFieldOffset(def_.id);
+        size_t offset = GetFieldOffset(record, def_.id);
         size_t size = GetDataSize(record);
         if (size == sizeof(T)) {
-            memcpy(&data, (char*)record.Data() + offset_.data_off, sizeof(T));
+            memcpy(&data, (char*)record.Data() + offset, sizeof(T));
         } else {
             ConvertData(&data, (char*)record.Data() + offset, size);
         }
@@ -375,7 +375,7 @@ class FieldExtractor {
         FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
         // copy the buffer so we don't accidentally overwrite memory
         int data_size = GetDataSize(record);
-        size_t offset = GetFieldOffset(record);
+        size_t offset = GetFieldOffset(record, def_.id);
         char* ptr = (char*)record.Data();
         if (_F_LIKELY(data_size == sizeof(data))) {
             record.Resize(record.Size());
@@ -396,7 +396,7 @@ class FieldExtractor {
         FMA_DBG_ASSERT(!is_vfield_);
         // "Type size mismatch"
         FMA_DBG_CHECK_EQ(data.Size(), field_data_helper::FieldTypeSize(def_.type));
-        FMA_DMG_CHECK_EQ(data.Size(), GetDataSize(record));
+        FMA_DBG_CHECK_EQ(data.Size(), GetDataSize(record));
         // copy the buffer so we don't accidentally overwrite memory
         char* ptr = (char*)record.Data() + GetFieldOffset(record);
         memcpy(ptr, data.Data(), data.Size());

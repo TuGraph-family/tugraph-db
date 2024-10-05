@@ -265,7 +265,8 @@ lgraph_api_field_spec_t* lgraph_api_create_field_spec() {
 }
 lgraph_api_field_spec_t* lgraph_api_create_field_spec_name_type_optional(const char* name, int type,
                                                                          bool optional) {
-    return new lgraph_api_field_spec_t{FieldSpec(name, static_cast<FieldType>(type), optional)};
+                                                                            // need fix
+    return new lgraph_api_field_spec_t{FieldSpec(name, static_cast<FieldType>(type), optional, 0)};
 }
 void lgraph_api_field_spec_destroy(lgraph_api_field_spec_t* fs) { delete fs; }
 bool lgraph_api_field_spec_eq(const lgraph_api_field_spec_t* fs,
