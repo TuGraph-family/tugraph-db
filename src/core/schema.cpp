@@ -52,20 +52,19 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
         FMA_ASSERT(index);
         // update field index
         if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    vid, fe.Name(), fe.FieldToString(record));
+            THROW_CODE(InputError,
+                       "Failed to un-index vertex [{}] with field "
+                       "value [{}:{}]: index value does not exist.",
+                       vid, fe.Name(), fe.FieldToString(record));
         }
     }
 }
 
-void Schema::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
-                                        lgraph::VertexId vid,
+void Schema::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn, lgraph::VertexId vid,
                                         const lgraph::Value& record) {
-    for (const auto &kv : composite_index_map) {
+    for (const auto& kv : composite_index_map) {
         std::vector<std::string> ids;
-        boost::split(ids, kv.first,
-                     boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
+        boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;
         bool is_add_index = true;
         std::vector<Value> keys;
@@ -78,8 +77,8 @@ void Schema::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
         }
         if (!is_add_index) continue;
         auto composite_index = kv.second;
-        if (!composite_index->Delete(txn,
-                                  composite_index_helper::GenerateCompositeIndexKey(keys), vid)) {
+        if (!composite_index->Delete(txn, composite_index_helper::GenerateCompositeIndexKey(keys),
+                                     vid)) {
             std::vector<std::string> field_names;
             std::vector<std::string> field_values;
             for (int i = 0; i < (int)ids.size(); i++) {
@@ -104,9 +103,10 @@ void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Va
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
         if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    vid, fe.Name(), fe.FieldToString(record));
+            THROW_CODE(InputError,
+                       "Failed to un-index vertex [{}] with field "
+                       "value [{}:{}]: index value does not exist.",
+                       vid, fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -157,7 +157,8 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
         FMA_ASSERT(index);
         // update field index
         if (!index->Add(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError,
+            THROW_CODE(
+                InputError,
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record));
         }
@@ -169,7 +170,7 @@ void Schema::AddVertexToCompositeIndex(lgraph::KvTransaction& txn, lgraph::Verte
                                        const lgraph::Value& record,
                                        std::vector<std::string>& created) {
     created.reserve(composite_index_map.size());
-    for (const auto &kv : composite_index_map) {
+    for (const auto& kv : composite_index_map) {
         std::vector<std::string> ids;
         boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;
@@ -184,8 +185,8 @@ void Schema::AddVertexToCompositeIndex(lgraph::KvTransaction& txn, lgraph::Verte
         }
         if (!is_add_index) continue;
         auto composite_index = kv.second;
-        if (!composite_index->Add(txn,
-             composite_index_helper::GenerateCompositeIndexKey(keys), vid)) {
+        if (!composite_index->Add(txn, composite_index_helper::GenerateCompositeIndexKey(keys),
+                                  vid)) {
             std::vector<std::string> field_names;
             std::vector<std::string> field_values;
             for (int i = 0; i < (int)ids.size(); i++) {
@@ -206,13 +207,13 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
     const std::vector<size_t>& fields) {
     std::vector<std::vector<std::string>> result;
     std::unordered_set<std::string> visited;
-    for (const auto &expected_id : fields) {
-        for (const auto &kv : composite_index_map) {
+    for (const auto& expected_id : fields) {
+        for (const auto& kv : composite_index_map) {
             std::vector<std::string> field_ids;
             boost::split(field_ids, kv.first,
                          boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
             bool flag = false;
-            for (const auto &id : field_ids) {
+            for (const auto& id : field_ids) {
                 if ((int)expected_id == std::stoi(id)) {
                     flag = true;
                     break;
@@ -220,7 +221,7 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
             }
             if (flag && !visited.count(kv.first)) {
                 std::vector<std::string> field_names;
-                for (const auto &id : field_ids) {
+                for (const auto& id : field_ids) {
                     field_names.push_back(fields_[std::stoi(id)].Name());
                 }
                 result.push_back(field_names);
@@ -253,9 +254,10 @@ void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Valu
         FMA_ASSERT(index);
         // update field index
         if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError, "Failed to un-index edge with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record));
+            THROW_CODE(InputError,
+                       "Failed to un-index edge with field "
+                       "value [{}:{}]: index value does not exist.",
+                       fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -269,9 +271,10 @@ void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, con
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
         if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError, "Failed to un-index edge with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record));
+            THROW_CODE(InputError,
+                       "Failed to un-index edge with field "
+                       "value [{}:{}]: index value does not exist.",
+                       fe.Name(), fe.FieldToString(record));
         }
     }
 }
@@ -301,8 +304,8 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
         // update field index
         if (!index->Add(txn, fe.GetConstRef(record), euid)) {
             THROW_CODE(InputError,
-                "Failed to index edge with field value [{}:{}]: index value already exists.",
-                fe.Name(), fe.FieldToString(record));
+                       "Failed to index edge with field value [{}:{}]: index value already exists.",
+                       fe.Name(), fe.FieldToString(record));
         }
         created.push_back(idx);
     }
@@ -341,12 +344,12 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
         return FieldData(extractor->GetConstRef(record).AsString());
     case FieldType::BLOB:
         LOG_ERROR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
-                     "Extractor, GetBlobKeyFunc)";
+                       "Extractor, GetBlobKeyFunc)";
     case FieldType::POINT:
-    {
-        std::string EWKB = extractor->GetConstRef(record).AsString();
-        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch (srid) {
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
             case lgraph_api::SRID::NUL:
                 THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
@@ -355,14 +358,14 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 return FieldData(PointCartesian(EWKB));
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
+            }
         }
-    }
 
     case FieldType::LINESTRING:
-    {
-        std::string EWKB = extractor->GetConstRef(record).AsString();
-        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch (srid) {
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
             case lgraph_api::SRID::NUL:
                 THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
@@ -371,14 +374,14 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 return FieldData(LineStringCartesian(EWKB));
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
+            }
         }
-    }
 
     case FieldType::POLYGON:
-    {
-        std::string EWKB = extractor->GetConstRef(record).AsString();
-        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch (srid) {
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
             case lgraph_api::SRID::NUL:
                 THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
@@ -387,14 +390,14 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 return FieldData(PolygonCartesian(EWKB));
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
+            }
         }
-    }
 
     case FieldType::SPATIAL:
-    {
-        std::string EWKB = extractor->GetConstRef(record).AsString();
-        lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-        switch (srid) {
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
             case lgraph_api::SRID::NUL:
                 THROW_CODE(InputError, "invalid srid!\n");
             case lgraph_api::SRID::WGS84:
@@ -403,12 +406,12 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 return FieldData(SpatialCartesian(EWKB));
             default:
                 THROW_CODE(InputError, "invalid srid!\n");
+            }
         }
-    }
     case FieldType::FLOAT_VECTOR:
-    {
-        return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
-    }
+        {
+            return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
+        }
     case FieldType::NUL:
         LOG_ERROR() << "FieldType NUL";
     }
@@ -436,44 +439,66 @@ void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);
-    size_t min_size = v_offset_start_;
-    if (n_variable_ > 0) min_size += sizeof(DataOffset) * (n_variable_ - 1);
-    v.Resize(min_size);
-    // first data is the LabelId
-    if (label_in_record_) {
-        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
-        // nullable bits
-        memset(v.Data() + sizeof(LabelId), 0xFF, (n_nullable_ + 7) / 8);
-    } else {
-        // nullbable bits
-        memset(v.Data(), 0xFF, (n_nullable_ + 7) / 8);
-    }
-    // initialize variable length array offsets
-    if (n_variable_ > 0) {
-        char* offsets = v.Data() + v_offset_start_;
-        for (size_t i = 1; i < n_variable_; i++) {
-            ::lgraph::_detail::UnalignedSet<DataOffset>(offsets + sizeof(DataOffset) * (i - 1),
-                                                        static_cast<DataOffset>(min_size));
+    size_t min_size =
+        ::lgraph::_detail::NULL_ARRAY_OFFSET + fields_.size() + 7 / 8 + fields_.size() * sizeof(DataOffset);
+    for (size_t i = 0; i < fields_.size(); i++) {
+        if (!fields_[i].IsFixedType()) {
+            min_size += sizeof(DataOffset);
+        } else {
+            min_size += fields_[i].TypeSize();
         }
     }
+    v.Resize(min_size);
+
+    // first data is Version
+    ::lgraph::_detail::UnalignedSet<VersionId>(v.Data(), ::lgraph::_detail::SCHEMA_VERSION);
+    // next data is label id
+    if (label_in_record_) {
+        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + ::lgraph::_detail::LABEL_OFFSET, label_id_);
+    }
+
+    // set Property Count
+    ::lgraph::_detail::UnalignedSet<ProCount>(v.Data() + ::lgraph::_detail::COUNT_OFFSET,
+                                                   static_cast<ProCount>(fields_.size()));
+
+    // nullbable bits
+    memset(v.Data() + ::lgraph::_detail::NULL_ARRAY_OFFSET, 0xFF, (fields_.size() + 7) / 8);
+
+    // initialize offsets
+    DataOffset data_offset =
+        ::lgraph::_detail::NULL_ARRAY_OFFSET + (fields_.size() + 7) / 8 + fields_.size() * sizeof(DataOffset);
+    DataOffset offset_begin = ::lgraph::_detail::NULL_ARRAY_OFFSET + (fields_.size() + 7) / 8;
+
+    size_t num_fields = fields_.size();
+    if (num_fields > 1) {
+        char* data_ptr = v.Data() + offset_begin;
+        for (size_t i = 1; i < num_fields; i++) {
+            ::lgraph::_detail::UnalignedSet<DataOffset>(data_ptr,
+                                                        data_offset);
+            data_ptr += sizeof(DataOffset);
+            data_offset += fields_[i].IsFixedType() ? fields_[i].TypeSize() : sizeof(DataOffset);
+        }
+    }
+    ::lgraph::_detail::UnalignedSet<DataOffset>(v.Data() + offset_begin + sizeof(DataOffset) * fields_.size(),
+                                                data_offset);
     return v;
 }
 
 Value Schema::CreateRecordWithLabelId() const {
-    Value v(sizeof(LabelId));
-    ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
+    Value v(sizeof(LabelId) + sizeof(VersionId));
+    ::lgraph::_detail::UnalignedSet<VersionId>(v.Data(), ::lgraph::_detail::SCHEMA_VERSION);
+    ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + ::lgraph::_detail::LABEL_OFFSET, label_id_);
     return v;
 }
 
 void Schema::AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
-    property_table_->AppendKv(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
+    property_table_->AppendKv(txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
 }
 
 Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
     Value ret;
-    bool found = property_table_->GetValue(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), ret);
+    bool found =
+        property_table_->GetValue(txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), ret);
     if (!found) {
         THROW_CODE(InternalError, "Get: vid {} is not found in the detached property table.", vid);
     }
@@ -481,16 +506,15 @@ Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
 }
 
 void Schema::SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
-    auto ret = property_table_->SetValue(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), property);
+    auto ret = property_table_->SetValue(txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid),
+                                         property);
     if (!ret) {
         THROW_CODE(InternalError, "Set: vid {} is not found in the detached property table.", vid);
     }
 }
 
 void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
-    auto ret = property_table_->DeleteKey(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
+    auto ret = property_table_->DeleteKey(txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
     if (!ret) {
         THROW_CODE(InternalError, "Delete: vid {} is not found in the detached property table.",
                    vid);
@@ -499,8 +523,8 @@ void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
 
 Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
     Value ret;
-    bool found = property_table_->GetValue(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), ret);
+    bool found =
+        property_table_->GetValue(txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), ret);
     if (!found) {
         THROW_CODE(InternalError, "Get: euid {} is not found in the detached property table.", eid);
     }
@@ -509,8 +533,8 @@ Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
 
 void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
                                      const Value& property) {
-    auto ret = property_table_->SetValue(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
+    auto ret =
+        property_table_->SetValue(txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
     if (!ret) {
         THROW_CODE(InternalError, "Set: euid {} is not found in the detached property table.",
                    eid.ToString());
@@ -519,8 +543,8 @@ void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
 
 void Schema::AddDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
                                      const Value& property) {
-    auto ret = property_table_->AddKV(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
+    auto ret =
+        property_table_->AddKV(txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), property);
     if (!ret) {
         THROW_CODE(InternalError, "Add: euid {} is found in the detached property table.",
                    eid.ToString());
@@ -528,8 +552,7 @@ void Schema::AddDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
 }
 
 void Schema::DeleteDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
-    auto ret = property_table_->DeleteKey(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
+    auto ret = property_table_->DeleteKey(txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
     if (!ret) {
         THROW_CODE(InternalError, "Delete: euid {} is not found in the detached property table.",
                    eid.ToString());
@@ -541,10 +564,6 @@ void Schema::ClearFields() {
     label_.clear();
     fields_.clear();
     name_to_idx_.clear();
-    n_fixed_ = 0;
-    n_variable_ = 0;
-    n_nullable_ = 0;
-    v_offset_start_ = 0;
     indexed_fields_.clear();
     blob_fields_.clear();
     primary_field_.clear();
@@ -572,9 +591,9 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     // assign id to fields, starting from fixed length types
     // then variable length types
     fields_.reserve(n_fields);
-    for (size_t i = 0; i < n_fields; i++) {
-        const FieldSpec& fs = fields
-    }
+    // for (size_t i = 0; i < n_fields; i++) {
+    //     const FieldSpec& fs = fields;
+    // }
     for (size_t i = 0; i < n_fields; i++) {
         const FieldSpec& fs = fields[i];
         if (field_data_helper::IsFixedLengthFieldType(fs.type)) fields_.emplace_back(fs);
@@ -618,7 +637,7 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
         UnEdgeIndex(id);
     }
     auto composite_index_key = GetRelationalCompositeIndexKey(del_ids);
-    for (const auto &k : composite_index_key) {
+    for (const auto& k : composite_index_key) {
         UnVertexCompositeIndex(k);
     }
     for (size_t del_id : del_ids) {
@@ -634,12 +653,12 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
             f.name == KeyWordFunc::GetStrFromKeyWord(KeyWord::SRC_ID) ||
             f.name == KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID)) {
             THROW_CODE(InputError,
-                "Label[{}]: Property name cannot be \"SKIP\" or \"SRC_ID\" or \"DST_ID\"", label_);
+                       "Label[{}]: Property name cannot be \"SKIP\" or \"SRC_ID\" or \"DST_ID\"",
+                       label_);
         }
         if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end()))
             throw FieldAlreadyExistsException(f.name);
-        f.id = fields_.size();
-        fields_.push_back(_detail::FieldExtractor(f));
+        fields_.push_back(_detail::FieldExtractor(f, fields_.size()));
     }
     lgraph::CheckValidFieldNum(fields_.size());
 }
@@ -654,12 +673,11 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         UnVertexIndex(fid);
         UnEdgeIndex(fid);
         auto& extractor = fields_[fid];
-        f.id = fid;
-        extractor = _detail::FieldExtractor(f);
+        extractor = _detail::FieldExtractor(f, fid);
         mod_ids.push_back(fid);
     }
     auto composite_index_key = GetRelationalCompositeIndexKey(mod_ids);
-    for (const auto &k : composite_index_key) {
+    for (const auto& k : composite_index_key) {
         UnVertexCompositeIndex(k);
     }
 }
@@ -714,7 +732,7 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(const std::string& f
 
 std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
     std::vector<CompositeIndexSpec> compositeIndexSpecList;
-    for (const auto &kv : composite_index_map) {
+    for (const auto& kv : composite_index_map) {
         std::vector<std::string> ids;
         boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;

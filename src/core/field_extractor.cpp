@@ -53,7 +53,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
     // FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
     size_t Size = record.Size();
     record.Resize(Size);
-    char* ptr = (char*)record.Data() + offset_.data_off;
+    char* ptr = (char*)record.Data() + GetFieldOffset(record, def_.id);
     memcpy(ptr, data.data(), 50);
 }
 
@@ -242,7 +242,7 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
                 throw ParseStringException(Name(), *data.data.buf, FieldType::POINT);
 
             record.Resize(record.Size());
-            char* ptr = (char*)record.Data() + offset_.data_off;
+            char* ptr = (char*)record.Data() + GetFieldOffset(record, def_.id);
             memcpy(ptr, (*data.data.buf).data(), 50);
             return;
         }
@@ -394,60 +394,7 @@ void FieldExtractor::_SetVariableLengthValue(Value& record, const Value& data) c
     FMA_DBG_ASSERT(is_vfield_);
     if (data.Size() > _detail::MAX_STRING_SIZE)
         throw DataSizeTooLargeException(Name(), data.Size(), _detail::MAX_STRING_SIZE);
-
-    size_t foff = GetFieldOffset(record);
-    size_t fsize = GetDataSize(record);
-    // realloc record with original size to make sure we own the memory
-    if (fsize > data.Size()) {
-        // shrinking, move before realloc
-        size_t diff = fsize - data.Size();
-        record.Resize(record.Size());
-        char* rptr = (char*)record.Data();
-        memmove(rptr + foff + data.Size(), rptr + foff + fsize, record.Size() - (foff + fsize));
-        record.Resize(record.Size() - diff);
-        rptr = (char*)record.Data();
-        memcpy(rptr + foff, data.Data(), data.Size());
-        // adjust offset of other fields
-        /** Note we store only n-1 offsets, since the first offset is always
-         * known
-         */
-        char* offsets = rptr + offset_.v_offs;
-        for (size_t i = offset_.idx; i < offset_.last_idx; i++) {
-            char* ptr = offsets + i * sizeof(DataOffset);
-            DataOffset off = ::lgraph::_detail::UnalignedGet<DataOffset>(ptr);
-            FMA_DBG_CHECK_GE(off, (DataOffset)diff);
-            off -= static_cast<DataOffset>(diff);
-            ::lgraph::_detail::UnalignedSet<DataOffset>(ptr, off);
-        }
-    } else {
-        // expanding, realloc before move
-        size_t orig_rsize = record.Size();
-        size_t diff = data.Size() - fsize;
-        if (orig_rsize + diff > _detail::MAX_PROP_SIZE)
-            throw RecordSizeLimitExceededException(Name(), orig_rsize + diff,
-                                                   _detail::MAX_PROP_SIZE);
-        record.Resize(orig_rsize + diff);
-        char* rptr = (char*)record.Data();
-        memmove(rptr + foff + data.Size(), rptr + foff + fsize, orig_rsize - (foff + fsize));
-        memcpy(rptr + foff, data.Data(), data.Size());
-        // adjust offset of other fields
-        char* offsets = rptr + offset_.v_offs;
-        for (size_t i = offset_.idx; i < offset_.last_idx; i++) {
-            char* ptr = offsets + i * sizeof(DataOffset);
-            size_t new_off = diff + ::lgraph::_detail::UnalignedGet<DataOffset>(ptr);
-            ::lgraph::_detail::UnalignedSet<DataOffset>(ptr, static_cast<DataOffset>(new_off));
-        }
-    }
-}
-
-
-
-// sets variable length value to the field
-void FieldExtractor::_SetVariableLengthValue(Value& record, const Value& data) const {
-    FMA_DBG_ASSERT(is_vfield_);
-    if (data.Size() > _detail::MAX_STRING_SIZE)
-        throw DataSizeTooLargeException(Name(), data.Size(), _detail::MAX_STRING_SIZE);
-    size_t foff = GetFieldOffset(record);
+    size_t foff = GetFieldOffset(record, def_.id);
     size_t fsize = GetDataSize(record);
     // realloc record with original size to make sure we own the memory
     int32_t diff = fsize - data.Size();
@@ -461,10 +408,10 @@ void FieldExtractor::_SetVariableLengthValue(Value& record, const Value& data) c
     rptr = (char*)record.Data();
     memcpy(rptr + foff, data.Data(), data.Size());
     size_t count = GetRecordCount(record);
-    int32_t var_offset = GetOffset(count + 1);
+    size_t var_offset = GetFieldOffset(record, count + 1);
     // adjust offset of other fields
     for (size_t i = def_.id; i < count; i++) {
-        size_t offset = GetOffset(i);
+        size_t offset = GetFieldOffset(record, i);
         if (offset >= var_offset) {
             SetVariableOffset(record, i, offset - diff);
         }

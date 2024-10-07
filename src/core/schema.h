@@ -557,17 +557,17 @@ class Schema {
                 pro_count = f.id;
             }
             if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end())) {
-                throw std::FieldAlreadyExistsException(f.name);
+                throw FieldAlreadyExistsException(f.name);
             }
             name_to_idx_[f.name] = f.id;
-            if (fields[f.id].GetVertexIndex() || fields[f.id].GetEdgeIndex()) {
+            if (fields_[f.id].GetVertexIndex() || fields_[f.id].GetEdgeIndex()) {
                 indexed_fields_.emplace_hint(indexed_fields_.end(), f.id);
                 if (f.name == primary_field_) {
                     FMA_ASSERT(!found_primary);
                     found_primary = true;
                 }
             }
-            if (fields[f.id].FullTextIndexed()) {
+            if (fields_[f.id].FullTextIndexed()) {
                 fulltext_fields_.emplace(f.id);
             }
         }

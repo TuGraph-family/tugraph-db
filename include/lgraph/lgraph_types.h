@@ -1240,6 +1240,8 @@ struct FieldSpec {
      * @param   nu  True if field is optional
      * @param   id  Field id
      */
+    FieldSpec(const std::string& n, FieldType t, bool nu)
+        : name(n), type(t), optional(nu), id(0) {}
     FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id)
         : name(n), type(t), optional(nu), id(id) {}
     FieldSpec(std::string&& n, FieldType t, bool nu, uint16_t id)

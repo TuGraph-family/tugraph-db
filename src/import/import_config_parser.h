@@ -257,7 +257,7 @@ struct ColumnSpec {
     bool operator<(const ColumnSpec& rhs) const { return name < rhs.name; }
 
     FieldSpec GetFieldSpec() const {
-        FieldSpec fs(name, type, optional);
+        FieldSpec fs(name, type, optional, 0);
         return fs;
     }
 
@@ -421,7 +421,8 @@ struct LabelDesc {
             auto& c = columns[i];
             // at this point, there should not be any column with empty name
             FMA_DBG_ASSERT(!c.name.empty());
-            ret[c.name] = FieldSpec(c.name, c.type, c.optional);
+            // need to fix
+            ret[c.name] = FieldSpec(c.name, c.type, c.optional, 0);
         }
         return ret;
     }

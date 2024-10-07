@@ -502,19 +502,17 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
     // assign new schema before commit, so that
     schema_.Assign(new_schema.release());
     store_->Flush();
-    if (n_modified) *n_modified = modified;
     return r;
 }
 
 #define PERIODIC_COMMIT 0
 
-template <typename GenNewSchema, typename MakeNewProp, typename ModifyIndex>
+template <typename GenNewSchema, typename ModifyIndex>
 bool LightningGraph::_AlterLabel(
     bool is_vertex, const std::string& label,
     const GenNewSchema& modify_schema,  // std::function<Schema(Schema*)>
     // std::function<void(Schema*, Schema*, CleanupActions&, Transaction&)>
-    const ModifyIndex& modify_index, size_t* n_modified, size_t commit_size) {
-    LOG_DEBUG() << "_AlterLabel(batch_size=" << commit_size << ")";
+    const ModifyIndex& modify_index) {
     _HoldWriteLock(meta_lock_);
     Transaction txn = CreateWriteTxn(false);
     ScopedRef<SchemaInfo> curr_schema_info = schema_.GetScopedRef();
@@ -538,7 +536,6 @@ bool LightningGraph::_AlterLabel(
     schema_.Assign(new_schema_info.release());
     rollback_actions.Emplace([&]() { schema_.Assign(backup_schema.release()); });
     txn.Commit();
-    if (n_modified) *n_modified = modified;
     rollback_actions.CancelAll();
     return true;
 }
@@ -675,7 +672,7 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
     std::vector<const _detail::FieldExtractor*> blob_deleted_fes;
 
     // make new schema
-    auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
+    auto modify_schema = [&](Schema* curr_schema) -> Schema {
         Schema new_schema(*curr_schema);
         new_schema.DelFields(del_fields);
         size_t n_new_fields = new_schema.GetNumFields();
@@ -718,8 +715,7 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
         }
     };
 
-    return _AlterLabel(is_vertex, label, setup_and_gen_new_schema,
-                       delete_indexes, n_modified, 100000);
+    return _AlterLabel(is_vertex, label, modify_schema, delete_indexes);
 }
 
 bool LightningGraph::AlterLabelAddFields(const std::string& label,
@@ -749,8 +745,6 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
                 THROW_CODE(InputError,
                            "Field [{}] is declared as non-optional but the default value is NULL.",
                            fs.name);
-            fs.init_value = default_values[i];
-            fs.inited_value = true;
         }
     }
 
@@ -758,14 +752,18 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
     auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
         Schema new_schema(*curr_schema);
         new_schema.AddFields(to_add);
+        for (size_t i = 0; i < to_add.size(); i++) {
+            auto* extractor = const_cast<lgraph::_detail::FieldExtractor*>(
+                new_schema.GetFieldExtractor(to_add[i].name));
+            extractor->SetInitValue(default_values[i]);
+        }
         return new_schema;
     };
 
     auto delete_indexes = [](Schema* curr_schema, Schema* new_schema,
                              CleanupActions& rollback_actions, Transaction& txn) {};
 
-    return _AlterLabel(is_vertex, label, setup_and_gen_new_schema, delete_indexes, n_modified,
-                       100000);
+    return _AlterLabel(is_vertex, label, setup_and_gen_new_schema, delete_indexes);
 }
 
 bool LightningGraph::AlterLabelModFields(const std::string& label,
@@ -785,7 +783,7 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
         }
     }
 
-    auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
+    auto alter_schema = [&](Schema* curr_schema) -> Schema {
         // check field types
         for (auto& f : to_mod) {
             auto* extractor = curr_schema->GetFieldExtractor(f.name);
@@ -829,15 +827,7 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
         }
     };
 
-    return _AlterLabel(
-        is_vertex, label, setup_and_gen_new_schema, delete_indexes,
-        n_modified,
-#if PERIODIC_COMMIT
-        std::numeric_limits<size_t>::max());  // there could be data conversion error during
-                                              // convert, so we cannot do periodic commit
-#else
-        100000);
-#endif
+    return _AlterLabel(is_vertex, label, alter_schema, delete_indexes);
 }
 
 /**

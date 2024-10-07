@@ -96,6 +96,13 @@ class FieldExtractor {
         edge_index_ = nullptr;
     }
 
+    explicit FieldExtractor(const FieldSpec& d, ProCount id) noexcept : def_(d) {
+        is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
+        vertex_index_ = nullptr;
+        edge_index_ = nullptr;
+        SetFieldId(id);
+    }
+
     const FieldSpec& GetFieldSpec() const { return def_; }
 
     bool GetIsNull(const Value& record) const {
@@ -106,6 +113,16 @@ class FieldExtractor {
             char* arr = GetNullArray(record);
             return arr[def_.id / 8] & (0x1 << (def_.id % 8));
         }
+    }
+
+    void SetDefaultValue(const FieldData& data) {
+        def_.default_value = FieldData(data);
+        def_.set_default_value = true;
+    }
+
+    void SetInitValue(const FieldData& data) {
+        def_.init_value = FieldData(data);
+        def_.inited_value = true;
     }
 
     void MarkDeleted() {
@@ -135,7 +152,7 @@ class FieldExtractor {
         }
     }
 
-    ENABLE_IF_FIXED_FIELD(T, void) ConvertData(T* dst, const char* data, size_t size) {
+    ENABLE_IF_FIXED_FIELD(T, void) ConvertData(T* dst, const char* data, size_t size) const {
         if (std::is_integral<T>::value) {
             int64_t temp = 0;
             switch (size) {
@@ -276,6 +293,8 @@ class FieldExtractor {
 
     bool IsOptional() const { return def_.optional; }
 
+    bool IsFixedType() const { return field_data_helper::IsFixedLengthFieldType(def_.type);}
+
     /**
      * Print the string representation of the field. For digital types, it prints
      * it into ASCII string; for NBytes and String, it just copies the content of
@@ -398,7 +417,7 @@ class FieldExtractor {
         FMA_DBG_CHECK_EQ(data.Size(), field_data_helper::FieldTypeSize(def_.type));
         FMA_DBG_CHECK_EQ(data.Size(), GetDataSize(record));
         // copy the buffer so we don't accidentally overwrite memory
-        char* ptr = (char*)record.Data() + GetFieldOffset(record);
+        char* ptr = (char*)record.Data() + GetFieldOffset(record, def_.id);
         memcpy(ptr, data.Data(), data.Size());
     }
 
@@ -428,7 +447,7 @@ class FieldExtractor {
      * Assert fails if data is corrupted.
      */
     void GetCopyRaw(const Value& record, void* data, size_t size) const {
-        size_t off = GetFieldOffset(record);
+        size_t off = GetFieldOffset(record, def_.id);
         FMA_DBG_ASSERT(off + size <= record.Size());
         memcpy(data, record.Data() + off, size);
     }
@@ -444,7 +463,7 @@ class FieldExtractor {
             // The length is stored at the beginning of the variable-length field data area.
             return ::lgraph::_detail::UnalignedGet<size_t>(record.Data() + var_off);
         } else {
-            return GetFieldOffset(def_.id + 1) - GetFieldOffset(def_.id);
+            return GetFieldOffset(record, def_.id + 1) - GetFieldOffset(record, def_.id);
         }
     }
 
@@ -464,7 +483,7 @@ class FieldExtractor {
     }
 
     void* GetFieldPointer(const Value& record) const {
-        return (char*)record.Data() + GetFieldOffset(record);
+        return (char*)record.Data() + GetFieldOffset(record, def_.id);
     }
 };
 
