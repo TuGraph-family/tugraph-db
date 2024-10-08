@@ -61,8 +61,6 @@ class FieldExtractor {
  public:
     FieldExtractor() : null_bit_off_(0), vertex_index_(nullptr),
                        edge_index_(nullptr), vector_index_(nullptr) {}
-    FieldExtractor() : null_bit_off_(0), vertex_index_(nullptr),
-                       edge_index_(nullptr), vector_index_(nullptr) {}
 
     ~FieldExtractor() {}
 
@@ -285,17 +283,12 @@ class FieldExtractor {
 
     VectorIndex* GetVectorIndex() const { return vector_index_.get(); }
 
-    VectorIndex* GetVectorIndex() const { return vector_index_.get(); }
-
     size_t GetFieldId() const { return field_id_; }
 
  private:
     void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
 
     void SetEdgeIndex(EdgeIndex* edgeindex) { edge_index_.reset(edgeindex); }
-
-    void SetVectorIndex(VectorIndex* vectorindex) { vector_index_.reset(vectorindex); }
-
 
     void SetVectorIndex(VectorIndex* vectorindex) { vector_index_.reset(vectorindex); }
 

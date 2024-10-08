@@ -55,15 +55,8 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
             // update field index
             if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
                 THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
-        if (fe.Type() != FieldType::FLOAT_VECTOR) {
-            VertexIndex* index = fe.GetVertexIndex();
-            FMA_ASSERT(index);
-            // update field index
-            if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-                THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record));
-            }
             }
         }
     }
@@ -169,15 +162,8 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
             // update field index
             if (!index->Add(txn, fe.GetConstRef(record), vid)) {
                 THROW_CODE(InputError,
-        if (fe.Type() != FieldType::FLOAT_VECTOR) {
-            VertexIndex* index = fe.GetVertexIndex();
-            FMA_ASSERT(index);
-            // update field index
-            if (!index->Add(txn, fe.GetConstRef(record), vid)) {
-                THROW_CODE(InputError,
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record));
-            }
             }
         }
         created.push_back(idx);
