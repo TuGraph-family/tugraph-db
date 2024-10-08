@@ -110,6 +110,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             vsag
             /opt/OpenBLAS/lib/libopenblas.a
             libfaiss_avx2.a
+            vsag
+            /opt/OpenBLAS/lib/libopenblas.a
+            libfaiss_avx2.a
             libgomp.a
             -static-libstdc++
             -static-libgcc
@@ -131,6 +134,9 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 vsag
                 /opt/OpenBLAS/lib/libopenblas.a
                 libfaiss_avx2.a
+                vsag
+                /opt/OpenBLAS/lib/libopenblas.a
+                libfaiss_avx2.a
                 ${Boost_LIBRARIES}
                 omp
                 pthread
@@ -139,6 +145,9 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 ${JAVA_JVM_LIBRARY})
     else ()
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
+                vsag
+                /opt/OpenBLAS/lib/libopenblas.a
+                libfaiss_avx2.a
                 vsag
                 /opt/OpenBLAS/lib/libopenblas.a
                 libfaiss_avx2.a

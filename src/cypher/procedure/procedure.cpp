@@ -19,6 +19,9 @@
 #include <regex>
 #include <tuple>
 
+#include <regex>
+#include <tuple>
+
 #include "import/import_online.h"
 #include "core/field_data_helper.h"
 #include "core/thread_id.h"
@@ -34,7 +37,6 @@
 #include "cypher/monitor/memory_monitor_allocator.h"
 #include "fma-common/encrypt.h"
 #include "import/import_v3.h"
-#include "server/bolt_session.h"
 
 namespace cypher {
 

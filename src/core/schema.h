@@ -432,6 +432,11 @@ class Schema {
         return fields_[field_idx].GetVectorIndex() == nullptr;
     }
 
+    bool IsVectorIndex(size_t field_idx) {
+        FMA_DBG_ASSERT(field_idx < fields_.size());
+        return fields_[field_idx].GetVectorIndex() == nullptr;
+    }
+
     void UnVertexIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         indexed_fields_.erase(field_idx);

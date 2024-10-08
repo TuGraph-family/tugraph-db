@@ -750,12 +750,6 @@ static std::vector<Procedure> global_procedures = {
     Procedure("dbms.meta.refreshCount", BuiltinProcedure::DbmsMetaRefreshCount,
               Procedure::SIG_SPEC{}, Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}},
               false, true),
-    Procedure("dbms.security.isDefaultUserPassword",
-              BuiltinProcedure::DbmsSecurityIsDefaultUserPassword,
-              Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{
-                  {"isDefaultUserPassword", {0, lgraph_api::LGraphType::BOOLEAN}}
-              }, true, false),
     Procedure("dbms.security.changePassword", BuiltinProcedure::DbmsSecurityChangePassword,
               Procedure::SIG_SPEC{
                   {"current_password", {0, lgraph_api::LGraphType::STRING}},
