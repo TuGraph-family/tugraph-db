@@ -439,8 +439,8 @@ void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);
-    size_t min_size =
-        ::lgraph::_detail::NULL_ARRAY_OFFSET + fields_.size() + 7 / 8 + fields_.size() * sizeof(DataOffset);
+    size_t min_size = ::lgraph::_detail::NULL_ARRAY_OFFSET + fields_.size() + 7 / 8 +
+                      fields_.size() * sizeof(DataOffset);
     for (size_t i = 0; i < fields_.size(); i++) {
         if (!fields_[i].IsFixedType()) {
             min_size += sizeof(DataOffset);
@@ -454,34 +454,210 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
     ::lgraph::_detail::UnalignedSet<VersionId>(v.Data(), ::lgraph::_detail::SCHEMA_VERSION);
     // next data is label id
     if (label_in_record_) {
-        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + ::lgraph::_detail::LABEL_OFFSET, label_id_);
+        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + ::lgraph::_detail::LABEL_OFFSET,
+                                                 label_id_);
     }
 
     // set Property Count
     ::lgraph::_detail::UnalignedSet<ProCount>(v.Data() + ::lgraph::_detail::COUNT_OFFSET,
-                                                   static_cast<ProCount>(fields_.size()));
+                                              static_cast<ProCount>(fields_.size()));
 
     // nullbable bits
     memset(v.Data() + ::lgraph::_detail::NULL_ARRAY_OFFSET, 0xFF, (fields_.size() + 7) / 8);
 
     // initialize offsets
-    DataOffset data_offset =
-        ::lgraph::_detail::NULL_ARRAY_OFFSET + (fields_.size() + 7) / 8 + fields_.size() * sizeof(DataOffset);
+    DataOffset data_offset = ::lgraph::_detail::NULL_ARRAY_OFFSET + (fields_.size() + 7) / 8 +
+                             fields_.size() * sizeof(DataOffset);
     DataOffset offset_begin = ::lgraph::_detail::NULL_ARRAY_OFFSET + (fields_.size() + 7) / 8;
 
     size_t num_fields = fields_.size();
     if (num_fields > 1) {
         char* data_ptr = v.Data() + offset_begin;
         for (size_t i = 1; i < num_fields; i++) {
-            ::lgraph::_detail::UnalignedSet<DataOffset>(data_ptr,
-                                                        data_offset);
+            ::lgraph::_detail::UnalignedSet<DataOffset>(data_ptr, data_offset);
             data_ptr += sizeof(DataOffset);
             data_offset += fields_[i].IsFixedType() ? fields_[i].TypeSize() : sizeof(DataOffset);
         }
     }
-    ::lgraph::_detail::UnalignedSet<DataOffset>(v.Data() + offset_begin + sizeof(DataOffset) * fields_.size(),
-                                                data_offset);
+    ::lgraph::_detail::UnalignedSet<DataOffset>(
+        v.Data() + offset_begin + sizeof(DataOffset) * fields_.size(), data_offset);
     return v;
+}
+
+// parse data from FieldData and set field
+// for BLOBs, only formatted data is allowed
+// The reason for moving parseandset from FieldExtractor to Schema is
+// Due to the current data layout, updating a Field may require obtaining the types of other Fields.
+// Solely relying on Field Extractor lacks the information of other Fields.
+
+void Schema::ParseAndSet(Value& record, const FieldData& data,
+                         const _detail::FieldExtractor* extractor) const {
+    bool data_is_null = data.type == FieldType::NUL;
+    extractor->SetIsNull(record, data_is_null);
+    if (data_is_null) return;
+
+#define _SET_FIXED_TYPE_VALUE_FROM_FD(ft)                                                     \
+    do {                                                                                      \
+        if (data.type == def_.type) {                                                         \
+            return SetFixedSizeValue(record,                                                  \
+                                     field_data_helper::GetStoredValue<FieldType::ft>(data)); \
+        } else {                                                                              \
+            typename field_data_helper::FieldType2StorageType<FieldType::ft>::type s;         \
+            if (!field_data_helper::FieldDataTypeConvert<FieldType::ft>::Convert(data, s))    \
+                throw ParseFieldDataException(Name(), data, Type());                          \
+            return SetFixedSizeValue(record, s);                                              \
+        }                                                                                     \
+    } while (0)
+
+    switch (extractor->Type()) {
+    case FieldType::BOOL:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(BOOL);
+    case FieldType::INT8:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(INT8);
+    case FieldType::INT16:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(INT16);
+    case FieldType::INT32:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(INT32);
+    case FieldType::INT64:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(INT64);
+    case FieldType::DATE:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(DATE);
+    case FieldType::DATETIME:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(DATETIME);
+    case FieldType::FLOAT:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(FLOAT);
+    case FieldType::DOUBLE:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(DOUBLE);
+
+    case FieldType::STRING:
+        if (data.type != FieldType::STRING)
+            throw ParseIncompatibleTypeException(Name(), data.type, FieldType::STRING);
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+    case FieldType::BLOB:
+        {
+            // used in AlterLabel, when copying old blob value to new
+            // In this case, the value must already be correctly formatted, so just copy it
+            if (data.type != FieldType::BLOB)
+                throw ParseIncompatibleTypeException(Name(), data.type, FieldType::BLOB);
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        }
+    case FieldType::POINT:
+        {
+            // point type can only be converted from point and string;
+            if (data.type != FieldType::POINT && data.type != FieldType::STRING)
+                throw ParseFieldDataException(Name(), data, Type());
+            FMA_DBG_ASSERT(!is_vfield_);
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POINT))
+                throw ParseStringException(Name(), *data.data.buf, FieldType::POINT);
+
+            record.Resize(record.Size());
+            char* ptr =
+                (char*)record.Data() + extractor->GetFieldOffset(record, extractor->GetFieldId());
+            memcpy(ptr, (*data.data.buf).data(), 50);
+            return;
+        }
+    case FieldType::LINESTRING:
+        {
+            if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
+                throw ParseFieldDataException(Name(), data, Type());
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::LINESTRING))
+                throw ParseStringException(Name(), *data.data.buf, FieldType::LINESTRING);
+
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        }
+    case FieldType::POLYGON:
+        {
+            if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
+                throw ParseFieldDataException(Name(), data, Type());
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
+                throw ParseStringException(Name(), *data.data.buf, FieldType::POLYGON);
+
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        }
+    case FieldType::SPATIAL:
+        {
+            if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
+                throw ParseFieldDataException(Name(), data, Type());
+            ::lgraph_api::SpatialType s;
+
+            // throw ParseStringException in this function;
+            try {
+                s = ::lgraph_api::ExtractType(*data.data.buf);
+            } catch (...) {
+                throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
+            }
+
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
+                throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
+
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+        }
+    case FieldType::FLOAT_VECTOR:
+        {
+            if (data.type != FieldType::FLOAT_VECTOR)
+                throw ParseFieldDataException(Name(), data, Type());
+
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.vp));
+        }
+    default:
+        LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type)
+                    << " not handled";
+    }
+}
+#define ENABLE_IF_FIXED_FIELD(_TYPE_, _RT_) \
+    template <typename _TYPE_>              \
+    typename std::enable_if<                \
+        std::is_integral<_TYPE_>::value || std::is_floating_point<_TYPE_>::value, _RT_>::type
+
+/**
+ * Sets the value of the field in record. Valid only for fixed-length fields.
+ *
+ * \param   record  The record.
+ * \param   data    Value to be set.
+ * \param   extractor  The field extractor pointer.
+ */
+ENABLE_IF_FIXED_FIELD(T, void)
+Schema::SetFixedSizeValue(Value& record, const T& data,
+                          const ::lgraph::_detail::FieldExtractor* extractor) const {
+    // "Cannot call SetField(Value&, const T&) on a variable length field";
+    FMA_DBG_ASSERT(!extractor->is_vfield_);
+    // "Type size mismatch"
+    FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
+    // copy the buffer so we don't accidentally overwrite memory
+    int data_size = extractor->GetDataSize(record);
+    size_t offset = extractor->GetFieldOffset(record, def_.id);
+    char* ptr = (char*)record.Data();
+    if (_F_LIKELY(data_size == sizeof(data))) {
+        record.Resize(record.Size());
+        char* ptr = ptr + offset;
+        ::lgraph::_detail::UnalignedSet<T>(ptr, data);
+    } else {
+        // If the data size differs, we need to resize the record:
+        // 1. Move the data to the correct position.
+        // 2. Modify the offset of the subsequent fields.
+
+        // Move the data to the correct position.
+        int diff = sizeof(data) - data_size;
+        if (diff > 0) {
+            record.Resize(record.Size() + diff);
+            memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
+                    record.Size() - (offset + sizof(data)));
+        } else {
+            memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
+                    record.Size() - (offset + data_size));
+            record.Resize(record.Size() + diff);
+        }
+        ::lgraph::_detail::UnalignedSet<T>(ptr + offset, data);
+
+        size_t variable_offset = extractor->GetFieldOffset(record, GetRecordCount(record));
+        // Update the offset of the subsequent fields.
+        for (ProCount i = extractor->GetFieldId() + 1; i < extractor->GetRecordCount(record) + 1; ++i) {
+            size_t off = extractor->GetOffsetPosistion(record, i);
+            size_t property_offset =
+                ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
+            ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
+        }
+    }
 }
 
 Value Schema::CreateRecordWithLabelId() const {

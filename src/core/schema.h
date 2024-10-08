@@ -313,6 +313,10 @@ class Schema {
         extractor->ParseAndSet(record, value, on_large_blob);
     }
 
+    void ParseAndSet(Value& record, const FieldData& data, const _detail::FieldExtractor* extractor) const;
+
+
+
     //// get non-blob field
     // template <typename FieldT>
     // typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type GetField(

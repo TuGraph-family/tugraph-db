@@ -66,8 +66,8 @@ typedef int32_t DataOffset;      // offset used in a record
 typedef int32_t PackDataOffset;  // offset used in a packed data (maximum 1024)
 typedef uint16_t LabelId;
 typedef int64_t TemporalId;
-typedef uint16_t ProCount;
-typedef uint8_t VersionId;
+typedef uint16_t ProCount;      // Property count in Fields
+typedef uint8_t VersionId;      // Schema version
 
 enum CompareOp { LBR_EQ = 0, LBR_NEQ = 1, LBR_LT = 2, LBR_LE = 3, LBR_GT = 4, LBR_GE = 5 };
 

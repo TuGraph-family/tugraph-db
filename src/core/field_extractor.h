@@ -39,6 +39,7 @@ class FieldExtractor {
     friend class lgraph::Schema;
     // type information
     FieldSpec def_;
+    // is variable property field
     bool is_vfield_ = false;
     // index
     std::unique_ptr<VertexIndex> vertex_index_;
@@ -180,15 +181,15 @@ class FieldExtractor {
                 *dst = static_cast<T>(temp);
             }
         } else if (std::is_floating_point<T>::value) {
-            switch(size) {
-                case 4:
-                    *dst = static_cast<T>(*reinterpret_cast<const float*>(data));
-                    break;
-                case 8:
-                    *dst = static_cast<T>(*reinterpret_cast<const double*>(data));
-                    break;
-                default:
-                    FMA_ASSERT(false) << "Invalid size";
+            switch (size) {
+            case 4:
+                *dst = static_cast<T>(*reinterpret_cast<const float*>(data));
+                break;
+            case 8:
+                *dst = static_cast<T>(*reinterpret_cast<const double*>(data));
+                break;
+            default:
+                FMA_ASSERT(false) << "Invalid size";
             }
         }
     }
@@ -293,7 +294,7 @@ class FieldExtractor {
 
     bool IsOptional() const { return def_.optional; }
 
-    bool IsFixedType() const { return field_data_helper::IsFixedLengthFieldType(def_.type);}
+    bool IsFixedType() const { return field_data_helper::IsFixedLengthFieldType(def_.type); }
 
     /**
      * Print the string representation of the field. For digital types, it prints
@@ -401,13 +402,35 @@ class FieldExtractor {
             char* ptr = ptr + offset;
             ::lgraph::_detail::UnalignedSet<T>(ptr, data);
         } else {
-            record.Resize(record.Size());
-            memmove(ptr + offset + sizeof(data), ptr + offset + data_size, record.Size() - (offset + data_size));
-            record.Resize(record.Size() - data_size + sizeof(data));
-            ptr = (char*)record.Data();
-            ::lgraph::_detail::UnalignedSet<T>(ptr + offset, data);
-        }
+            // If the data size differs, we need to resize the record:
+            // 1. Move the data to the correct position.
+            // 2. Modify the offset of the subsequent fields.
 
+            // Move the data to the correct position.
+            int diff = sizeof(data) - data_size;
+            if (diff > 0) {
+                record.Resize(record.Size() + diff);
+                memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
+                        record.Size() - (offset + sizof(data)));
+            } else {
+                memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
+                        record.Size() - (offset + data_size));
+                record.Resize(record.Size() + diff);
+            }
+            ::lgraph::_detail::UnalignedSet<T>(ptr + offset, data);
+
+            size_t variable_offset = GetFieldOffset(record, GetRecordCount(record));
+            // Update the offset of the subsequent fields.
+            for (ProCount i = def_.id + 1; i < GetRecordCount(record) + 1; ++i) {
+                size_t off = GetOffsetPosistion(record, i);
+                size_t property_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
+                ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
+
+                
+            }
+
+
+        }
     }
 
     void _SetFixedSizeValueRaw(Value& record, const Value& data) const {
@@ -482,6 +505,14 @@ class FieldExtractor {
         }
     }
 
+    size_t GetOffsetPosistion(const Value& record, ProCount id) const {
+        ProCount count = GetRecordCount(record);
+        if (0 == id) {
+            return 0;
+        } else {
+            return NULL_ARRAY_OFFSET + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
+        }
+    }
     void* GetFieldPointer(const Value& record) const {
         return (char*)record.Data() + GetFieldOffset(record, def_.id);
     }
