@@ -1,0 +1,59 @@
+CALL db.createVertexLabelByJson('{"label":"person","primary":"id","type":"VERTEX","detach_property":true,"properties":[{"name":"id","type":"INT32","optional":false},{"name":"name","type":"STRING","optional":false,"index":false},{"name":"embedding1","type":"FLOAT_VECTOR","optional":false}, {"name":"embedding2","type":"FLOAT_VECTOR","optional":false}]}');
+[]
+CALL db.addVertexVectorIndex('person','embedding1', {dimension:4});
+[]
+CALL db.addVertexVectorIndex('person','embedding2', {dimension:4});
+[]
+CALL db.addVertexVectorIndex('person','name', {dimension:4});
+[VectorIndexException] Only FLOAT_VECTOR type supports vector index
+CALL db.showVertexVectorIndex();
+[{"dimension":4,"distance_type":"l2","field_name":"embedding1","hnsm.ef_construction":100,"hnsm.m":16,"index_type":"hnsw","label_name":"person"},{"dimension":4,"distance_type":"l2","field_name":"embedding2","hnsm.ef_construction":100,"hnsm.m":16,"index_type":"hnsw","label_name":"person"}]
+CREATE (n:person {id:1, name:'name1', embedding1: [1.0,1.0,1.0,1.0], embedding2: [11.0,11.0,11.0,11.0]});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+CREATE (n:person {id:2, name:'name2', embedding1: [2.0,2.0,2.0,2.0], embedding2: [12.0,12.0,12.0,12.0]});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+CALL db.upsertVertex('person', [{id:3, name:'name3', embedding1: [3.0,3.0,3.0,3.0], embedding2: [13.0,13.0,13.0,13.0]}, {id:4, name:'name4', embedding1: [4.0,4.0,4.0,4.0], embedding2: [14.0,14.0,14.0,14.0]}]);
+[{"data_error":0,"index_conflict":0,"insert":2,"total":2,"update":0}]
+CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:2, hnsw_ef_search:10});
+[{"distance":6.0,"node":{"identity":1,"label":"person","properties":{"embedding1":[2.0,2.0,2.0,2.0],"embedding2":[12.0,12.0,12.0,12.0],"id":2,"name":"name2"}}},{"distance":6.0,"node":{"identity":2,"label":"person","properties":{"embedding1":[3.0,3.0,3.0,3.0],"embedding2":[13.0,13.0,13.0,13.0],"id":3,"name":"name3"}}}]
+CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
+[{"node.id":2},{"node.id":3}]
+CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:20, hnsw_ef_search:100}) yield node return node.id;
+[{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}]
+CALL db.vertexVectorKnnSearch('person','embedding2',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
+[{"node.id":1},{"node.id":2}]
+CALL db.upsertVertex('person', [{id:1, embedding1: [33.0,33.0,33.0,33.0]}]);
+[{"data_error":0,"index_conflict":0,"insert":0,"total":1,"update":1}]
+CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
+[{"node.id":2},{"node.id":3}]
+match(n:person {id:2}) delete n;
+[{"<SUMMARY>":"deleted 1 vertices, deleted 0 edges."}]
+CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
+[{"node.id":3},{"node.id":4}]
+CALL db.vertexVectorRangeSearch('person','embedding1', [1.0,2.0,3.0,4.0], {radius:10.0, hnsw_ef_search:10}) yield node,distance return node.id, distance;
+[VectorIndexException] failed to perofrm range_search(internalError): not support perform range search on a index that deleted some vectors
+CALL db.alterLabelDelFields('vertex', 'person', ['embedding1']);
+[{"record_affected":3}]
+CALL db.showVertexVectorIndex();
+[{"dimension":4,"distance_type":"l2","field_name":"embedding2","hnsm.ef_construction":100,"hnsm.m":16,"index_type":"hnsw","label_name":"person"}]
+CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
+[FieldNotFound] Field [embedding1] does not exist.
+CALL db.vertexVectorKnnSearch('person','embedding2',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
+[{"node.id":1},{"node.id":3}]
+CALL db.vertexVectorRangeSearch('person','embedding2', [1.0,2.0,3.0,4.0], {radius:10.0, hnsw_ef_search:10}) yield node,distance return node.id, distance;
+[VectorIndexException] failed to perofrm range_search(internalError): not support perform range search on a index that deleted some vectors
+
+CALL db.createVertexLabelByJson('{"label":"student","primary":"id","type":"VERTEX","detach_property":true,"properties":[{"name":"id","type":"INT32","optional":false},{"name":"name","type":"STRING","optional":false,"index":false},{"name":"embedding","type":"FLOAT_VECTOR","optional":false}]}');
+[]
+CALL db.addVertexVectorIndex('student','embedding', {dimension:4});
+[]
+CREATE (n:student {id:1, name:'name1', embedding: [1.0,1.0,1.0,1.0]});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+CREATE (n:student {id:2, name:'name2', embedding: [2.0,2.0,2.0,2.0]});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+CREATE (n:student {id:3, name:'name3', embedding: [3.0,3.0,3.0,3.0]});
+[{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
+CALL db.vertexVectorRangeSearch('student','embedding', [1.0,2.0,3.0,4.0], {radius:10.0, hnsw_ef_search:10}) yield node,distance return node.id, distance;
+[{"distance":6.0,"node.id":2},{"distance":6.0,"node.id":3}]
+CALL db.vertexVectorRangeSearch('student','embedding', [1.0,2.0,3.0,4.0], {radius:10.0, hnsw_ef_search:10, limit:1}) yield node,distance return node.id, distance;
+[{"distance":6.0,"node.id":2}]

@@ -101,7 +101,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     if (output_file != "") {
         olapondb.WriteToFile<double>(pr, output_file);
     }
-    txn.Commit();
 
     if (pr_value != "") {
         olapondb.WriteToGraphDB<double>(pr, pr_value);
@@ -131,5 +130,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         output["total_cost"] = prepare_cost + core_cost + output_cost;
         response = output.dump();
     }
+    txn.Commit();
     return true;
 }

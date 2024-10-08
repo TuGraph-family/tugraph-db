@@ -51,6 +51,8 @@ set(LGRAPH_CORE_SRC
         core/thread_id.cpp
         core/transaction.cpp
         core/vertex_index.cpp
+        core/vector_index.cpp
+        core/vsag_hnsw.cpp
         core/wal.cpp
         core/lmdb/mdb.c
         core/lmdb/midl.c)

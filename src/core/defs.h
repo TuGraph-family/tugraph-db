@@ -104,6 +104,7 @@ static const char* const EDGE_FULLTEXT_INDEX = "edge_fulltext";
 static const char* const VERTEX_INDEX = "vertex_index";
 static const char* const COMPOSITE_INDEX = "composite_index";
 static const char* const EDGE_INDEX = "edge_index";
+static const char* const VERTEX_VECTOR_INDEX = "vertex_vector_index";
 static const char* const USER_TABLE_NAME = "_user_table_";
 static const char* const ROLE_TABLE_NAME = "_role_table_";
 static const char* const GRAPH_CONFIG_TABLE_NAME = "_graph_config_table_";

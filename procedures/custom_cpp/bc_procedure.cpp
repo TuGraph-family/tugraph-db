@@ -14,7 +14,7 @@
 
 #include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
-#include "./algo.h"
+#include "../algo_cpp/algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
@@ -25,69 +25,47 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // prepare
     start_time = get_time();
-    size_t iterations = 20;
-    std::vector<int64_t> trust_list = {0, 1, 3};
-    std::string label = "node";
-    std::string field = "id";
+    size_t samples = 10;
     std::string output_file = "";
-
     try {
         json input = json::parse(request);
-        parse_from_json(iterations, "iterations", input);
-        parse_from_json(label, "label", input);
-        parse_from_json(field, "field", input);
+        parse_from_json(samples, "samples", input);
         parse_from_json(output_file, "output_file", input);
-        if (input["trust_list"].is_array()) {
-            trust_list.clear();
-        }
-        for (auto ele : input["trust_list"]) {
-            trust_list.push_back(ele);
-        }
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error");
+        response = "json parse error: " + std::string(e.what());
+        std::cout << response << std::endl;
         return false;
     }
     auto txn = db.CreateReadTxn();
     OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
-    std::vector<size_t> trust;
-    for (auto ele : trust_list) {
-        lgraph_api::FieldData root_field_data(ele);
-        // int64_t root_vid = txn.GetVertexIndexIterator
-        //         (label, field, root_field_data, root_field_data).GetVid();
-        trust.push_back(olapondb.MappedVid(ele));
-    }
     auto prepare_cost = get_time() - start_time;
 
     // core
     start_time = get_time();
-    auto curr = olapondb.AllocVertexArray<double>();
-    TrustrankCore(olapondb, iterations, curr, trust);
-    auto all_vertices = olapondb.AllocVertexSubset();
-    all_vertices.Fill();
-    size_t max_curr_vi =
-        olapondb.ProcessVertexActive<size_t>([&](size_t vi) { return vi; }, all_vertices, 0,
-                                    [&](size_t a, size_t b) { return curr[a] > curr[b] ? a : b; });
+    auto score = olapondb.AllocVertexArray<double>();
+    score.Fill(0.0);
+    size_t max_score_vi = BCCore(olapondb, samples, score);
     auto core_cost = get_time() - start_time;
-    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_curr_vi), false);
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_score_vi), false);
     auto vit_label = vit.GetLabel();
     auto primary_field = txn.GetVertexPrimaryField(vit_label);
     auto field_data = vit.GetField(primary_field);
+
     // output
     start_time = get_time();
     if (output_file != "") {
-        olapondb.WriteToFile<double>(true, curr, output_file);
+        olapondb.WriteToFile(true, score, output_file);
     }
-    // TODO(any): write curr back to graph
     auto output_cost = get_time() - start_time;
 
     // return
     {
         json output;
-        output["max_trustrank_id"] = olapondb.OriginalVid(max_curr_vi);
-        output["max_trustrank_label"] = vit_label;
-        output["max_trustrank_primaryfield"] = primary_field;
-        output["max_trustrank_fielddata"] = field_data.ToString();
-        output["max_trustrank_val"] = curr[max_curr_vi];
+        output["max_score_vid"] = olapondb.OriginalVid(max_score_vi);
+        output["max_score_label"] = vit_label;
+        output["max_score_primaryfield"] = primary_field;
+        output["max_score_fielddata"] = field_data.ToString();
+        output["max_score"] = score[max_score_vi];
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
         output["prepare_cost"] = prepare_cost;

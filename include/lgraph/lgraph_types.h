@@ -487,6 +487,11 @@ struct FieldData {
         data.vp = new std::vector<float>(fv);
     }
 
+    explicit FieldData(std::vector<float>&& fv) {
+        type = FieldType::FLOAT_VECTOR;
+        data.vp = new std::vector<float>(std::move(fv));
+    }
+
     ~FieldData() {
         if (IsBufType(type)) delete data.buf;
         if (type == FieldType::FLOAT_VECTOR) delete data.vp;
@@ -517,9 +522,11 @@ struct FieldData {
         type = rhs.type;
         if (IsBufType(rhs.type)) {
             data.buf = new std::string(*rhs.data.buf);
-        } else {
+        } else if (rhs.type != FieldType::FLOAT_VECTOR) {
             // the integer type must have the biggest size, see static_assertion below
             data.int64 = rhs.data.int64;
+        } else {
+            data.vp = new std::vector<float>(*rhs.data.vp);
         }
         return *this;
     }
@@ -1281,6 +1288,16 @@ struct CompositeIndexSpec {
     /** @brief   fields name */
     std::vector<std::string> fields;
     CompositeIndexType type;
+};
+
+struct VectorIndexSpec {
+    std::string label;
+    std::string field;
+    std::string index_type;
+    int dimension;
+    std::string distance_type;
+    int hnsm_m;
+    int hnsm_ef_construction;
 };
 
 struct EdgeUid {
