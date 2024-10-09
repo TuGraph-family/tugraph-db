@@ -283,6 +283,23 @@ int main(int argc, char** argv) {
             asio::write(socket,
                         asio::const_buffer(ps.ConstBuffer().data(), ps.ConstBuffer().size()));
             bool ret = FetchRecords(socket, hydrator, of);
+            if (!ret) {
+                // reset connection
+                ps.Reset();
+                ps.AppendReset();
+                asio::write(socket,asio::const_buffer(ps.ConstBuffer().data(), ps.ConstBuffer().size()));
+                while(true) {
+                    auto m = ReadMessage(socket, hydrator);
+                    if (m.type() == typeid(bolt::Success*)) {
+                        break;
+                    } else if (m.type() == typeid(bolt::Ignored*)) {
+                        continue;
+                    } else {
+                        LOG_ERROR() << "unexpected bolt msg after reset";
+                        return -1;
+                    }
+                }
+            }
             if (is_terminal && ret) {
                 linenoiseHistoryAdd(statement.c_str());
                 linenoiseHistorySave(history_file);
