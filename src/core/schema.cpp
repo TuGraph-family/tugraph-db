@@ -651,12 +651,72 @@ Schema::SetFixedSizeValue(Value& record, const T& data,
 
         size_t variable_offset = extractor->GetFieldOffset(record, GetRecordCount(record));
         // Update the offset of the subsequent fields.
-        for (ProCount i = extractor->GetFieldId() + 1; i < extractor->GetRecordCount(record) + 1; ++i) {
+        for (ProCount i = extractor->GetFieldId() + 1; i < extractor->GetRecordCount(record) + 1;
+             ++i) {
             size_t off = extractor->GetOffsetPosistion(record, i);
             size_t property_offset =
                 ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
             ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
         }
+
+        // Update the offset of veriable length fields.
+        for (ProCount i = extractor->GetRecordCount(record) + 1; i < GetRecordCount(record); i++) {
+            if (Fields_[i].IsFixedType()) continue;
+            size_t off = extractor->GetFieldOffset(record, i);
+            size_t property_offset =
+                ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
+            ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
+        }
+    }
+}
+
+/**
+ * Sets the value of the variable field in record. Valid only for variable-length fields.
+ *
+ * \param   record  The record.
+ * \param   data    Value to be set.
+ * \param   extractor  The field extractor pointer.
+ */
+void Schema::_SetVariableLengthValue(Value& record, const Value& data,
+                                     const ::lgraph::_detail::FieldExtractor* extractor) const {
+    FMA_DBG_ASSERT(extractor->is_vfield_);
+    if (data.Size() > _detail::MAX_STRING_SIZE)
+        throw DataSizeTooLargeException(Name(), data.Size(), _detail::MAX_STRING_SIZE);
+    size_t foff = extractor->GetFieldOffset(record, def_.id);
+    size_t variable_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(rptr + foff);
+    size_t fsize = extractor->GetDataSize(record);
+
+    // realloc record with original size to make sure we own the memory
+    record.Resize(record.Size());
+
+    // move data to the correct position
+    int32_t diff = data.Size() + sizeof(uint32_t) - fsize;
+    if (diff > 0) {
+            record.Resize(record.Size() + diff);
+            memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
+                    record.Size() - (offset + sizof(data)));
+        } else {
+            memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
+                    record.Size() - (offset + data_size));
+            record.Resize(record.Size() + diff);
+        }
+    }
+
+    // set data
+    rptr = (char*)record.Data();
+    // set data size
+    ::lgraph::_detail::UnalignedSet<uint32_t>(rptr + variable_offset, data.Size());
+    // set data value
+    memcpy(rptr + variable_offset + sizeof(uint32_t), data.Data(), data.Size());
+
+    // update offset of other veriable fields
+    size_t count = GetRecordCount(record);
+    // adjust offset of other fields
+    for (size_t i = def_.id; i < count; i++) {
+        if (Fields_[i].IsFixedType()) continue;
+        size_t offset = GetFieldOffset(record, i);
+        size_t var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(rptr + offset);
+        ::lgraph::_detail::UnalignedSet<DataOffset>(rptr + offset, var_offset + diff);
     }
 }
 

@@ -379,60 +379,6 @@ class FieldExtractor {
         ::lgraph::_detail::UnalignedSet<DataOffset>(record.Data() + off, offset);
     }
 
-    /**
-     * Sets the value of the field in record. Valid only for fixed-length fields.
-     *
-     * \param   record  The record.
-     * \param   data    Value to be set.
-     *
-     * \return   ErrorCode::OK if succeeds.
-     */
-    ENABLE_IF_FIXED_FIELD(T, void)
-    SetFixedSizeValue(Value& record, const T& data) const {
-        // "Cannot call SetField(Value&, const T&) on a variable length field";
-        FMA_DBG_ASSERT(!is_vfield_);
-        // "Type size mismatch"
-        FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
-        // copy the buffer so we don't accidentally overwrite memory
-        int data_size = GetDataSize(record);
-        size_t offset = GetFieldOffset(record, def_.id);
-        char* ptr = (char*)record.Data();
-        if (_F_LIKELY(data_size == sizeof(data))) {
-            record.Resize(record.Size());
-            char* ptr = ptr + offset;
-            ::lgraph::_detail::UnalignedSet<T>(ptr, data);
-        } else {
-            // If the data size differs, we need to resize the record:
-            // 1. Move the data to the correct position.
-            // 2. Modify the offset of the subsequent fields.
-
-            // Move the data to the correct position.
-            int diff = sizeof(data) - data_size;
-            if (diff > 0) {
-                record.Resize(record.Size() + diff);
-                memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
-                        record.Size() - (offset + sizof(data)));
-            } else {
-                memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
-                        record.Size() - (offset + data_size));
-                record.Resize(record.Size() + diff);
-            }
-            ::lgraph::_detail::UnalignedSet<T>(ptr + offset, data);
-
-            size_t variable_offset = GetFieldOffset(record, GetRecordCount(record));
-            // Update the offset of the subsequent fields.
-            for (ProCount i = def_.id + 1; i < GetRecordCount(record) + 1; ++i) {
-                size_t off = GetOffsetPosistion(record, i);
-                size_t property_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
-                ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
-
-                
-            }
-
-
-        }
-    }
-
     void _SetFixedSizeValueRaw(Value& record, const Value& data) const {
         // "Cannot call SetField(Value&, const T&) on a variable length field";
         FMA_DBG_ASSERT(!is_vfield_);

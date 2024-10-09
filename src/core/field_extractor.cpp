@@ -388,34 +388,5 @@ std::string FieldExtractor::FieldToString(const Value& record) const {
     LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
     return "";
 }
-
-// sets variable length value to the field
-void FieldExtractor::_SetVariableLengthValue(Value& record, const Value& data) const {
-    FMA_DBG_ASSERT(is_vfield_);
-    if (data.Size() > _detail::MAX_STRING_SIZE)
-        throw DataSizeTooLargeException(Name(), data.Size(), _detail::MAX_STRING_SIZE);
-    size_t foff = GetFieldOffset(record, def_.id);
-    size_t fsize = GetDataSize(record);
-    // realloc record with original size to make sure we own the memory
-    int32_t diff = fsize - data.Size();
-    char* rptr = (char*)record.Data();
-    record.Resize(diff > 0 ? record.Size() : record.Size() - diff);
-    rptr = (char*)record.Data();
-    memmove(rptr + foff + data.Size(), rptr + foff + fsize, record.Size() - (foff + fsize));
-    if (diff > 0) {
-        record.Resize(record.Size() - diff);
-    }
-    rptr = (char*)record.Data();
-    memcpy(rptr + foff, data.Data(), data.Size());
-    size_t count = GetRecordCount(record);
-    size_t var_offset = GetFieldOffset(record, count + 1);
-    // adjust offset of other fields
-    for (size_t i = def_.id; i < count; i++) {
-        size_t offset = GetFieldOffset(record, i);
-        if (offset >= var_offset) {
-            SetVariableOffset(record, i, offset - diff);
-        }
-    }
-}
 }  // namespace _detail
 }  // namespace lgraph
