@@ -287,8 +287,9 @@ int main(int argc, char** argv) {
                 // reset connection
                 ps.Reset();
                 ps.AppendReset();
-                asio::write(socket,asio::const_buffer(ps.ConstBuffer().data(), ps.ConstBuffer().size()));
-                while(true) {
+                asio::write(socket, asio::const_buffer(
+                                        ps.ConstBuffer().data(), ps.ConstBuffer().size()));
+                while (true) {
                     auto m = ReadMessage(socket, hydrator);
                     if (m.type() == typeid(bolt::Success*)) {
                         break;
