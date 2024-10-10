@@ -158,7 +158,8 @@ class LocateNodeByIndexedProp : public OptPass {
 
             if (in_filter->ae_left_.type == ArithExprNode::AR_EXP_OPERAND &&
                 in_filter->ae_left_.operand.type == ArithOperandNode::AR_OPERAND_VARIADIC &&
-                !in_filter->ae_left_.operand.variadic.entity_prop.empty()) {
+                !in_filter->ae_left_.operand.variadic.entity_prop.empty() &&
+                in_filter->ae_right_.type == ArithExprNode::AR_EXP_OPERAND) {
                 auto right_data = Entry(in_filter->ae_right_.operand.constant);
                 if (!right_data.IsArray()) CYPHER_TODO();
                 field = in_filter->ae_left_.operand.variadic.entity_prop;

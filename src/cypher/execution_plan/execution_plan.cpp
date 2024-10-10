@@ -603,8 +603,11 @@ void ExecutionPlan::_BuildExpandOps(const parser::QueryPart &part, PatternGraph 
                                pattern_graph.symbol_table);
                 if (pf.type == Property::PARAMETER) {
                     // TODO(anyone) use record
-                    ae2.SetOperand(ArithOperandNode::AR_OPERAND_PARAMETER,
-                                   cypher::FieldData(lgraph::FieldData(pf.value_alias)));
+                    // Fix bugs of parameterized execution:
+                    // MATCH (rachel:Person {name: $name1})-[]->(family:Person)-[:ACTED_IN]->(film)
+                    // <-[:ACTED_IN]-(richard:Person {name: $name2}) RETURN family.name;
+                    ae2.SetOperandParameter(ArithOperandNode::AR_OPERAND_PARAMETER,
+                        pf.value_alias, pattern_graph.symbol_table);
                 } else if (pf.type == Property::VARIABLE) {
                     ae2.SetOperandVariable(ArithOperandNode::AR_OPERAND_VARIABLE,
                                         pf.hasMapFieldName, pf.value_alias, pf.map_field_name);
