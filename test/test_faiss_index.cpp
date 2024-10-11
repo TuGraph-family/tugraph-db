@@ -175,8 +175,8 @@ TEST_F(TestFaiss, restart) {
                          _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
         std::string str;
         auto ret = client.CallCypher(str, "CALL db.vertexVectorKnnSearch"
-                                     "('person','vector',[1,2,3,4], {top_k:4, IVFFlat_ef_search:10})"
-                                     "YIELD node RETURN node.id");
+                                    "('person','vector',[1,2,3,4], {top_k:4, IVFFlat_ef_search:10})"
+                                    "YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
         UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(str, "CALL db.alterLabelDelFields('vertex', 'person', ['vector'])");
