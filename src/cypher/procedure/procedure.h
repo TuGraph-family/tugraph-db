@@ -942,8 +942,7 @@ static std::vector<Procedure> global_procedures = {
                   {"index_type", {2, lgraph_api::LGraphType::STRING}},
                   {"dimension", {3, lgraph_api::LGraphType::INTEGER}},
                   {"distance_type", {4, lgraph_api::LGraphType::STRING}},
-                  {"hnsm.m", {5, lgraph_api::LGraphType::INTEGER}},
-                  {"hnsm.ef_construction", {6, lgraph_api::LGraphType::INTEGER}},
+                  {"parameter", {5, lgraph_api::LGraphType::MAP}},
               }),
 
     Procedure("db.vertexVectorKnnSearch", VectorFunc::VertexVectorKnnSearch,

@@ -11,60 +11,52 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-
-#include "core/Faiss_IVF_FLAT.h"
+#include <utility>
+#include "core/faiss_ivf_flat.h"
+#include "tools/lgraph_log.h"
+#include "fma-common/string_formatter.h"
+#include "lgraph/lgraph_exceptions.h"
 
 namespace lgraph {
 IVFFlat::IVFFlat(const std::string& label, const std::string& name,
                            const std::string& distance_type,
                            const std::string& index_type, int vec_dimension,
-                           std::vector<int> index_spec,
-                           std::shared_ptr<KvTable> table)
+                           std::vector<int> index_spec)
     : VectorIndex(label, name, distance_type, index_type,
-                    vec_dimension, index_spec, std::move(table)),
-      L2quantizer_(nullptr),
-      IPquantizer_(nullptr),
-      index_(nullptr) {}
-
-IVFFlat::IVFFlat(const IVFFlat& rhs)
-    : VectorIndex(rhs),
-      L2quantizer_(rhs.L2quantizer_),
-      IPquantizer_(rhs.IPquantizer_),
-      index_(rhs.index_) {}
+                    vec_dimension, std::move(index_spec)),
+      L2quantizer_(nullptr), IPquantizer_(nullptr), index_(nullptr) {}
 
 // add vector to index
-bool IVFFlat::Add(const std::vector<std::vector<float>>& vectors,
-                  const std::vector<size_t>& vids, size_t num_vectors) {
+void IVFFlat::Add(const std::vector<std::vector<float>>& vectors,
+                  const std::vector<int64_t>& vids, int64_t num_vectors) {
     // reduce dimension
     std::vector<float> index_vectors;
     index_vectors.reserve(num_vectors * vec_dimension_);
     for (const auto& vec : vectors) {
         index_vectors.insert(index_vectors.end(), vec.begin(), vec.end());
     }
-    if (index_type_ == "IVF_FLAT") {
+    if (index_type_ == "ivf_flat") {
         // train after build quantizer
         assert(!index_->is_trained);
         index_->train(num_vectors, index_vectors.data());
         assert(index_->is_trained);
-        index_->add(num_vectors, index_vectors.data());
+        index_->add_with_ids(num_vectors, index_vectors.data(), vids.data());
     } else {
-        return false;
+        THROW_CODE(InputError, "failed to add vector to index");
     }
-    return true;
 }
 
 // build index
-bool IVFFlat::Build() {
-    if (distance_type_ == "L2") {
+void IVFFlat::Build() {
+    if (distance_type_ == "l2") {
         L2quantizer_ = new faiss::IndexFlatL2(vec_dimension_);
         index_ = new faiss::IndexIVFFlat(L2quantizer_, vec_dimension_, index_spec_[0]);
-    } else if (distance_type_ == "IP") {
+    } else if (distance_type_ == "ip") {
         IPquantizer_ = new faiss::IndexFlatIP(vec_dimension_);
         index_ = new faiss::IndexIVFFlat(IPquantizer_, vec_dimension_, index_spec_[0]);
     } else {
-        return false;
+        THROW_CODE(InputError, "failed to build vector index");
     }
-    return true;
 }
 
 // serialize index
@@ -82,48 +74,25 @@ void IVFFlat::Load(std::vector<uint8_t>& idx_bytes) {
 }
 
 // search vector in index
-bool IVFFlat::Search(const std::vector<float>& query, size_t num_results,
-                          std::vector<float>& distances, std::vector<int64_t>& indices) {
-    if (query.empty() || num_results == 0) {
-        return false;
+std::vector<std::pair<int64_t, float>>
+IVFFlat::KnnSearch(const std::vector<float>& query, int64_t top_k, int ef_search) {
+    if (query.empty() || top_k == 0) {
+        THROW_CODE(InputError, "failed to build vector index");
     }
-    distances.resize(num_results * 1);
-    indices.resize(num_results * 1);
-    index_->nprobe = static_cast<size_t>(query_spec_);
-    index_->search(1, query.data(), num_results, distances.data(), indices.data());
-    return !indices.empty();
+    std::vector<std::pair<int64_t, float>> ret;
+    std::vector<float> distances(top_k);
+    std::vector<int64_t> indices(top_k); 
+    index_->nprobe = static_cast<size_t>(ef_search);
+    index_->search(1, query.data(), top_k, distances.data(), indices.data());
+    for (int64_t i = 0; i < top_k; ++i) {
+            ret.emplace_back(indices[i], distances[i]);
+    }
+    return ret;
 }
 
-bool IVFFlat::GetFlatSearchResult(KvTransaction& txn, const std::vector<float> query,
-                                       size_t num_results, std::vector<float>& distances,
-                                       std::vector<int64_t>& indices) {
-    std::vector<std::vector<float>> floatvector;
-    size_t count = 0;
-    auto kv_iter = table_->GetIterator(txn);
-    for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-        auto prop = kv_iter->GetValue();
-        auto vector = prop.AsType<std::vector<float>>();
-        floatvector.emplace_back(vector);
-        count++;
-    }
-    std::vector<float> index_vectors;
-    index_vectors.reserve(count * vec_dimension_);
-    for (auto vec : floatvector) {
-        index_vectors.insert(index_vectors.end(), vec.begin(), vec.end());
-    }
-    std::unique_ptr<faiss::IndexFlat> index;
-    if (distance_type_ ==  "IP") {
-        index = std::make_unique<faiss::IndexFlatIP>(vec_dimension_);
-    } else if (distance_type_ == "L2") {
-        index = std::make_unique<faiss::IndexFlatL2>(vec_dimension_);
-    } else {
-        return false;
-    }
-    index->add(count, index_vectors.data());
-    distances.resize(num_results * 1);
-    indices.resize(num_results * 1);
-    index->search(1, query.data(), num_results, distances.data(), indices.data());
-    return true;
+std::vector<std::pair<int64_t, float>>
+IVFFlat::RangeSearch(const std::vector<float>& query, float radius, int ef_search, int limit) {
+    THROW_CODE(InputError, "not support range search in faiss ivf_flat");
 }
 
 }  // namespace lgraph

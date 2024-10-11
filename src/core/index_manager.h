@@ -111,20 +111,23 @@ struct VectorIndexEntry {
     std::string index_type;
     int dimension;
     std::string distance_type;
-    int hnsm_m;
-    int hnsm_ef_construction;
+    int hnsw_m;
+    int hnsw_ef_construction;
+    int faiss_ivf_flat_nlist;
     template <typename StreamT>
     size_t Serialize(StreamT& buf) const {
         return BinaryWrite(buf, label) + BinaryWrite(buf, field) + BinaryWrite(buf, index_type) +
                BinaryWrite(buf, dimension) + BinaryWrite(buf, distance_type) +
-               BinaryWrite(buf, hnsm_m) + BinaryWrite(buf, hnsm_ef_construction);
+               BinaryWrite(buf, hnsw_m) + BinaryWrite(buf, hnsw_ef_construction) +
+               BinaryWrite(buf, faiss_ivf_flat_nlist);
     }
 
     template <typename StreamT>
     size_t Deserialize(StreamT& buf) {
         return BinaryRead(buf, label) + BinaryRead(buf, field) + BinaryRead(buf, index_type) +
                BinaryRead(buf, dimension) + BinaryRead(buf, distance_type) +
-               BinaryRead(buf, hnsm_m) + BinaryRead(buf, hnsm_ef_construction);
+               BinaryRead(buf, hnsw_m) + BinaryRead(buf, hnsw_ef_construction) +
+               BinaryRead(buf, faiss_ivf_flat_nlist);
     }
 };
 
