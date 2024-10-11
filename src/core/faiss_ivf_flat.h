@@ -32,17 +32,18 @@ class IVFFlat : public VectorIndex {
   faiss::IndexFlatL2* L2quantizer_;
   faiss::IndexFlatIP* IPquantizer_;
   faiss::IndexIVFFlat* index_;
+
  public:
   IVFFlat(const std::string& label, const std::string& name,
                 const std::string& distance_type, const std::string& index_type,
                 int vec_dimension, std::vector<int> index_spec);
-  
+
   IVFFlat(const IVFFlat& rhs) = delete;
 
   IVFFlat(IVFFlat&& rhs) = delete;
 
   ~IVFFlat() { index_ = nullptr; }
-  
+
   IVFFlat& operator=(const IVFFlat& rhs) = delete;
 
   IVFFlat& operator=(IVFFlat&& rhs) = delete;
@@ -50,23 +51,23 @@ class IVFFlat : public VectorIndex {
   // add vector to index and build index
   void Add(const std::vector<std::vector<float>>& vectors,
            const std::vector<int64_t>& vids, int64_t num_vectors) override;
-  
+
   // build index
   void Build() override;
-  
+
   // serialize index
   std::vector<uint8_t> Save() override;
-  
+
   // load index form serialization
   void Load(std::vector<uint8_t>& idx_bytes) override;
-  
+
   // search vector in index
   std::vector<std::pair<int64_t, float>> KnnSearch(
       const std::vector<float>& query, int64_t top_k, int ef_search) override;
-  
+
   std::vector<std::pair<int64_t, float>> RangeSearch(
       const std::vector<float>& query, float radius, int ef_search, int limit) override;
-  
+
   template <typename T>
   static void writeBinaryPOD(std::ostream& out, const T& podRef) {
       out.write((char*)&podRef, sizeof(T));

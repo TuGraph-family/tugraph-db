@@ -81,7 +81,7 @@ IVFFlat::KnnSearch(const std::vector<float>& query, int64_t top_k, int ef_search
     }
     std::vector<std::pair<int64_t, float>> ret;
     std::vector<float> distances(top_k);
-    std::vector<int64_t> indices(top_k); 
+    std::vector<int64_t> indices(top_k);
     index_->nprobe = static_cast<size_t>(ef_search);
     index_->search(1, query.data(), top_k, distances.data(), indices.data());
     for (int64_t i = 0; i < top_k; ++i) {
