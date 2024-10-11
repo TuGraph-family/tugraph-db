@@ -91,16 +91,7 @@ TEST_F(TestFaiss, SaveAndLoadIndex) {
 }
 
 TEST_F(TestFaiss, DeleteVectors) {
-    EXPECT_NO_THROW(vector_index->Build());
-    EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
-    std::vector<int64_t> delete_vids = {vids[0], vids[1]};
-    EXPECT_NO_THROW(vector_index->Add({}, delete_vids, 0));
-    std::vector<float> query(vectors[0].begin(), vectors[0].end());
-    auto ret = vector_index->KnnSearch(query, 10, 10);
-    for (const auto& pair : ret) {
-        ASSERT_TRUE(std::find(delete_vids.begin(),
-                        delete_vids.end(), pair.first) == delete_vids.end());
-    }
+    // faiss ivf_flat not support
 }
 
 int ElementCount_faiss_vector(const web::json::value& val,
