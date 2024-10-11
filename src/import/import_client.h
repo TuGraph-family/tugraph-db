@@ -45,7 +45,7 @@ class OnlineImportClient {
         uint16_t generate_sst_threads = 15;
         uint16_t read_rocksdb_threads = 15;
         size_t vid_num_per_reading = 10000;
-        size_t max_size_per_reading = 32*1024*1024;
+        size_t max_size_per_reading = 32 * 1024 * 1024;
         bool compact = false;
         bool keep_vid_in_memory = true;
         bool enable_fulltext_index = false;
