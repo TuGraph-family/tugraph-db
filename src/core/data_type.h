@@ -39,6 +39,7 @@ typedef lgraph_api::IndexType IndexType;
 typedef lgraph_api::IndexSpec IndexSpec;
 typedef lgraph_api::CompositeIndexType CompositeIndexType;
 typedef lgraph_api::CompositeIndexSpec CompositeIndexSpec;
+typedef lgraph_api::VectorIndexSpec VectorIndexSpec;
 typedef lgraph_api::FieldSpec FieldSpec;
 typedef lgraph_api::EdgeUid EdgeUid;
 typedef lgraph_api::Date Date;

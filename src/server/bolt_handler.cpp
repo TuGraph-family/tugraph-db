@@ -259,7 +259,8 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         auto& credentials = std::any_cast<const std::string&>(val.at("credentials"));
         auto galaxy = BoltServer::Instance().StateMachine()->GetGalaxy();
         if (!galaxy->ValidateUser(principal, credentials)) {
-            LOG_ERROR() << "Bolt authentication failed";
+            LOG_ERROR() << FMA_FMT(
+                "Bolt authentication failed, user:{}, password:{}", principal, credentials);
             bolt::PackStream ps;
             ps.AppendFailure({{"code", "error"},
                               {"message", "Authentication failed"}});

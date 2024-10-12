@@ -16,6 +16,9 @@
 // Created by wt on 19-1-10.
 //
 
+#include <regex>
+#include <tuple>
+
 #include "import/import_online.h"
 #include "core/field_data_helper.h"
 #include "core/thread_id.h"
@@ -498,6 +501,8 @@ std::optional<lgraph_api::FieldData> JsonToFieldData(const nlohmann::json& j_obj
             return lgraph_api::FieldData(lgraph_api::Date(j_object.get<std::string>()));
         case lgraph_api::FieldType::DATETIME:
             return lgraph_api::FieldData(lgraph_api::DateTime(j_object.get<std::string>()));
+        case lgraph_api::FieldType::FLOAT_VECTOR:
+            return lgraph_api::FieldData(j_object.get<std::vector<float>>());
         default:
             return {};
         }
@@ -529,7 +534,7 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
     auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].constant.AsString());
     std::unordered_map<size_t, bool> unique_indexs;
     for (auto& index : index_fds) {
-        if (index.label == pf) {
+        if (index.field == pf) {
             continue;
         }
         if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
@@ -557,7 +562,23 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
         for (auto& item : *line.map) {
             auto iter = fd_type.find(item.first);
             if (iter != fd_type.end()) {
-                auto fd = item.second.scalar;
+                lgraph_api::FieldData fd;
+                if (item.second.IsArray()) {
+                    std::vector<float> float_vector;
+                    for (const auto& a : *item.second.array) {
+                        if (a.IsReal()) {
+                            float_vector.push_back(a.AsDouble());
+                        } else if (a.IsInteger()) {
+                            float_vector.push_back(a.AsInt64());
+                        } else {
+                            THROW_CODE(CypherParameterTypeError, "vector type "
+                                       "only support real & int");
+                        }
+                    }
+                    fd = lgraph_api::FieldData(float_vector);
+                } else {
+                    fd = item.second.scalar;
+                }
                 if (fd.IsNull()) {
                     success = false;
                     break;
@@ -629,7 +650,7 @@ void BuiltinProcedure::DbUpsertVertexByJson(RTContext *ctx, const Record *record
     auto index_fds = txn.GetTxn()->ListVertexIndexByLabel(args[0].constant.AsString());
     std::unordered_map<size_t, bool> unique_indexs;
     for (auto& index : index_fds) {
-        if (index.label == pf) {
+        if (index.field == pf) {
             continue;
         }
         if (index.type == lgraph_api::IndexType::GlobalUniqueIndex) {
@@ -810,7 +831,23 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
         }
         for (auto& item : *line.map) {
             if (item.first == start_json_key) {
-                auto fd = item.second.scalar;
+                lgraph_api::FieldData fd;
+                if (item.second.IsArray()) {
+                    std::vector<float> float_vector;
+                    for (const auto& a : *item.second.array) {
+                        if (a.IsReal()) {
+                            float_vector.push_back(a.AsDouble());
+                        } else if (a.IsInteger()) {
+                            float_vector.push_back(a.AsInt64());
+                        } else {
+                            THROW_CODE(CypherParameterTypeError, "vector type "
+                                       "only support real & int");
+                        }
+                    }
+                    fd = lgraph_api::FieldData(float_vector);
+                } else {
+                    fd = item.second.scalar;
+                }
                 if (fd.IsNull()) {
                     success = false;
                     break;
@@ -824,7 +861,23 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                 start_vid = iiter.GetVid();
                 continue;
             } else if (item.first == end_json_key) {
-                auto fd = item.second.scalar;
+                lgraph_api::FieldData fd;
+                if (item.second.IsArray()) {
+                    std::vector<float> float_vector;
+                    for (const auto& a : *item.second.array) {
+                        if (a.IsReal()) {
+                            float_vector.push_back(a.AsDouble());
+                        } else if (a.IsInteger()) {
+                            float_vector.push_back(a.AsInt64());
+                        } else {
+                            THROW_CODE(CypherParameterTypeError, "vector type "
+                                       "only support real & int");
+                        }
+                    }
+                    fd = lgraph_api::FieldData(float_vector);
+                } else {
+                    fd = item.second.scalar;
+                }
                 if (fd.IsNull()) {
                     success = false;
                     break;
@@ -840,7 +893,23 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
             } else {
                 auto iter = fd_type.find(item.first);
                 if (iter != fd_type.end()) {
-                    auto fd = item.second.scalar;
+                    lgraph_api::FieldData fd;
+                    if (item.second.IsArray()) {
+                        std::vector<float> float_vector;
+                        for (const auto& a : *item.second.array) {
+                            if (a.IsReal()) {
+                                float_vector.push_back(a.AsDouble());
+                            } else if (a.IsInteger()) {
+                                float_vector.push_back(a.AsInt64());
+                            } else {
+                                THROW_CODE(CypherParameterTypeError, "vector type "
+                                           "only support real & int");
+                            }
+                        }
+                        fd = lgraph_api::FieldData(float_vector);
+                    } else {
+                        fd = item.second.scalar;
+                    }
                     if (fd.IsNull()) {
                         success = false;
                         break;
@@ -1096,7 +1165,9 @@ void BuiltinProcedure::DbCreateVertexLabel(RTContext *ctx, const Record *record,
     /* close the previous txn first, in case of nested transaction */
     if (ctx->txn_) ctx->txn_->Abort();
     _ExtractFds(args, label, primary_fd, fds);
-    auto ret = ctx->ac_db_->AddLabel(true, label, fds, lgraph::VertexOptions(primary_fd));
+    lgraph::VertexOptions vo(primary_fd);
+    vo.detach_property = true;
+    auto ret = ctx->ac_db_->AddLabel(true, label, fds, vo);
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
@@ -1226,7 +1297,7 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record,
                 THROW_CODE(InputError,
                            "The element of each constraint tuple should be string type");
             }
-            edge_constraints.push_back(std::make_pair(item[0], item[1]));
+            edge_constraints.emplace_back(item[0], item[1]);
         }
     }
     auto field_specs = ParseFieldSpecs(args, 3);
@@ -1235,10 +1306,12 @@ void BuiltinProcedure::DbCreateLabel(RTContext *ctx, const Record *record,
     if (is_vertex) {
         auto vo = std::make_unique<lgraph::VertexOptions>();
         vo->primary_field = primary_fd;
+        vo->detach_property = true;
         options = std::move(vo);
     } else {
         auto eo = std::make_unique<lgraph::EdgeOptions>();
         eo->edge_constraints = edge_constraints;
+        eo->detach_property = true;
         options = std::move(eo);
     }
     auto ret = ac_db.AddLabel(is_vertex, label, field_specs, *options);
@@ -1448,10 +1521,12 @@ void BuiltinProcedure::DbCreateEdgeLabel(RTContext *ctx, const Record *record,
     _ExtractFds(args, label, extra, fds);
     auto ec = nlohmann::json::parse(extra);
     for (auto &item : ec) {
-        edge_constraints.push_back(std::make_pair(item[0], item[1]));
+        edge_constraints.emplace_back(item[0], item[1]);
     }
+    lgraph::EdgeOptions eo(edge_constraints);
+    eo.detach_property = true;
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
-    auto ret = ac_db.AddLabel(false, label, fds, lgraph::EdgeOptions(edge_constraints));
+    auto ret = ac_db.AddLabel(false, label, fds, eo);
     if (!ret) {
         throw lgraph::LabelExistException(label, true);
     }
@@ -3927,7 +4002,8 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
                     ctx->txn_->GetTxn()->GetVertexField(id.AsInt64(), it2->second.AsString()));
             }
         } else {
-            CYPHER_TODO();
+            value = ctx->txn_->GetTxn()->GetVertexField(
+                vid.constant.AsInt64(), it2->second.AsString());
         }
     } else {
         CYPHER_THROW_ASSERT(record);
@@ -3938,8 +4014,6 @@ void AlgoFunc::NativeExtract(RTContext *ctx, const cypher::Record *record,
             _detail::ExtractEdgeUid(eid.constant.scalar.AsString()), it2->second.AsString());
     }
 
-    auto pp = global_ptable.GetProcedure("algo.native.extract");
-    CYPHER_THROW_ASSERT(pp && pp->ContainsYieldItem("value"));
     Record r;
     r.AddConstant(value);
     records->emplace_back(r.Snapshot());
@@ -4078,6 +4152,249 @@ void SpatialFunc::Distance(RTContext *ctx, const Record *record,
     r.AddConstant(::lgraph::FieldData(d));
     records->emplace_back(r.Snapshot());
     FillProcedureYieldItem("spatial.distance", yield_items, records);
+}
+
+void VectorFunc::AddVertexVectorIndex(RTContext *ctx, const cypher::Record *record,
+                       const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK((args.size() == 3),
+                        "e.g. db.addVertexVectorIndex(label_name, field_name, parameter);")
+    CYPHER_ARG_CHECK(args[0].IsString(),
+                     "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsString(),
+                     "field_name type should be string")
+    CYPHER_ARG_CHECK(args[2].IsMap(),
+                     "parameter type should be map")
+    CheckProcedureYieldItem("db.addVertexVectorIndex", yield_items);
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].constant.AsString();
+    auto field = args[1].constant.AsString();
+    auto parameter = *args[2].constant.map;
+    std::string index_type = "hnsw";
+    if (parameter.count("index_type")) {
+        index_type = parameter.at("index_type").AsString();
+    }
+    CYPHER_ARG_CHECK((index_type == "hnsw"),
+                     "Index type should be one of them : hnsw");
+    int dimension = 128;
+    if (parameter.count("dimension")) {
+        dimension = (int)parameter.at("dimension").AsInt64();
+    }
+    std::string distance_type = "l2";
+    if (parameter.count("distance_type")) {
+        distance_type = parameter.at("distance_type").AsString();
+    }
+    CYPHER_ARG_CHECK((distance_type == "l2" || distance_type == "ip"),
+                     "Distance type should be one of them : l2, ip");
+    int hnsm_m = 16;
+    if (parameter.count("hnsm_m")) {
+        hnsm_m = (int)parameter.at("hnsm_m").AsInt64();
+    }
+    CYPHER_ARG_CHECK((hnsm_m <= 64 && hnsm_m >= 5),
+                     "hnsm.m should be an integer in the range [5, 64]");
+    int hnsm_ef_construction = 100;
+    if (parameter.count("hnsm_ef_construction")) {
+        hnsm_ef_construction = (int)parameter.at("hnsm_ef_construction").AsInt64();
+    }
+    CYPHER_ARG_CHECK((hnsm_ef_construction <= 1000 && hnsm_ef_construction >= hnsm_m),
+                     "hnsm.efConstruction should be an integer in the range [hnsm.m,1000]");
+    std::vector<int> index_spec = {hnsm_m, hnsm_ef_construction};
+    auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
+    bool success = ac_db.AddVectorIndex(true, label, field, index_type,
+                                        dimension, distance_type, index_spec);
+    if (!success) {
+        throw lgraph::IndexExistException(label, field);
+    }
+    FillProcedureYieldItem("db.addVertexVectorIndex", yield_items, records);
+}
+
+void VectorFunc::DeleteVertexVectorIndex(RTContext *ctx, const cypher::Record *record,
+                       const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 2,
+                     "e.g. db.deleteVertexVectorIndex(label_name, field_name);");
+    CYPHER_ARG_CHECK(args[0].IsString(),
+                    "label_name type should be string");
+    CYPHER_ARG_CHECK(args[1].IsString(),
+                    "field_name type should be string");
+    CheckProcedureYieldItem("db.deleteVertexVectorIndex", yield_items);
+    if (ctx->txn_) ctx->txn_->Abort();
+    auto label = args[0].constant.AsString();
+    auto field = args[1].constant.AsString();
+    bool success = ctx->ac_db_->DeleteVectorIndex(true, label, field);
+    if (!success) {
+        throw lgraph::IndexNotExistException(label, field);
+    }
+    FillProcedureYieldItem("db.deleteVertexVectorIndex", yield_items, records);
+}
+
+void VectorFunc::ShowVertexVectorIndex(RTContext *ctx, const cypher::Record *record,
+                       const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.empty(),
+                     "e.g. db.showVertexVectorIndex();")
+    CheckProcedureYieldItem("db.showVertexVectorIndex", yield_items);
+    auto raw_txn = ctx->txn_->GetTxn();
+    lgraph::Transaction& txn = *raw_txn;
+    std::vector<std::string> name_table;
+    auto ret = ctx->ac_db_->GetLightningGraph()->ListVectorIndex(txn.GetTxn());
+    for (auto& item : ret) {
+        Record r;
+        r.AddConstant(lgraph::FieldData(item.label));
+        r.AddConstant(lgraph::FieldData(item.field));
+        r.AddConstant(lgraph::FieldData(item.index_type));
+        r.AddConstant(lgraph::FieldData(item.dimension));
+        r.AddConstant(lgraph::FieldData(item.distance_type));
+        r.AddConstant(lgraph::FieldData(item.hnsm_m));
+        r.AddConstant(lgraph::FieldData(item.hnsm_ef_construction));
+        records->emplace_back(r.Snapshot());
+    }
+    FillProcedureYieldItem("db.showVertexVectorIndex", yield_items, records);
+}
+
+void VectorFunc::VertexVectorKnnSearch(RTContext *ctx, const cypher::Record *record,
+                       const cypher::VEC_EXPR &args,
+                       const cypher::VEC_STR &yield_items,
+                       struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 4,
+                     "e.g. db.vertexVectorKnnSearch(label_name, field_name,"
+                     " vec, parameter);")
+    CYPHER_ARG_CHECK(args[0].IsString(),
+                    "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsString(),
+                    "field_name type should be string")
+    CYPHER_ARG_CHECK(args[2].IsArray(), "Please check the vector you entered, e.g. [1, 2, 3]")
+    CYPHER_ARG_CHECK(args[3].IsMap(), "parameter type should be map")
+    CheckProcedureYieldItem("db.vertexVectorKnnSearch", yield_items);
+    std::vector<float> query_vector;
+    for (size_t i = 0; i < args[2].constant.AsConstantArray().size(); i++) {
+        float fltValue;
+        if (args[2].constant.AsConstantArray().at(i).IsFloat()) {
+            float dblValue =
+                args[2].constant.AsConstantArray().at(i).AsFloat();
+            fltValue = static_cast<float>(dblValue);
+        } else if (args[2].constant.AsConstantArray().at(i).IsInteger()) {
+            int64_t dblValue =
+                args[2].constant.AsConstantArray().at(i).AsInt64();
+            fltValue = static_cast<float>(dblValue);
+        } else if (args[2].constant.AsConstantArray().at(i).IsDouble()) {
+            double dblValue =
+                args[2].constant.AsConstantArray().at(i).AsDouble();
+            fltValue = static_cast<float>(dblValue);
+        } else {
+            throw lgraph::ReminderException("Please check the vector");
+        }
+        query_vector.push_back(fltValue);
+    }
+    auto label = args[0].constant.AsString();
+    auto field = args[1].constant.AsString();
+    auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(label, field);
+
+    int top_k = 10;
+    auto parameter = *args[3].constant.map;
+    if (parameter.count("top_k")) {
+        top_k = parameter.at("top_k").AsInt64();
+    }
+    CYPHER_ARG_CHECK((top_k >= 1), "top_k must be greater than 0");
+    int ef_search = 200;
+    if (parameter.count("hnsw_ef_search")) {
+        ef_search = parameter.at("hnsw_ef_search").AsInt64();
+    }
+    CYPHER_ARG_CHECK((ef_search <= 1000 && ef_search >= 1),
+                     "hnsw.ef_search should be an integer in the range [1, 1000]");
+    auto res = index->KnnSearch(query_vector, top_k, ef_search);
+    for (auto& item : res) {
+        Record r;
+        cypher::Node n;
+        n.SetVid(item.first);
+        r.AddNode(&n);
+        r.AddConstant(lgraph::FieldData(item.second));
+        records->emplace_back(r.Snapshot());
+    }
+    FillProcedureYieldItem("db.vertexVectorKnnSearch", yield_items, records);
+}
+
+void VectorFunc::VertexVectorRangeSearch(RTContext *ctx, const cypher::Record *record,
+                                        const cypher::VEC_EXPR &args,
+                                        const cypher::VEC_STR &yield_items,
+                                        struct std::vector<cypher::Record> *records) {
+    CYPHER_DB_PROCEDURE_GRAPH_CHECK();
+    CYPHER_ARG_CHECK(args.size() == 4,
+                     "e.g. db.vertexVectorRangeSearch(label_name, field_name,"
+                     " vec, parameter);")
+    CYPHER_ARG_CHECK(args[0].IsString(),
+                     "label_name type should be string")
+    CYPHER_ARG_CHECK(args[1].IsString(),
+                     "field_name type should be string")
+    CYPHER_ARG_CHECK(args[2].IsArray(), "Please check the vector you entered, e.g. [1, 2, 3]")
+    CYPHER_ARG_CHECK(args[3].IsMap(), "parameter type should be map")
+    CheckProcedureYieldItem("db.vertexVectorRangeSearch", yield_items);
+    std::vector<float> query_vector;
+    for (size_t i = 0; i < args[2].constant.AsConstantArray().size(); i++) {
+        float fltValue;
+        if (args[2].constant.AsConstantArray().at(i).IsFloat()) {
+            float dblValue =
+                args[2].constant.AsConstantArray().at(i).AsFloat();
+            fltValue = static_cast<float>(dblValue);
+        } else if (args[2].constant.AsConstantArray().at(i).IsInteger()) {
+            int64_t dblValue =
+                args[2].constant.AsConstantArray().at(i).AsInt64();
+            fltValue = static_cast<float>(dblValue);
+        } else if (args[2].constant.AsConstantArray().at(i).IsDouble()) {
+            double dblValue =
+                args[2].constant.AsConstantArray().at(i).AsDouble();
+            fltValue = static_cast<float>(dblValue);
+        } else {
+            throw lgraph::ReminderException("Please check the vector");
+        }
+        query_vector.push_back(fltValue);
+    }
+    auto label = args[0].constant.AsString();
+    auto field = args[1].constant.AsString();
+    auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(label, field);
+
+    float radius = 0.1;
+    auto parameter = *args[3].constant.map;
+    if (parameter.count("radius")) {
+        if (parameter.at("radius").scalar.IsDouble()) {
+            radius = (float)parameter.at("radius").AsDouble();
+        } else if (parameter.at("radius").scalar.IsInteger()) {
+            radius = (float)parameter.at("radius").AsInt64();
+        } else {
+            throw lgraph::ReminderException("radius type error");
+        }
+    } else {
+        throw lgraph::ReminderException("radius is required for vector range search");
+    }
+    CYPHER_ARG_CHECK((radius > 0), "radius must be greater than 0");
+    int ef_search = 200;
+    if (parameter.count("hnsw_ef_search")) {
+        ef_search = parameter.at("hnsw_ef_search").AsInt64();
+    }
+    CYPHER_ARG_CHECK((ef_search <= 1000 && ef_search >= 1),
+                     "hnsw.ef_search should be an integer in the range [1, 1000]");
+    int limit = -1;
+    if (parameter.count("limit")) {
+        limit = parameter.at("limit").AsInt64();
+    }
+    CYPHER_ARG_CHECK((limit != 0), "limit must not be 0");
+    auto res = index->RangeSearch(query_vector, radius, ef_search, limit);
+    for (auto& item : res) {
+        Record r;
+        cypher::Node n;
+        n.SetVid(item.first);
+        r.AddNode(&n);
+        r.AddConstant(lgraph::FieldData(item.second));
+        records->emplace_back(r.Snapshot());
+    }
+    FillProcedureYieldItem("db.vertexVectorRangeSearch", yield_items, records);
 }
 
 }  // namespace cypher

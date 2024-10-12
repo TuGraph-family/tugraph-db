@@ -231,6 +231,16 @@ bool lgraph::AccessControlledDB::AddEdgeIndex(const std::string& label, const st
     return graph_->BlockingAddIndex(label, field, type, false);
 }
 
+bool lgraph::AccessControlledDB::AddVectorIndex(bool is_vertex, const std::string& label,
+                                                const std::string& field,
+                                                const std::string& index_type,
+                                                int vec_dimension, const std::string& distance_type,
+                                                std::vector<int>& index_spec) {
+    CheckFullAccess();
+    return graph_->BlockingAddVectorIndex(is_vertex, label, field, index_type, vec_dimension,
+                                            distance_type, index_spec);
+}
+
 bool lgraph::AccessControlledDB::AddFullTextIndex(bool is_vertex, const std::string& label,
                                                   const std::string& field) {
     CheckFullAccess();
@@ -284,6 +294,12 @@ bool lgraph::AccessControlledDB::DeleteVertexCompositeIndex(const std::string& l
                                  const std::vector<std::string>& fields) {
     CheckFullAccess();
     return graph_->DeleteCompositeIndex(label, fields, true);
+}
+
+bool lgraph::AccessControlledDB::DeleteVectorIndex(bool is_vertex, const std::string& label,
+                                                   const std::string& field) {
+    CheckFullAccess();
+    return graph_->DeleteVectorIndex(is_vertex, label, field);
 }
 
 bool lgraph::AccessControlledDB::IsVertexIndexed(const std::string& label,

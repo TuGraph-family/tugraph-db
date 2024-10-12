@@ -304,22 +304,22 @@ TEST_F(TestFieldDataHelper, ParseStringIntoFieldData) {
     // testing float vector data;
     std::vector<float> vec8 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
-                             "1.111111,2.111111,3.111111,4.111111,5.111111", vec8);
+                             "\"1.111111,2.111111,3.111111,4.111111,5.111111\"", vec8);
     std::vector<float> vec9 = {1111111, 2111111, 3111111, 4111111, 5111111};
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
-                             "1111111,2111111,3111111,4111111,5111111", vec9);
+                             "\"1111111,2111111,3111111,4111111,5111111\"", vec9);
     std::vector<float> vec10 = {1111, 2111, 3111, 4111, 5111};
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
-                             "1111.000,2111.000,3111.000,4111.000,5111.000", vec10);
+                             "\"1111.000,2111.000,3111.000,4111.000,5111.000\"", vec10);
     std::vector<float> vector1 = {0.111111, 0.222222, 0.333333, 0.444444};
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
-                             "0.111111,0.222222,0.333333,0.444444", vector1);
+                             "\"0.111111,0.222222,0.333333,0.444444\"", vector1);
     std::vector<float> vector2 = {111.1111, 222.2222, 333.3333, 444.4444};
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
-                             "111.1111,222.2222,333.3333,444.4444", vector2);
+                             "\"111.1111,222.2222,333.3333,444.4444\"", vector2);
     std::vector<float> vector3 = {111111.0, 222222.0, 333333.0};
     _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
-                             "111111.0,222222.0,333333.0", vector3);
+                             "\"111111.0,222222.0,333333.0\"", vector3);
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {

@@ -185,8 +185,8 @@ class BuiltinProcedure {
                                      const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbmsSecurityIsDefaultUserPassword(RTContext *ctx, const Record *record,
-                                           const VEC_EXPR &args, const VEC_STR &yield_items,
-                                           std::vector<Record> *records);
+                                                  const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                  std::vector<Record> *records);
 
     static void DbmsSecurityChangePassword(RTContext *ctx, const Record *record,
                                            const VEC_EXPR &args, const VEC_STR &yield_items,
@@ -411,6 +411,23 @@ class SpatialFunc {
  public:
     static void Distance(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
+};
+
+class VectorFunc {
+ public:
+    static void AddVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DeleteVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void ShowVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void VertexVectorKnnSearch(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+    static void VertexVectorRangeSearch(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                       const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 struct Procedure {
@@ -908,6 +925,55 @@ static std::vector<Procedure> global_procedures = {
                  {"Spatial1", {0, lgraph_api::LGraphType::STRING}},
                  {"Spatial2", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"distance", {0, lgraph_api::LGraphType::DOUBLE}}}),
+
+    Procedure("db.addVertexVectorIndex", VectorFunc::AddVertexVectorIndex,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"parameter", {2, lgraph_api::LGraphType::MAP}},
+              },
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.deleteVertexVectorIndex", VectorFunc::DeleteVertexVectorIndex,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+              },
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.showVertexVectorIndex", VectorFunc::ShowVertexVectorIndex, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"index_type", {2, lgraph_api::LGraphType::STRING}},
+                  {"dimension", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"distance_type", {4, lgraph_api::LGraphType::STRING}},
+                  {"hnsm.m", {5, lgraph_api::LGraphType::INTEGER}},
+                  {"hnsm.ef_construction", {6, lgraph_api::LGraphType::INTEGER}},
+              }),
+
+    Procedure("db.vertexVectorKnnSearch", VectorFunc::VertexVectorKnnSearch,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"parameter", {3, lgraph_api::LGraphType::MAP}},
+              },
+              Procedure::SIG_SPEC{
+                  {"node", {0, lgraph_api::LGraphType::NODE}},
+                  {"distance", {1, lgraph_api::LGraphType::FLOAT}},
+              }),
+    Procedure("db.vertexVectorRangeSearch", VectorFunc::VertexVectorRangeSearch,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"parameter", {3, lgraph_api::LGraphType::MAP}},
+              },
+              Procedure::SIG_SPEC{
+                  {"node", {0, lgraph_api::LGraphType::NODE}},
+                  {"distance", {1, lgraph_api::LGraphType::FLOAT}},
+              }),
 
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,
               Procedure::SIG_SPEC{},

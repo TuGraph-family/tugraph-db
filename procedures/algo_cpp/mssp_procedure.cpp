@@ -22,29 +22,32 @@ using json = nlohmann::json;
 
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
     auto start_time = get_time();
-    std::vector<int64_t> root_vids = {0, 1};
-    std::string label = "node";
-    std::string field = "id";
+    std::vector<std::string> root_values = {};
+    std::string root_label = "node";
+    std::string root_field = "id";
+    std::string output_file = "";
 
     // prepare
     start_time = get_time();
     try {
         json input = json::parse(request);
-        parse_from_json(label, "label", input);
-        parse_from_json(field, "field", input);
-        parse_from_json(root_vids, "root_vids", input);
+        parse_from_json(root_label, "root_label", input);
+        parse_from_json(root_field, "root_field", input);
+        for (const auto &item : input["root_values"]) {
+            root_values.push_back(item.get<std::string>());
+        }
+        parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
-        throw std::runtime_error("json parse error, root_vid needed");
-        return false;
+        throw std::runtime_error("json parse error");
     }
     auto txn = db.CreateReadTxn();
     OlapOnDB<double> olapondb(db, txn, SNAPSHOT_PARALLEL, nullptr, edge_convert_default<double>);
 
     std::vector<size_t> roots;
-    for (auto ele : root_vids) {
+    for (const auto& ele : root_values) {
         lgraph_api::FieldData root_field_data(ele);
         int64_t root_vid = txn.GetVertexIndexIterator
-                (label, field, root_field_data, root_field_data).GetVid();
+                (root_label, root_field, root_field_data, root_field_data).GetVid();
         roots.push_back(olapondb.MappedVid(root_vid));
     }
     auto prepare_cost = get_time() - start_time;
@@ -54,6 +57,13 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     ParallelVector<double> distance = olapondb.AllocVertexArray<double>();
     MSSPCore(olapondb, roots, distance);
     auto core_cost = get_time() - start_time;
+
+    if (output_file != "") {
+        olapondb.WriteToFile<double>(distance, output_file,
+                                     [&](size_t vid, double& vdata) -> bool {
+                                         return vdata != SSSP_INIT_VALUE;
+                                     });
+    }
 
     // output
     start_time = get_time();

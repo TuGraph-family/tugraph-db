@@ -491,9 +491,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
                         num_threads = omp_get_num_threads();
                     }
                 };
+                num_threads = std::min(16, num_threads);
 
                 std::vector<size_t> out_edges_partition_offset(num_threads + 1, 0);
-#pragma omp parallel
+#pragma omp parallel num_threads(num_threads)
                 {
                     ParallelVector<size_t> local_out_index(this->num_vertices_);
                     ParallelVector<AdjUnit<EdgeData>> local_out_edges(MAX_NUM_EDGES);
@@ -1518,10 +1519,8 @@ class OlapOnDB : public OlapBase<EdgeData> {
         if (!detail_output) {
             THROW_CODE(InputError, "Just support deatail output!");
         }
-        FILE* fout = fopen(output_file.c_str(), "w");
-        if (fout == nullptr) {
-            THROW_CODE(InputError, "Unable to open file for writting!");
-        }
+        fma_common::OutputFmaStream fout;
+        fout.Open(output_file, 64 << 20);
         for (size_t i = 0; i < this->num_vertices_; ++i) {
             if (output_filter != nullptr && !output_filter(i, vertex_data[i])) {
                 continue;
@@ -1536,7 +1535,8 @@ class OlapOnDB : public OlapBase<EdgeData> {
             curJson["primary_field"] = primary_field;
             curJson["field_data"] = field_data.ToString();
             curJson["result"] = vertex_data[i];
-            fprintf(fout, "%s\n", curJson.dump().c_str());
+            auto content = curJson.dump() + "\n";
+            fout.Write(content.c_str(), content.size());
         }
     }
 

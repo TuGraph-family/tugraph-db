@@ -142,7 +142,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
     if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
         return ret;
     }
-    _DumpPlanBeforeConnect(0, false);
+    LOG_DEBUG() << _DumpPlanBeforeConnect(0, false);
     LOG_DEBUG() << "Dump plan finished!";
     root = pattern_graph_root_[0];
     for (size_t i = 1; i < pattern_graph_root_.size(); i++) {
@@ -163,7 +163,6 @@ std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int indent, bool statisti
             OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
         }
     }
-    LOG_DEBUG() << s;
     return s;
 }
 
@@ -416,7 +415,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
         ++filter_level_;
     }
     std::reverse(expand_ops.begin(), expand_ops.end());
-    // For the exists pattern query, SemiAllpy is simulated by combining Limit Optional and
+    // For the exists pattern query, SemiApply is simulated by combining Limit Optional and
     // ExpandAll operators. e.g MATCH (n {name:'Rachel Kempson'}),(m:Person) RETURN
     // exists((n)-[:MARRIED]->(m)) The resulting execution plan is as follows Produce Results
     //    Project [exists((n)-[:MARRIED]->(m))]
@@ -431,13 +430,10 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PathChain* node) {
     if (ClauseGuard::InClause(geax::frontend::AstNodeType::kExists, cur_types_)) {
         auto& sym_tab = pattern_graphs_[cur_pattern_graph_].symbol_table;
         std::vector<OpBase*> rewriter;
-        if (ClauseGuard::InClause(geax::frontend::AstNodeType::kPrimitiveResultStatement,
-                                  cur_types_)) {
-            auto limit = new Limit(1);
-            rewriter.push_back(limit);
-            auto optional = new Optional();
-            rewriter.push_back(optional);
-        }
+        auto limit = new Limit(1);
+        rewriter.push_back(limit);
+        auto optional = new Optional();
+        rewriter.push_back(optional);
         rewriter.insert(rewriter.end(), expand_ops.begin(), expand_ops.end());
         auto argument = new Argument(&sym_tab);
         rewriter.push_back(argument);

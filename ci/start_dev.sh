@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-DOCKER_IMAGE="tugraph/tugraph-compile-centos8:1.3.2"
+DOCKER_IMAGE="tugraph/tugraph-compile-centos8:1.3.3-dev"
 
 WORKING_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_DIR="$(git rev-parse --show-toplevel)"
@@ -77,7 +77,7 @@ if [ -z "$CONTAINER_ID" ]; then
         ${DOCKER_IMAGE} \
         bash -c "chown ${USER_NAME}:${GROUP_NAME} /home/${USER_NAME} &&
           echo 'export JAVA_HOME=/usr/lib/jvm/java-11-openjdk' > /home/${USER_NAME}/.bashrc &&
-          echo 'export LD_LIBRARY_PATH=/usr/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server' > /home/${USER_NAME}/.bashrc &&
+          echo 'export LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server' > /home/${USER_NAME}/.bashrc &&
           echo 'export JAVA_HOME=/usr/lib/jvm/java-11-openjdk' > /home/${USER_NAME}/.bash_profile &&
           /usr/sbin/sshd -D"
 fi

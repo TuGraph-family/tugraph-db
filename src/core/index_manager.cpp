@@ -18,6 +18,7 @@
 #include "core/kv_store.h"
 #include "core/lightning_graph.h"
 #include "core/transaction.h"
+#include "core/vsag_hnsw.h"
 
 namespace lgraph {
 IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
@@ -30,6 +31,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
     size_t c_index_len = strlen(_detail::COMPOSITE_INDEX);
     size_t v_ft_index_len = strlen(_detail::VERTEX_FULLTEXT_INDEX);
     size_t e_ft_index_len = strlen(_detail::EDGE_FULLTEXT_INDEX);
+    size_t vector_index_len = strlen(_detail::VERTEX_VECTOR_INDEX);
     auto it = index_list_table_->GetIterator(txn);
     for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
         std::string index_name = it->GetKey().AsString();
@@ -91,6 +93,43 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 std::move(tbl), idx.field_types, idx.index_type);  // creates index table
             index->SetReady();
             schema->SetCompositeIndex(idx.field_names, index.release());
+        } else if (index_name.size() > vector_index_len &&
+                   index_name.substr(index_name.size() - vector_index_len) ==
+                       _detail::VERTEX_VECTOR_INDEX) {
+            _detail::VectorIndexEntry idx = LoadVectorIndex(it->GetValue());
+            Schema* schema = v_schema_manager->GetSchema(idx.label);
+            FMA_DBG_ASSERT(schema);
+            FMA_DBG_ASSERT(schema->DetachProperty());
+            LOG_INFO() << FMA_FMT("start building vertex vector index for {}:{} in detached model",
+                                  idx.label, idx.field);
+            const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(idx.field);
+            FMA_DBG_ASSERT(extractor);
+            std::unique_ptr<VectorIndex> vsag_index;
+            vsag_index.reset(dynamic_cast<lgraph::VectorIndex*> (
+                new HNSW(idx.label, idx.field, idx.distance_type, idx.index_type,
+                         idx.dimension, {idx.hnsm_m, idx.hnsm_ef_construction})));
+            uint64_t count = 0;
+            std::vector<std::vector<float>> floatvector;
+            std::vector<int64_t> vids;
+            auto kv_iter = schema->GetPropertyTable().GetIterator(txn);
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto prop = kv_iter->GetValue();
+                if (extractor->GetIsNull(prop)) {
+                    continue;
+                }
+                auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
+                auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
+                floatvector.emplace_back(vector);
+                vids.emplace_back(vid);
+                count++;
+            }
+            vsag_index->Build();
+            vsag_index->Add(floatvector, vids, count);
+            kv_iter.reset();
+            LOG_DEBUG() << "index count: " << count;
+            schema->MarkVectorIndexed(extractor->GetFieldId(), vsag_index.release());
+            LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
+                                  idx.label, idx.field);
         } else {
             LOG_ERROR() << "Unknown index type: " << index_name;
         }
@@ -132,6 +171,31 @@ bool IndexManager::AddVertexIndex(KvTransaction& txn, const std::string& label,
 
     auto tbl = VertexIndex::OpenTable(txn, db_->GetStore(), idx.table_name, dt, type);
     index.reset(new VertexIndex(std::move(tbl), dt, type));  // creates index table
+    return true;
+}
+
+bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
+                                  const std::string& field, const std::string& index_type,
+                                  int vec_dimension, const std::string& distance_type,
+                                  std::vector<int>& index_spec,
+                                  std::unique_ptr<VectorIndex>& vector_index) {
+    _detail::VectorIndexEntry idx;
+    idx.label = label;
+    idx.field = field;
+    idx.index_type = index_type;
+    idx.dimension = vec_dimension;
+    idx.distance_type = distance_type;
+    idx.hnsm_m = index_spec[0];
+    idx.hnsm_ef_construction = index_spec[1];
+    auto table_name = GetVertexVectorIndexTableName(label, field);
+    auto it = index_list_table_->GetIterator(txn, Value::ConstRef(table_name));
+    if (it->IsValid()) return false;  // already exist
+
+    Value idxv;
+    StoreVectorIndex(idx, idxv);
+    it->AddKeyValue(Value::ConstRef(table_name), idxv);
+    vector_index = std::make_unique<HNSW>(label, field, distance_type,
+                            index_type, vec_dimension, index_spec);
     return true;
 }
 
@@ -225,6 +289,38 @@ bool IndexManager::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
     bool r = db_->GetStore().DeleteTable(txn, table_name);
     FMA_DBG_ASSERT(r);
     return true;
+}
+
+bool IndexManager::DeleteVectorIndex(KvTransaction& txn, const std::string& label,
+                                     const std::string& field) {
+    auto table_name = GetVertexVectorIndexTableName(label, field);
+    if (!index_list_table_->DeleteKey(txn, Value::ConstRef(table_name)))
+        return false;  // does not exist
+    return true;
+}
+
+std::vector<VectorIndexSpec> IndexManager::ListVectorIndex(KvTransaction& txn) {
+    std::vector<VectorIndexSpec> ret;
+    auto it = index_list_table_->GetIterator(txn);
+    for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
+        auto key = it->GetKey();
+        auto val = it->GetValue();
+        auto name = key.AsString();
+        auto find = name.find(_detail::VERTEX_VECTOR_INDEX);
+        if (find != std::string::npos) {
+            auto vi = LoadVectorIndex(val);
+            VectorIndexSpec vs;
+            vs.label = vi.label;
+            vs.field = vi.field;
+            vs.index_type = vi.index_type;
+            vs.dimension = vi.dimension;
+            vs.distance_type = vi.distance_type;
+            vs.hnsm_m = vi.hnsm_m;
+            vs.hnsm_ef_construction = vi.hnsm_ef_construction;
+            ret.emplace_back(vs);
+        }
+    }
+    return ret;
 }
 
 }  // namespace lgraph
