@@ -60,6 +60,8 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
     }
     AddOption(options, "bolt port", bolt_port);
     AddOption(options, "number of bolt io threads", bolt_io_thread_num);
+    bool limit = system("ulimit -c") == 0;
+    AddOption(options, "Whether to support generating core dump files", limit);
     return options;
 }
 
