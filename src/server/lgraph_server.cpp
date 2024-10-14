@@ -14,7 +14,6 @@
 
 #include <csignal>
 #include <thread>
-#include <sys/resource.h>
 #include <boost/log/core.hpp>
 
 #ifndef _WIN32
@@ -40,6 +39,7 @@ namespace brpc {
 DECLARE_bool(usercode_in_pthread);
 }
 #endif
+#include <sys/resource.h>
 
 namespace lgraph {
 static Signal _kill_signal_;
