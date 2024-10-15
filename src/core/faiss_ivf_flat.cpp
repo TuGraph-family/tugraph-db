@@ -77,11 +77,14 @@ void IVFFlat::Load(std::vector<uint8_t>& idx_bytes) {
 std::vector<std::pair<int64_t, float>>
 IVFFlat::KnnSearch(const std::vector<float>& query, int64_t top_k, int ef_search) {
     if (query.empty() || top_k == 0) {
-        THROW_CODE(InputError, "failed to build vector index");
+        THROW_CODE(InputError, "please check the input");
     }
     std::vector<std::pair<int64_t, float>> ret;
     std::vector<float> distances(top_k);
     std::vector<int64_t> indices(top_k);
+    if (index_->ntotal == 0) {
+        THROW_CODE(InputError, "there is no indexed vector");
+    }
     index_->nprobe = static_cast<size_t>(ef_search);
     index_->search(1, query.data(), top_k, distances.data(), indices.data());
     for (int64_t i = 0; i < top_k; ++i) {
