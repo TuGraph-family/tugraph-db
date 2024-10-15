@@ -145,12 +145,12 @@ TEST_F(TestSchema, DumpRecord) {
     Schema schema(false);
     Schema schema_1(true);
     Schema schema_lg = schema;
-    FieldSpec fd_0("name", FieldType::STRING, false);
-    FieldSpec fd_1("uid", FieldType::INT32, false);
-    FieldSpec fd_2("weight", FieldType::FLOAT, false);
-    FieldSpec fd_3("age", FieldType::INT8, true);
-    FieldSpec fd_4("addr", FieldType::STRING, true);
-    FieldSpec fd_5("float", FieldType::DOUBLE, true);
+    FieldSpec fd_0("name", FieldType::STRING, false, 0);
+    FieldSpec fd_1("uid", FieldType::INT32, false, 1);
+    FieldSpec fd_2("weight", FieldType::FLOAT, false, 2);
+    FieldSpec fd_3("age", FieldType::INT8, true, 3);
+    FieldSpec fd_4("addr", FieldType::STRING, true, 4);
+    FieldSpec fd_5("float", FieldType::DOUBLE, true, 5);
     std::vector<FieldSpec> fds{fd_0, fd_1, fd_2, fd_3, fd_4, fd_5};
     schema.SetSchema(true, fds, "uid", "", {}, {});
     schema_1.SetSchema(true, fds, "uid", "", {}, {});
@@ -205,3 +205,10 @@ TEST_F(TestSchema, DumpRecord) {
     const _detail::FieldExtractor fe_temp = *(schema.GetFieldExtractor("name"));
     _detail::FieldExtractor fe_5(*schema.GetFieldExtractor(0));
 }
+
+TEST_F(TestSchema, ParseAndSet) {
+    Value value("value");
+    Schema schema(true);
+    
+}
+

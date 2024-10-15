@@ -461,48 +461,57 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);
-    size_t min_size = ::lgraph::_detail::NULL_ARRAY_OFFSET + fields_.size() + 7 / 8 +
-                      fields_.size() * sizeof(DataOffset);
-    for (size_t i = 0; i < fields_.size(); i++) {
+    size_t num_fields = fields_.size();
+    size_t min_size = ::lgraph::_detail::NULL_ARRAY_OFFSET + num_fields + 7 / 8 +
+                      num_fields * sizeof(DataOffset);
+    for (size_t i = 0; i < num_fields; i++) {
         if (!fields_[i].IsFixedType()) {
+            // offset stored in data
             min_size += sizeof(DataOffset);
+            // data length
+            min_size += sizeof(uint32_t);
         } else {
             min_size += fields_[i].TypeSize();
         }
     }
     v.Resize(min_size);
 
+
+    char* ptr = v.Data();
     // first data is Version
-    ::lgraph::_detail::UnalignedSet<VersionId>(v.Data(), ::lgraph::_detail::SCHEMA_VERSION);
+    ::lgraph::_detail::UnalignedSet<VersionId>(ptr, ::lgraph::_detail::SCHEMA_VERSION);
     // next data is label id
     if (label_in_record_) {
-        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + ::lgraph::_detail::LABEL_OFFSET,
+        ::lgraph::_detail::UnalignedSet<LabelId>(ptr + ::lgraph::_detail::LABEL_OFFSET,
                                                  label_id_);
     }
 
     // set Property Count
-    ::lgraph::_detail::UnalignedSet<FieldId>(v.Data() + ::lgraph::_detail::COUNT_OFFSET,
-                                             static_cast<FieldId>(fields_.size()));
+    ::lgraph::_detail::UnalignedSet<FieldId>(ptr + ::lgraph::_detail::COUNT_OFFSET,
+                                             static_cast<FieldId>(num_fields));
 
     // nullbable bits
-    memset(v.Data() + ::lgraph::_detail::NULL_ARRAY_OFFSET, 0xFF, (fields_.size() + 7) / 8);
+    memset(ptr + ::lgraph::_detail::NULL_ARRAY_OFFSET, 0xFF, (num_fields + 7) / 8);
 
     // initialize offsets
-    DataOffset data_offset = ::lgraph::_detail::NULL_ARRAY_OFFSET + (fields_.size() + 7) / 8 +
-                             fields_.size() * sizeof(DataOffset);
-    DataOffset offset_begin = ::lgraph::_detail::NULL_ARRAY_OFFSET + (fields_.size() + 7) / 8;
+    DataOffset offset_begin = ::lgraph::_detail::NULL_ARRAY_OFFSET + (num_fields + 7) / 8;
 
-    size_t num_fields = fields_.size();
+    DataOffset data_offset = ::lgraph::_detail::NULL_ARRAY_OFFSET + (num_fields + 7) / 8 +
+                             num_fields * sizeof(DataOffset);
+
+    char* data_ptr = ptr + offset_begin;
     if (num_fields > 1) {
-        char* data_ptr = v.Data() + offset_begin;
+
         for (size_t i = 1; i < num_fields; i++) {
+            data_offset += fields_[i - 1].IsFixedType() ? fields_[i - 1].TypeSize() : sizeof(DataOffset);
             ::lgraph::_detail::UnalignedSet<DataOffset>(data_ptr, data_offset);
             data_ptr += sizeof(DataOffset);
-            data_offset += fields_[i].IsFixedType() ? fields_[i].TypeSize() : sizeof(DataOffset);
         }
     }
+    data_offset += fields_[num_fields].IsFixedType() ? fields_[num_fields].TypeSize() : sizeof(DataOffset);
     ::lgraph::_detail::UnalignedSet<DataOffset>(
-        v.Data() + offset_begin + sizeof(DataOffset) * fields_.size(), data_offset);
+        data_ptr, data_offset);
+
     return v;
 }
 
@@ -1015,6 +1024,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     fields_.reserve(n_fields);
     for (size_t i = 0; i < n_fields; i++) {
         fields_.emplace_back(fields[i]);
+        name_to_idx_[fields[i].name] = fields[i].id;
     }
     std::sort(fields_.begin(), fields_.end(),
               [](const _detail::FieldExtractor& a, const _detail::FieldExtractor& b) {

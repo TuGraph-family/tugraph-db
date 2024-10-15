@@ -402,12 +402,12 @@ class FieldExtractor {
 
     size_t GetDataSize(const Value& record) const {
         if (is_vfield_) {
-            DataOffset var_off_value = ::lgraph::_detail::UnalignedGet<DataOffset>(
+            DataOffset var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(
                 record.Data() + GetFieldOffset(record, def_.id));
-            DataOffset var_off =
-                ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + var_off_value);
+            DataOffset var_data_offset =
+                ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + var_offset);
             // The length is stored at the beginning of the variable-length field data area.
-            return ::lgraph::_detail::UnalignedGet<size_t>(record.Data() + var_off);
+            return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + var_data_offset);
         } else {
             return GetFieldOffset(record, def_.id + 1) - GetFieldOffset(record, def_.id);
         }
