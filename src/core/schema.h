@@ -634,6 +634,7 @@ class Schema {
         bool found_primary = false;
         for (const auto& f : fds) {
             fields_[f.id] = _detail::FieldExtractor(f);
+            fields_[f.id].SetLabelInRecord(label_in_record_);
             if (f.id >= pro_count) {
                 pro_count = f.id;
             }

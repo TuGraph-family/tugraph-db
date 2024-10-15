@@ -460,57 +460,78 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
  * reduce memory realloc.
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
+    // 1. Resize our value.
     Value v(size_hint);
     size_t num_fields = fields_.size();
-    size_t min_size = ::lgraph::_detail::NULL_ARRAY_OFFSET + num_fields + 7 / 8 +
-                      num_fields * sizeof(DataOffset);
-    for (size_t i = 0; i < num_fields; i++) {
-        if (!fields_[i].IsFixedType()) {
-            // offset stored in data
-            min_size += sizeof(DataOffset);
-            // data length
-            min_size += sizeof(uint32_t);
-        } else {
-            min_size += fields_[i].TypeSize();
-        }
+    // version - [label] - count - null_array - offset_array
+    size_t min_size =
+        sizeof(VersionId) + label_in_record_
+            ? sizeof(LabelId)
+            : 0 + sizeof(FieldId) + (num_fields + 7) / 8 + num_fields * sizeof(DataOffset);
+    // Fixed-value and Variable-value. Variable-value will store an offset at Fixed-value area and
+    // assume the length of every variable value is 0;
+    for (const auto& field : fields_) {
+        min_size +=
+            field.IsFixedType() ? field.TypeSize() : (sizeof(DataOffset) + sizeof(uint32_t));
     }
+
     v.Resize(min_size);
 
-
     char* ptr = v.Data();
-    // first data is Version
-    ::lgraph::_detail::UnalignedSet<VersionId>(ptr, ::lgraph::_detail::SCHEMA_VERSION);
-    // next data is label id
+    DataOffset offset = 0;
+
+
+    // 2. Set version id.
+    ::lgraph::_detail::UnalignedSet<VersionId>(ptr + offset, ::lgraph::_detail::SCHEMA_VERSION);
+    offset += sizeof(VersionId);
+
+    // 3. Set label id.
     if (label_in_record_) {
-        ::lgraph::_detail::UnalignedSet<LabelId>(ptr + ::lgraph::_detail::LABEL_OFFSET,
-                                                 label_id_);
+        ::lgraph::_detail::UnalignedSet<LabelId>(ptr + offset, label_id_);
+        offset += sizeof(LabelId);
     }
 
-    // set Property Count
-    ::lgraph::_detail::UnalignedSet<FieldId>(ptr + ::lgraph::_detail::COUNT_OFFSET,
-                                             static_cast<FieldId>(num_fields));
+    // 4. Set fields count.
+    ::lgraph::_detail::UnalignedSet<FieldId>(ptr + offset, static_cast<FieldId>(num_fields));
+    offset += sizeof(FieldId);
 
-    // nullbable bits
-    memset(ptr + ::lgraph::_detail::NULL_ARRAY_OFFSET, 0xFF, (num_fields + 7) / 8);
+    // 5. Set nullable array
+    memset(ptr + offset, 0xFF, (num_fields + 7) / 8);
+    offset += (num_fields + 7) / 8;
 
-    // initialize offsets
-    DataOffset offset_begin = ::lgraph::_detail::NULL_ARRAY_OFFSET + (num_fields + 7) / 8;
+    // 6. Set fields' offset.
+    DataOffset offset_begin = offset;
+    DataOffset data_offset = offset + num_fields * sizeof(DataOffset); // data area begin.
+    char* offset_ptr = ptr + offset_begin;  // offset area begin.
 
-    DataOffset data_offset = ::lgraph::_detail::NULL_ARRAY_OFFSET + (num_fields + 7) / 8 +
-                             num_fields * sizeof(DataOffset);
+    // field0 do not need to store its offset.
+    for (size_t i = 1; i < num_fields; i++) {
+        data_offset += fields_[i - 1].IsFixedType() ? fields_[i - 1].TypeSize() : sizeof(DataOffset);
+        ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
+        offset_ptr += sizeof(DataOffset);
+    }
+    // the latest offset marks the end of the fixed-area.
+    data_offset +=
+        fields_[num_fields - 1].IsFixedType() ? fields_[num_fields - 1].TypeSize() : sizeof(DataOffset);
+    ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
 
-    char* data_ptr = ptr + offset_begin;
-    if (num_fields > 1) {
 
-        for (size_t i = 1; i < num_fields; i++) {
-            data_offset += fields_[i - 1].IsFixedType() ? fields_[i - 1].TypeSize() : sizeof(DataOffset);
-            ::lgraph::_detail::UnalignedSet<DataOffset>(data_ptr, data_offset);
-            data_ptr += sizeof(DataOffset);
+    // 7. Set variable fields offset. They are stored at fixed-area, and their sizes are all zero.
+    for (const auto& field : fields_) {
+        if (!field.IsFixedType()) {
+            DataOffset var_offset = 0; // variable fields offset.
+            if (field.GetFieldId() == 0) {
+                var_offset = offset + num_fields * sizeof(DataOffset);
+            } else {
+                var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(
+                    ptr + offset_begin + (field.GetFieldId() - 1) * sizeof(DataOffset));
+            }
+
+            ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + var_offset, data_offset);
+            ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + data_offset, 0);
+            data_offset += sizeof(DataOffset);
         }
     }
-    data_offset += fields_[num_fields].IsFixedType() ? fields_[num_fields].TypeSize() : sizeof(DataOffset);
-    ::lgraph::_detail::UnalignedSet<DataOffset>(
-        data_ptr, data_offset);
 
     return v;
 }

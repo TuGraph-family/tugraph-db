@@ -32,10 +32,6 @@ namespace _detail {
     typename std::enable_if<                \
         std::is_integral<_TYPE_>::value || std::is_floating_point<_TYPE_>::value, _RT_>::type
 
-static constexpr size_t LABEL_OFFSET = 1;
-static constexpr size_t COUNT_OFFSET = LABEL_OFFSET + sizeof(LabelId);
-static constexpr size_t NULL_ARRAY_OFFSET = COUNT_OFFSET + sizeof(FieldId);
-
 /** A field extractor can be used to get/set a field in the record. */
 class FieldExtractor {
     friend class lgraph::Schema;
@@ -43,6 +39,7 @@ class FieldExtractor {
     FieldSpec def_;
     // is variable property field
     bool is_vfield_ = false;
+    bool label_in_record_ = true;
     // index
     std::unique_ptr<VertexIndex> vertex_index_;
     std::unique_ptr<EdgeIndex> edge_index_;
@@ -50,6 +47,8 @@ class FieldExtractor {
     bool fulltext_indexed_ = false;
     // vector index
     std::shared_ptr<VectorIndex> vector_index_;
+    size_t count_offset_ = sizeof(VersionId) + sizeof(LabelId);
+    size_t nullarray_offset_ = sizeof(VersionId) + sizeof(LabelId) + sizeof(FieldId);
 
  public:
     FieldExtractor() : vertex_index_(nullptr), edge_index_(nullptr) {}
@@ -140,6 +139,12 @@ class FieldExtractor {
     void SetInitValue(const FieldData& data) {
         def_.init_value = FieldData(data);
         def_.inited_value = true;
+    }
+
+    void SetLabelInRecord(const bool label_in_record) {
+        label_in_record_ = label_in_record;
+        count_offset_ = sizeof(VersionId) + label_in_record ? sizeof(LabelId) : 0;
+        nullarray_offset_ = count_offset_ + sizeof(FieldId);
     }
 
     void MarkDeleted() {
@@ -398,7 +403,7 @@ class FieldExtractor {
         memcpy(data, record.Data() + off, size);
     }
 
-    static char* GetNullArray(const Value& record) { return record.Data() + NULL_ARRAY_OFFSET; }
+     char* GetNullArray(const Value& record) const { return record.Data() + nullarray_offset_; }
 
     size_t GetDataSize(const Value& record) const {
         if (is_vfield_) {
@@ -413,31 +418,31 @@ class FieldExtractor {
         }
     }
 
-    static uint16_t GetRecordCount(const Value& record) {
-        return ::lgraph::_detail::UnalignedGet<uint16_t>(record.Data() + COUNT_OFFSET);
+    uint16_t GetRecordCount(const Value& record) const {
+        return ::lgraph::_detail::UnalignedGet<uint16_t>(record.Data() + count_offset_);
     }
 
     /** Retrieve the starting position of the Field data for the given ID.
      *  Note that both fixed-length and variable-length data are not distinguished here.
      */
-    static size_t GetFieldOffset(const Value& record, const FieldId id) {
+     size_t GetFieldOffset(const Value& record, const FieldId id) const {
         const uint16_t count = GetRecordCount(record);
         if (0 == id) {
             // The starting position of Field0 is at the end of the offset section.
-            return NULL_ARRAY_OFFSET + (count + 7) / 8 + count * sizeof(DataOffset);
+            return nullarray_offset_ + (count + 7) / 8 + count * sizeof(DataOffset);
         }
 
         size_t offset = 0;
-        offset = NULL_ARRAY_OFFSET + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
+        offset = nullarray_offset_ + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
         return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + offset);
     }
 
-    static size_t GetOffsetPosition(const Value& record, const FieldId id) {
+     size_t GetOffsetPosition(const Value& record, const FieldId id) {
         const FieldId count = GetRecordCount(record);
         if (0 == id) {
             return 0;
         }
-        return NULL_ARRAY_OFFSET + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
+        return nullarray_offset_ + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
     }
     void* GetFieldPointer(const Value& record) const {
         return (char*)record.Data() + GetFieldOffset(record, def_.id);
