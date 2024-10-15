@@ -54,9 +54,10 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
             FMA_ASSERT(index);
             // update field index
             if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-                THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    vid, fe.Name(), fe.FieldToString(record));
+                THROW_CODE(InputError,
+                           "Failed to un-index vertex [{}] with field "
+                           "value [{}:{}]: index value does not exist.",
+                           vid, fe.Name(), fe.FieldToString(record));
             }
         }
     }
@@ -161,8 +162,9 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
             // update field index
             if (!index->Add(txn, fe.GetConstRef(record), vid)) {
                 THROW_CODE(InputError,
-                "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
-                vid, fe.Name(), fe.FieldToString(record));
+                           "Failed to index vertex [{}] with field value [{}:{}]: index value "
+                           "already exists.",
+                           vid, fe.Name(), fe.FieldToString(record));
             }
         }
         created.push_back(idx);
@@ -325,8 +327,7 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
         floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
         vids.push_back(vid);
         if (floatvector.back().size() != (size_t)dim) {
-            THROW_CODE(InputError,
-                       "vector index dimension mismatch, vector size:{}, dim:{}",
+            THROW_CODE(InputError, "vector index dimension mismatch, vector size:{}, dim:{}",
                        floatvector.back().size(), dim);
         }
         index->Add(floatvector, vids, 1);
@@ -480,8 +481,8 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
     }
 
     // set Property Count
-    ::lgraph::_detail::UnalignedSet<ProCount>(v.Data() + ::lgraph::_detail::COUNT_OFFSET,
-                                              static_cast<ProCount>(fields_.size()));
+    ::lgraph::_detail::UnalignedSet<FieldId>(v.Data() + ::lgraph::_detail::COUNT_OFFSET,
+                                             static_cast<FieldId>(fields_.size()));
 
     // nullbable bits
     memset(v.Data() + ::lgraph::_detail::NULL_ARRAY_OFFSET, 0xFF, (fields_.size() + 7) / 8);
@@ -638,7 +639,7 @@ ENABLE_IF_FIXED_FIELD(T, void)
 Schema::SetFixedSizeValue(Value& record, const T& data,
                           const ::lgraph::_detail::FieldExtractor* extractor) const {
     // "Cannot call SetField(Value&, const T&) on a variable length field";
-    FMA_DBG_ASSERT(!extractor->is_vfield_);
+    FMA_DBG_ASSERT(extractor->IsFixedType());
     // "Type size mismatch"
     FMA_DBG_CHECK_EQ(sizeof(data), extractor->TypeSize());
     // copy the buffer so we don't accidentally overwrite memory
@@ -647,7 +648,7 @@ Schema::SetFixedSizeValue(Value& record, const T& data,
     char* ptr = (char*)record.Data();
     if (_F_LIKELY(data_size == sizeof(data))) {
         record.Resize(record.Size());
-        char* ptr = ptr + offset;
+        ptr = ptr + offset;
         ::lgraph::_detail::UnalignedSet<T>(ptr, data);
     } else {
         // If the data size differs, we need to resize the record:
@@ -668,16 +669,16 @@ Schema::SetFixedSizeValue(Value& record, const T& data,
         ::lgraph::_detail::UnalignedSet<T>(ptr + offset, data);
 
         // Update the offset of the subsequent fields.
-        for (ProCount i = extractor->GetFieldId() + 1; i < extractor->GetRecordCount(record) + 1;
+        for (FieldId i = extractor->GetFieldId() + 1; i < extractor->GetRecordCount(record) + 1;
              ++i) {
-            size_t off = extractor->GetOffsetPosistion(record, i);
+            size_t off = extractor->GetOffsetPosition(record, i);
             size_t property_offset =
                 ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
             ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
         }
 
         // Update the offset of veriable length fields.
-        for (ProCount i = extractor->GetRecordCount(record) + 1;
+        for (FieldId i = extractor->GetRecordCount(record) + 1;
              i < extractor->GetRecordCount(record); i++) {
             if (fields_[i].IsFixedType()) continue;
             size_t off = extractor->GetFieldOffset(record, i);
@@ -1022,7 +1023,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
 
     for (size_t i = 1; i < n_fields; i++) {
         if (fields_[i].GetFieldId() == fields_[i - 1].GetFieldId()) {
-            throw FieldIdConflictException(fields_[i].Name(), fields_[i-1].Name());
+            throw FieldIdConflictException(fields_[i].Name(), fields_[i - 1].Name());
         }
     }
     is_vertex_ = is_vertex;

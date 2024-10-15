@@ -964,7 +964,7 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
             UpdateBlobField(schema, fe, values[i], new_prop, blob_manager_, *txn_);
             // no need to update index since blob cannot be indexed
         } else if (fe->Type() == FieldType::FLOAT_VECTOR) {
-            fe->ParseAndSet(new_prop, values[i]);
+            schema->ParseAndSet(new_prop, values[i], fe);
             schema->DeleteVectorIndex(*txn_, vid, old_prop);
             schema->AddVectorToVectorIndex(*txn_, vid, new_prop);
         } else {

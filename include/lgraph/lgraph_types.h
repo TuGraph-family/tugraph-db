@@ -1226,7 +1226,7 @@ struct FieldSpec {
     bool optional;
     /** @brief   is this field deleted? */
     bool deleted;
-    /** @brief   id of this field */
+    /** @brief   id of this field, starts from 0 */
     uint16_t id;
     /** @brief   the value of the field is set when it is created. */
     FieldData init_value;

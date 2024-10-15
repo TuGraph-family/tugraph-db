@@ -32,9 +32,9 @@ namespace _detail {
     typename std::enable_if<                \
         std::is_integral<_TYPE_>::value || std::is_floating_point<_TYPE_>::value, _RT_>::type
 
-static const size_t LABEL_OFFSET = 1;
-static const size_t COUNT_OFFSET = LABEL_OFFSET + sizeof(LabelId);
-static const size_t NULL_ARRAY_OFFSET = COUNT_OFFSET + sizeof(ProCount);
+static constexpr size_t LABEL_OFFSET = 1;
+static constexpr size_t COUNT_OFFSET = LABEL_OFFSET + sizeof(LabelId);
+static constexpr size_t NULL_ARRAY_OFFSET = COUNT_OFFSET + sizeof(FieldId);
 
 /** A field extractor can be used to get/set a field in the record. */
 class FieldExtractor {
@@ -106,7 +106,7 @@ class FieldExtractor {
         edge_index_ = nullptr;
     }
 
-    explicit FieldExtractor(const FieldSpec& d, ProCount id) noexcept : def_(d) {
+    explicit FieldExtractor(const FieldSpec& d, const FieldId id) noexcept : def_(d) {
         is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         vertex_index_ = nullptr;
         edge_index_ = nullptr;
@@ -118,12 +118,19 @@ class FieldExtractor {
     bool GetIsNull(const Value& record) const {
         if (!def_.optional) {
             return false;
-        } else {
-            // get the Kth bit from NullArray
-            char* arr = GetNullArray(record);
-            return arr[def_.id / 8] & (0x1 << (def_.id % 8));
         }
+        // get the Kth bit from NullArray
+        const char* arr = GetNullArray(record);
+        return arr[def_.id / 8] & (0x1 << (def_.id % 8));
     }
+
+    FieldData GetDefaultValue() const { return def_.default_value; }
+
+    FieldData GetInitedValue() const { return def_.init_value; }
+
+    bool HasDefaultValue() const { return def_.set_default_value; }
+
+    bool HasInitedValue() const { return def_.inited_value; }
 
     void SetDefaultValue(const FieldData& data) {
         def_.default_value = FieldData(data);
@@ -134,12 +141,6 @@ class FieldExtractor {
         def_.init_value = FieldData(data);
         def_.inited_value = true;
     }
-
-    FieldData GetDefaultValue() const { return def_.default_value; }
-    FieldData GetInitedValue() const { return def_.init_value; }
-    bool HasDefaultValue() const { return def_.set_default_value; }
-
-    bool HasInitedValue() const { return def_.inited_value; }
 
     void MarkDeleted() {
         def_.deleted = true;
@@ -170,8 +171,18 @@ class FieldExtractor {
         }
     }
 
-    ENABLE_IF_FIXED_FIELD(T, void) ConvertData(T* dst, const char* data, size_t size) const {
-        if (std::is_integral<T>::value) {
+    /**
+     *  Convert data for integral and floating types.
+     *  If we change the data type of floating-point or integer values
+     *  (i.e., by altering their defined length), we need to adjust their values accordingly.
+     *  For example, when converting from INT64 to INT8 (a relatively rare operation),
+     *  we need to return an appropriate value within the range of the new type.
+     *  This approach allows us to retain the original value when modifying the data type,
+     *  without requiring a complete scan of the data to generate a new field.
+     */
+
+    ENABLE_IF_FIXED_FIELD(T, void) static ConvertData(T* dst, const char* data, size_t size) {
+        if (std::is_integral_v<T>) {
             int64_t temp = 0;
             switch (size) {
             case 1:
@@ -197,7 +208,7 @@ class FieldExtractor {
             } else {
                 *dst = static_cast<T>(temp);
             }
-        } else if (std::is_floating_point<T>::value) {
+        } else if (std::is_floating_point_v<T>) {
             switch (size) {
             case 4:
                 *dst = static_cast<T>(*reinterpret_cast<const float*>(data));
@@ -324,7 +335,6 @@ class FieldExtractor {
             return Value(decoded);
         } else {
             throw ParseIncompatibleTypeException(Name(), fd.type, FieldType::BLOB);
-            return Value();
         }
     }
 
@@ -341,7 +351,7 @@ class FieldExtractor {
     template <FieldType FT>
     void _ParseStringAndSet(Value& record, const std::string& data) const;
 
-    void SetVariableOffset(Value& record, ProCount id, DataOffset offset) const {
+    void SetVariableOffset(Value& record, FieldId id, DataOffset offset) const {
         size_t off = GetFieldOffset(record, id);
         ::lgraph::_detail::UnalignedSet<DataOffset>(record.Data() + off, offset);
     }
@@ -358,7 +368,7 @@ class FieldExtractor {
     }
 
     // set field value to null
-    void SetIsNull(Value& record, bool is_null) const {
+    void SetIsNull(const Value& record, const bool is_null) const {
         if (!def_.optional) {
             if (is_null) throw FieldCannotBeSetNullException(Name());
             return;
@@ -374,7 +384,7 @@ class FieldExtractor {
 
     /**
      * Extracts field data from the record to the buffer pointed to by data. This
-     * is for internal use only, the size MUST match the data size.
+     * is for internal use only, the size MUST match the data size defined in schema.
      *
      * \param           record  The record.
      * \param [in,out]  data    If non-null, the data.
@@ -388,7 +398,7 @@ class FieldExtractor {
         memcpy(data, record.Data() + off, size);
     }
 
-    char* GetNullArray(const Value& record) const { return record.Data() + NULL_ARRAY_OFFSET; }
+    static char* GetNullArray(const Value& record) { return record.Data() + NULL_ARRAY_OFFSET; }
 
     size_t GetDataSize(const Value& record) const {
         if (is_vfield_) {
@@ -403,28 +413,31 @@ class FieldExtractor {
         }
     }
 
-    uint16_t GetRecordCount(const Value& record) const {
+    static uint16_t GetRecordCount(const Value& record) {
         return ::lgraph::_detail::UnalignedGet<uint16_t>(record.Data() + COUNT_OFFSET);
     }
 
-    size_t GetFieldOffset(const Value& record, ProCount id) const {
-        uint16_t count = GetRecordCount(record);
+    /** Retrieve the starting position of the Field data for the given ID.
+     *  Note that both fixed-length and variable-length data are not distinguished here.
+     */
+    static size_t GetFieldOffset(const Value& record, const FieldId id) {
+        const uint16_t count = GetRecordCount(record);
         if (0 == id) {
+            // The starting position of Field0 is at the end of the offset section.
             return NULL_ARRAY_OFFSET + (count + 7) / 8 + count * sizeof(DataOffset);
-        } else {
-            size_t offset = 0;
-            offset = NULL_ARRAY_OFFSET + (count + 7) / 8 + id * sizeof(DataOffset);
-            return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + offset);
         }
+
+        size_t offset = 0;
+        offset = NULL_ARRAY_OFFSET + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
+        return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + offset);
     }
 
-    size_t GetOffsetPosistion(const Value& record, ProCount id) const {
-        ProCount count = GetRecordCount(record);
+    static size_t GetOffsetPosition(const Value& record, const FieldId id) {
+        const FieldId count = GetRecordCount(record);
         if (0 == id) {
             return 0;
-        } else {
-            return NULL_ARRAY_OFFSET + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
         }
+        return NULL_ARRAY_OFFSET + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
     }
     void* GetFieldPointer(const Value& record) const {
         return (char*)record.Data() + GetFieldOffset(record, def_.id);

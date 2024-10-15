@@ -50,8 +50,8 @@ class SchemaManager;
  **     Version:        indicates the version of the schema.[1 byte]
  **     LabelId:        indicates the label of the record, different
  **                     label has different schema.
-                        LabelId is left out for edges since edges are
-                        sorted by LabelId so it becomes part of the key.
+ **                     LabelId is left out for edges since edges are
+ **                     sorted by LabelId so it becomes part of the key.
  **                     [2 bytes]
  **     Field-count:    indicates the number of fields in the record.[2 bytes]
  **     Null-array:     records whether a field is null. [Field-count +7 / 8 bytes]
@@ -62,10 +62,18 @@ class SchemaManager;
  **     Fixed-data and V-data Pointer:
  **                     Store fixed-length data and pointers to the locations
  **                     of variable-length data, with their order determined
- **                     by the attribute IDs. [Fixed-data size + num_vfields * 4 bytes]
+ **                     by the attribute IDs. [Fixed-data size + num-vfields * 4 bytes]
  **     V-data:         stores the data of the variable-length fields. Store them as
  **                     [Length][Data] pairs.
 */
+
+/**
+ *  For get data operations, obtaining the FieldExtractor allows us to retrieve the ID and datatype
+ *  of the field, which enables data extraction from the record.
+ *  While, for set-value operations, the length of fields may change, which can lead to updates in
+ *  the offsets of other fields. Therefore, this needs to be handled within the schema.
+ */
+
 class Schema {
     friend class SchemaManager;
     friend class Transaction;
@@ -618,7 +626,7 @@ class Schema {
         s = BinaryRead(buf, detach_property_);
         if (!s) return 0;
         bytes_read += s;
-        ProCount pro_count = 0;
+        FieldId pro_count = 0;
         fields_.reserve(fds.size());
         name_to_idx_.clear();
         indexed_fields_.clear();

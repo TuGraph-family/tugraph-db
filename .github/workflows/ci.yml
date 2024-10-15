@@ -17,7 +17,6 @@ env:
 #    inside docker instead of running ut and it via Dockerfile.
 jobs:
   ut_no_asan:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Delete huge unnecessary tools folder
@@ -62,7 +61,6 @@ jobs:
         run: df -h
 
   ut_asan:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Delete huge unnecessary tools folder
@@ -107,7 +105,6 @@ jobs:
         run: df -h
 
   it:
-    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Delete huge unnecessary tools folder
