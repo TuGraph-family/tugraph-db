@@ -4393,7 +4393,7 @@ void VectorFunc::VertexVectorRangeSearch(RTContext *ctx, const cypher::Record *r
     auto field = args[1].constant.AsString();
     auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(label, field);
     float radius = 0.1;
-    auto parameter = *args[3].constant.map;    
+    auto parameter = *args[3].constant.map;
     if (parameter.count("radius")) {
         if (parameter.at("radius").scalar.IsDouble()) {
             radius = (float)parameter.at("radius").AsDouble();

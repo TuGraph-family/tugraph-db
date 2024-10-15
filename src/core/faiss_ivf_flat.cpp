@@ -110,7 +110,7 @@ IVFFlat::RangeSearch(const std::vector<float>& query, float radius, int ef_searc
                        static_cast<int64_t>(result.lims[1]) : limit;
         for (int64_t i = 0; i < max; ++i) {
             ret.emplace_back(result.labels[i], result.distances[i]);
-        } 
+        }
     } else {
         for (int64_t i = 0; i < static_cast<int64_t>(result.lims[1]); ++i) {
             ret.emplace_back(result.labels[i], result.distances[i]);
