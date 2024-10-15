@@ -16,6 +16,74 @@
 
 namespace lgraph {
 namespace _detail {
+
+void FieldExtractor::_SetFixedSizeValueRaw(Value& record, const Value& data) const {
+    // "Cannot call SetField(Value&, const T&) on a variable length field";
+    FMA_DBG_ASSERT(!is_vfield_);
+    // "Type size mismatch"
+    FMA_DBG_CHECK_EQ(data.Size(), field_data_helper::FieldTypeSize(def_.type));
+    FMA_DBG_CHECK_EQ(data.Size(), GetDataSize(record));
+    // copy the buffer so we don't accidentally overwrite memory
+    char* ptr = (char*)record.Data() + GetFieldOffset(record, def_.id);
+    memcpy(ptr, data.Data(), data.Size());
+}
+
+// set field value to null
+void FieldExtractor::SetIsNull(const Value& record, const bool is_null) const {
+    if (!def_.optional) {
+        if (is_null) throw FieldCannotBeSetNullException(Name());
+        return;
+    }
+    // set the Kth bit from NullArray
+    char* arr = GetNullArray(record);
+    if (is_null) {
+        arr[def_.id / 8] |= (0x1 << (def_.id % 8));
+    } else {
+        arr[def_.id / 8] &= ~(0x1 << (def_.id % 8));
+    }
+}
+
+size_t FieldExtractor::GetDataSize(const Value& record) const {
+    if (is_vfield_) {
+        DataOffset var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(
+            record.Data() + GetFieldOffset(record, def_.id));
+        // The length is stored at the beginning of the variable-length field data area.
+        return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + var_offset);
+    } else {
+        return GetFieldOffset(record, def_.id + 1) - GetFieldOffset(record, def_.id);
+    }
+}
+
+FieldId FieldExtractor::GetRecordCount(const Value& record) const {
+    return ::lgraph::_detail::UnalignedGet<FieldId>(record.Data() + count_offset_);
+}
+
+/** Retrieve the starting position of the Field data for the given ID.
+ *  Note that both fixed-length and variable-length data are not distinguished here.
+ */
+size_t FieldExtractor::GetFieldOffset(const Value& record, const FieldId id) const {
+    const uint16_t count = GetRecordCount(record);
+    if (0 == id) {
+        // The starting position of Field0 is at the end of the offset section.
+        return nullarray_offset_ + (count + 7) / 8 + count * sizeof(DataOffset);
+    }
+
+    size_t offset = 0;
+    offset = nullarray_offset_ + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
+    return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + offset);
+}
+
+size_t FieldExtractor::GetOffsetPosition(const Value& record, const FieldId id) const {
+    const FieldId count = GetRecordCount(record);
+    if (0 == id) {
+        return 0;
+    }
+    return nullarray_offset_ + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
+}
+void* FieldExtractor::GetFieldPointer(const Value& record) const {
+    return (char*)record.Data() + GetFieldOffset(record, def_.id);
+}
+
 /**
  * Print the string representation of the field. For digital types, it prints
  * it into ASCII string; for NBytes and String, it just copies the content of

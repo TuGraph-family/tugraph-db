@@ -141,6 +141,7 @@ TEST_F(TestSchema, GetFieldId) {
 
 TEST_F(TestSchema, DumpRecord) {
     Value v_old("name");
+
     Value v_new("name1");
     Schema schema(false);
     Schema schema_1(true);
@@ -194,12 +195,13 @@ TEST_F(TestSchema, DumpRecord) {
     std::vector<std::string> value{"peter", "101", "65.25", "49", "fifth avenue"};
     Value record = schema.CreateRecord(fid.size(), fid.data(), value.data());
     // UT_LOG() << "record: " << schema.DumpRecord(record);
-    schema.GetFieldId("float");
-    schema.GetFieldExtractor("name");
-    schema.GetFieldExtractor("uid");
-    schema.GetFieldExtractor("weight");
-    schema.GetFieldExtractor("age");
-    schema.GetFieldExtractor("addr");
+
+    UT_EXPECT_EQ(schema.GetFieldId("float"), 5);
+    UT_EXPECT_EQ(schema.GetFieldExtractor("name")->FieldToString(record), "peter");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("uid")->FieldToString(record), "101");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("weight")->FieldToString(record), "6.525e1");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("age")->FieldToString(record), "49");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("addr")->FieldToString(record), "fifth avenue");
     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor("hash"), FieldNotFound);
     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor(1024), FieldNotFound);
     const _detail::FieldExtractor fe_temp = *(schema.GetFieldExtractor("name"));

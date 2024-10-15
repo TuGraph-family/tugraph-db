@@ -626,45 +626,8 @@ class Schema {
         s = BinaryRead(buf, detach_property_);
         if (!s) return 0;
         bytes_read += s;
-        FieldId pro_count = 0;
-        fields_.reserve(fds.size());
-        name_to_idx_.clear();
-        indexed_fields_.clear();
-        fulltext_fields_.clear();
-        bool found_primary = false;
-        for (const auto& f : fds) {
-            fields_[f.id] = _detail::FieldExtractor(f);
-            fields_[f.id].SetLabelInRecord(label_in_record_);
-            if (f.id >= pro_count) {
-                pro_count = f.id;
-            }
-            if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end())) {
-                throw FieldAlreadyExistsException(f.name);
-            }
-            name_to_idx_[f.name] = f.id;
-            if (fields_[f.id].GetVertexIndex() || fields_[f.id].GetEdgeIndex()) {
-                indexed_fields_.emplace_hint(indexed_fields_.end(), f.id);
-                if (f.name == primary_field_) {
-                    FMA_ASSERT(!found_primary);
-                    found_primary = true;
-                }
-            }
-            if (fields_[f.id].FullTextIndexed()) {
-                fulltext_fields_.emplace(f.id);
-            }
-        }
-
-        if (is_vertex_ && !indexed_fields_.empty()) {
-            FMA_ASSERT(found_primary);
-        }
-
-        if (pro_count != fds.size() - 1) {
-            std::string err_msg =
-                FMA_FMT("Schema fields deserialize error, fields num: {}, max id: {}.",
-                        _detail::MAX_GRAPH_SIZE, fds.size(), pro_count);
-            throw std::runtime_error(err_msg);
-        }
-
+        SetSchema(is_vertex_, fds, primary_field_, temporal_field_, temporal_order_,
+                  edge_constraints_);
         return bytes_read;
     }
 

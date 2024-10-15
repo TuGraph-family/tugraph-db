@@ -737,14 +737,17 @@ void Schema::_SetVariableLengthValue(Value& record, const Value& data,
     record.Resize(record.Size());
 
     // move data to the correct position
-    int32_t diff = data.Size() + sizeof(uint32_t) - fsize;
+    int32_t diff = data.Size() - fsize;
     if (diff > 0) {
         record.Resize(record.Size() + diff);
-        memmove(rptr + variable_offset + sizeof(data), rptr + variable_offset + fsize,
-                record.Size() - (variable_offset + sizeof(data)));
+        rptr = (char*)record.Data();
+        memmove(rptr + variable_offset + sizeof(DataOffset) + data.Size(),
+                rptr + variable_offset + sizeof(DataOffset) + fsize,
+                record.Size() - (variable_offset + sizeof(DataOffset) + data.Size()));
     } else {
-        memmove(rptr + variable_offset + sizeof(data), rptr + variable_offset + fsize,
-                record.Size() - (variable_offset + fsize));
+        memmove(rptr + variable_offset + sizeof(DataOffset) + data.Size(),
+                rptr + variable_offset + sizeof(DataOffset) + fsize,
+                record.Size() - (variable_offset + sizeof(DataOffset) + fsize));
         record.Resize(record.Size() + diff);
     }
 
@@ -758,7 +761,7 @@ void Schema::_SetVariableLengthValue(Value& record, const Value& data,
     // update offset of other veriable fields
     size_t count = extractor->GetRecordCount(record);
     // adjust offset of other fields
-    for (size_t i = extractor->GetFieldId(); i < count; i++) {
+    for (size_t i = extractor->GetFieldId() + 1; i < count; i++) {
         if (fields_[i].IsFixedType()) continue;
         size_t offset = extractor->GetFieldOffset(record, i);
         size_t var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(rptr + offset);
@@ -783,7 +786,6 @@ void Schema::_ParseStringAndSet(Value& record, const std::string& data,
     typedef typename field_data_helper::FieldType2StorageType<FT>::type ST;
     CT s{};
     size_t tmp = fma_common::TextParserUtils::ParseT<CT>(data.data(), data.data() + data.size(), s);
-    // error maybe there
     if (_F_UNLIKELY(tmp != data.size())) throw ParseStringException(extractor->Name(), data, FT);
     return SetFixedSizeValue(record, static_cast<ST>(s), extractor);
 }
@@ -1038,12 +1040,11 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
                        const EdgeConstraints& edge_constraints) {
     lgraph::CheckValidFieldNum(n_fields);
     fields_.clear();
+    blob_fields_.clear();
     name_to_idx_.clear();
     fields_.reserve(n_fields);
     for (size_t i = 0; i < n_fields; i++) {
         fields_.emplace_back(fields[i]);
-        fields_[i].SetLabelInRecord(label_in_record_);
-        name_to_idx_[fields[i].name] = fields[i].id;
     }
     std::sort(fields_.begin(), fields_.end(),
               [](const _detail::FieldExtractor& a, const _detail::FieldExtractor& b) {
@@ -1055,6 +1056,17 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
             throw FieldIdConflictException(fields_[i].Name(), fields_[i - 1].Name());
         }
     }
+    for (auto& f : fields_) {
+        if (f.Type() == FieldType::NUL) throw FieldCannotBeNullTypeException(f.Name());
+        if (_F_UNLIKELY(name_to_idx_.find(f.Name()) != name_to_idx_.end()))
+            throw FieldAlreadyExistsException(f.Name());
+        name_to_idx_[f.Name()] = f.GetFieldId();
+        if (f.Type() == FieldType::BLOB) {
+            blob_fields_.push_back(f.GetFieldId());
+        }
+        f.SetLabelInRecord(label_in_record_);
+    }
+
     is_vertex_ = is_vertex;
     primary_field_ = primary;
     temporal_field_ = temporal;
