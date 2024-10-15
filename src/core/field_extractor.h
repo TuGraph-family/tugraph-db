@@ -403,7 +403,7 @@ class FieldExtractor {
         memcpy(data, record.Data() + off, size);
     }
 
-     char* GetNullArray(const Value& record) const { return record.Data() + nullarray_offset_; }
+    char* GetNullArray(const Value& record) const { return record.Data() + nullarray_offset_; }
 
     size_t GetDataSize(const Value& record) const {
         if (is_vfield_) {
@@ -418,14 +418,14 @@ class FieldExtractor {
         }
     }
 
-    uint16_t GetRecordCount(const Value& record) const {
-        return ::lgraph::_detail::UnalignedGet<uint16_t>(record.Data() + count_offset_);
+    FieldId GetRecordCount(const Value& record) const {
+        return ::lgraph::_detail::UnalignedGet<FieldId>(record.Data() + count_offset_);
     }
 
     /** Retrieve the starting position of the Field data for the given ID.
      *  Note that both fixed-length and variable-length data are not distinguished here.
      */
-     size_t GetFieldOffset(const Value& record, const FieldId id) const {
+    size_t GetFieldOffset(const Value& record, const FieldId id) const {
         const uint16_t count = GetRecordCount(record);
         if (0 == id) {
             // The starting position of Field0 is at the end of the offset section.
@@ -437,7 +437,7 @@ class FieldExtractor {
         return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + offset);
     }
 
-     size_t GetOffsetPosition(const Value& record, const FieldId id) {
+    size_t GetOffsetPosition(const Value& record, const FieldId id) const {
         const FieldId count = GetRecordCount(record);
         if (0 == id) {
             return 0;

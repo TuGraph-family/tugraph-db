@@ -84,14 +84,14 @@ TEST_F(TestSchema, SetSchema) {
         s.SetSchema(true, std::vector<FieldSpec>({FieldSpec("int16", FieldType::NUL, true)}),
                     "int16", "", {}, {}),
         FieldCannotBeNullType);
-        UT_EXPECT_THROW_CODE(
-        s.SetSchema(true,
-                    std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, true, 0),
-                                            FieldSpec("int16", FieldType::INT16, true, 1), 
-                                            FieldSpec("int16", FieldType::INT16, true, 1),
-                                            }),
-                    "int16", "", {}, {}),
-        FieldIdConflict);
+    UT_EXPECT_THROW_CODE(s.SetSchema(true,
+                                     std::vector<FieldSpec>({
+                                         FieldSpec("int16", FieldType::INT16, true, 0),
+                                         FieldSpec("int16", FieldType::INT16, true, 1),
+                                         FieldSpec("int16", FieldType::INT16, true, 1),
+                                     }),
+                                     "int16", "", {}, {}),
+                         FieldIdConflict);
     std::vector<FieldSpec> fs;
     for (size_t i = 0; i < _detail::MAX_NUM_FIELDS + 1; i++)
         fs.emplace_back(UT_FMT("f_{}", i), FieldType::INT16, true);
@@ -159,11 +159,11 @@ TEST_F(TestSchema, DumpRecord) {
     schema.SetSchema(true, fds, "uid", "", {}, {});
     Value va_tmp = schema.CreateEmptyRecord();
     UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData()),
-                    FieldCannotBeSetNull);
+                         FieldCannotBeSetNull);
     UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "age", FieldData(256)),
                     lgraph::ParseFieldDataException);
     UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData(256)),
-                    ParseIncompatibleType);
+                         ParseIncompatibleType);
     UT_EXPECT_TRUE(schema_1.GetField(va_tmp, (std::string) "does_not_exist",
                                      [](const BlobManager::BlobKey&) { return Value(); }) ==
                    FieldData());
@@ -187,7 +187,7 @@ TEST_F(TestSchema, DumpRecord) {
         std::vector<std::string> value{"marko", "300"};
         // missing weight field
         UT_EXPECT_THROW_CODE(schema.CreateRecord(fid.size(), fid.data(), value.data()),
-                        FieldCannotBeSetNull);
+                             FieldCannotBeSetNull);
     }
 
     std::vector<size_t> fid = schema.GetFieldIds({"name", "uid", "weight", "age", "addr"});
@@ -209,6 +209,4 @@ TEST_F(TestSchema, DumpRecord) {
 TEST_F(TestSchema, ParseAndSet) {
     Value value("value");
     Schema schema(true);
-    
 }
-

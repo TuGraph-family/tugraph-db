@@ -464,10 +464,8 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);
     size_t num_fields = fields_.size();
     // version - [label] - count - null_array - offset_array
-    size_t min_size =
-        sizeof(VersionId) + label_in_record_
-            ? sizeof(LabelId)
-            : 0 + sizeof(FieldId) + (num_fields + 7) / 8 + num_fields * sizeof(DataOffset);
+    size_t min_size = sizeof(VersionId) + (label_in_record_ ? sizeof(LabelId) : 0) +
+                      sizeof(FieldId) + (num_fields + 7) / 8 + num_fields * sizeof(DataOffset);
     // Fixed-value and Variable-value. Variable-value will store an offset at Fixed-value area and
     // assume the length of every variable value is 0;
     for (const auto& field : fields_) {
@@ -479,7 +477,6 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
 
     char* ptr = v.Data();
     DataOffset offset = 0;
-
 
     // 2. Set version id.
     ::lgraph::_detail::UnalignedSet<VersionId>(ptr + offset, ::lgraph::_detail::SCHEMA_VERSION);
@@ -501,25 +498,25 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
 
     // 6. Set fields' offset.
     DataOffset offset_begin = offset;
-    DataOffset data_offset = offset + num_fields * sizeof(DataOffset); // data area begin.
-    char* offset_ptr = ptr + offset_begin;  // offset area begin.
+    DataOffset data_offset = offset + num_fields * sizeof(DataOffset);  // data area begin.
+    char* offset_ptr = ptr + offset_begin;                              // offset area begin.
 
     // field0 do not need to store its offset.
     for (size_t i = 1; i < num_fields; i++) {
-        data_offset += fields_[i - 1].IsFixedType() ? fields_[i - 1].TypeSize() : sizeof(DataOffset);
+        data_offset +=
+            fields_[i - 1].IsFixedType() ? fields_[i - 1].TypeSize() : sizeof(DataOffset);
         ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
         offset_ptr += sizeof(DataOffset);
     }
     // the latest offset marks the end of the fixed-area.
-    data_offset +=
-        fields_[num_fields - 1].IsFixedType() ? fields_[num_fields - 1].TypeSize() : sizeof(DataOffset);
+    data_offset += fields_[num_fields - 1].IsFixedType() ? fields_[num_fields - 1].TypeSize()
+                                                         : sizeof(DataOffset);
     ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
-
 
     // 7. Set variable fields offset. They are stored at fixed-area, and their sizes are all zero.
     for (const auto& field : fields_) {
         if (!field.IsFixedType()) {
-            DataOffset var_offset = 0; // variable fields offset.
+            DataOffset var_offset = 0;  // variable fields offset.
             if (field.GetFieldId() == 0) {
                 var_offset = offset + num_fields * sizeof(DataOffset);
             } else {
@@ -941,7 +938,7 @@ void Schema::ParseAndSet(Value& record, const std::string& data,
 Value Schema::CreateRecordWithLabelId() const {
     Value v(sizeof(LabelId) + sizeof(VersionId));
     ::lgraph::_detail::UnalignedSet<VersionId>(v.Data(), ::lgraph::_detail::SCHEMA_VERSION);
-    ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + ::lgraph::_detail::LABEL_OFFSET, label_id_);
+    ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + sizeof(VersionId), label_id_);
     return v;
 }
 
@@ -1045,6 +1042,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     fields_.reserve(n_fields);
     for (size_t i = 0; i < n_fields; i++) {
         fields_.emplace_back(fields[i]);
+        fields_[i].SetLabelInRecord(label_in_record_);
         name_to_idx_[fields[i].name] = fields[i].id;
     }
     std::sort(fields_.begin(), fields_.end(),

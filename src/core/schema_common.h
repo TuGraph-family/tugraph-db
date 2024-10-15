@@ -70,8 +70,8 @@ class FieldAlreadyExistsException : public LgraphException {
 };
 
 class FieldIdConflictException : public LgraphException {
-    public:
-    explicit FieldIdConflictException(const std::string& fidname1, 
+ public:
+    explicit FieldIdConflictException(const std::string& fidname1,
                                         const std::string& fidname2)
         : LgraphException(ErrorCode::FieldIdConflict,
                           "Field [#{}] and Field [#P{}] id conflict.",
