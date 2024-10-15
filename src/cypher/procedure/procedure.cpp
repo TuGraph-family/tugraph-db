@@ -4338,7 +4338,7 @@ void VectorFunc::VertexVectorKnnSearch(RTContext *ctx, const cypher::Record *rec
             parameter_search = parameter.at("ivf_flat_nprobe").AsInt64();
         }
         CYPHER_ARG_CHECK((parameter_search <= 1000 && parameter_search >= 1),
-                     "ivf_flat.nprobe should be an integer in the range [1, 1000]");
+            "ivf_flat.nprobe should be an integer in the range [1, ivf_flat.nlist]");
     } else {
         throw lgraph::IndexNotExistException(label, field);
     }
@@ -4392,11 +4392,8 @@ void VectorFunc::VertexVectorRangeSearch(RTContext *ctx, const cypher::Record *r
     auto label = args[0].constant.AsString();
     auto field = args[1].constant.AsString();
     auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(label, field);
-    if (index->GetIndexType() != "hnsw") {
-        throw lgraph::ReminderException("only support range search in hnsw index");
-    }
     float radius = 0.1;
-    auto parameter = *args[3].constant.map;
+    auto parameter = *args[3].constant.map;    
     if (parameter.count("radius")) {
         if (parameter.at("radius").scalar.IsDouble()) {
             radius = (float)parameter.at("radius").AsDouble();
@@ -4409,18 +4406,30 @@ void VectorFunc::VertexVectorRangeSearch(RTContext *ctx, const cypher::Record *r
         throw lgraph::ReminderException("radius is required for vector range search");
     }
     CYPHER_ARG_CHECK((radius > 0), "radius must be greater than 0");
-    int ef_search = 200;
-    if (parameter.count("hnsw_ef_search")) {
-        ef_search = parameter.at("hnsw_ef_search").AsInt64();
-    }
-    CYPHER_ARG_CHECK((ef_search <= 1000 && ef_search >= 1),
+    int parameter_search = 0;
+    if (index->GetIndexType() == "hnsw") {
+        parameter_search = 200;
+        if (parameter.count("hnsw_ef_search")) {
+            parameter_search = parameter.at("hnsw_ef_search").AsInt64();
+        }
+        CYPHER_ARG_CHECK((parameter_search <= 1000 && parameter_search >= 1),
                      "hnsw.ef_search should be an integer in the range [1, 1000]");
+    } else if (index->GetIndexType() == "ivf_flat") {
+        parameter_search = 8;
+        if (parameter.count("ivf_flat_nprobe")) {
+            parameter_search = parameter.at("ivf_flat_nprobe").AsInt64();
+        }
+        CYPHER_ARG_CHECK((parameter_search <= 1000 && parameter_search >= 1),
+            "ivf_flat.nprobe should be an integer in the range [1, ivf_flat.nlist]");
+    } else {
+        throw lgraph::IndexNotExistException(label, field);
+    }
     int limit = -1;
     if (parameter.count("limit")) {
         limit = parameter.at("limit").AsInt64();
     }
     CYPHER_ARG_CHECK((limit != 0), "limit must not be 0");
-    auto res = index->RangeSearch(query_vector, radius, ef_search, limit);
+    auto res = index->RangeSearch(query_vector, radius, parameter_search, limit);
     for (auto& item : res) {
         Record r;
         cypher::Node n;

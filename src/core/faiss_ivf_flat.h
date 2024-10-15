@@ -20,6 +20,7 @@
 #include "faiss/impl/io.h"
 #include "faiss/IndexFlat.h"
 #include "faiss/IndexIVFFlat.h"
+#include "faiss/impl/AuxIndexStructures.h"
 
 namespace lgraph {
 

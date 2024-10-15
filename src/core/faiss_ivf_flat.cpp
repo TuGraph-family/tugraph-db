@@ -95,7 +95,27 @@ IVFFlat::KnnSearch(const std::vector<float>& query, int64_t top_k, int ef_search
 
 std::vector<std::pair<int64_t, float>>
 IVFFlat::RangeSearch(const std::vector<float>& query, float radius, int ef_search, int limit) {
-    THROW_CODE(InputError, "not support range search in faiss ivf_flat");
+    if (query.empty()) {
+        THROW_CODE(InputError, "please check the input");
+    }
+    std::vector<std::pair<int64_t, float>> ret;
+    if (index_->ntotal == 0) {
+        THROW_CODE(InputError, "there is no indexed vector");
+    }
+    index_->nprobe = static_cast<size_t>(ef_search);
+    faiss::RangeSearchResult result(1);
+    index_->range_search(1, query.data(), radius, &result);
+    if (limit != -1) {
+        int64_t max = (static_cast<int64_t>(result.lims[1]) < limit) ?
+                       static_cast<int64_t>(result.lims[1]) : limit;
+        for (int64_t i = 0; i < max; ++i) {
+            ret.emplace_back(result.labels[i], result.distances[i]);
+        } 
+    } else {
+        for (int64_t i = 0; i < static_cast<int64_t>(result.lims[1]); ++i) {
+            ret.emplace_back(result.labels[i], result.distances[i]);
+        }
+    }
+    return ret;
 }
-
 }  // namespace lgraph
