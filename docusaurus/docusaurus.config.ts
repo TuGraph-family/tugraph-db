@@ -1,5 +1,6 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
+import type {Options as DocsOptions} from '@docusaurus/plugin-content-docs';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
@@ -31,8 +32,8 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          path: '../docs',
-          routeBasePath: '/',
+          path: '../docs/zh-CN/source',
+          routeBasePath: 'zh',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
         },
@@ -41,6 +42,21 @@ const config: Config = {
         },
       } satisfies Preset.Options,
     ],
+  ],
+
+  plugins: [
+    [
+      'content-docs',
+      {
+        id: 'en',
+        path: '../docs/en-US/source',
+        routeBasePath: 'en',
+        editCurrentVersion: true,
+        sidebarPath: './sidebars.ts',
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+      } satisfies DocsOptions,
+    ]
   ],
 
   themeConfig: {
