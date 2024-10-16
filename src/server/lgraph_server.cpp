@@ -55,11 +55,11 @@ void crash_handler(int sig) {
     lgraph_log::LoggerManager::GetInstance().FlushAllSinks();
 
     struct sigaction sa{};
-    sigemptyset (&sa.sa_mask);
+    sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sa.sa_handler = SIG_DFL;
-    sigaction (sig, &sa, nullptr);
-    kill(getpid(),sig);
+    sigaction(sig, &sa, nullptr);
+    kill(getpid(), sig);
 }
 
 #ifndef _WIN32
