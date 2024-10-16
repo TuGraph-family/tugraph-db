@@ -97,7 +97,7 @@ $ make package
 
 ## 5. 联系我们
 
-官网: [www.tugraph.org](https://www.tugraph.org)
+官网: [tugraph.tech](https://tugraph.tech)
 
 Slack (在线开发沟通):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
