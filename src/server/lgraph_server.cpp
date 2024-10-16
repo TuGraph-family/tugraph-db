@@ -44,9 +44,22 @@ DECLARE_bool(usercode_in_pthread);
 namespace lgraph {
 static Signal _kill_signal_;
 
-void int_handler(int x) {
-    LOG_INFO() << "!!!!! Received signal " << x << ", exiting... !!!!!";
+void shutdown_handler(int sig) {
+    LOG_WARN() << FMA_FMT("Received signal {}, shutdown", std::string(strsignal(sig)));
+    lgraph_log::LoggerManager::GetInstance().FlushAllSinks();
     _kill_signal_.Notify();
+}
+
+void crash_handler(int sig) {
+    LOG_ERROR() << FMA_FMT("Received signal {}, crash", std::string(strsignal(sig)));
+    lgraph_log::LoggerManager::GetInstance().FlushAllSinks();
+
+    struct sigaction sa{};
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = SIG_DFL;
+    sigaction(sig, &sa, nullptr);
+    kill(getpid(), sig);
 }
 
 #ifndef _WIN32
@@ -54,17 +67,27 @@ void int_handler(int x) {
 #include <cstdio>
 
 static void SetupSignalHandler() {
-    struct sigaction sa {};
-    sa.sa_handler = int_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    int r = sigaction(SIGINT, &sa, nullptr);
-    if (r != 0) {
-        LOG_ERROR() << "Error setting up SIGINT signal handler: " << strerror(errno);
+    {
+        // shutdown
+        struct sigaction sa{};
+        sa.sa_handler = shutdown_handler;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sigaction(SIGINT, &sa, nullptr);
+        sigaction(SIGTERM, &sa, nullptr);
+        sigaction(SIGUSR1, &sa, nullptr);
     }
-    r = sigaction(SIGQUIT, &sa, nullptr);
-    if (r != 0) {
-        LOG_ERROR() << "Error setting up SIGQUIT signal handler: " << strerror(errno);
+    {
+        // crash
+        struct sigaction sa{};
+        sa.sa_handler = crash_handler;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = SA_NODEFER;
+        sigaction(SIGSEGV, &sa, nullptr);
+        sigaction(SIGBUS, &sa, nullptr);
+        sigaction(SIGFPE, &sa, nullptr);
+        sigaction(SIGILL, &sa, nullptr);
+        sigaction(SIGABRT, &sa, nullptr);
     }
 }
 
@@ -167,12 +190,13 @@ int LGraphServer::Start() {
         LOG_INFO() << header.str();
         struct rlimit rlim{};
         getrlimit(RLIMIT_CORE, &rlim);
-        LOG_INFO() << "The maximum limit of core file size is " << rlim.rlim_cur;
+        LOG_INFO() << FMA_FMT("Core dump file limit size, soft limit: {}, hard limit: {}",
+                              rlim.rlim_cur, rlim.rlim_max);
         std::ifstream file("/proc/sys/kernel/core_pattern");
         if (file.is_open()) {
             std::string content((std::istreambuf_iterator<char>(file)),
                                 (std::istreambuf_iterator<char>()));
-            LOG_INFO() << "The path to the core file is " << content;
+            LOG_INFO() << "Core dump file path: " << content;
             file.close();
         }
 
