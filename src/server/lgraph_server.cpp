@@ -39,6 +39,7 @@ namespace brpc {
 DECLARE_bool(usercode_in_pthread);
 }
 #endif
+#include <sys/resource.h>
 
 namespace lgraph {
 static Signal _kill_signal_;
@@ -164,6 +165,16 @@ int LGraphServer::Start() {
                << "Server is configured with the following parameters:\n"
                << config_->FormatAsString();
         LOG_INFO() << header.str();
+        struct rlimit rlim{};
+        getrlimit(RLIMIT_CORE, &rlim);
+        LOG_INFO() << "The maximum limit of core file size is " << rlim.rlim_cur;
+        std::ifstream file("/proc/sys/kernel/core_pattern");
+        if (file.is_open()) {
+            std::string content((std::istreambuf_iterator<char>(file)),
+                                (std::istreambuf_iterator<char>()));
+            LOG_INFO() << "The path to the core file is " << content;
+            file.close();
+        }
 
         // starting audit log
         if (config_->audit_log_dir.empty())
