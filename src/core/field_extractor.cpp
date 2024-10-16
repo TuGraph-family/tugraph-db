@@ -32,7 +32,6 @@ void FieldExtractor::_SetFixedSizeValueRaw(Value& record, const Value& data) con
 void FieldExtractor::SetIsNull(const Value& record, const bool is_null) const {
     if (!def_.optional) {
         if (is_null) throw FieldCannotBeSetNullException(Name());
-        return;
     }
     // set the Kth bit from NullArray
     char* arr = GetNullArray(record);
@@ -81,6 +80,11 @@ size_t FieldExtractor::GetOffsetPosition(const Value& record, const FieldId id) 
     return nullarray_offset_ + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
 }
 void* FieldExtractor::GetFieldPointer(const Value& record) const {
+    if (is_vfield_) {
+        DataOffset var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(
+            record.Data() + GetFieldOffset(record, def_.id));
+        return (char*)record.Data() + sizeof(uint32_t) + var_offset;
+    }
     return (char*)record.Data() + GetFieldOffset(record, def_.id);
 }
 

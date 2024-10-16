@@ -208,7 +208,56 @@ TEST_F(TestSchema, DumpRecord) {
     _detail::FieldExtractor fe_5(*schema.GetFieldExtractor(0));
 }
 
-TEST_F(TestSchema, ParseAndSet) {
-    Value value("value");
+TEST_F(TestSchema, ParseAndSetStringBlob) {
     Schema schema(true);
+    Value value;
+    schema.SetSchema(true, {FieldSpec("name", FieldType::STRING, true, 0)}, "name", "", {}, {});
+    value = schema.CreateEmptyRecord();
+    const _detail::FieldExtractor* extra = schema.GetFieldExtractor("name");
+    schema.ParseAndSet(value, FieldData(), extra);
+    UT_EXPECT_TRUE(extra->GetIsNull(value));
+    schema.ParseAndSet(value, "", extra);
+    UT_EXPECT_TRUE(!extra->GetIsNull(value));
+    UT_EXPECT_TRUE(extra->GetConstRef(value).Empty());
+
+    schema.SetSchema(true, {FieldSpec("name", FieldType::STRING, false, 0)}, "name", "", {}, {});
+    extra = schema.GetFieldExtractor("name");
+    UT_EXPECT_THROW_CODE(schema.ParseAndSet(value, FieldData(), extra), FieldCannotBeSetNull);
+    schema.ParseAndSet(value, "DATA", extra);
+    UT_EXPECT_EQ(extra->GetConstRef(value).AsType<std::string>(), std::string("DATA"));
+    schema.ParseAndSet(value, FieldData("DATA"), extra);
+    UT_EXPECT_TRUE(extra->GetConstRef(value).AsType<std::string>() == "DATA");
+    UT_EXPECT_THROW_CODE(
+        schema.ParseAndSet(value, std::string(_detail::MAX_STRING_SIZE + 1, 'a'), extra),
+        DataSizeTooLarge);
+    UT_EXPECT_THROW_CODE(schema.ParseAndSet(value, FieldData(12), extra), ParseIncompatibleType);
+    std::map<BlobManager::BlobKey, std::string> blob_map;
+    BlobManager::BlobKey curr_key = 0;
+    auto blob_add = [&](const Value& v) {
+        blob_map[curr_key] = v.AsString();
+        return curr_key++;
+    };
+    auto blob_get = [&](const BlobManager::BlobKey& key) { return Value(blob_map[key]); };
+    schema.SetSchema(true, {FieldSpec("blob", FieldType::BLOB, true, 0)}, "blob", "", {}, {});
+    extra = schema.GetFieldExtractor("blob");
+    schema.ParseAndSetBlob(value, FieldData(), blob_add, extra);
+    UT_EXPECT_TRUE(extra->GetIsNull(value));
+    schema.SetSchema(true, {FieldSpec("blob", FieldType::BLOB, false, 0)}, "blob", "", {}, {});
+    UT_EXPECT_THROW_CODE(schema.ParseAndSetBlob(value, FieldData(), blob_add, extra),
+                         FieldCannotBeSetNull);
+
+    schema.ParseAndSetBlob(value, lgraph_api::base64::Encode(std::string(1024, 'a')), blob_add,
+                           extra);
+    std::string read_str = extra->GetBlobConstRef(value, blob_get).AsType<std::string>();
+    std::string decoded =
+        lgraph_api::base64::Decode(lgraph_api::base64::Encode(std::string(1024, 'a')));
+    UT_EXPECT_EQ(read_str, decoded);
+    schema.ParseAndSetBlob(value, FieldData::Blob(std::string(_detail::MAX_STRING_SIZE + 1, 'b')),
+                           blob_add, extra);
+    UT_EXPECT_TRUE(extra->GetBlobConstRef(value, blob_get).AsType<std::string>() ==
+                   FieldData::Blob(std::string(_detail::MAX_STRING_SIZE + 1, 'b')).AsBlob());
+    UT_EXPECT_THROW(schema.ParseAndSetBlob(value, "123", blob_add, extra),
+                    lgraph::ParseStringException);
+    UT_EXPECT_THROW_CODE(schema.ParseAndSetBlob(value, FieldData(10), blob_add, extra),
+                         ParseIncompatibleType);
 }

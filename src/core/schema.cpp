@@ -581,14 +581,14 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
     case FieldType::STRING:
         if (data.type != FieldType::STRING)
             throw ParseIncompatibleTypeException(extractor->Name(), data.type, FieldType::STRING);
-        _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
     case FieldType::BLOB:
         {
             // used in AlterLabel, when copying old blob value to new
             // In this case, the value must already be correctly formatted, so just copy it
             if (data.type != FieldType::BLOB)
                 throw ParseIncompatibleTypeException(extractor->Name(), data.type, FieldType::BLOB);
-            _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
         }
     case FieldType::POINT:
         {
@@ -613,7 +613,7 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
                 throw ParseStringException(extractor->Name(), *data.data.buf,
                                            FieldType::LINESTRING);
 
-            _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
         }
     case FieldType::POLYGON:
         {
@@ -622,7 +622,7 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
             if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
                 throw ParseStringException(extractor->Name(), *data.data.buf, FieldType::POLYGON);
 
-            _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
         }
     case FieldType::SPATIAL:
         {
@@ -640,14 +640,14 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
             if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
                 throw ParseStringException(extractor->Name(), *data.data.buf, FieldType::SPATIAL);
 
-            _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
         }
     case FieldType::FLOAT_VECTOR:
         {
             if (data.type != FieldType::FLOAT_VECTOR)
                 throw ParseFieldDataException(extractor->Name(), data, extractor->Type());
 
-            _SetVariableLengthValue(record, Value::ConstRef(*data.data.vp), extractor);
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.vp), extractor);
         }
     default:
         LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(extractor->Type())
