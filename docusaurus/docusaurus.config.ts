@@ -9,7 +9,7 @@ const config: Config = {
   favicon: 'https://mdn.alipayobjects.com/huamei_qcdryc/afts/img/A*AbamQ5lxv0IAAAAAAAAAAAAADgOBAQ/original',
 
   // Set the production url of your site here
-  url: 'https://github.com/TuGraph-family/tugraph-db',
+  url: 'https://tugraph.tech/',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/tugraph-db/',
