@@ -1,19 +1,19 @@
 {
   "permission": "运维与权限管理",
-  "quality": "测试与质量保障",
   "contributor-manual": "贡献者文档",
+  "quality": "测试与质量保障",
   "best-practices": "最佳实践",
   "introduction": "TuGraph入门",
-  "user-guide": "可视化操作指南",
-  "utility-tools": "实用工具",
-  "installation&running": "安装和运行",
   "quick-start": "快速上手",
-  "query": "查询语言",
   "client-tools": "客户端工具",
+  "user-guide": "可视化操作指南",
+  "installation&running": "安装和运行",
+  "utility-tools": "实用工具",
+  "query": "查询语言",
   "olap&procedure": "存储过程和分析接口",
   "characteristics": "产品特点",
   "demo": "demo示例",
   "procedure": "存储过程",
-  "learn": "图学习",
-  "olap": "分析接口"
+  "olap": "分析接口",
+  "learn": "图学习"
 }

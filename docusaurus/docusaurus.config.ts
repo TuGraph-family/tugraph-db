@@ -52,7 +52,7 @@ const config: Config = {
         path: '../docs/en-US/source',
         routeBasePath: 'en',
         editCurrentVersion: true,
-        sidebarPath: './sidebars.ts',
+        sidebarPath: './sidebarsEn.ts',
         showLastUpdateAuthor: true,
         showLastUpdateTime: true,
       } satisfies DocsOptions,
