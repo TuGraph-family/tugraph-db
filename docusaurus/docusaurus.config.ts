@@ -32,7 +32,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          path: '../docs/zh-CN/source',
+          path: './docs/zh-CN/source',
           routeBasePath: 'zh',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
@@ -49,7 +49,7 @@ const config: Config = {
       'content-docs',
       {
         id: 'en',
-        path: '../docs/en-US/source',
+        path: './docs/en-US/source',
         routeBasePath: 'en',
         editCurrentVersion: true,
         sidebarPath: './sidebarsEn.ts',
@@ -62,6 +62,9 @@ const config: Config = {
   themeConfig: {
     // Replace with your project's social card‘
     image: 'img/docusaurus-social-card.jpg',
+    tableOfContents: {
+      maxHeadingLevel: 5,
+    },
     navbar: {
       logo: {
         alt: 'Tugraph Site Logo',

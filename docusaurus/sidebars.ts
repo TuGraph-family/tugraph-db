@@ -125,9 +125,14 @@ const sidebars: SidebarsConfig = {
         {
           type: 'category',
           label: '存储过程',
+          link: {
+            type: 'doc',
+            id: 'olap&procedure/procedure/procedure',
+          },
           items: [
-            'olap&procedure/procedure/procedure',
             'olap&procedure/procedure/traversal',
+            'olap&procedure/procedure/C++-procedure',
+            'olap&procedure/procedure/Python-procedure',
             'olap&procedure/procedure/Rust-procedure'
           ]
         },
