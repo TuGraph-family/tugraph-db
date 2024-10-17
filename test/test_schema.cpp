@@ -261,3 +261,22 @@ TEST_F(TestSchema, ParseAndSetStringBlob) {
     UT_EXPECT_THROW_CODE(schema.ParseAndSetBlob(value, FieldData(10), blob_add, extra),
                          ParseIncompatibleType);
 }
+template <typename T>
+void SetAndCheckData(T data, int ind, Schema& schema, Value& value) {
+    schema.SetField(value, ind, data);
+    [&]() { };
+    UT_EXPECT_EQ(schema.GetField(value, ind, []()->{}), data);
+
+}
+
+
+TEST_F(TestSchema, TestParseAndSetBase) {
+    std::vector<FieldSpec> field_vec;
+    for (int i = 1; i <= 16; i++) {
+        field_vec.push_back(FieldSpec(lgraph_api::to_string((FieldType)i), (FieldType)i, false, i));
+    }
+    Schema schema(true);
+    schema.SetSchema(true, field_vec, "INT64", "", {}, {});
+    Value value = schema.CreateEmptyRecord();
+
+}
