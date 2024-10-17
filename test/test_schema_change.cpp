@@ -56,9 +56,9 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     UT_EXPECT_TRUE(lg.AddLabel(
         "person",
         std::vector<FieldSpec>(
-            {FieldSpec("id", FieldType::INT32, false), FieldSpec("name", FieldType::STRING, false),
-             FieldSpec("age", FieldType::FLOAT, true), FieldSpec("img", FieldType::BLOB, true),
-             FieldSpec("desc", FieldType::STRING, true), FieldSpec("img2", FieldType::BLOB, true)}),
+            {FieldSpec("id", FieldType::INT32, false, 0), FieldSpec("name", FieldType::STRING, false, 1),
+             FieldSpec("age", FieldType::FLOAT, true, 2), FieldSpec("img", FieldType::BLOB, true, 3),
+             FieldSpec("desc", FieldType::STRING, true, 4), FieldSpec("img2", FieldType::BLOB, true, 5)}),
         true, vo));
     lg.BlockingAddIndex("person", "name", lgraph::IndexType::NonuniqueIndex, true);
     lg.BlockingAddIndex("person", "age", lgraph::IndexType::NonuniqueIndex, true);
@@ -67,8 +67,8 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
     options.detach_property = detach_property;
     UT_EXPECT_TRUE(lg.AddLabel("knows",
-                               std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
-                                                       FieldSpec("ts", FieldType::INT64, true)}),
+                               std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true, 0),
+                                                       FieldSpec("ts", FieldType::INT64, true, 1)}),
                                false, options));
     lg.BlockingAddIndex("knows", "weight", lgraph::IndexType::NonuniqueIndex, false);
     auto txn = lg.CreateWriteTxn();
@@ -134,17 +134,17 @@ TEST_P(TestSchemaChange, ModifyFields) {
     s1.SetSchema(
         true,
         std::vector<FieldSpec>(
-            {FieldSpec("id", FieldType::INT32, false), FieldSpec("id2", FieldType::INT32, false),
-             FieldSpec("name1", FieldType::STRING, true),
-             FieldSpec("name2", FieldType::STRING, true), FieldSpec("blob", FieldType::BLOB, true),
-             FieldSpec("age", FieldType::FLOAT, false)}),
+            {FieldSpec("id", FieldType::INT32, false, 0), FieldSpec("id2", FieldType::INT32, false, 1),
+             FieldSpec("name1", FieldType::STRING, true, 2),
+             FieldSpec("name2", FieldType::STRING, true, 3), FieldSpec("blob", FieldType::BLOB, true, 4),
+             FieldSpec("age", FieldType::FLOAT, false, 5)}),
         "id", "", {}, {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
     {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("id3", FieldType::INT32, false)}));
         UT_EXPECT_TRUE(s2.GetFieldExtractor("id3")->GetFieldSpec() ==
-                       FieldSpec("id3", FieldType::INT32, false));
+                       FieldSpec("id3", FieldType::INT32, false, 6));
         auto fmap = s2.GetFieldSpecsAsMap();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
         fmap.erase("id3");
@@ -188,9 +188,9 @@ TEST_P(TestSchemaChange, ModifyFields) {
     }
     {
         Schema s2(s1);
-        std::vector<FieldSpec> mod = {FieldSpec("id", FieldType::INT64, false),
-                                      FieldSpec("name1", FieldType::STRING, false),
-                                      FieldSpec("blob", FieldType::STRING, false)};
+        std::vector<FieldSpec> mod = {FieldSpec("id", FieldType::INT64, false, 0),
+                                      FieldSpec("name1", FieldType::STRING, false, 1),
+                                      FieldSpec("blob", FieldType::STRING, false, 2)};
         s2.ModFields(mod);
         UT_EXPECT_TRUE(!s2.HasBlob());
         auto fmap = s2.GetFieldSpecsAsMap();
@@ -568,12 +568,12 @@ TEST_P(TestSchemaChange, DelLabel) {
     {
         Schema s1;
         s1.SetSchema(true,
-                     std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false),
-                                             FieldSpec("id2", FieldType::INT32, false),
-                                             FieldSpec("name1", FieldType::STRING, true),
-                                             FieldSpec("name2", FieldType::STRING, true),
-                                             FieldSpec("blob", FieldType::BLOB, true),
-                                             FieldSpec("age", FieldType::FLOAT, false)}),
+                     std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false, 0),
+                                             FieldSpec("id2", FieldType::INT32, false, 1),
+                                             FieldSpec("name1", FieldType::STRING, true, 2),
+                                             FieldSpec("name2", FieldType::STRING, true, 3),
+                                             FieldSpec("blob", FieldType::BLOB, true, 4),
+                                             FieldSpec("age", FieldType::FLOAT, false, 5)}),
                      "id", "", {}, {});
         UT_EXPECT_THROW_CODE(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SKIP", FieldType::STRING, false)})),

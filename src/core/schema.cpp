@@ -1107,6 +1107,7 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
     // just do logical delettion.
     for (size_t del_id : del_ids) {
         fields_[del_id].MarkDeleted();
+        blob_fields_.erase(std::remove(blob_fields_.begin(), blob_fields_.end(), del_id), blob_fields_.end());
     }
 }
 
@@ -1124,6 +1125,7 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
         if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end()))
             throw FieldAlreadyExistsException(f.name);
         fields_.push_back(_detail::FieldExtractor(f, fields_.size()));
+        name_to_idx_[f.name] = fields_.size() - 1;
     }
     lgraph::CheckValidFieldNum(fields_.size());
 }

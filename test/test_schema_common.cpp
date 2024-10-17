@@ -31,10 +31,10 @@ TEST_F(TestSchemaCommon, SchemaCommon) {
         auto txn = store->CreateWriteTxn();
         auto tbl = SchemaManager::OpenTable(*txn, *store, "v_schema");
         SchemaManager manager(*txn, std::move(tbl), true);
-        std::vector<FieldSpec> student_fds{{"name", FieldType::STRING, false},
-                                           {"id", FieldType::STRING, false},
-                                           {"gender", FieldType::INT8, true},
-                                           {"age", FieldType::INT8, true}};
+        std::vector<FieldSpec> student_fds{{"name", FieldType::STRING, false, 0},
+                                           {"id", FieldType::STRING, false, 1},
+                                           {"gender", FieldType::INT8, true, 2},
+                                           {"age", FieldType::INT8, true, 3}};
         UT_EXPECT_TRUE(manager.AddLabel(*txn, true, "student", student_fds.size(),
                                         student_fds.data(), VertexOptions("id")));
         auto lid = manager.GetLabelId("student");
@@ -60,10 +60,10 @@ TEST_F(TestSchemaCommon, SchemaCommon) {
                 }
             },
             std::exception);
-        std::vector<FieldSpec> teacher_fds{{"name", FieldType::STRING, false},
-                                           {"id", FieldType::STRING, false},
-                                           {"class", FieldType::INT8, true},
-                                           {"score", FieldType::FLOAT, true}};
+        std::vector<FieldSpec> teacher_fds{{"name", FieldType::STRING, false, 0},
+                                           {"id", FieldType::STRING, false, 1},
+                                           {"class", FieldType::INT8, true, 2},
+                                           {"score", FieldType::FLOAT, true, 3}};
         UT_EXPECT_TRUE(manager.AddLabel(*txn, true, "teacher", teacher_fds.size(),
                                         teacher_fds.data(), VertexOptions("id")));
         txn->Commit();
