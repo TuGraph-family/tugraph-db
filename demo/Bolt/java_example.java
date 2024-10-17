@@ -10,7 +10,7 @@ public class Example {
         Driver driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("admin", "73@TuGraph"));
         Session session = driver.session(SessionConfig.forDatabase("default"));
         session.run("CALL db.dropDB()");
-        session.run("CALL db.createVertexLabel('person', 'id' , 'id' ,INT32, false, 'name' ,STRING, false)");
+        session.run("CALL db.createVertexLabel('person', 'id' , 'id' ,'INT32', false, 'name', 'STRING', false)");
         session.run("CALL db.createEdgeLabel('is_friend','[[\"person\",\"person\"]]')");
         session.run("create (n1:person {name:'jack',id:1}), (n2:person {name:'lucy',id:2})");
         session.run("match (n1:person {id:1}), (n2:person {id:2}) create (n1)-[r:is_friend]->(n2)");
