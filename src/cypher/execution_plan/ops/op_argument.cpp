@@ -25,7 +25,9 @@ Argument::Argument(const SymbolTable *sym_tab)
     : OpBase(OpType::ARGUMENT, "Argument"), sym_tab_(sym_tab) {
     std::map<size_t, std::pair<std::string, SymbolNode::Type>> ordered_alias;
     for (auto &a : sym_tab->symbols) {
-        if (a.second.scope == SymbolNode::ARGUMENT) {
+        // WITH [$1, $2, $3] AS coll RETURN size(coll)
+        // Should ignore the query params in symbole table
+        if (a.second.scope == SymbolNode::ARGUMENT && a.second.type != SymbolNode::PARAMETER) {
             ordered_alias.emplace(a.second.id, std::make_pair(a.first, a.second.type));
         }
     }

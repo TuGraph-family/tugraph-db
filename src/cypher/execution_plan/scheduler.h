@@ -28,7 +28,8 @@
 
 #include "execution_plan/execution_plan.h"
 #include "execution_plan/runtime_context.h"
-#include "cypher/execution_plan/lru_cache.h"
+#include "execution_plan/plan_cache/plan_cache.h"
+
 
 namespace lgraph {
 class StateMachine;
@@ -63,5 +64,7 @@ class Scheduler {
 
     static bool DetermineGqlReadOnly(cypher::RTContext *ctx, const std::string &script,
                                      std::string &name, std::string &type);
+
+    ASTCache plan_cache_;
 };
 }  // namespace cypher
