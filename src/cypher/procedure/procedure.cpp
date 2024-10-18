@@ -2241,6 +2241,7 @@ void BuiltinProcedure::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *rec
             if (vi) {
                 property["index"] = true;
                 property["unique"] = vi->IsUnique();
+                property["pair_unique"] = vi->IsPairUnique();
             }
             edge["properties"].push_back(property);
         }

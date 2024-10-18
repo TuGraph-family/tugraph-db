@@ -281,20 +281,6 @@ void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, con
     }
 }
 
-bool Schema::EdgeUniqueIndexConflict(KvTransaction& txn, const Value& record) {
-    for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        if (!index->IsUnique()) continue;
-        if (fe.GetIsNull(record)) continue;
-        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                             std::vector<size_t>& created) {
     created.reserve(fields_.size());
