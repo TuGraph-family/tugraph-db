@@ -7,7 +7,7 @@ CALL db.addVertexVectorIndex('person','embedding2', {dimension:4});
 CALL db.addVertexVectorIndex('person','name', {dimension:4});
 [VectorIndexException] Only FLOAT_VECTOR type supports vector index
 CALL db.showVertexVectorIndex();
-[{"dimension":4,"distance_type":"l2","field_name":"embedding1","hnsm.ef_construction":100,"hnsm.m":16,"index_type":"hnsw","label_name":"person"},{"dimension":4,"distance_type":"l2","field_name":"embedding2","hnsm.ef_construction":100,"hnsm.m":16,"index_type":"hnsw","label_name":"person"}]
+[{"dimension":4,"distance_type":"l2","field_name":"embedding1","hnsw.ef_construction":100,"hnsw.m":16,"index_type":"hnsw","label_name":"person"},{"dimension":4,"distance_type":"l2","field_name":"embedding2","hnsw.ef_construction":100,"hnsw.m":16,"index_type":"hnsw","label_name":"person"}]
 CREATE (n:person {id:1, name:'name1', embedding1: [1.0,1.0,1.0,1.0], embedding2: [11.0,11.0,11.0,11.0]});
 [{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
 CREATE (n:person {id:2, name:'name2', embedding1: [2.0,2.0,2.0,2.0], embedding2: [12.0,12.0,12.0,12.0]});
@@ -35,7 +35,7 @@ CALL db.vertexVectorRangeSearch('person','embedding1', [1.0,2.0,3.0,4.0], {radiu
 CALL db.alterLabelDelFields('vertex', 'person', ['embedding1']);
 [{"record_affected":3}]
 CALL db.showVertexVectorIndex();
-[{"dimension":4,"distance_type":"l2","field_name":"embedding2","hnsm.ef_construction":100,"hnsm.m":16,"index_type":"hnsw","label_name":"person"}]
+[{"dimension":4,"distance_type":"l2","field_name":"embedding2","hnsw.ef_construction":100,"hnsw.m":16,"index_type":"hnsw","label_name":"person"}]
 CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
 [FieldNotFound] Field [embedding1] does not exist.
 CALL db.vertexVectorKnnSearch('person','embedding2',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
