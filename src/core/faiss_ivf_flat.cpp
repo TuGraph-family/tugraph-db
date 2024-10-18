@@ -29,6 +29,7 @@ IVFFlat::IVFFlat(const std::string& label, const std::string& name,
 // add vector to index
 void IVFFlat::Add(const std::vector<std::vector<float>>& vectors,
                   const std::vector<int64_t>& vids, int64_t num_vectors) {
+    if (num_vectors == 0) return;
     // reduce dimension
     std::vector<float> index_vectors;
     index_vectors.reserve(num_vectors * vec_dimension_);
