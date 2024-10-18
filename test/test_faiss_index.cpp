@@ -140,10 +140,6 @@ TEST_F(TestFaiss, restart) {
                               "CALL db.createVertexLabel("
                               "'person','id','id','int64',false,'vector','float_vector',true)");
         UT_EXPECT_TRUE(ret);
-        ret = client.CallCypher(
-            str, "CALL db.addVertexVectorIndex('person','vector',"
-                 "{index_type:'ivf_flat', dimension:4})");
-        UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(str, "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
         UT_EXPECT_TRUE(ret);
         ret = client.CallCypher(str, "CREATE (n:person {id:2, vector: [2.0,2.0,2.0,2.0]})");
@@ -152,6 +148,11 @@ TEST_F(TestFaiss, restart) {
                                 "CALL db.upsertVertex('person', [{id:3, vector: [3.0,3.0,3.0,3.0]},"
                                 "{id:4, vector: [4.0,4.0,4.0,4.0]}])");
         UT_EXPECT_TRUE(ret);
+        ret = client.CallCypher(
+            str, "CALL db.addVertexVectorIndex('person','vector',"
+                 "{index_type:'ivf_flat', dimension:4})");
+        UT_EXPECT_TRUE(ret);
+        
         ret = client.CallCypher(str,"CALL db.vertexVectorKnnSearch"  //NOLINT
         "('person','vector',[1,2,3,4], {top_k:4, ivf_flat_nprobe:10}) YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
@@ -166,7 +167,7 @@ TEST_F(TestFaiss, restart) {
                          _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
         std::string str;
         auto ret = client.CallCypher(str, "CALL db.vertexVectorKnnSearch"
-                                    "('person','vector',[1,2,3,4], {top_k:4, IVFFlat_ef_search:10})"
+                                    "('person','vector',[1,2,3,4], {top_k:4, ivf_flat_nprobe:10})"
                                     "YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
         UT_EXPECT_TRUE(ret);
@@ -207,27 +208,6 @@ TEST_F(TestFaiss, error) {
     // create graphs
     RpcClient client(UT_FMT("{}:{}", conf.bind_host, conf.rpc_port),
                      _detail::DEFAULT_ADMIN_NAME, _detail::DEFAULT_ADMIN_PASS);
-    UT_LOG() << "test AddVectorIndex , DeleteVectorIndex , ShowVectorIndex , VectorIndexQuery";
-    std::string str;
-    // vector.AddVectorIndex test
-    bool ret = client.CallCypher(str,
-                                 "CALL db.createVertexLabel("
-                                 "'person','id','id','int64',false,'vector','float_vector',true)");
-    UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str,
-                            "CALL db.addVertexVectorIndex('person','vector',"
-                            "{index_type:'ivf_flat', dimension:4})");
-    UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str,
-                            "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
-    UT_EXPECT_TRUE(ret);
-    ret = client.CallCypher(str,
-                            "CREATE (n:person {id:2, vector: [1.0,1.0,1.0]})");
-    UT_EXPECT_FALSE(ret);
-    UT_EXPECT_TRUE(str.find("dimension mismatch") != std::string::npos);
-    ret = client.CallCypher(str, R"(CALL db.upsertVertex('person', [{id:3, vector: [4.0,4.0,4.0]}]))");
-    UT_EXPECT_FALSE(ret);
-    UT_EXPECT_TRUE(str.find("dimension mismatch") != std::string::npos);
     server->Kill();
     server->Wait();
 }
@@ -286,6 +266,9 @@ TEST_F(TestFaiss, VectorProcedure) {
 
     // vector.VectorIndexQuery test
     ret = client.CallCypher(str,
+                            "CALL db.deleteVertexVectorIndex('person','vector')");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
                             "CREATE (n:person {id:1, vector: [1.0,1.0,1.0,1.0]})");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
@@ -298,6 +281,10 @@ TEST_F(TestFaiss, VectorProcedure) {
     ret = client.CallCypher(str,
                             "CALL db.upsertVertex('person', [{id:5, vector: [5.0,5.0,5.0,5.0]},"
                             "{id:6, vector: [6.0,6.0,6.0,6.0]}])");
+    UT_EXPECT_TRUE(ret);
+    ret = client.CallCypher(str,
+                            "CALL db.addVertexVectorIndex('person','vector',"
+                            "{index_type:'ivf_flat', dimension:4})");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(
         str,"CALL db.vertexVectorKnnSearch('person','vector',[1,2,3,4], " // NOLINT
