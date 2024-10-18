@@ -39,6 +39,7 @@ class NodeByLabelScan;
 class NodeByLabelScanDynamic;
 class NodeIndexSeek;
 class NodeIndexSeekDynamic;
+class NodeIndexSeekByRange;
 class Optional;
 class ProduceResults;
 class Project;
@@ -88,6 +89,7 @@ class Visitor {
     virtual void Visit(const NodeByLabelScanDynamic &op) = 0;
     virtual void Visit(const NodeIndexSeek &op) = 0;
     virtual void Visit(const NodeIndexSeekDynamic &op) = 0;
+    virtual void Visit(const NodeIndexSeekByRange &op) = 0;
     virtual void Visit(const Optional &op) = 0;
     virtual void Visit(const ProduceResults &op) = 0;
     virtual void Visit(const Project &op) = 0;
