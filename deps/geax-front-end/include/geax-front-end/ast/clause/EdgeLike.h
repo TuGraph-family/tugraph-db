@@ -26,7 +26,7 @@ namespace frontend {
 class EdgeLike : public AstNode {
 public:
     explicit EdgeLike(AstNodeType type) : AstNode(type) {}
-    ~EdgeLike() = default;
+    virtual ~EdgeLike() = default;
 };
 
 }  // namespace frontend

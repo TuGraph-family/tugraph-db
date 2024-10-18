@@ -26,7 +26,7 @@ namespace frontend {
 class LabelTree : public AstNode {
 public:
     explicit LabelTree(AstNodeType type) : AstNode(type) {}
-    ~LabelTree() = default;
+    virtual ~LabelTree() = default;
 
     friend bool operator==(const LabelTree& lhs, const LabelTree& rhs) {
         return lhs.type() == rhs.type() && lhs.equals(rhs);

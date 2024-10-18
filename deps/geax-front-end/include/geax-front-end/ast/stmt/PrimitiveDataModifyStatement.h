@@ -26,7 +26,7 @@ namespace frontend {
 class PrimitiveDataModifyStatement : public AstNode {
 public:
     explicit PrimitiveDataModifyStatement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~PrimitiveDataModifyStatement() = default;
+    virtual ~PrimitiveDataModifyStatement() = default;
 };  // class PrimitiveDataModifyStatement
 
 }  // namespace frontend
