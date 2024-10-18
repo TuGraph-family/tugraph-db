@@ -148,9 +148,8 @@ TEST_F(TestFaiss, restart) {
                                 "CALL db.upsertVertex('person', [{id:3, vector: [3.0,3.0,3.0,3.0]},"
                                 "{id:4, vector: [4.0,4.0,4.0,4.0]}])");
         UT_EXPECT_TRUE(ret);
-        ret = client.CallCypher(
-            str, "CALL db.addVertexVectorIndex('person','vector',"
-                 "{index_type:'ivf_flat', dimension:4})");
+        ret = client.CallCypher(str,
+        "CALL db.addVertexVectorIndex('person','vector', {index_type:'ivf_flat', dimension:4})");
         UT_EXPECT_TRUE(ret);
 
         ret = client.CallCypher(str,"CALL db.vertexVectorKnnSearch"  //NOLINT
@@ -237,8 +236,7 @@ TEST_F(TestFaiss, VectorProcedure) {
                                  "'person','id','id','int64',false,'vector','float_vector',true)");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-                            "CALL db.addVertexVectorIndex('person','vector',"
-                            "{index_type:'ivf_flat', dimension:4})");
+        "CALL db.addVertexVectorIndex('person','vector', {index_type:'ivf_flat', dimension:4})");
     UT_EXPECT_TRUE(ret);
 
     // vector.ShowVectorIndex test
@@ -254,8 +252,7 @@ TEST_F(TestFaiss, VectorProcedure) {
                             "CALL db.deleteVertexVectorIndex('person','vector')");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
-                            "CALL db.addVertexVectorIndex('person','vector',"
-                            "{index_type:'ivf_flat', dimension:4})");
+        "CALL db.addVertexVectorIndex('person','vector', {index_type:'ivf_flat', dimension:4})");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL db.showVertexVectorIndex()");
