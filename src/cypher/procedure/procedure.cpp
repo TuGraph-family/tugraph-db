@@ -4205,7 +4205,7 @@ void VectorFunc::AddVertexVectorIndex(RTContext *ctx, const cypher::Record *reco
                      "hnsw.efConstruction should be an integer in the range [hnsw.m,1000]");
         index_spec = {hnsw_m, hnsw_ef_construction};
     } else if (index_type == "ivf_flat") {
-        int ivf_flat_nlist = 128;
+        int ivf_flat_nlist = 1;
         if (parameter.count("ivf_flat_nlist")) {
             ivf_flat_nlist = (int)parameter.at("ivf_flat_nlist").AsInt64();
         }
@@ -4334,7 +4334,7 @@ void VectorFunc::VertexVectorKnnSearch(RTContext *ctx, const cypher::Record *rec
         CYPHER_ARG_CHECK((parameter_search <= 1000 && parameter_search >= 1),
                      "hnsw.ef_search should be an integer in the range [1, 1000]");
     } else if (index->GetIndexType() == "ivf_flat") {
-        parameter_search = 8;
+        parameter_search = 1;
         if (parameter.count("ivf_flat_nprobe")) {
             parameter_search = parameter.at("ivf_flat_nprobe").AsInt64();
         }
