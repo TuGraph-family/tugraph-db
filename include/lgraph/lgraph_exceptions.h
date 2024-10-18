@@ -42,6 +42,7 @@ X(FieldAlreadyExists, "Field already exists.") \
 X(FieldCannotBeNullType, "Field cannot be null type.") \
 X(FieldCannotBeDeleted, "Field cannot be deleted.") \
 X(FieldCannotBeSetNull, "Field cannot be set null.") \
+X(FieldIdConflict, "Field id conflicts with other filed") \
 X(ParseStringException, "Parse string exception.") \
 X(ParseIncompatibleType, "Parse incompatible type.") \
 X(ParseFieldDataException, "Parse field data exception.") \

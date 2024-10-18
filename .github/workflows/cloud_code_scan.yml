@@ -12,4 +12,3 @@ jobs:
         with:
           parent_uid: ${{ secrets.ALI_PID }}
           private_key: ${{ secrets.ALI_PK }}
-

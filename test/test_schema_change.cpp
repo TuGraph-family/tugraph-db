@@ -56,9 +56,9 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     UT_EXPECT_TRUE(lg.AddLabel(
         "person",
         std::vector<FieldSpec>(
-            {FieldSpec("id", FieldType::INT32, false), FieldSpec("name", FieldType::STRING, false),
-             FieldSpec("age", FieldType::FLOAT, true), FieldSpec("img", FieldType::BLOB, true),
-             FieldSpec("desc", FieldType::STRING, true), FieldSpec("img2", FieldType::BLOB, true)}),
+            {FieldSpec("id", FieldType::INT32, false, 0), FieldSpec("name", FieldType::STRING, false, 1),
+             FieldSpec("age", FieldType::FLOAT, true, 2), FieldSpec("img", FieldType::BLOB, true, 3),
+             FieldSpec("desc", FieldType::STRING, true, 4), FieldSpec("img2", FieldType::BLOB, true, 5)}),
         true, vo));
     lg.BlockingAddIndex("person", "name", lgraph::IndexType::NonuniqueIndex, true);
     lg.BlockingAddIndex("person", "age", lgraph::IndexType::NonuniqueIndex, true);
@@ -67,8 +67,8 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
     options.detach_property = detach_property;
     UT_EXPECT_TRUE(lg.AddLabel("knows",
-                               std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
-                                                       FieldSpec("ts", FieldType::INT64, true)}),
+                               std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true, 0),
+                                                       FieldSpec("ts", FieldType::INT64, true, 1)}),
                                false, options));
     lg.BlockingAddIndex("knows", "weight", lgraph::IndexType::NonuniqueIndex, false);
     auto txn = lg.CreateWriteTxn();
@@ -134,17 +134,17 @@ TEST_P(TestSchemaChange, ModifyFields) {
     s1.SetSchema(
         true,
         std::vector<FieldSpec>(
-            {FieldSpec("id", FieldType::INT32, false), FieldSpec("id2", FieldType::INT32, false),
-             FieldSpec("name1", FieldType::STRING, true),
-             FieldSpec("name2", FieldType::STRING, true), FieldSpec("blob", FieldType::BLOB, true),
-             FieldSpec("age", FieldType::FLOAT, false)}),
+            {FieldSpec("id", FieldType::INT32, false, 0), FieldSpec("id2", FieldType::INT32, false, 1),
+             FieldSpec("name1", FieldType::STRING, true, 2),
+             FieldSpec("name2", FieldType::STRING, true, 3), FieldSpec("blob", FieldType::BLOB, true, 4),
+             FieldSpec("age", FieldType::FLOAT, false, 5)}),
         "id", "", {}, {});
     std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
     {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("id3", FieldType::INT32, false)}));
         UT_EXPECT_TRUE(s2.GetFieldExtractor("id3")->GetFieldSpec() ==
-                       FieldSpec("id3", FieldType::INT32, false));
+                       FieldSpec("id3", FieldType::INT32, false, 6));
         auto fmap = s2.GetFieldSpecsAsMap();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
         fmap.erase("id3");
@@ -235,10 +235,14 @@ TEST_P(TestSchemaChange, DelFields) {
     auto orig_e_schema = GetCurrSchema(dir, false);
     {
         LightningGraph graph(conf);
-        size_t n_changed = 0;
+        auto txn = graph.CreateReadTxn();
         UT_EXPECT_TRUE(graph.AlterLabelDelFields("person", std::vector<std::string>({"age", "img"}),
-                                                 true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 2);
+                                                 true));
+        auto fields_map = txn.GetSchemaAsMap(true, std::string("person"));
+        UT_EXPECT_EQ(fields_map.size(), 4);
+        UT_EXPECT_TRUE(fields_map.find("age") == fields_map.end());
+        UT_EXPECT_TRUE(fields_map.find("img") == fields_map.end());
+
     }
     {
         LightningGraph graph(conf);
@@ -277,18 +281,19 @@ TEST_P(TestSchemaChange, DelFields) {
     }
     {
         LightningGraph graph(conf);
-        size_t n_changed = 0;
+        auto txn = graph.CreateReadTxn();
         UT_EXPECT_TRUE(graph.AlterLabelDelFields("knows", std::vector<std::string>({"weight"}),
-                                                 false, &n_changed));
-        UT_EXPECT_EQ(n_changed, 4);
+                                                 false));
+        auto fields_map = txn.GetSchemaAsMap(false, std::string("knows"));
+        UT_EXPECT_EQ(fields_map.size(), 1);
+        UT_EXPECT_TRUE(fields_map.find("weight") == fields_map.end());
+
     }
     {
         LightningGraph graph(conf);
-        size_t n_changed = 0;
         UT_EXPECT_THROW(
-            graph.AlterLabelDelFields("knows", std::vector<std::string>({"ts"}), false, &n_changed),
+            graph.AlterLabelDelFields("knows", std::vector<std::string>({"ts"}), false),
             lgraph::FieldCannotBeDeletedException);
-        UT_EXPECT_EQ(n_changed, 0);
     }
     {
         auto schema = GetCurrSchema(dir, false);
@@ -317,43 +322,35 @@ TEST_P(TestSchemaChange, ModData) {
     auto orig_e_schema = GetCurrSchema(dir, false);
     {
         LightningGraph graph(conf);
-        size_t n_changed = 0;
         UT_EXPECT_TRUE(!graph.AlterLabelModFields(
             "no_such_label", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}),
-            true, &n_changed));
+            true));
         UT_EXPECT_THROW_CODE(
             graph.AlterLabelModFields(
                 "person",
-                std::vector<FieldSpec>({FieldSpec("no_such_field", FieldType::STRING, true)}), true,
-                &n_changed),
+                std::vector<FieldSpec>({FieldSpec("no_such_field", FieldType::STRING, true)}), true),
             FieldNotFound);
         UT_EXPECT_THROW_CODE(
             graph.AlterLabelModFields(
-                "person", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}), true,
-                &n_changed),
+                "person", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}), true),
             InputError);  // blob cannot be converted to other types
         UT_EXPECT_THROW_CODE(
             graph.AlterLabelModFields(
-                "person", std::vector<FieldSpec>({FieldSpec("age", FieldType::STRING, true)}), true,
-                &n_changed),
+                "person", std::vector<FieldSpec>({FieldSpec("age", FieldType::STRING, true)}), true),
             ParseIncompatibleType);  // cannot convert float to string
     }
     {
         LightningGraph graph(conf);
-        size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelModFields(
             "person",
             std::vector<FieldSpec>({FieldSpec("age", FieldType::INT16, false),
                                     FieldSpec("desc", FieldType::BLOB, true)}),
-            true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 2);
+            true));
         UT_EXPECT_TRUE(graph.AlterLabelModFields(
-            "knows", std::vector<FieldSpec>({FieldSpec("weight", FieldType::DOUBLE, true)}), false,
-            &n_changed));
-        UT_EXPECT_EQ(n_changed, 4);
+            "knows", std::vector<FieldSpec>({FieldSpec("weight", FieldType::DOUBLE, true)}), false));
     }
-    orig_v_schema["age"] = FieldSpec("age", FieldType::INT16, false);
-    orig_v_schema["desc"] = FieldSpec("desc", FieldType::BLOB, true);
+    orig_v_schema["age"] = FieldSpec("age", FieldType::INT16, false, 2);
+    orig_v_schema["desc"] = FieldSpec("desc", FieldType::BLOB, true, 4);
     orig_e_schema["weight"].type = FieldType::DOUBLE;
     {
         auto curr_v_schema = GetCurrSchema(dir, true);
@@ -423,13 +420,12 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
         CreateLargeSampleDB(dir, GetParam());
         {
             LightningGraph graph(conf);
-            size_t n_changed = 0;
             // Test issue 85, Error: Nested transaction is forbidden
             UT_EXPECT_TRUE(graph.AlterLabelModFields(
                 "large",
                 std::vector<FieldSpec>({FieldSpec("name", FieldType::STRING, false),
                                         FieldSpec("number", FieldType::INT32, true)}),
-                true, &n_changed));
+                true));
         }
     }
 
@@ -441,43 +437,39 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
         auto orig_e_schema = GetCurrSchema(dir, false);
         {
             LightningGraph graph(conf);
-            size_t n_changed = 0;
             UT_EXPECT_TRUE(!graph.AlterLabelAddFields(
                 "no_such_label",
                 std::vector<FieldSpec>({FieldSpec("img3", FieldType::STRING, true)}),
-                std::vector<FieldData>({FieldData()}), true, &n_changed));
+                std::vector<FieldData>({FieldData()}), true));
             UT_EXPECT_THROW_CODE(
                 graph.AlterLabelAddFields(
                     "person",
                     std::vector<FieldSpec>({FieldSpec("some_field", FieldType::STRING, true)}),
-                    std::vector<FieldData>(), true, &n_changed),
+                    std::vector<FieldData>(), true),
                 InputError);  // # field and default_values does not match
             UT_EXPECT_THROW_CODE(
                 graph.AlterLabelAddFields(
                     "person", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}),
-                    std::vector<FieldData>({FieldData(FieldData())}), true, &n_changed),
+                    std::vector<FieldData>({FieldData(FieldData())}), true),
                 FieldAlreadyExists);  // field already exists
             UT_EXPECT_THROW_CODE(
                 graph.AlterLabelAddFields(
                     "person",
                     std::vector<FieldSpec>({FieldSpec("string_field", FieldType::STRING, true)}),
-                    std::vector<FieldData>({FieldData(123)}), true, &n_changed),
+                    std::vector<FieldData>({FieldData(123)}), true),
                 ParseIncompatibleType);  // cannot convert 123 to string
         }
         {
             LightningGraph graph(conf);
-            size_t n_changed = 0;
             UT_EXPECT_TRUE(graph.AlterLabelAddFields(
                 "person",
                 std::vector<FieldSpec>({FieldSpec("income", FieldType::INT64, true),
                                         FieldSpec("addr", FieldType::STRING, true)}),
-                std::vector<FieldData>({FieldData::Int64(100), FieldData()}), true, &n_changed));
-            UT_EXPECT_EQ(n_changed, 2);
+                std::vector<FieldData>({FieldData::Int64(100), FieldData()}), true));
             UT_EXPECT_TRUE(graph.AlterLabelAddFields(
                 "knows", std::vector<FieldSpec>({FieldSpec("since", FieldType::DATE, true)}),
                 std::vector<FieldData>({FieldData::DateTime("2020-01-01 00:00:01")}), false,
                 &n_changed));
-            UT_EXPECT_EQ(n_changed, 4);
         }
         orig_v_schema["income"] = FieldSpec("income", FieldType::INT64, true);
         orig_v_schema["addr"] = FieldSpec("addr", FieldType::STRING, true);
@@ -539,12 +531,9 @@ TEST_P(TestSchemaChange, DelLabel) {
         auto db = galaxy.OpenGraph("default");
         size_t nv, ne;
         ScanGraph(db, nv, ne);
-        size_t n_changed = 0;
-        UT_EXPECT_TRUE(db.DeleteVertexLabel("Person", &n_changed));
-        UT_EXPECT_EQ(n_changed, 13);
+        UT_EXPECT_TRUE(db.DeleteVertexLabel("Person"));
         size_t nv_now, ne_now;
         ScanGraph(db, nv_now, ne_now);
-        UT_EXPECT_EQ(nv - n_changed, nv_now);
     }
 
     {
@@ -556,24 +545,21 @@ TEST_P(TestSchemaChange, DelLabel) {
         auto db = galaxy.OpenGraph("default");
         size_t nv, ne;
         ScanGraph(db, nv, ne);
-        size_t n_changed = 0;
-        UT_EXPECT_TRUE(db.DeleteEdgeLabel("ACTED_IN", &n_changed));
-        UT_LOG() << "Number of edges deleted: " << n_changed;
+        UT_EXPECT_TRUE(db.DeleteEdgeLabel("ACTED_IN"));
         size_t nv_now, ne_now;
         ScanGraph(db, nv_now, ne_now);
-        UT_EXPECT_EQ(ne - n_changed, ne_now);
         UT_EXPECT_EQ(nv, nv_now);
     }
     UT_LOG() << "Testing illegal field name";
     {
         Schema s1;
         s1.SetSchema(true,
-                     std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false),
-                                             FieldSpec("id2", FieldType::INT32, false),
-                                             FieldSpec("name1", FieldType::STRING, true),
-                                             FieldSpec("name2", FieldType::STRING, true),
-                                             FieldSpec("blob", FieldType::BLOB, true),
-                                             FieldSpec("age", FieldType::FLOAT, false)}),
+                     std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false, 0),
+                                             FieldSpec("id2", FieldType::INT32, false, 1),
+                                             FieldSpec("name1", FieldType::STRING, true, 2),
+                                             FieldSpec("name2", FieldType::STRING, true, 3),
+                                             FieldSpec("blob", FieldType::BLOB, true, 4),
+                                             FieldSpec("age", FieldType::FLOAT, false, 5)}),
                      "id", "", {}, {});
         UT_EXPECT_THROW_CODE(
             s1.AddFields(std::vector<FieldSpec>({FieldSpec("SKIP", FieldType::STRING, false)})),
@@ -590,12 +576,12 @@ TEST_P(TestSchemaChange, DelLabel) {
     {
         Schema s;
         s.SetSchema(false,
-                    std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false),
-                                            FieldSpec("id2", FieldType::INT32, false),
-                                            FieldSpec("name1", FieldType::STRING, true),
-                                            FieldSpec("name2", FieldType::STRING, true),
-                                            FieldSpec("blob", FieldType::BLOB, true),
-                                            FieldSpec("age", FieldType::FLOAT, false)}),
+                    std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false, 0),
+                                            FieldSpec("id2", FieldType::INT32, false, 1),
+                                            FieldSpec("name1", FieldType::STRING, true, 2),
+                                            FieldSpec("name2", FieldType::STRING, true, 3),
+                                            FieldSpec("blob", FieldType::BLOB, true, 4),
+                                            FieldSpec("age", FieldType::FLOAT, false, 5)}),
                     "", "id", {}, {});
         UT_EXPECT_THROW(s.DelFields(std::vector<std::string>{"id"}), FieldCannotBeDeletedException);
         s.AddFields({FieldSpec("telphone", FieldType::STRING, false)});

@@ -69,6 +69,15 @@ class FieldAlreadyExistsException : public LgraphException {
                           "Field [#{}] defined more than once.", fid) {}
 };
 
+class FieldIdConflictException : public LgraphException {
+ public:
+    explicit FieldIdConflictException(const std::string& fidname1,
+                                        const std::string& fidname2)
+        : LgraphException(ErrorCode::FieldIdConflict,
+                          "Field [#{}] and Field [#P{}] id conflict.",
+                           fidname1, fidname2) {}
+};
+
 class FieldCannotBeNullTypeException : public LgraphException {
  public:
     explicit FieldCannotBeNullTypeException(const std::string& fname)

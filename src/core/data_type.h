@@ -60,13 +60,14 @@ typedef lgraph_api::VertexOptions VertexOptions;
 typedef lgraph_api::EdgeOptions EdgeOptions;
 typedef lgraph_api::EdgeOptions::TemporalFieldOrder TemporalFieldOrder;
 
-
 typedef int64_t VertexId;
 typedef int64_t EdgeId;
 typedef int32_t DataOffset;      // offset used in a record
 typedef int32_t PackDataOffset;  // offset used in a packed data (maximum 1024)
 typedef uint16_t LabelId;
 typedef int64_t TemporalId;
+typedef uint16_t FieldId;   // Field id in schema Fields
+typedef uint8_t VersionId;  // Schema version
 
 enum CompareOp { LBR_EQ = 0, LBR_NEQ = 1, LBR_LT = 2, LBR_LE = 3, LBR_GT = 4, LBR_GE = 5 };
 
@@ -107,9 +108,7 @@ class InternalError : public std::exception {
     std::string err_;
 
  public:
-    explicit InternalError(const std::string& msg) {
-        err_ = msg;
-    }
+    explicit InternalError(const std::string& msg) { err_ = msg; }
 
     template <typename... Ts>
     InternalError(const char* format, const Ts&... ds) {
@@ -308,6 +307,7 @@ static const size_t MAX_IN_PLACE_BLOB_SIZE = 512;
 static const size_t MAX_BLOB_SIZE = ((size_t)1 << 32) - 1;
 static const size_t MAX_KEY_SIZE = 480;
 static const size_t MAX_HOST_ADDR_LEN = 256;
+static const VersionId SCHEMA_VERSION = 0;
 
 template <size_t NBYTE>
 inline int64_t GetNByteIdFromBuf(const char* p) {
@@ -415,4 +415,3 @@ inline void CheckEdgeUid(const EdgeUid& euid) {
 }
 }  // namespace _detail
 }  // namespace lgraph
-

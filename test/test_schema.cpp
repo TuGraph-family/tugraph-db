@@ -27,10 +27,10 @@ class TestSchema : public TuGraphTest {};
 static Schema ConstructSimpleSchema() {
     Schema s;
     s.SetSchema(true,
-                std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, false),
-                                        FieldSpec("string", FieldType::STRING, true),
-                                        FieldSpec("blob", FieldType::BLOB, true),
-                                        FieldSpec("date", FieldType::DATE, false)}),
+                std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, false, 0),
+                                        FieldSpec("string", FieldType::STRING, true, 1),
+                                        FieldSpec("blob", FieldType::BLOB, true, 2),
+                                        FieldSpec("date", FieldType::DATE, false, 3)}),
                 "int16", "", {}, {});
     return s;
 }
@@ -76,14 +76,22 @@ TEST_F(TestSchema, SetSchema) {
     Schema s;
     UT_EXPECT_THROW_CODE(
         s.SetSchema(true,
-                    std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, true),
-                                            FieldSpec("int16", FieldType::INT16, true)}),
+                    std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, true, 0),
+                                            FieldSpec("int16", FieldType::INT16, true, 1)}),
                     "int16", "", {}, {}),
         FieldAlreadyExists);
     UT_EXPECT_THROW_CODE(
         s.SetSchema(true, std::vector<FieldSpec>({FieldSpec("int16", FieldType::NUL, true)}),
                     "int16", "", {}, {}),
         FieldCannotBeNullType);
+    UT_EXPECT_THROW_CODE(s.SetSchema(true,
+                                     std::vector<FieldSpec>({
+                                         FieldSpec("int16", FieldType::INT16, true, 0),
+                                         FieldSpec("int16", FieldType::INT16, true, 1),
+                                         FieldSpec("int16", FieldType::INT16, true, 1),
+                                     }),
+                                     "int16", "", {}, {}),
+                         FieldIdConflict);
     std::vector<FieldSpec> fs;
     for (size_t i = 0; i < _detail::MAX_NUM_FIELDS + 1; i++)
         fs.emplace_back(UT_FMT("f_{}", i), FieldType::INT16, true);
@@ -133,16 +141,17 @@ TEST_F(TestSchema, GetFieldId) {
 
 TEST_F(TestSchema, DumpRecord) {
     Value v_old("name");
+
     Value v_new("name1");
     Schema schema(false);
     Schema schema_1(true);
     Schema schema_lg = schema;
-    FieldSpec fd_0("name", FieldType::STRING, false);
-    FieldSpec fd_1("uid", FieldType::INT32, false);
-    FieldSpec fd_2("weight", FieldType::FLOAT, false);
-    FieldSpec fd_3("age", FieldType::INT8, true);
-    FieldSpec fd_4("addr", FieldType::STRING, true);
-    FieldSpec fd_5("float", FieldType::DOUBLE, true);
+    FieldSpec fd_0("name", FieldType::STRING, false, 0);
+    FieldSpec fd_1("uid", FieldType::INT32, false, 1);
+    FieldSpec fd_2("weight", FieldType::FLOAT, false, 2);
+    FieldSpec fd_3("age", FieldType::INT8, true, 3);
+    FieldSpec fd_4("addr", FieldType::STRING, true, 4);
+    FieldSpec fd_5("float", FieldType::DOUBLE, true, 5);
     std::vector<FieldSpec> fds{fd_0, fd_1, fd_2, fd_3, fd_4, fd_5};
     schema.SetSchema(true, fds, "uid", "", {}, {});
     schema_1.SetSchema(true, fds, "uid", "", {}, {});
@@ -151,11 +160,11 @@ TEST_F(TestSchema, DumpRecord) {
     schema.SetSchema(true, fds, "uid", "", {}, {});
     Value va_tmp = schema.CreateEmptyRecord();
     UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData()),
-                    FieldCannotBeSetNull);
+                         FieldCannotBeSetNull);
     UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "age", FieldData(256)),
                     lgraph::ParseFieldDataException);
     UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData(256)),
-                    ParseIncompatibleType);
+                         ParseIncompatibleType);
     UT_EXPECT_TRUE(schema_1.GetField(va_tmp, (std::string) "does_not_exist",
                                      [](const BlobManager::BlobKey&) { return Value(); }) ==
                    FieldData());
@@ -179,21 +188,94 @@ TEST_F(TestSchema, DumpRecord) {
         std::vector<std::string> value{"marko", "300"};
         // missing weight field
         UT_EXPECT_THROW_CODE(schema.CreateRecord(fid.size(), fid.data(), value.data()),
-                        FieldCannotBeSetNull);
+                             FieldCannotBeSetNull);
     }
 
     std::vector<size_t> fid = schema.GetFieldIds({"name", "uid", "weight", "age", "addr"});
     std::vector<std::string> value{"peter", "101", "65.25", "49", "fifth avenue"};
     Value record = schema.CreateRecord(fid.size(), fid.data(), value.data());
     // UT_LOG() << "record: " << schema.DumpRecord(record);
-    schema.GetFieldId("float");
-    schema.GetFieldExtractor("name");
-    schema.GetFieldExtractor("uid");
-    schema.GetFieldExtractor("weight");
-    schema.GetFieldExtractor("age");
-    schema.GetFieldExtractor("addr");
+
+    UT_EXPECT_EQ(schema.GetFieldId("float"), 5);
+    UT_EXPECT_EQ(schema.GetFieldExtractor("name")->FieldToString(record), "peter");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("uid")->FieldToString(record), "101");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("weight")->FieldToString(record), "6.525e1");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("age")->FieldToString(record), "49");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("addr")->FieldToString(record), "fifth avenue");
     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor("hash"), FieldNotFound);
     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor(1024), FieldNotFound);
     const _detail::FieldExtractor fe_temp = *(schema.GetFieldExtractor("name"));
     _detail::FieldExtractor fe_5(*schema.GetFieldExtractor(0));
 }
+
+TEST_F(TestSchema, ParseAndSetStringBlob) {
+    Schema schema(true);
+    Value value;
+    schema.SetSchema(true, {FieldSpec("name", FieldType::STRING, true, 0)}, "name", "", {}, {});
+    value = schema.CreateEmptyRecord();
+    const _detail::FieldExtractor* extra = schema.GetFieldExtractor("name");
+    schema.ParseAndSet(value, FieldData(), extra);
+    UT_EXPECT_TRUE(extra->GetIsNull(value));
+    schema.ParseAndSet(value, "", extra);
+    UT_EXPECT_TRUE(!extra->GetIsNull(value));
+    UT_EXPECT_TRUE(extra->GetConstRef(value).Empty());
+
+    schema.SetSchema(true, {FieldSpec("name", FieldType::STRING, false, 0)}, "name", "", {}, {});
+    extra = schema.GetFieldExtractor("name");
+    UT_EXPECT_THROW_CODE(schema.ParseAndSet(value, FieldData(), extra), FieldCannotBeSetNull);
+    schema.ParseAndSet(value, "DATA", extra);
+    UT_EXPECT_EQ(extra->GetConstRef(value).AsType<std::string>(), std::string("DATA"));
+    schema.ParseAndSet(value, FieldData("DATA"), extra);
+    UT_EXPECT_TRUE(extra->GetConstRef(value).AsType<std::string>() == "DATA");
+    UT_EXPECT_THROW_CODE(
+        schema.ParseAndSet(value, std::string(_detail::MAX_STRING_SIZE + 1, 'a'), extra),
+        DataSizeTooLarge);
+    UT_EXPECT_THROW_CODE(schema.ParseAndSet(value, FieldData(12), extra), ParseIncompatibleType);
+    std::map<BlobManager::BlobKey, std::string> blob_map;
+    BlobManager::BlobKey curr_key = 0;
+    auto blob_add = [&](const Value& v) {
+        blob_map[curr_key] = v.AsString();
+        return curr_key++;
+    };
+    auto blob_get = [&](const BlobManager::BlobKey& key) { return Value(blob_map[key]); };
+    schema.SetSchema(true, {FieldSpec("blob", FieldType::BLOB, true, 0)}, "blob", "", {}, {});
+    extra = schema.GetFieldExtractor("blob");
+    schema.ParseAndSetBlob(value, FieldData(), blob_add, extra);
+    UT_EXPECT_TRUE(extra->GetIsNull(value));
+    schema.SetSchema(true, {FieldSpec("blob", FieldType::BLOB, false, 0)}, "blob", "", {}, {});
+    UT_EXPECT_THROW_CODE(schema.ParseAndSetBlob(value, FieldData(), blob_add, extra),
+                         FieldCannotBeSetNull);
+
+    schema.ParseAndSetBlob(value, lgraph_api::base64::Encode(std::string(1024, 'a')), blob_add,
+                           extra);
+    std::string read_str = extra->GetBlobConstRef(value, blob_get).AsType<std::string>();
+    std::string decoded =
+        lgraph_api::base64::Decode(lgraph_api::base64::Encode(std::string(1024, 'a')));
+    UT_EXPECT_EQ(read_str, decoded);
+    schema.ParseAndSetBlob(value, FieldData::Blob(std::string(_detail::MAX_STRING_SIZE + 1, 'b')),
+                           blob_add, extra);
+    UT_EXPECT_TRUE(extra->GetBlobConstRef(value, blob_get).AsType<std::string>() ==
+                   FieldData::Blob(std::string(_detail::MAX_STRING_SIZE + 1, 'b')).AsBlob());
+    UT_EXPECT_THROW(schema.ParseAndSetBlob(value, "123", blob_add, extra),
+                    lgraph::ParseStringException);
+    UT_EXPECT_THROW_CODE(schema.ParseAndSetBlob(value, FieldData(10), blob_add, extra),
+                         ParseIncompatibleType);
+}
+// template <typename T>
+// void SetAndCheckData(T data, int ind, Schema& schema, Value& value) {
+//     schema.SetField(value, ind, data);
+//     [&]() { };
+//     UT_EXPECT_EQ(schema.GetField(value, ind, []()->{}), data);
+// }
+//
+// TEST_F(TestSchema, TestParseAndSetBase) {
+//     std::vector<FieldSpec> field_vec;
+//     for (int i = 1; i <= 16; i++) {
+//         field_vec.push_back(FieldSpec(lgraph_api::to_string((FieldType)i), (FieldType)i, false, i));
+//     }
+//     Schema schema(true);
+//     schema.SetSchema(true, field_vec, "INT64", "", {}, {});
+//     Value value = schema.CreateEmptyRecord();
+//
+//
+// }
