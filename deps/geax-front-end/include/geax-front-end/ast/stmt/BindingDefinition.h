@@ -26,7 +26,7 @@ namespace frontend {
 class BindingDefinition : public AstNode {
 public:
     explicit BindingDefinition(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~BindingDefinition() = default;
+    virtual ~BindingDefinition() = default;
 };  // class BindingDefinition
 
 }  // namespace frontend

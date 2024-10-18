@@ -26,7 +26,7 @@ namespace frontend {
 class Hint : public AstNode {
 public:
     explicit Hint(AstNodeType type) : AstNode(type) {}
-    ~Hint() = default;
+    virtual ~Hint() = default;
 };  // class Hint
 
 }  // namespace frontend

@@ -26,7 +26,7 @@ namespace frontend {
 class SessionResetCommand : public AstNode {
 public:
     explicit SessionResetCommand(AstNodeType type) : AstNode(type) {}
-    ~SessionResetCommand() = default;
+    virtual ~SessionResetCommand() = default;
 };
 
 }  // namespace frontend

@@ -26,7 +26,7 @@ namespace frontend {
 class EndTransaction : public Transaction {
 public:
     explicit EndTransaction(AstNodeType type) : Transaction(type) {}
-    ~EndTransaction() = default;
+    virtual ~EndTransaction() = default;
 };
 
 }  // namespace frontend

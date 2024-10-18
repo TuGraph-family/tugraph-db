@@ -26,7 +26,7 @@ namespace frontend {
 class SimpleQueryStatement : public AstNode {
 public:
     explicit SimpleQueryStatement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~SimpleQueryStatement() = default;
+    virtual ~SimpleQueryStatement() = default;
 };  // class SimpleQueryStatement
 
 }  // namespace frontend

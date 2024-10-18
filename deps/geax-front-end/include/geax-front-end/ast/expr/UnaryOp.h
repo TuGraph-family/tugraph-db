@@ -26,7 +26,7 @@ namespace frontend {
 class UnaryOp : public Expr {
 public:
     explicit UnaryOp(AstNodeType type) : Expr(type), expr_(nullptr) {}
-    ~UnaryOp() = default;
+    virtual ~UnaryOp() = default;
 
     void setExpr(Expr* expr) { expr_ = expr; }
     Expr* expr() const { return expr_; }

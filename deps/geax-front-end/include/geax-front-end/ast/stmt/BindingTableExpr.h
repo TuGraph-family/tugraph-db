@@ -26,7 +26,7 @@ namespace frontend {
 class BindingTableExpr : public AstNode {
 public:
     explicit BindingTableExpr(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~BindingTableExpr() = default;
+    virtual ~BindingTableExpr() = default;
 };  // class BindingTableExpr
 
 }  // namespace frontend

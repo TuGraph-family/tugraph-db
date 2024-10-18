@@ -26,7 +26,7 @@ namespace frontend {
 class ElementPredicate : public AstNode {
 public:
     explicit ElementPredicate(AstNodeType type) : AstNode(type) {}
-    ~ElementPredicate() = default;
+    virtual ~ElementPredicate() = default;
 };
 
 }  // namespace frontend
