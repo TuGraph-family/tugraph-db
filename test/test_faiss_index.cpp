@@ -152,7 +152,7 @@ TEST_F(TestFaiss, restart) {
             str, "CALL db.addVertexVectorIndex('person','vector',"
                  "{index_type:'ivf_flat', dimension:4})");
         UT_EXPECT_TRUE(ret);
-        
+
         ret = client.CallCypher(str,"CALL db.vertexVectorKnnSearch"  //NOLINT
         "('person','vector',[1,2,3,4], {top_k:4, ivf_flat_nprobe:10}) YIELD node RETURN node.id");
         UT_EXPECT_EQ(str, R"([{"node.id":2},{"node.id":3},{"node.id":1},{"node.id":4}])");
