@@ -83,6 +83,8 @@ class Schema {
     bool deleted_ = false;
     bool is_vertex_ = false;
 
+    // name_to_idx and fields_ might have different sizes,
+    // filed deleted will be removed from name_to_idx
     std::vector<_detail::FieldExtractor> fields_;
     std::unordered_map<std::string, size_t> name_to_idx_;
 

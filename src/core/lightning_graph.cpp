@@ -264,7 +264,7 @@ bool LightningGraph::AddLabel(const std::string& label, const std::vector<FieldS
     return AddLabel(label, fds.size(), fds.data(), is_vertex, options);
 }
 
-bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* n_modified) {
+bool LightningGraph::DelLabel(const std::string& label, bool is_vertex) {
     LOG_INFO() << "Deleting " << (is_vertex ? "vertex" : "edge") << " label [" << label << "]";
     _HoldWriteLock(meta_lock_);
     size_t commit_size = 4096;
@@ -657,7 +657,7 @@ bool LightningGraph::AlterLabelModEdgeConstraints(const std::string& label,
 
 bool LightningGraph::AlterLabelDelFields(const std::string& label,
                                          const std::vector<std::string>& del_fields_,
-                                         bool is_vertex, size_t* n_modified) {
+                                         bool is_vertex) {
     LOG_INFO() << FMA_FMT("Deleting fields {} from {} label [{}].", del_fields_,
                           is_vertex ? "vertex" : "edge", label);
     _HoldReadLock(meta_lock_);
@@ -724,7 +724,7 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
 bool LightningGraph::AlterLabelAddFields(const std::string& label,
                                          const std::vector<FieldSpec>& to_add,
                                          const std::vector<FieldData>& default_values,
-                                         bool is_vertex, size_t* n_modified) {
+                                         bool is_vertex) {
     LOG_INFO() << FMA_FMT("Adding fields {} with values {} to {} label [{}].", to_add,
                           default_values, is_vertex ? "vertex" : "edge", label);
     _HoldReadLock(meta_lock_);
@@ -771,7 +771,7 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
 
 bool LightningGraph::AlterLabelModFields(const std::string& label,
                                          const std::vector<FieldSpec>& to_mod, bool is_vertex,
-                                         size_t* n_modified) {
+                                        ) {
     LOG_INFO() << FMA_FMT("Modifying fields {} in {} label [{}].", to_mod,
                           is_vertex ? "vertex" : "edge", label);
     _HoldReadLock(meta_lock_);
@@ -2708,7 +2708,6 @@ size_t LightningGraph::GetCurrentVersion() {
     auto txn = CreateWriteTxn();
     return txn.GetTxnId();
 }
-
 #if USELESS_CODE
 ScopedRef<SchemaInfo> LightningGraph::GetSchemaInfo() { return schema_.GetScopedRef(); }
 #endif

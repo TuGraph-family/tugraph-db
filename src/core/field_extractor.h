@@ -287,6 +287,8 @@ class FieldExtractor {
 
     bool IsFixedType() const { return field_data_helper::IsFixedLengthFieldType(def_.type); }
 
+    bool IsDeleted() const { return def_.deleted;}
+
     /**
      * Print the string representation of the field. For digital types, it prints
      * it into ASCII string; for NBytes and String, it just copies the content of

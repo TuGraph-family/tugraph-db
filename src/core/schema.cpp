@@ -1043,6 +1043,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     blob_fields_.clear();
     name_to_idx_.clear();
     fields_.reserve(n_fields);
+    
     for (size_t i = 0; i < n_fields; i++) {
         fields_.emplace_back(fields[i]);
     }
@@ -1058,6 +1059,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
     }
     for (auto& f : fields_) {
         if (f.Type() == FieldType::NUL) throw FieldCannotBeNullTypeException(f.Name());
+        if (f.IsDeleted()) continue;
         if (_F_UNLIKELY(name_to_idx_.find(f.Name()) != name_to_idx_.end()))
             throw FieldAlreadyExistsException(f.Name());
         name_to_idx_[f.Name()] = f.GetFieldId();
@@ -1108,6 +1110,7 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
     for (size_t del_id : del_ids) {
         fields_[del_id].MarkDeleted();
         blob_fields_.erase(std::remove(blob_fields_.begin(), blob_fields_.end(), del_id), blob_fields_.end());
+        name_to_idx_.erase(fields_[del_id].Name());
     }
 }
 

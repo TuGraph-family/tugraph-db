@@ -154,24 +154,22 @@ class LightningGraph {
                   const LabelOptions& options);
 
     // delete a label
-    bool DelLabel(const std::string& label, bool is_vertex, size_t* n_modified);
+    bool DelLabel(const std::string& label, bool is_vertex);
 
     // alter label
     template <typename GenNewSchema, typename ModifyIndex>
-    bool _AlterLabel(
-        bool is_vertex, const std::string& label,
-        const GenNewSchema& modify_schema,                // std::function<Schema(Schema*)>
-        const ModifyIndex& modify_index);
+    bool _AlterLabel(bool is_vertex, const std::string& label,
+                     const GenNewSchema& modify_schema,  // std::function<Schema(Schema*)>
+                     const ModifyIndex& modify_index);
 
     bool AlterLabelModEdgeConstraints(const std::string& label,
                                       const EdgeConstraints& edge_constraints);
     bool AlterLabelDelFields(const std::string& label, const std::vector<std::string>& del_fields,
-                             bool is_vertex, size_t* n_modified);
+                             bool is_vertex);
     bool AlterLabelAddFields(const std::string& label, const std::vector<FieldSpec>& add_fields,
-                             const std::vector<FieldData>& default_values, bool is_vertex,
-                             size_t* n_modified);
+                             const std::vector<FieldData>& default_values, bool is_vertex);
     bool AlterLabelModFields(const std::string& label, const std::vector<FieldSpec>& mod_fields,
-                             bool is_vertex, size_t* n_modified);
+                             bool is_vertex);
     bool AddEdgeConstraints(const std::string& edge_label, const EdgeConstraints& constraints);
     bool ClearEdgeConstraints(const std::string& edge_label);
 
@@ -184,14 +182,14 @@ class LightningGraph {
      *
      * \return  True if it succeeds, false if the index already exists. Throws exception on error.
      */
-    bool _AddEmptyIndex(const std::string& label, const std::string& field,
-                        IndexType type, bool is_vertex);
+    bool _AddEmptyIndex(const std::string& label, const std::string& field, IndexType type,
+                        bool is_vertex);
 
     // adds an index, blocks until the index is ready
     // returns true if success, false if index already exists.
-    bool BlockingAddIndex(const std::string& label, const std::string& field,
-                          IndexType type, bool is_vertex, bool known_vid_range = false,
-                          VertexId start_vid = 0, VertexId end_vid = 0);
+    bool BlockingAddIndex(const std::string& label, const std::string& field, IndexType type,
+                          bool is_vertex, bool known_vid_range = false, VertexId start_vid = 0,
+                          VertexId end_vid = 0);
 
     // adds a vector index, blocks until the index is ready
     // returns true if success, false if index already exists.
@@ -202,8 +200,9 @@ class LightningGraph {
     // adds an index, blocks until the index is ready
     // returns true if success, false if index already exists.
     bool BlockingAddCompositeIndex(const std::string& label, const std::vector<std::string>& fields,
-                          CompositeIndexType type, bool is_vertex, bool known_vid_range = false,
-                          VertexId start_vid = 0, VertexId end_vid = 0);
+                                   CompositeIndexType type, bool is_vertex,
+                                   bool known_vid_range = false, VertexId start_vid = 0,
+                                   VertexId end_vid = 0);
 
     bool AddFullTextIndex(bool is_vertex, const std::string& label, const std::string& field);
 
@@ -223,10 +222,12 @@ class LightningGraph {
     std::vector<std::tuple<bool, std::string, std::string>> ListFullTextIndexes();
 
     std::vector<std::pair<int64_t, float>> QueryVertexByFullTextIndex(const std::string& label,
-                                                    const std::string& query, int top_n);
+                                                                      const std::string& query,
+                                                                      int top_n);
 
     std::vector<std::pair<EdgeUid, float>> QueryEdgeByFullTextIndex(const std::string& label,
-                                                  const std::string& query, int top_n);
+                                                                    const std::string& query,
+                                                                    int top_n);
 
     /**
      * Builds a set of indexes at once.
@@ -236,7 +237,6 @@ class LightningGraph {
      */
     void OfflineCreateBatchIndex(const std::vector<IndexSpec>& indexes,
                                  size_t commit_batch_size = 1 << 20, bool is_vertex = true);
-
 
     /**
      * Is this index ready? When an index is added to a non-empty graph, it will require some time
@@ -263,8 +263,8 @@ class LightningGraph {
     bool DeleteIndex(const std::string& label, const std::string& field, bool is_vertex);
     bool DeleteVectorIndex(bool is_vertex, const std::string& label, const std::string& field);
 
-    bool DeleteCompositeIndex(const std::string& label,
-                              const std::vector<std::string>& fields, bool is_vertex);
+    bool DeleteCompositeIndex(const std::string& label, const std::vector<std::string>& fields,
+                              bool is_vertex);
 
     /** Drop all index */
     void DropAllIndex();
@@ -334,8 +334,8 @@ class LightningGraph {
                          bool is_vertex = true);
 
     void BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_schema_info, LabelId label_id,
-                         const std::vector<std::string> &fields, CompositeIndexType type,
-                         VertexId start_vid, VertexId end_vid, bool is_vertex = true);
+                                  const std::vector<std::string>& fields, CompositeIndexType type,
+                                  VertexId start_vid, VertexId end_vid, bool is_vertex = true);
 
     void Open();
 };
