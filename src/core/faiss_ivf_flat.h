@@ -43,7 +43,7 @@ class IVFFlat : public VectorIndex {
 
   IVFFlat(IVFFlat&& rhs) = delete;
 
-  ~IVFFlat() { index_ = nullptr; }
+  ~IVFFlat() { L2quantizer_ = nullptr; IPquantizer_ = nullptr; index_ = nullptr; }
 
   IVFFlat& operator=(const IVFFlat& rhs) = delete;
 
