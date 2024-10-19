@@ -50,11 +50,13 @@ void IVFFlat::Add(const std::vector<std::vector<float>>& vectors,
 // build index
 void IVFFlat::Build() {
     if (distance_type_ == "l2") {
-        L2quantizer_ = new faiss::IndexFlatL2(vec_dimension_);
-        index_ = new faiss::IndexIVFFlat(L2quantizer_, vec_dimension_, index_spec_[0]);
+        L2quantizer_ = std::make_shared<faiss::IndexFlatL2>(vec_dimension_);
+        index_ = std::make_shared<faiss::IndexIVFFlat>
+                            (L2quantizer_.get(), vec_dimension_, index_spec_[0]);
     } else if (distance_type_ == "ip") {
-        IPquantizer_ = new faiss::IndexFlatIP(vec_dimension_);
-        index_ = new faiss::IndexIVFFlat(IPquantizer_, vec_dimension_, index_spec_[0]);
+        IPquantizer_ = std::make_shared<faiss::IndexFlatIP>(vec_dimension_);
+        index_ = std::make_shared<faiss::IndexIVFFlat>
+                            (IPquantizer_.get(), vec_dimension_, index_spec_[0]);
     } else {
         THROW_CODE(InputError, "failed to build vector index");
     }
@@ -63,7 +65,7 @@ void IVFFlat::Build() {
 // serialize index
 std::vector<uint8_t> IVFFlat::Save() {
     faiss::VectorIOWriter writer;
-    faiss::write_index(index_, &writer, 0);
+    faiss::write_index(index_.get(), &writer, 0);
     return writer.data;
 }
 
@@ -71,7 +73,8 @@ std::vector<uint8_t> IVFFlat::Save() {
 void IVFFlat::Load(std::vector<uint8_t>& idx_bytes) {
     faiss::VectorIOReader reader;
     reader.data = idx_bytes;
-    index_ = dynamic_cast<faiss::IndexIVFFlat*>(faiss::read_index(&reader));
+    index_ = std::make_shared<faiss::IndexIVFFlat>
+                (*(dynamic_cast<faiss::IndexIVFFlat*>(faiss::read_index(&reader))));
 }
 
 // search vector in index

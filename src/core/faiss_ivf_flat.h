@@ -30,9 +30,9 @@ class IVFFlat : public VectorIndex {
   friend class Transaction;
   friend class IndexManager;
 
-  faiss::IndexFlatL2* L2quantizer_;
-  faiss::IndexFlatIP* IPquantizer_;
-  faiss::IndexIVFFlat* index_;
+  std::shared_ptr<faiss::IndexFlatL2> L2quantizer_;
+  std::shared_ptr<faiss::IndexFlatIP> IPquantizer_;
+  std::shared_ptr<faiss::IndexIVFFlat> index_;
 
  public:
   IVFFlat(const std::string& label, const std::string& name,
