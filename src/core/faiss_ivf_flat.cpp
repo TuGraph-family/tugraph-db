@@ -76,6 +76,7 @@ void IVFFlat::Load(std::vector<uint8_t>& idx_bytes) {
     faiss::Index* loadindex = faiss::read_index(&reader);
     faiss::IndexIVFFlat* ivf_index = dynamic_cast<faiss::IndexIVFFlat*>(loadindex);
     index_ = std::make_shared<faiss::IndexIVFFlat>(*ivf_index);
+    delete[] loadindex;
 }
 
 // search vector in index
