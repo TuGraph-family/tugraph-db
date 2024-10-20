@@ -162,7 +162,9 @@ class ColumnVector {
             overflow_buffer_ = std::make_unique<uint8_t[]>(overflow_buffer_capacity_);
             overflow_offset_ = 0;
         } else if (overflow_offset_ + size > overflow_buffer_capacity_) {
-            ResizeOverflowBuffer(overflow_offset_ + size);
+            uint64_t new_capacity = overflow_offset_ + size;
+            new_capacity = ((new_capacity + 1023) / 1024) * 1024;
+            ResizeOverflowBuffer(new_capacity);
         }
         void* ptr = overflow_buffer_.get() + overflow_offset_;
         overflow_offset_ += size;
