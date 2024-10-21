@@ -1057,10 +1057,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node
     if (!node->body().empty()) {
         auto op_union = new Union();
         op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]);
-        OpBase* op_produce = new ProduceResults();
-        // auto op_produce = new ProduceResults();
+        OpBase* op_produce = nullptr;
         if (UNLIKELY(FLAGS_is_columnar)) {
             op_produce = new ProduceResultsCol();
+        } else {
+            op_produce = new ProduceResults();
         }
         op_produce->AddChild(op_union);
         pattern_graph_root_[cur_pattern_graph_] = op_produce;
@@ -1136,10 +1137,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
     auto op = new OpGqlStandaloneCall(name, node->args(), node->yield(),
                                     pattern_graphs_[cur_pattern_graph_].symbol_table);
     expand_ops.emplace_back(op);
-    OpBase* produce = new ProduceResults();
-    // auto produce = new ProduceResults();
+    OpBase* produce = nullptr;
     if (UNLIKELY(FLAGS_is_columnar)) {
         produce = new ProduceResultsCol();
+    } else {
+        produce = new ProduceResults();
     }
     expand_ops.emplace_back(produce);
     std::reverse(expand_ops.begin(), expand_ops.end());
@@ -1245,9 +1247,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         }
     }
     if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
-        OpBase* result = new ProduceResults();
+        OpBase* result = nullptr;
         if (UNLIKELY(FLAGS_is_columnar)) {
             result = new ProduceResultsCol();
+        } else {
+            result = new ProduceResults();
         }
         ops.push_back(result);
     }
@@ -1360,9 +1364,11 @@ std::any ExecutionPlanMaker::visit(geax::frontend::LinearDataModifyingStatement*
         auto resultStatement = node->resultStatement().value();
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(resultStatement);
     } else {
-        OpBase* result = new ProduceResults();
+        OpBase* result = nullptr;
         if (UNLIKELY(FLAGS_is_columnar)) {
             result = new ProduceResultsCol();
+        } else {
+            result = new ProduceResults();
         }
         _UpdateStreamRoot(result, pattern_graph_root_[cur_pattern_graph_]);
     }
