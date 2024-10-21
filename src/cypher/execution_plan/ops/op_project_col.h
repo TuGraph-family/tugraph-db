@@ -113,8 +113,7 @@ class ProjectCol : public OpBase {
             r = children[0]->record;
             columnar_ = children[0]->columnar_;
         } else {
-            // TODO:(Myrrolinz)
-            // QUERY: RETURN 1+2
+            // TODO(Myrrolinz): QUERY: RETURN 1+2
             // Return a single record followed by NULL
             // on the second call.
             if (single_response_) return OP_DEPLETED;
