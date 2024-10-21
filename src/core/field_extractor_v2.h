@@ -55,7 +55,7 @@ class FieldExtractor_v2 {
 
     ~FieldExtractor_v2() {}
 
-    FieldExtractor_v2(const FieldExtractor& rhs) {
+    explict FieldExtractor_v2(const FieldExtractor& rhs) {
         def_ = rhs.def_;
         is_vfield_ = rhs.is_vfield_;
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
