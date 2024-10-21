@@ -18,8 +18,10 @@
 #include "fma-common/snappy_stream.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
+#include "lgraph/lgraph_types.h"
 
 using namespace fma_common;
+using namespace lgraph_api;
 
 using namespace std;
 
@@ -81,6 +83,34 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     NonPod non_pod;
     // BinaryWrite(outfile, non_pod);
 
+    // write fielddata
+    BinaryWrite(outfile, FieldData());
+    BinaryWrite(outfile, FieldData((int8_t)10));
+    BinaryWrite(outfile, FieldData((int16_t)10));
+    BinaryWrite(outfile, FieldData((int32_t)10));
+    BinaryWrite(outfile, FieldData((int64_t)10));
+    BinaryWrite(outfile, FieldData((float)10.0));
+    BinaryWrite(outfile, FieldData((double)10.0));
+    BinaryWrite(outfile, FieldData(Date("2088-01-22")));
+    BinaryWrite(outfile, FieldData(DateTime("2088-01-22 11:22:33")));
+    BinaryWrite(outfile, FieldData("hello"));
+    std::string WKB_Point = "0101000000000000000000f03f0000000000000040";
+    std::string EWKB_Point = "0101000020E6100000000000000000F03F0000000000000040";
+    std::string EWKB_LineString =
+        "0102000020E61000000300000000000000000000000000"
+        "000000000000000000000000004000000000000000400000000000000840000000000000F03F";
+    std::string EWKB_Polygon =
+        "0103000020E6100000010000000500000000000000000000000"
+        "00000000000000000000000000000000000000000001C400000000000001040000000000000004"
+        "00000000000000040000000000000000000000000000000000000000000000000";
+    std::vector<float> vec = {1.111, 2.111, 3.111, 4.111, 5.111, 6.111};
+    BinaryWrite(outfile, FieldData::Point(EWKB_Point));
+    BinaryWrite(outfile, FieldData::LineString(EWKB_LineString));
+    BinaryWrite(outfile, FieldData::Polygon(EWKB_Polygon));
+    BinaryWrite(outfile,
+                FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0, WKB_Point)));
+    BinaryWrite(outfile, FieldData::FloatVector(vec));
+
     // test serializable
     some_namespace::Serializable serializable;
     serializable.x = 101;
@@ -125,6 +155,39 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     serializable.x = 0;
     BinaryRead(infile, serializable);
     FMA_UT_CHECK_EQ(serializable.x, 111);
+
+    FieldData data;
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData());
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData((int8_t)10));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData((int16_t)10));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData((int32_t)10));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData((int64_t)10));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData((float)10.0));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData((double)10.0));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData(Date("2088-01-22")));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData(DateTime("2088-01-22 11:22:33")));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData("hello"));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData::Point(EWKB_Point));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData::LineString(EWKB_LineString));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData::Polygon(EWKB_Polygon));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(
+        data, FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0, WKB_Point)));
+    BinaryRead(infile, data);
+    FMA_UT_CHECK_EQ(data, FieldData::FloatVector(vec));
 
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
