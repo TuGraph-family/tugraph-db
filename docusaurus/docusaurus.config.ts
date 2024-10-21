@@ -12,7 +12,7 @@ const config: Config = {
   url: 'https://tugraph.tech/',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/tugraph-db/',
+  baseUrl: '/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
@@ -21,9 +21,18 @@ const config: Config = {
 
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
+  onBrokenAnchors: 'warn',
+
+  trailingSlash: false,
 
   markdown: {
-    format: 'md'
+    format: 'md',
+    mermaid: true,
+  },
+
+  i18n: {
+    defaultLocale: 'zh-CN',
+    locales: ['zh-CN', 'en-US'],
   },
 
   presets: [
@@ -33,9 +42,9 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           path: './docs/zh-CN/source',
-          routeBasePath: 'zh',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
+          routeBasePath: 'zh/latest',
+          showLastUpdateAuthor: true,
+          showLastUpdateTime: true,
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -48,15 +57,86 @@ const config: Config = {
     [
       'content-docs',
       {
-        id: 'en',
-        path: './docs/en-US/source',
-        routeBasePath: 'en',
-        editCurrentVersion: true,
+        id: 'latest-en',
         sidebarPath: './sidebarsEn.ts',
+        path: './docs/en-US/source',
+        routeBasePath: 'en/latest',
         showLastUpdateAuthor: true,
         showLastUpdateTime: true,
       } satisfies DocsOptions,
-    ]
+    ],
+    [
+      'content-docs',
+      {
+        id: '4-5-0_en',
+        sidebarPath: './versions_sidebars/version-4.5.0_en.ts',
+        path: './versions/version-4.5.0/en-US/source',
+        routeBasePath: 'en',
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+        editCurrentVersion: false,
+      } satisfies DocsOptions,
+    ],
+    [
+      'content-docs',
+      {
+        id: '4-5-0_zh',
+        sidebarPath: './versions_sidebars/version-4.5.0_zh.ts',
+        path: './versions/version-4.5.0/zh-CN/source',
+        routeBasePath: 'zh',
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+        editCurrentVersion: false,
+      } satisfies DocsOptions,
+    ],
+    [
+      'content-docs',
+      {
+        id: '4-3-2_en',
+        sidebarPath: './versions_sidebars/version-4.3.2_en.ts',
+        path: './versions/version-4.3.2/en-US/source',
+        routeBasePath: 'en/4.3.2',
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+        editCurrentVersion: false,
+      } satisfies DocsOptions,
+    ],
+    [
+      'content-docs',
+      {
+        id: '4-3-2_zh',
+        sidebarPath: './versions_sidebars/version-4.3.2_zh.ts',
+        path: './versions/version-4.3.2/zh-CN/source',
+        routeBasePath: 'zh/4.3.2',
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+        editCurrentVersion: false,
+      } satisfies DocsOptions,
+    ],
+    [
+      'content-docs',
+      {
+        id: '4-3-1_en',
+        sidebarPath: './versions_sidebars/version-4.3.1_en.ts',
+        path: './versions/version-4.3.1/en-US/source',
+        routeBasePath: 'en/4.3.1',
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+        editCurrentVersion: false,
+      } satisfies DocsOptions,
+    ],
+    [
+      'content-docs',
+      {
+        id: '4-3-1_zh',
+        sidebarPath: './versions_sidebars/version-4.3.1_zh.ts',
+        path: './versions/version-4.3.1/zh-CN/source',
+        routeBasePath: 'zh/4.3.1',
+        showLastUpdateAuthor: true,
+        showLastUpdateTime: true,
+        editCurrentVersion: false,
+      } satisfies DocsOptions,
+    ],
   ],
 
   themeConfig: {
@@ -69,14 +149,44 @@ const config: Config = {
       logo: {
         alt: 'Tugraph Site Logo',
         src: 'https://mdn.alipayobjects.com/huamei_qcdryc/afts/img/A*AbamQ5lxv0IAAAAAAAAAAAAADgOBAQ/original',
-        // href: 'https://tugraph.tech/'
       },
       items: [
+        {
+          label: '切换语言',
+          type: 'docsVersionDropdown',
+          position: 'right',
+          items: [
+            {
+              label: '中文',
+              to: '/zh/guide',
+            },
+            {
+              label: '英文',
+              to: '/en/guide',
+            },
+          ],
+        },
+        
+        {
+          label: 'Version',
+          type: 'dropdown',
+          position: 'right',
+          items: [
+            {
+              label: 'master',
+              to: '/zh/guide',
+            },
+            {
+              label: '4.3.2',
+              to: '/zh/4.3.2/guide',
+            },
+          ],
+        },
         {
           href: 'https://github.com/TuGraph-family/tugraph-db',
           label: 'GitHub',
           position: 'right',
-        },
+        }
       ],
     },
     footer: {
