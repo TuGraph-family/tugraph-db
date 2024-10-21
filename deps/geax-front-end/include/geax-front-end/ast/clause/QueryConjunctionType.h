@@ -26,7 +26,7 @@ namespace frontend {
 class QueryConjunctionType : public AstNode {
 public:
     explicit QueryConjunctionType(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~QueryConjunctionType() = default;
+    virtual ~QueryConjunctionType() = default;
 };  // class QueryConjunctionType
 
 }  // namespace frontend
