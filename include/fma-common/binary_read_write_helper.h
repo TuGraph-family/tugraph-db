@@ -18,6 +18,8 @@
  */
 #pragma once
 
+#include <lgraph/lgraph_types.h>
+
 #include <iostream>
 #include <map>
 #include <set>
@@ -27,10 +29,10 @@
 #include <unordered_set>
 #include <vector>
 
+
+
 #include "fma-common/type_traits.h"
 #include "fma-common/utils.h"
-
-#include <lgraph/lgraph_types.h>
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4800)  // disable warning C4800: force value to bool
