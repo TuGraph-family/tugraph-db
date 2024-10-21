@@ -384,7 +384,8 @@ struct DataChunk {
             auto& column_vector = pair.second;
             const auto& vids = property_vids_.at(column_name);
             auto new_vector = std::make_unique<ColumnVector>(
-                              column_vector->GetElementSize(), usable_r, column_vector->GetFieldType());
+                              column_vector->GetElementSize(), usable_r,
+                              column_vector->GetFieldType());
             std::vector<uint32_t> new_vids;
             uint32_t new_pos = 0;
             for (uint32_t selected_vid : selected_vids) {
@@ -481,7 +482,8 @@ struct DataChunk {
                 uint32_t old_size = property_vids_[column_name].size();
                 uint32_t new_size = old_size + size;
                 auto new_vector = std::make_unique<ColumnVector>(
-                                  dst_vector->GetElementSize(), new_size, dst_vector->GetFieldType());
+                                  dst_vector->GetElementSize(), new_size,
+                                  dst_vector->GetFieldType());
                 std::memcpy(new_vector->data(), dst_vector->data(),
                             dst_vector->GetElementSize() * old_size);
                 std::memcpy(new_vector->data() + old_size * new_vector->GetElementSize(),
@@ -622,28 +624,36 @@ struct DataChunk {
                                 lgraph_api::FieldType field_type = column_vector->GetFieldType();
                                 switch (field_type) {
                                     case lgraph_api::FieldType::BOOL:
-                                        j[column_name] = column_vector->GetValue<bool>(column_pos);
+                                        j[column_name] =
+                                            column_vector->GetValue<bool>(column_pos);
                                         break;
                                     case lgraph_api::FieldType::INT8:
-                                        j[column_name] = column_vector->GetValue<int8_t>(column_pos);
+                                        j[column_name] =
+                                            column_vector->GetValue<int8_t>(column_pos);
                                         break;
                                     case lgraph_api::FieldType::INT16:
-                                        j[column_name] = column_vector->GetValue<int16_t>(column_pos);
+                                        j[column_name] =
+                                            column_vector->GetValue<int16_t>(column_pos);
                                         break;
                                     case lgraph_api::FieldType::INT32:
-                                        j[column_name] = column_vector->GetValue<int32_t>(column_pos);
+                                        j[column_name] =
+                                            column_vector->GetValue<int32_t>(column_pos);
                                         break;
                                     case lgraph_api::FieldType::INT64:
-                                        j[column_name] = column_vector->GetValue<int64_t>(column_pos);
+                                        j[column_name] =
+                                            column_vector->GetValue<int64_t>(column_pos);
                                         break;
                                     case lgraph_api::FieldType::FLOAT:
-                                        j[column_name] = column_vector->GetValue<float>(column_pos);
+                                        j[column_name] =
+                                            column_vector->GetValue<float>(column_pos);
                                         break;
                                     case lgraph_api::FieldType::DOUBLE:
-                                        j[column_name] = column_vector->GetValue<double>(column_pos);
+                                        j[column_name] =
+                                            column_vector->GetValue<double>(column_pos);
                                         break;
                                     default:
-                                        throw std::runtime_error("Unsupported data type in columnar_data_");
+                                        throw std::runtime_error(
+                                                "Unsupported data type in columnar_data_");
                                 }
                             }
                         }
