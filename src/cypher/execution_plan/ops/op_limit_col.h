@@ -31,7 +31,7 @@ class LimitCol : public OpBase {
         auto &child = children[0];
         auto res = child->Initialize(ctx);
         if (res != OP_OK) return res;
-        columnar_record_ = std::make_shared<DataChunk>();
+        columnar_ = std::make_shared<DataChunk>();
         record = child->record;
         return OP_OK;
     }
@@ -41,9 +41,9 @@ class LimitCol : public OpBase {
         CYPHER_THROW_ASSERT(!children.empty());
         auto &child = children[0];
         auto res = child->Consume(ctx);
-        columnar_record_ = child->columnar_record_;
+        columnar_ = child->columnar_;
         int usable_r = std::min(BATCH_SIZE, limit_ - consumed_);
-        columnar_record_->TruncateData(usable_r);
+        columnar_->TruncateData(usable_r);
         consumed_ += usable_r;
         return res;
     }
