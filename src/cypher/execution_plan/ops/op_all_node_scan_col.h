@@ -87,7 +87,7 @@ class AllNodeScanCol : public OpBase {
                     if (columnar_record_->string_columns_.find(property_name) ==
                         columnar_record_->string_columns_.end()) {
                         columnar_record_->string_columns_[property_name] =
-                            std::make_unique<ColumnVector>(sizeof(cypher_string_t), BATCH_SIZE);
+                            std::make_unique<ColumnVector>(sizeof(cypher_string_t), BATCH_SIZE, field.type);
                         columnar_record_->property_positions_[property_name] = 0;
                     }
                     columnar_record_->property_vids_[property_name].push_back(vid);
@@ -100,7 +100,7 @@ class AllNodeScanCol : public OpBase {
                         columnar_record_->columnar_data_.end()) {
                         size_t element_size = ColumnVector::GetFieldSize(field.type);
                         columnar_record_->columnar_data_[property_name] =
-                            std::make_unique<ColumnVector>(element_size, BATCH_SIZE);
+                            std::make_unique<ColumnVector>(element_size, BATCH_SIZE, field.type);
                         columnar_record_->property_positions_[property_name] = 0;
                     }
                     columnar_record_->property_vids_[property_name].push_back(vid);

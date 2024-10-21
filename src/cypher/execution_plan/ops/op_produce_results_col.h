@@ -175,7 +175,7 @@ class ProduceResultsCol : public OpBase {
             auto res = child->Consume(ctx);
             if (res != OP_OK) return res;
             columnar_record_ = child->columnar_record_;
-            final_r->AppendToEnd(*columnar_record_);
+            final_r->Append(*columnar_record_);
             ctx->moveDataChunk(final_r);
             return OP_OK;
         }
