@@ -384,7 +384,7 @@ struct DataChunk {
             auto& column_vector = pair.second;
             const auto& vids = property_vids_.at(column_name);
             auto new_vector = std::make_unique<ColumnVector>(
-                              column_vector->GetElementSize(), usable_r);
+                              column_vector->GetElementSize(), usable_r, column_vector->GetFieldType());
             std::vector<uint32_t> new_vids;
             uint32_t new_pos = 0;
             for (uint32_t selected_vid : selected_vids) {
@@ -410,7 +410,8 @@ struct DataChunk {
             const std::string& column_name = pair.first;
             auto& column_vector = pair.second;
             const auto& vids = property_vids_.at(column_name);
-            auto new_vector = std::make_unique<ColumnVector>(sizeof(cypher_string_t), usable_r);
+            auto new_vector = std::make_unique<ColumnVector>(
+                              sizeof(cypher_string_t), usable_r, column_vector->GetFieldType());
             std::vector<uint32_t> new_vids;
             uint32_t new_pos = 0;
             for (uint32_t selected_vid : selected_vids) {
@@ -431,7 +432,7 @@ struct DataChunk {
         }
     }
 
-    void AppendToEnd(const DataChunk& source_record) {
+    void Append(const DataChunk& source_record) {
         for (const auto& pair : source_record.string_columns_) {
             const std::string& column_name = pair.first;
             const auto& src_vector = pair.second;
@@ -446,7 +447,8 @@ struct DataChunk {
                 auto& dst_vector = string_columns_[column_name];
                 uint32_t old_size = property_vids_[column_name].size();
                 uint32_t new_size = old_size + size;
-                auto new_vector = std::make_unique<ColumnVector>(sizeof(cypher_string_t), new_size);
+                auto new_vector = std::make_unique<ColumnVector>(
+                                  sizeof(cypher_string_t), new_size, dst_vector->GetFieldType());
                 for (uint32_t i = 0; i < old_size; ++i) {
                     const cypher_string_t& dst_string = dst_vector->GetValue<cypher_string_t>(i);
                     StringColumn::AddString(new_vector.get(), i, dst_string.GetAsString());
@@ -479,7 +481,7 @@ struct DataChunk {
                 uint32_t old_size = property_vids_[column_name].size();
                 uint32_t new_size = old_size + size;
                 auto new_vector = std::make_unique<ColumnVector>(
-                                  dst_vector->GetElementSize(), new_size);
+                                  dst_vector->GetElementSize(), new_size, dst_vector->GetFieldType());
                 std::memcpy(new_vector->data(), dst_vector->data(),
                             dst_vector->GetElementSize() * old_size);
                 std::memcpy(new_vector->data() + old_size * new_vector->GetElementSize(),
@@ -544,21 +546,32 @@ struct DataChunk {
     }
 
     void PrintColumnData(const std::string& column_name, const ColumnVector& column) const {
-        size_t element_size = column.GetElementSize();
-        if (element_size == sizeof(int8_t)) {
-            PrintColumnData<int8_t>(column_name, column);
-        } else if (element_size == sizeof(int16_t)) {
-            PrintColumnData<int16_t>(column_name, column);
-        } else if (element_size == sizeof(int32_t)) {
-            PrintColumnData<int32_t>(column_name, column);
-        } else if (element_size == sizeof(int64_t)) {
-            PrintColumnData<int64_t>(column_name, column);
-        } else if (element_size == sizeof(float)) {
-            PrintColumnData<float>(column_name, column);
-        } else if (element_size == sizeof(double)) {
-            PrintColumnData<double>(column_name, column);
-        } else {
-            std::cout << "Unknown element size: " << element_size << "\n";
+        lgraph_api::FieldType field_type = column.GetFieldType();
+        switch (field_type) {
+            case lgraph_api::FieldType::BOOL:
+                PrintColumnData<bool>(column_name, column);
+                break;
+            case lgraph_api::FieldType::INT8:
+                PrintColumnData<int8_t>(column_name, column);
+                break;
+            case lgraph_api::FieldType::INT16:
+                PrintColumnData<int16_t>(column_name, column);
+                break;
+            case lgraph_api::FieldType::INT32:
+                PrintColumnData<int32_t>(column_name, column);
+                break;
+            case lgraph_api::FieldType::INT64:
+                PrintColumnData<int64_t>(column_name, column);
+                break;
+            case lgraph_api::FieldType::FLOAT:
+                PrintColumnData<float>(column_name, column);
+                break;
+            case lgraph_api::FieldType::DOUBLE:
+                PrintColumnData<double>(column_name, column);
+                break;
+            default:
+                std::cout << "Unsupported field type for column: " << column_name << "\n";
+                break;
         }
     }
 
@@ -606,23 +619,31 @@ struct DataChunk {
                         if (columnar_data_.find(column_name) != columnar_data_.end()) {
                             const auto& column_vector = columnar_data_.at(column_name);
                             if (!column_vector->IsNull(column_pos)) {
-                                if (column_vector->GetElementSize() == sizeof(bool)) {
-                                    j[column_name] = column_vector->GetValue<bool>(column_pos);
-                                } else if (column_vector->GetElementSize() == sizeof(int8_t)) {
-                                    j[column_name] = column_vector->GetValue<int8_t>(column_pos);
-                                } else if (column_vector->GetElementSize() == sizeof(int16_t)) {
-                                    j[column_name] = column_vector->GetValue<int16_t>(column_pos);
-                                } else if (column_vector->GetElementSize() == sizeof(int32_t)) {
-                                    j[column_name] = column_vector->GetValue<int32_t>(column_pos);
-                                } else if (column_vector->GetElementSize() == sizeof(int64_t)) {
-                                    j[column_name] = column_vector->GetValue<int64_t>(column_pos);
-                                } else if (column_vector->GetElementSize() == sizeof(float)) {
-                                    j[column_name] = column_vector->GetValue<float>(column_pos);
-                                } else if (column_vector->GetElementSize() == sizeof(double)) {
-                                    j[column_name] = column_vector->GetValue<double>(column_pos);
-                                } else {
-                                    throw std::runtime_error(
-                                        "Unsupported data type in columnar_data_");
+                                lgraph_api::FieldType field_type = column_vector->GetFieldType();
+                                switch (field_type) {
+                                    case lgraph_api::FieldType::BOOL:
+                                        j[column_name] = column_vector->GetValue<bool>(column_pos);
+                                        break;
+                                    case lgraph_api::FieldType::INT8:
+                                        j[column_name] = column_vector->GetValue<int8_t>(column_pos);
+                                        break;
+                                    case lgraph_api::FieldType::INT16:
+                                        j[column_name] = column_vector->GetValue<int16_t>(column_pos);
+                                        break;
+                                    case lgraph_api::FieldType::INT32:
+                                        j[column_name] = column_vector->GetValue<int32_t>(column_pos);
+                                        break;
+                                    case lgraph_api::FieldType::INT64:
+                                        j[column_name] = column_vector->GetValue<int64_t>(column_pos);
+                                        break;
+                                    case lgraph_api::FieldType::FLOAT:
+                                        j[column_name] = column_vector->GetValue<float>(column_pos);
+                                        break;
+                                    case lgraph_api::FieldType::DOUBLE:
+                                        j[column_name] = column_vector->GetValue<double>(column_pos);
+                                        break;
+                                    default:
+                                        throw std::runtime_error("Unsupported data type in columnar_data_");
                                 }
                             }
                         }
