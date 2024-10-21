@@ -1,5 +1,5 @@
 # unit test cmake
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -DFMA_IN_UNIT_TEST -DNO_STACKTRACE")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -Wall -DFMA_IN_UNIT_TEST -DNO_STACKTRACE")
 
 include_directories(${LGRAPH_INCLUDE_DIR})
 
@@ -38,4 +38,5 @@ add_executable(fma_unit_test
 
 target_link_libraries (fma_unit_test
         libstdc++fs.a
+        lgraph_server_lib
         ${Boost_LIBRARIES})

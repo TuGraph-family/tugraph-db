@@ -1089,20 +1089,11 @@ class OlapBase {
 #pragma omp parallel
             {
                 int thread_id = omp_get_thread_num();
-                while (true) {
-                    size_t start = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
-                    if (start >= thread_state[thread_id]->end) break;
-                    if (CheckKillThisTask()) break;
-                    size_t end = start + 64;
-                    if (end > thread_state[thread_id]->end) end = thread_state[thread_id]->end;
-                    for (size_t i = start; i < end; i++) {
-                        local_sum = reduce(local_sum, work(i));
-                    }
+                bool ready_handle = false;
+                if (thread_id < num_threads) {
+                    ready_handle = true;
                 }
-                thread_state[thread_id]->state = THREAD_STEALING;
-                for (int t_offset = 1; t_offset < num_threads; t_offset++) {
-                    thread_id = (thread_id + t_offset) % num_threads;
-                    if (thread_state[thread_id]->state == THREAD_STEALING) continue;
+                if (ready_handle) {
                     while (true) {
                         size_t start = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
                         if (start >= thread_state[thread_id]->end) break;
@@ -1111,6 +1102,22 @@ class OlapBase {
                         if (end > thread_state[thread_id]->end) end = thread_state[thread_id]->end;
                         for (size_t i = start; i < end; i++) {
                             local_sum = reduce(local_sum, work(i));
+                        }
+                    }
+                    thread_state[thread_id]->state = THREAD_STEALING;
+                    for (int t_offset = 1; t_offset < num_threads; t_offset++) {
+                        thread_id = (thread_id + t_offset) % num_threads;
+                        if (thread_state[thread_id]->state == THREAD_STEALING) continue;
+                        while (true) {
+                            size_t start = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
+                            if (start >= thread_state[thread_id]->end) break;
+                            if (CheckKillThisTask()) break;
+                            size_t end = start + 64;
+                            if (end > thread_state[thread_id]->end)
+                                end = thread_state[thread_id]->end;
+                            for (size_t i = start; i < end; i++) {
+                                local_sum = reduce(local_sum, work(i));
+                            }
                         }
                     }
                 }
@@ -1216,25 +1223,15 @@ class OlapBase {
 #pragma omp parallel
             {
                 int thread_id = omp_get_thread_num();
-                while (true) {
-                    size_t vi = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
-                    if (vi >= thread_state[thread_id]->end) break;
-                    if (CheckKillThisTask()) break;
-                    uint64_t word = active_vertices.Data()[WORD_OFFSET(vi)];
-                    size_t vi_copy = vi;
-                    while (word != 0) {
-                        if (word & 1) {
-                            local_sum = reduce(local_sum, work(vi_copy));
-                        }
-                        vi_copy += 1;
-                        word >>= 1;
-                    }
+                bool ready_handle = false;
+                if (thread_id < num_threads) {
+                    ready_handle = true;
                 }
-                thread_state[thread_id]->state = THREAD_STEALING;
-                for (int t_offset = 1; t_offset < num_threads; t_offset++) {
-                    thread_id = (thread_id + t_offset) % num_threads;
-                    if (thread_state[thread_id]->state == THREAD_STEALING) continue;
+                if (ready_handle) {
                     while (true) {
+                        std::cout << "thread id begin to handle" << thread_id
+                                  << "and nums_threads is" << num_threads << " all nums_th is "
+                                  << omp_get_num_threads() << std::endl;
                         size_t vi = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
                         if (vi >= thread_state[thread_id]->end) break;
                         if (CheckKillThisTask()) break;
@@ -1246,6 +1243,25 @@ class OlapBase {
                             }
                             vi_copy += 1;
                             word >>= 1;
+                        }
+                    }
+                    thread_state[thread_id]->state = THREAD_STEALING;
+                    for (int t_offset = 1; t_offset < num_threads; t_offset++) {
+                        thread_id = (thread_id + t_offset) % num_threads;
+                        if (thread_state[thread_id]->state == THREAD_STEALING) continue;
+                        while (true) {
+                            size_t vi = __sync_fetch_and_add(&thread_state[thread_id]->curr, 64);
+                            if (vi >= thread_state[thread_id]->end) break;
+                            if (CheckKillThisTask()) break;
+                            uint64_t word = active_vertices.Data()[WORD_OFFSET(vi)];
+                            size_t vi_copy = vi;
+                            while (word != 0) {
+                                if (word & 1) {
+                                    local_sum = reduce(local_sum, work(vi_copy));
+                                }
+                                vi_copy += 1;
+                                word >>= 1;
+                            }
                         }
                     }
                 }

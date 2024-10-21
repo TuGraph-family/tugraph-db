@@ -439,7 +439,7 @@ class TestProcedure:
             if field.get("name") == "jeep":
                 field.get("type") == "int8"
 
-        ret = client.callCypher("CALL db.alterLabelModFields('vertex', 'animal',['run', 'int8', false], ['jeep', 'int32', true])", "default")
+        ret = client.callCypher("CALL db.alterLabelModFields('vertex', 'animal', ['run', 'string', false], ['jeep', 'int32', true])", "default")
         assert ret[0]
 
         ret = client.callCypher("CALL db.getLabelSchema('vertex', 'animal')", "default")
@@ -447,7 +447,7 @@ class TestProcedure:
         fields = json.loads(ret[1])
         for field in fields:
             if field.get("name") == "run":
-                field.get("type") == "int8"
+                field.get("optional") == False;
             if field.get("name") == "jeep":
                 field.get("type") == "int32"
 

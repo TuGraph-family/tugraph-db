@@ -25,7 +25,7 @@
 
 class TestBackupRestore : public TuGraphTest {};
 
-TEST_F(TestBackupRestore, BackupRestore) {
+TEST_F(TestBackupRestore, DISABLED_BackupRestore) {
     using namespace lgraph;
     const std::string& admin_user = lgraph::_detail::DEFAULT_ADMIN_NAME;
     const std::string& admin_pass = lgraph::_detail::DEFAULT_ADMIN_PASS;

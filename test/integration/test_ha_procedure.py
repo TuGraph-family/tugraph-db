@@ -470,7 +470,7 @@ class TestHAProcedure:
             if field.get("name") == "jeep":
                 assert field.get("type") == "INT8"
 
-        ret = ha_client.callCypher("CALL db.alterLabelModFields('vertex', 'animal',['run', 'int8', false], ['jeep', 'int32', true])", "default")
+        ret = ha_client.callCypher("CALL db.alterLabelModFields('vertex', 'animal',['run', 'string', false], ['jeep', 'int32', true])", "default")
         assert ret[0]
 
         time.sleep(3)
@@ -479,7 +479,8 @@ class TestHAProcedure:
         fields = json.loads(ret[1])
         for field in fields:
             if field.get("name") == "run":
-                assert field.get("type") == "INT8"
+                assert field.get("type") == "STRING"
+                assert field.get("optional") == False
             if field.get("name") == "jeep":
                 assert field.get("type") == "INT32"
 

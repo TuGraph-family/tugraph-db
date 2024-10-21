@@ -125,7 +125,6 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     serializable.x = 0;
     BinaryRead(infile, serializable);
     FMA_UT_CHECK_EQ(serializable.x, 111);
-
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }

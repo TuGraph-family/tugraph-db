@@ -109,7 +109,7 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
                                const FieldData& fd_ok, const std::string& str_fail,
                                const FieldData& fd_fail, bool test_out_of_range = false,
                                const T2& out_of_range = T2()) {
-    _detail::FieldExtractor fe_nul(FieldSpec("f", ft, true));
+    _detail::FieldExtractorV1 fe_nul(FieldSpec("f", ft, true));
     fe_nul.ParseAndSet(v, FieldData());
     UT_EXPECT_TRUE(fe_nul.GetIsNull(v));
     fe_nul.ParseAndSet(v, "");
@@ -117,7 +117,7 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
 
     // cannot be null
     FieldSpec fs("fs", ft, false);
-    _detail::FieldExtractor fe(fs);
+    _detail::FieldExtractorV1 fe(fs);
     UT_EXPECT_THROW_CODE(fe.ParseAndSet(v, FieldData()), FieldCannotBeSetNull);
 
     // check parse from string
@@ -129,7 +129,7 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
     UT_EXPECT_EQ(UT_FMT("{}", parsed), fe.FieldToString(v));
 
     // check CopyDataRaw
-    _detail::FieldExtractor fe2(fe);
+    _detail::FieldExtractorV1 fe2(fe);
     Value v2(v.Size());
     fe2.CopyDataRaw(v2, v, &fe);
     UT_EXPECT_TRUE(fe2.GetConstRef(v2).AsType<T>() == parsed);
@@ -157,7 +157,7 @@ static void CheckParseDataType(FieldType ft, Value& v, const std::string& str_ok
 static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& str_ok,
                                     const FieldData& fd_ok, const std::string& str_fail,
                                     const FieldData& fd_fail) {
-    _detail::FieldExtractor fe_nul(FieldSpec("f", ft, true));
+    _detail::FieldExtractorV1 fe_nul(FieldSpec("f", ft, true));
     if (ft == FieldType::STRING) {
         fe_nul.ParseAndSet(v, FieldData());
         UT_EXPECT_TRUE(fe_nul.GetIsNull(v));
@@ -165,7 +165,7 @@ static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& s
         UT_EXPECT_TRUE(!fe_nul.GetIsNull(v));
         UT_EXPECT_TRUE(fe_nul.GetConstRef(v).Empty());
         FieldSpec fs("fs", ft, false);
-        _detail::FieldExtractor fe(fs);
+        _detail::FieldExtractorV1 fe(fs);
         UT_EXPECT_THROW_CODE(fe.ParseAndSet(v, FieldData()), FieldCannotBeSetNull);
         fe.ParseAndSet(v, str_ok);
         UT_EXPECT_EQ(fe.GetConstRef(v).AsType<std::string>(), str_ok);
@@ -188,7 +188,7 @@ static void CheckParseStringAndBlob(FieldType ft, Value& v, const std::string& s
         UT_EXPECT_TRUE(!fe_nul.GetIsNull(v));
         UT_EXPECT_TRUE(fe_nul.GetConstRef(v).Empty());
         FieldSpec fs("fs", ft, false);
-        _detail::FieldExtractor fe(fs);
+        _detail::FieldExtractorV1 fe(fs);
         UT_EXPECT_THROW_CODE(fe.ParseAndSetBlob(v, FieldData(), blob_add),
                         FieldCannotBeSetNull);
         fe.ParseAndSetBlob(v, str_ok, blob_add);
@@ -210,7 +210,7 @@ TEST_F(TestFieldExtractor, FieldExtractor) {
         value_tmp = Value(1024, 0);  // make sure this buffer is large enough for following tests
 
         FieldSpec fd_nul("FieldSpec", lgraph::FieldType::INT8, true);
-        _detail::FieldExtractor fe_nul_1(fd_nul);
+        _detail::FieldExtractorV1 fe_nul_1(fd_nul);
         fe_nul_1.ParseAndSet(value_tmp, FieldData());
         UT_EXPECT_TRUE(fe_nul_1.GetConstRef(value_tmp).Empty());
 
