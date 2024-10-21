@@ -77,7 +77,7 @@ class AllNodeScanCol : public OpBase {
                 it_->Next();
                 if (!it_->IsValid()) {
                     return (count > 0) ? OP_OK : OP_DEPLETED;
-                    }
+                }
             }
             int64_t vid = it_->GetId();
             for (auto& property : node_->ItRef()->GetFields()) {

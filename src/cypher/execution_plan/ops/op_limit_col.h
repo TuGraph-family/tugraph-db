@@ -37,10 +37,7 @@ class LimitCol : public OpBase {
     }
 
     OpResult RealConsume(RTContext *ctx) override {
-        // Have we reached our limit?
-        // size_t batch_size = 10;
         if (consumed_ >= limit_) return OP_DEPLETED;
-        // Consume a single record.
         CYPHER_THROW_ASSERT(!children.empty());
         auto &child = children[0];
         auto res = child->Consume(ctx);
