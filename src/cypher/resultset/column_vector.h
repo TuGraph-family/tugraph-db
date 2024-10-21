@@ -29,15 +29,18 @@ class ColumnVector {
     friend class StringColumn;
 
  public:
-    explicit ColumnVector(size_t element_size, size_t capacity = DEFAULT_VECTOR_CAPACITY)
+    explicit ColumnVector(size_t element_size, size_t capacity = DEFAULT_VECTOR_CAPACITY,
+                        lgraph_api::FieldType field_type = lgraph_api::FieldType::NUL)
         : element_size_(element_size),
           capacity_(capacity),
+          field_type_(field_type),
           data_(new uint8_t[element_size * capacity]()),
           bitmask_(capacity) {}
 
     ColumnVector(const ColumnVector& other)
         : element_size_(other.element_size_),
         capacity_(other.capacity_),
+        field_type_(other.field_type_),
         data_(new uint8_t[other.element_size_ * other.capacity_]),
         bitmask_(other.bitmask_) {
         // Check if the ColumnVector contains strings
@@ -97,6 +100,7 @@ class ColumnVector {
         if (this == &other) return *this;
         element_size_ = other.element_size_;
         capacity_ = other.capacity_;
+        field_type_ = other.field_type_;
         data_ = std::unique_ptr<uint8_t[]>(new uint8_t[other.element_size_ * other.capacity_]);
         std::memcpy(data_.get(), other.data_.get(), other.element_size_ * other.capacity_);
         bitmask_ = other.bitmask_;
@@ -131,6 +135,8 @@ class ColumnVector {
     uint32_t GetElementSize() const { return element_size_; }
 
     uint32_t GetCapacity() const { return capacity_; }
+
+    lgraph_api::FieldType GetFieldType() const { return field_type_; }
 
     template<typename T>
     const T& GetValue(uint32_t pos) const {
@@ -238,6 +244,7 @@ class ColumnVector {
  private:
     uint32_t element_size_;  // size of each element in bytes
     uint32_t capacity_;  // number of elements
+    lgraph_api::FieldType field_type_;
     std::unique_ptr<uint8_t[]> data_;
     BitMask bitmask_;
     mutable uint64_t overflow_buffer_capacity_;
