@@ -16,25 +16,31 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   const versions = ['latest', '4.5.0', '4.3.2', '4.3.1'];
 
   const getCurrentLanguage = () => {
-    return languages.find(lang => pathname.startsWith(`/${lang}`)) || 'en';
+    const segments = pathname.split('/');
+    return languages.find(lang => segments.includes(lang)) || 'en';
   };
   
   const getCurrentVersion = () => {
     const segments = pathname.split('/');
-    if (segments.length > 2 && versions.includes(segments[2])) {
-      return segments[2];
+    const langIndex = segments.indexOf(getCurrentLanguage());
+    const versionIndex = langIndex + 1;
+    
+    if (segments.length > versionIndex && versions.includes(segments[versionIndex])) {
+      return segments[versionIndex];
     }
     return '4.5.0';
   };
   
-  const onVersionChange = (version: string) => {
+  const onVersionChange = (version) => {
     const lang = getCurrentLanguage();
-    const basePath = `/${lang}`;
+    const prefix = '/tugraph-db';
+    const basePath = `${prefix}/${lang}`;
   
     // 移除现有版本号部分
     const segments = pathname.split('/');
-    const versionIndex = versions.includes(segments[2]) ? 3 : 2;
-    const remainingPath = segments.slice(versionIndex).join('/');
+    const langIndex = segments.indexOf(lang);
+    const versionIndex = langIndex + 1;
+    const remainingPath = segments.slice(versionIndex + (versions.includes(segments[versionIndex]) ? 1 : 0)).join('/');
   
     // 构造新路径
     const newPath = version === '4.5.0'
