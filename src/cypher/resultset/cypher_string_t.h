@@ -34,28 +34,8 @@ struct cypher_string_t {
     };
 
     cypher_string_t() : len{0}, overflowPtr{0} {}
-    cypher_string_t(const char* value, uint64_t length) { set(value, length); }
 
     static bool IsShortString(uint32_t len) { return len <= SHORT_STR_LENGTH; }
-
-    const uint8_t* GetData() const {
-        return IsShortString(len) ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
-    }
-
-    uint8_t* GetDataUnsafe() {
-        return IsShortString(len) ? prefix : reinterpret_cast<uint8_t*>(overflowPtr);
-    }
-
-    void set(const std::string& value) { set(value.data(), value.length()); }
-    void set(const char* value, uint64_t length) {
-        len = length;
-        if (IsShortString(length)) {
-            std::memcpy(prefix, value, length);
-        } else {
-            std::memcpy(prefix, value, PREFIX_LENGTH);
-            overflowPtr = reinterpret_cast<uint64_t>(value + PREFIX_LENGTH);
-        }
-    }
 
     void SetShortString(const char* value, uint64_t length) {
         len = length;
@@ -81,21 +61,6 @@ struct cypher_string_t {
                    std::string(reinterpret_cast<const char*>(overflowPtr), len - PREFIX_LENGTH);
         }
     }
-
-    bool operator==(const cypher_string_t& rhs) const {
-        return len == rhs.len && std::memcmp(GetData(), rhs.GetData(), len) == 0;
-    }
-
-    bool operator!=(const cypher_string_t& rhs) const { return !(*this == rhs); }
-
-    bool operator>(const cypher_string_t& rhs) const {
-        return std::lexicographical_compare(rhs.GetData(), rhs.GetData() + rhs.len,
-                                            GetData(), GetData() + len);
-    }
-
-    bool operator>=(const cypher_string_t& rhs) const { return (*this > rhs) || (*this == rhs); }
-    bool operator<(const cypher_string_t& rhs) const { return !(*this >= rhs); }
-    bool operator<=(const cypher_string_t& rhs) const { return !(*this > rhs); }
 };
 
 }  // namespace cypher
