@@ -68,6 +68,9 @@ typedef int32_t PackDataOffset;  // offset used in a packed data (maximum 1024)
 typedef uint16_t LabelId;
 typedef int64_t TemporalId;
 
+typedef uint16_t FieldId;   // Field id in schema Fields
+typedef uint8_t VersionId;  // Schema version
+
 enum CompareOp { LBR_EQ = 0, LBR_NEQ = 1, LBR_LT = 2, LBR_LE = 3, LBR_GT = 4, LBR_GE = 5 };
 
 enum LogicalOp { LBR_EMPTY = 0, LBR_AND = 1, LBR_OR = 2, LBR_NOT = 3, LBR_XOR = 4 };
