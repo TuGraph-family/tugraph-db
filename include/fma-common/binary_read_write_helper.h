@@ -19,6 +19,8 @@
 #pragma once
 
 #include <lgraph/lgraph_types.h>
+#include <lgraph/lgraph_date_time.h>
+#include <lgraph/lgraph_spatial.h>
 
 #include <iostream>
 #include <map>
@@ -39,6 +41,8 @@
 #endif
 namespace lgraph_api {
 struct FieldData;
+class Date;
+class DateTime;
 }
 
 namespace fma_common {
