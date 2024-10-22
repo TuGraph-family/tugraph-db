@@ -67,7 +67,7 @@ class AllNodeScanCol : public OpBase {
 
     OpResult RealConsume(RTContext *ctx) override {
         uint32_t count = 0;
-        columnar_record_ = std::make_shared<DataChunk>();
+        columnar_ = std::make_shared<DataChunk>();
         while (count < BATCH_SIZE) {
             node_->SetVid(-1);
             if (!it_ || !it_->IsValid()) return (count > 0) ? OP_OK : OP_DEPLETED;
@@ -77,36 +77,37 @@ class AllNodeScanCol : public OpBase {
                 it_->Next();
                 if (!it_->IsValid()) {
                     return (count > 0) ? OP_OK : OP_DEPLETED;
-                    }
+                }
             }
             int64_t vid = it_->GetId();
             for (auto& property : node_->ItRef()->GetFields()) {
                 const std::string& property_name = property.first;
                 const lgraph_api::FieldData& field = property.second;
                 if (field.type == lgraph_api::FieldType::STRING) {
-                    if (columnar_record_->string_columns_.find(property_name) ==
-                        columnar_record_->string_columns_.end()) {
-                        columnar_record_->string_columns_[property_name] =
-                            std::make_unique<ColumnVector>(sizeof(cypher_string_t), BATCH_SIZE);
-                        columnar_record_->property_positions_[property_name] = 0;
+                    if (columnar_->string_columns_.find(property_name) ==
+                        columnar_->string_columns_.end()) {
+                        columnar_->string_columns_[property_name] =
+                            std::make_unique<ColumnVector>(sizeof(cypher_string_t),
+                            BATCH_SIZE, field.type);
+                        columnar_->property_positions_[property_name] = 0;
                     }
-                    columnar_record_->property_vids_[property_name].push_back(vid);
-                    uint32_t pos = columnar_record_->property_positions_[property_name]++;
+                    columnar_->property_vids_[property_name].push_back(vid);
+                    uint32_t pos = columnar_->property_positions_[property_name]++;
                     StringColumn::AddString(
-                        columnar_record_->string_columns_[property_name].get(), pos,
+                        columnar_->string_columns_[property_name].get(), pos,
                         field.AsString().c_str(), field.AsString().size());
                 } else {
-                    if (columnar_record_->columnar_data_.find(property_name) ==
-                        columnar_record_->columnar_data_.end()) {
+                    if (columnar_->columnar_data_.find(property_name) ==
+                        columnar_->columnar_data_.end()) {
                         size_t element_size = ColumnVector::GetFieldSize(field.type);
-                        columnar_record_->columnar_data_[property_name] =
-                            std::make_unique<ColumnVector>(element_size, BATCH_SIZE);
-                        columnar_record_->property_positions_[property_name] = 0;
+                        columnar_->columnar_data_[property_name] =
+                            std::make_unique<ColumnVector>(element_size, BATCH_SIZE, field.type);
+                        columnar_->property_positions_[property_name] = 0;
                     }
-                    columnar_record_->property_vids_[property_name].push_back(vid);
-                    uint32_t pos = columnar_record_->property_positions_[property_name]++;
+                    columnar_->property_vids_[property_name].push_back(vid);
+                    uint32_t pos = columnar_->property_positions_[property_name]++;
                     ColumnVector::InsertIntoColumnVector(
-                        columnar_record_->columnar_data_[property_name].get(), field, pos);
+                        columnar_->columnar_data_[property_name].get(), field, pos);
                 }
             }
 

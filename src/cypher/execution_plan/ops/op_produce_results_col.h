@@ -47,7 +47,7 @@ class ProduceResultsCol : public OpBase {
         if (!children.empty()) {
             children[0]->Initialize(ctx);
         }
-        columnar_record_ = std::make_shared<DataChunk>();
+        columnar_ = std::make_shared<DataChunk>();
         final_r = std::make_shared<DataChunk>();
         return OP_OK;
     }
@@ -174,8 +174,8 @@ class ProduceResultsCol : public OpBase {
             auto child = children[0];
             auto res = child->Consume(ctx);
             if (res != OP_OK) return res;
-            columnar_record_ = child->columnar_record_;
-            final_r->AppendToEnd(*columnar_record_);
+            columnar_ = child->columnar_;
+            final_r->Append(*columnar_);
             ctx->moveDataChunk(final_r);
             return OP_OK;
         }

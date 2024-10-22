@@ -89,7 +89,7 @@ class RTContext : public SubmitQueryContext {
     }
 
     void moveDataChunk(std::shared_ptr<DataChunk> &column_data_) {
-        data_chunk_ = column_data_;
+        data_chunk_ = std::move(column_data_);
     }
 
     void SetBoltConnection(bolt::BoltConnection* c) {

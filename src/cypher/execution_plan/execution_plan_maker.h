@@ -21,13 +21,6 @@
 #include "cypher/graph/graph.h"
 #include "cypher/execution_plan/ops/op.h"
 
-#ifndef LIKELY
-#define LIKELY(x) __builtin_expect(!!(x), 1)
-#endif
-#ifndef UNLIKELY
-#define UNLIKELY(x) __builtin_expect(!!(x), 0)
-#endif
-
 namespace cypher {
 
 DECLARE_bool(is_columnar);
