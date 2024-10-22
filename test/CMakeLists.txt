@@ -27,6 +27,7 @@ add_executable(unit_test
         test_blob_manager.cpp
         test_c.cpp
         test_cache_aligned_vector.cpp
+        test_bit_mask.cpp
         test_column_vector.cpp
         test_concurrent_gettime.cpp
         test_core_exception.cpp
