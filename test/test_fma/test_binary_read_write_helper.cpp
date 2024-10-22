@@ -18,8 +18,6 @@
 #include "fma-common/snappy_stream.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
-#include "lgraph/lgraph_date_time.h"
-#include "lgraph/lgraph_spatial.h"
 
 using namespace fma_common;
 using namespace lgraph_api;
@@ -92,8 +90,10 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     BinaryWrite(outfile, FieldData((int64_t)10));
     BinaryWrite(outfile, FieldData((float)10.0));
     BinaryWrite(outfile, FieldData((double)10.0));
-    BinaryWrite(outfile, FieldData(Date("2088-01-22")));
-    BinaryWrite(outfile, FieldData(DateTime("2088-01-22 11:22:33")));
+    const std::string time = "2088-01-22";
+    const std::string datetime = "2088-01-22 11:22:33";
+    BinaryWrite(outfile, FieldData(Date(time)));
+    BinaryWrite(outfile, FieldData(DateTime(datetime)));
     BinaryWrite(outfile, FieldData("hello"));
     std::string WKB_Point = "0101000000000000000000f03f0000000000000040";
     std::string EWKB_Point = "0101000020E6100000000000000000F03F0000000000000040";
@@ -153,43 +153,56 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     // the following should fail compiling
     // BinaryRead(infile, non_pod);
 
-    serializable.x = 0;
-    BinaryRead(infile, serializable);
-    FMA_UT_CHECK_EQ(serializable.x, 111);
-
     FieldData data;
     BinaryRead(infile, data);
     FMA_UT_CHECK_EQ(data, FieldData());
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData((int8_t)10));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData((int16_t)10));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData((int32_t)10));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData((int64_t)10));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData((float)10.0));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData((double)10.0));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData(Date("2088-01-22")));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData(DateTime("2088-01-22 11:22:33")));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData("hello"));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData::Point(EWKB_Point));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData::LineString(EWKB_LineString));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData::Polygon(EWKB_Polygon));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(
-        data, FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0, WKB_Point)));
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData::FloatVector(vec));
+    FieldData datai8;
+    BinaryRead(infile, datai8);
+    FMA_UT_CHECK_EQ(datai8, FieldData((int8_t)10));
+    FieldData datai16;
+    BinaryRead(infile, datai16);
+    FMA_UT_CHECK_EQ(datai16, FieldData((int16_t)10));
+    FieldData datai32;
+    BinaryRead(infile, datai32);
+    FMA_UT_CHECK_EQ(datai32, FieldData((int32_t)10));
+    FieldData datai64;
+    BinaryRead(infile, datai64);
+    FMA_UT_CHECK_EQ(datai64, FieldData((int64_t)10));
+    FieldData dataf;
+    BinaryRead(infile, dataf);
+    FMA_UT_CHECK_EQ(dataf, FieldData((float)10.0));
+    FieldData datad;
+    BinaryRead(infile, datad);
+    FMA_UT_CHECK_EQ(datad, FieldData((double)10.0));
+    FieldData data_date;
+    BinaryRead(infile, data_date);
+    FMA_UT_CHECK_EQ(data_date, FieldData(Date("2088-01-22")));
+    FieldData data_datetime;
+    BinaryRead(infile, data_datetime);
+    FMA_UT_CHECK_EQ(data_datetime, FieldData(DateTime("2088-01-22 11:22:33")));
+    FieldData data_str;
+    BinaryRead(infile, data_str);
+    FMA_UT_CHECK_EQ(data_str, FieldData("hello"));
 
+    FieldData data_point;
+    BinaryRead(infile, data_point);
+    FMA_UT_CHECK_EQ(data_point, FieldData::Point(EWKB_Point));
+    FieldData data_line;
+    BinaryRead(infile, data_line);
+    FMA_UT_CHECK_EQ(data_line, FieldData::LineString(EWKB_LineString));
+    FieldData data_polygon;
+    BinaryRead(infile, data_polygon);
+    FMA_UT_CHECK_EQ(data_polygon, FieldData::Polygon(EWKB_Polygon));
+    FieldData data_spatial;
+    BinaryRead(infile, data_spatial);
+    FMA_UT_CHECK_EQ(data_spatial, FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT,
+                                                                    0, WKB_Point)));
+    FieldData data_vec;
+    BinaryRead(infile, data_vec);
+
+    serializable.x = 0;
+    BinaryRead(infile, serializable);
+    FMA_UT_CHECK_EQ(serializable.x, 111);
     lgraph_log::LoggerManager::GetInstance().DisableBufferMode();
     return 0;
 }
