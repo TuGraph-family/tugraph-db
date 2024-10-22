@@ -237,7 +237,7 @@ void ExecutionPlanMaker::_AddScanOp(const SymbolTable* sym_tab, Node* node,
             if (!node->Label().empty()) {
                 /* labeled */
                 scan_op = new NodeByLabelScan(node, sym_tab);
-            } else if (UNLIKELY(FLAGS_is_columnar)) {
+            } else if (FLAGS_is_columnar) {
                 scan_op = new AllNodeScanCol(node, sym_tab);
             } else {
                 /* Node not labeled, no other option but a full scan. */
@@ -1058,7 +1058,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::CompositeQueryStatement* node
         auto op_union = new Union();
         op_union->AddChild(pattern_graph_root_[cur_pattern_graph_]);
         OpBase* op_produce = nullptr;
-        if (UNLIKELY(FLAGS_is_columnar)) {
+        if (FLAGS_is_columnar) {
             op_produce = new ProduceResultsCol();
         } else {
             op_produce = new ProduceResults();
@@ -1138,7 +1138,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::NamedProcedureCall* node) {
                                     pattern_graphs_[cur_pattern_graph_].symbol_table);
     expand_ops.emplace_back(op);
     OpBase* produce = nullptr;
-    if (UNLIKELY(FLAGS_is_columnar)) {
+    if (FLAGS_is_columnar) {
         produce = new ProduceResultsCol();
     } else {
         produce = new ProduceResults();
@@ -1248,7 +1248,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
     }
     if (cur_pattern_graph_ == pattern_graph_size_ - 1) {
         OpBase* result = nullptr;
-        if (UNLIKELY(FLAGS_is_columnar)) {
+        if (FLAGS_is_columnar) {
             result = new ProduceResultsCol();
         } else {
             result = new ProduceResults();
@@ -1256,7 +1256,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         ops.push_back(result);
     }
     if (node->limit().has_value()) {
-        if (UNLIKELY(FLAGS_is_columnar)) {
+        if (FLAGS_is_columnar) {
             ops.emplace_back(new LimitCol(std::get<0>(node->limit().value())));
         } else {
             ops.emplace_back(new Limit(std::get<0>(node->limit().value())));
@@ -1335,7 +1335,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::PrimitiveResultStatement* nod
         if (node->distinct()) {
             ops.emplace_back(new Distinct());
         }
-        if (UNLIKELY(FLAGS_is_columnar)) {
+        if (FLAGS_is_columnar) {
             ops.emplace_back(
                 new ProjectCol(arith_items, &pattern_graphs_[cur_pattern_graph_].symbol_table));
         } else {
@@ -1365,7 +1365,7 @@ std::any ExecutionPlanMaker::visit(geax::frontend::LinearDataModifyingStatement*
         ACCEPT_AND_CHECK_WITH_ERROR_MSG(resultStatement);
     } else {
         OpBase* result = nullptr;
-        if (UNLIKELY(FLAGS_is_columnar)) {
+        if (FLAGS_is_columnar) {
             result = new ProduceResultsCol();
         } else {
             result = new ProduceResults();
