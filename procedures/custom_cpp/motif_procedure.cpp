@@ -14,7 +14,7 @@
 
 #include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
-#include "./algo.h"
+#include "../algo_cpp/algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
@@ -23,42 +23,50 @@ using json = nlohmann::json;
 extern "C" bool Process(GraphDB& db, const std::string& request, std::string& response) {
     auto start_time = get_time();
 
-    std::vector<std::unordered_set<size_t>> query;
+    std::vector<std::string> vertices_id;
+    std::string label = "node";
+    std::string field = "id";
+    int k = 3;
     std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
-        for (auto &query_item : input["query"]) {
-            std::unordered_set<size_t> q;
-            for (auto &inner : query_item) {
-                q.insert(inner.get<int>());
-            }
-            query.push_back(q);
-        }
+        parse_from_json(vertices_id, "vertices", input);
+        parse_from_json(label, "label", input);
+        parse_from_json(field, "field", input);
+        parse_from_json(k, "k", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
         return false;
     }
 
-    if (query.empty()) {
-        query.emplace_back(std::unordered_set<size_t>{1, 2});
-        query.emplace_back(std::unordered_set<size_t>{2});
-        query.emplace_back(std::unordered_set<size_t>{});
-//        throw std::runtime_error("query is empty.");
-    }
-
     auto txn = db.CreateReadTxn();
 
     OlapOnDB<Empty> olapondb(db, txn, SNAPSHOT_PARALLEL);
 
+    ParallelVector<size_t> vertices_vid;
+    if (!vertices_id.empty()) {
+        vertices_vid.ReAlloc(vertices_id.size());
+        for (auto id : vertices_id) {
+            int64_t vid = txn.GetVertexIndexIterator(label, field, id, id).GetVid();
+            vertices_vid.Append(olapondb.MappedVid(vid));
+        }
+    } else {
+        //        throw std::runtime_error("No node found for input in DB.");
+        vertices_vid.ReAlloc(1);
+        int64_t vid = txn.GetVertexIndexIterator(label, field, "0", "0").GetVid();
+        vertices_vid.Append(olapondb.MappedVid(vid));
+    }
+
     auto preprocessing_time = get_time();
-    auto counts = olapondb.AllocVertexArray<size_t>();
-    size_t subgraph_num = SubgraphIsomorphismCore(olapondb, query, counts);
+    auto counts = olapondb.AllocVertexArray<std::map<uint64_t, size_t>>();
+    MotifCore(olapondb, vertices_vid, k, counts);
     auto exec_time = get_time();
 
     json output;
-    // TODO(any): write count back to graph
-    output["match_subgraph_num"] = subgraph_num;
+    for (size_t i = 0; i < vertices_vid.Size(); i++) {
+        output["motif"].push_back(counts[i]);
+    }
     auto output_time = get_time();
 
     output["preprocessing_time"] = (double)(preprocessing_time - start_time);

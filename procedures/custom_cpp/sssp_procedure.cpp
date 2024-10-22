@@ -84,7 +84,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
             return vdata != SSSP_INIT_VALUE;
         });
     }
-    txn.Commit();
 
     auto all_vertices = olapondb.AllocVertexSubset();
     all_vertices.Fill();
@@ -127,5 +126,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         output["total_cost"] = prepare_cost + core_cost + output_cost;
         response = output.dump();
     }
+    txn.Commit();
     return true;
 }

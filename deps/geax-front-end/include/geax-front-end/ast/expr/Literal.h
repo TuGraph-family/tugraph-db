@@ -26,7 +26,7 @@ namespace frontend {
 class Literal : public Expr {
 public:
     explicit Literal(AstNodeType type) : Expr(type) {}
-    ~Literal() = default;
+    virtual ~Literal() = default;
 };  // class Literal
 
 }  // namespace frontend

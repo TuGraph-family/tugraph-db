@@ -14,7 +14,7 @@
 
 #include "lgraph/olap_on_db.h"
 #include "tools/json.hpp"
-#include "./algo.h"
+#include "../algo_cpp/algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
@@ -47,7 +47,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     for (const auto& ele : root_values) {
         lgraph_api::FieldData root_field_data(ele);
         int64_t root_vid = txn.GetVertexIndexIterator
-                (root_label, root_field, root_field_data, root_field_data).GetVid();
+                           (root_label, root_field, root_field_data, root_field_data).GetVid();
         roots.push_back(olapondb.MappedVid(root_vid));
     }
     auto prepare_cost = get_time() - start_time;
@@ -59,7 +59,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     auto core_cost = get_time() - start_time;
 
     if (output_file != "") {
-        olapondb.WriteToFile<double>(distance, output_file,
+        olapondb.WriteToFile<double>(true, distance, output_file,
                                      [&](size_t vid, double& vdata) -> bool {
                                          return vdata != SSSP_INIT_VALUE;
                                      });

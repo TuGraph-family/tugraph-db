@@ -174,7 +174,7 @@ void HNSW::Load(std::vector<uint8_t>& idx_bytes) {
 
 // search vector in index
 std::vector<std::pair<int64_t, float>>
-HNSW::Search(const std::vector<float>& query, int64_t num_results, int ef_search) {
+HNSW::KnnSearch(const std::vector<float>& query, int64_t top_k, int ef_search) {
     auto* query_copy = new float[query.size()];
     std::copy(query.begin(), query.end(), query_copy);
     auto dataset = vsag::Dataset::Make();
@@ -185,7 +185,30 @@ HNSW::Search(const std::vector<float>& query, int64_t num_results, int ef_search
         {"hnsw", {{"ef_search", ef_search}}},
     };
     std::vector<std::pair<int64_t, float>> ret;
-    auto result = index_->KnnSearch(dataset, num_results, parameters.dump());
+    auto result = index_->KnnSearch(dataset, top_k, parameters.dump());
+    if (result.has_value()) {
+        for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
+            ret.emplace_back(result.value()->GetIds()[i], result.value()->GetDistances()[i]);
+        }
+    } else {
+        THROW_CODE(VectorIndexException, result.error().message);
+    }
+    return ret;
+}
+
+std::vector<std::pair<int64_t, float>>
+HNSW::RangeSearch(const std::vector<float>& query, float radius, int ef_search, int limit) {
+    auto* query_copy = new float[query.size()];
+    std::copy(query.begin(), query.end(), query_copy);
+    auto dataset = vsag::Dataset::Make();
+    dataset->Dim(vec_dimension_)
+        ->NumElements(1)
+        ->Float32Vectors(query_copy);
+    nlohmann::json parameters{
+        {"hnsw", {{"ef_search", ef_search}}},
+    };
+    std::vector<std::pair<int64_t, float>> ret;
+    auto result = index_->RangeSearch(dataset, radius, parameters.dump(), limit);
     if (result.has_value()) {
         for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
             ret.emplace_back(result.value()->GetIds()[i], result.value()->GetDistances()[i]);
