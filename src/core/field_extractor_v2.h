@@ -21,7 +21,6 @@
 #include "core/schema_common.h"
 #include "core/vector_index.h"
 #include "core/vsag_hnsw.h"
-#include "lgraph/lgraph_types.h"
 
 namespace lgraph {
 class Schema;
@@ -56,7 +55,7 @@ class FieldExtractorV2 {
 
     ~FieldExtractorV2() {}
 
-    explict FieldExtractorV2(const FieldExtractorV2& rhs) {
+    explicit FieldExtractorV2(const FieldExtractorV2& rhs) {
         def_ = rhs.def_;
         is_vfield_ = rhs.is_vfield_;
         vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
@@ -107,7 +106,9 @@ class FieldExtractorV2 {
         return *this;
     }
 
-    const FieldSpec& GetFieldSpec() const { return def_; }
+    // get
+
+    const FieldSpecV2& GetFieldSpec() const { return def_; }
 
     bool GetIsNull(const Value& record) const;
 
@@ -119,6 +120,42 @@ class FieldExtractorV2 {
 
     bool HasInitedValue() const { return def_.inited_value; }
 
+    const std::string& Name() const { return def_.name; }
+
+    FieldType Type() const { return def_.type; }
+
+    size_t TypeSize() const { return field_data_helper::FieldTypeSize(def_.type); }
+
+    size_t DataSize(const Value& record) const { return GetDataSize(record); }
+
+    bool IsOptional() const { return def_.optional; }
+
+    bool IsFixedType() const { return field_data_helper::IsFixedLengthFieldType(def_.type); }
+
+    bool IsDeleted() const { return def_.deleted; }
+
+    VertexIndex* GetVertexIndex() const { return vertex_index_.get(); }
+
+    EdgeIndex* GetEdgeIndex() const { return edge_index_.get(); }
+
+    bool FullTextIndexed() const { return fulltext_indexed_; }
+
+    VectorIndex* GetVectorIndex() const { return vector_index_.get(); }
+
+    uint16_t GetFieldId() const { return def_.id; }
+
+    /**
+     * Print the string representation of the field. For digital types, it prints
+     * it into ASCII string; for NBytes and String, it just copies the content of
+     * the field into the string.
+     *
+     * \param   record  The record.
+     *
+     * \return  String representation of the field.
+     */
+    std::string FieldToString(const Value& record) const;
+
+    // set
     void SetDefaultValue(const FieldData& data) {
         def_.default_value = FieldData(data);
         def_.set_default_value = true;
@@ -129,8 +166,6 @@ class FieldExtractorV2 {
         def_.inited_value = true;
     }
 
-    void SetLabelInRecord(const bool label_in_record) const;
-
     void MarkDeleted() {
         def_.deleted = true;
         // free data space when marked deleted
@@ -138,6 +173,12 @@ class FieldExtractorV2 {
         def_.default_value.~FieldData();
         def_.inited_value = false;
         def_.set_default_value = false;
+    }
+
+    void SetLabelInRecord(const bool label_in_record);
+
+    void SetRecordCount(Value& record, FieldId count) const {
+        memcpy(record.Data() + count_offset_, &count, sizeof(FieldId));
     }
 
     /**
@@ -159,17 +200,19 @@ class FieldExtractorV2 {
      *
      * Assert fails if data is corrupted.
      */
-    void GetCopy(const Value& record, std::string& data) const
+    void GetCopy(const Value& record, std::string& data) const;
 
-        /**
-         * Extracts field data from the record
-         *
-         * \param           record  The record.
-         * \param [in,out]  data    The result.
-         *
-         * Assert fails if data is corrupted.
-         */
-        void GetCopy(const Value& record, Value& data) const;
+    /**
+     * Extracts field data from the record
+     *
+     * \param           record  The record.
+     * \param [in,out]  data    The result.
+     *
+     * Assert fails if data is corrupted.
+     */
+    void GetCopy(const Value& record, Value& data) const;
+
+    void GetCopyRaw(const Value& record, void* data, size_t size) const;
 
     /**
      *  Convert data for integral and floating types.
@@ -180,8 +223,52 @@ class FieldExtractorV2 {
      *  This approach allows us to retain the original value when modifying the data type,
      *  without requiring a complete scan of the data to generate a new field.
      */
-    ENABLE_IF_FIXED_FIELD(T, void) static ConvertData(T* dst, const char* data, size_t size);
-}
+    ENABLE_IF_FIXED_FIELD(T, void) ConvertData(T* dst, const char* data, size_t size) const;
+
+ private:
+    void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
+
+    void SetEdgeIndex(EdgeIndex* edgeindex) { edge_index_.reset(edgeindex); }
+
+    void SetVectorIndex(VectorIndex* vectorindex) { vector_index_.reset(vectorindex); }
+
+    void SetFullTextIndex(bool fulltext_indexed) { fulltext_indexed_ = fulltext_indexed; }
+
+    void SetFieldId(uint16_t n) { def_.id = n; }
+
+    // reocrd related
+
+    // return null array pointer.
+    char* GetNullArray(const Value& record) const { return record.Data() + nullarray_offset_; }
+
+    // return field num in the record.
+    FieldId GetRecordCount(const Value& record) const;
+
+    size_t GetDataSize(const Value& record) const;
+
+    /** Retrieve the starting position of the Field data for the given ID.
+     *  Note that both fixed-length and variable-length data are not distinguished here.
+     */
+    size_t GetFieldOffset(const Value& record, const FieldId id) const;
+
+    // return the position of the field's offset.
+    size_t GetOffsetPosition(const Value& record, const FieldId id) const;
+
+    // return the pointer of fields.
+    void* GetFieldPointer(const Value& record) const;
+
+    // set null in the record.
+    void SetIsNull(const Value& record, const bool is_null) const;
+
+    // set variable's offset, they are stored at fixed-data area.
+    void SetVariableOffset(Value& record, FieldId id, DataOffset offset) const;
+
+    // set fixed length data, only if length of the data in record equal its' definition.
+    void _SetFixedSizeValueRaw(Value& record, const Value& data) const;
+
+    // for test only.
+    void _SetVariableValueRaw(Value& record, const Value& data) const;
+};
 
 }  // namespace _detail
 }  // namespace lgraph
