@@ -49,7 +49,7 @@ class Traversal : public OpBase {
         expands_;  // <start, neighbor, relp, towards, has_filter>
 
     /** result */
-    cuckoohash_map<lgraph::FieldData, int, lgraph::FieldDataHash> map_;
+    cuckoohash_map<lgraph::FieldData, int, lgraph::FieldData::Hash> map_;
     std::vector<lgraph::FieldData> result_buffer_;
     size_t result_idx_;
 
