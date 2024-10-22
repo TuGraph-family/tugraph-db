@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import DocSidebar from '@theme-original/DocSidebar';
 import type DocSidebarType from '@theme/DocSidebar';
 import type {WrapperProps} from '@docusaurus/types';
@@ -50,14 +50,29 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     history.push(newPath);
   };
 
+  useEffect(() => {
+    window.addEventListener('click', () => {
+      const currentPath = window.location.pathname;
+      window.parent.postMessage({ path: currentPath }, '*');
+    });
+    window.addEventListener('hashchange', () => {
+      const currentPath = window.location.pathname;
+      const hash = window.location.hash;
+      window.parent.postMessage({ path: currentPath + hash }, '*');
+    });
+  }, []);
+
+
   return (
     <div style={{display: 'flex', justifyContent: 'center', flexDirection: 'column'}}>
-      <Select
-        defaultValue={getCurrentVersion()}
-        style={{ width: 120, padding: '8px 0 0 8px' }}
-        options={versions.map(item => ({value: item, label: item}))}
-        onChange={onVersionChange}
-      />
+      <div>
+        <Select
+          defaultValue={getCurrentVersion()}
+          style={{ width: 120, margin: '16px 0 8px 8px' }}
+          options={versions.map(item => ({value: item, label: item}))}
+          onChange={onVersionChange}
+        />
+      </div>
       <DocSidebar {...props} />
     </div>
   );

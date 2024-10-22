@@ -43,8 +43,6 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           path: './docs/zh-CN/source',
           routeBasePath: 'zh/latest',
-          showLastUpdateAuthor: true,
-          showLastUpdateTime: true,
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -61,8 +59,6 @@ const config: Config = {
         sidebarPath: './sidebarsEn.ts',
         path: './docs/en-US/source',
         routeBasePath: 'en/latest',
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
       } satisfies DocsOptions,
     ],
     [
@@ -72,8 +68,6 @@ const config: Config = {
         sidebarPath: './versions_sidebars/version-4.5.0_en.ts',
         path: './versions/version-4.5.0/en-US/source',
         routeBasePath: 'en',
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
@@ -84,8 +78,6 @@ const config: Config = {
         sidebarPath: './versions_sidebars/version-4.5.0_zh.ts',
         path: './versions/version-4.5.0/zh-CN/source',
         routeBasePath: 'zh',
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
@@ -96,8 +88,6 @@ const config: Config = {
         sidebarPath: './versions_sidebars/version-4.3.2_en.ts',
         path: './versions/version-4.3.2/en-US/source',
         routeBasePath: 'en/4.3.2',
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
@@ -108,8 +98,6 @@ const config: Config = {
         sidebarPath: './versions_sidebars/version-4.3.2_zh.ts',
         path: './versions/version-4.3.2/zh-CN/source',
         routeBasePath: 'zh/4.3.2',
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
@@ -120,8 +108,6 @@ const config: Config = {
         sidebarPath: './versions_sidebars/version-4.3.1_en.ts',
         path: './versions/version-4.3.1/en-US/source',
         routeBasePath: 'en/4.3.1',
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
@@ -132,8 +118,6 @@ const config: Config = {
         sidebarPath: './versions_sidebars/version-4.3.1_zh.ts',
         path: './versions/version-4.3.1/zh-CN/source',
         routeBasePath: 'zh/4.3.1',
-        showLastUpdateAuthor: true,
-        showLastUpdateTime: true,
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
@@ -144,6 +128,12 @@ const config: Config = {
     image: 'img/docusaurus-social-card.jpg',
     tableOfContents: {
       maxHeadingLevel: 5,
+    },
+    algolia: {
+      apiKey: '543db0cadd3173a4b801cd13f89aa996',
+      indexName: 'tugraph-antgroup',
+      appId: 'NDSB2X7NZ3',
+      contextualSearch: true,
     },
     navbar: {
       logo: {
@@ -188,30 +178,6 @@ const config: Config = {
           position: 'right',
         }
       ],
-    },
-    footer: {
-      style: 'dark',
-      links: [
-        {
-          title: 'Docs',
-          items: [
-            {
-              label: 'Tutorial',
-              to: '/zh/guide',
-            },
-          ],
-        },
-        {
-          title: 'More',
-          items: [
-            {
-              label: 'GitHub',
-              href: 'https://github.com/TuGraph-family/tugraph-db',
-            },
-          ],
-        },
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
