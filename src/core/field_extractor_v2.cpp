@@ -110,22 +110,11 @@ std::string FieldExtractorV2::FieldToString(const Value& record) const {
     return "";
 }
 
-void FieldExtractorV2::SetLabelInRecord(const bool label_in_record) {
+void FieldExtractorV2::SetLabelInRecord(bool label_in_record) {
     label_in_record_ = label_in_record;
     // refresh count_offset and nullarry_offset
     count_offset_ = sizeof(VersionId) + (label_in_record ? sizeof(LabelId) : 0);
     nullarray_offset_ = count_offset_ + sizeof(FieldId);
-}
-
-ENABLE_IF_FIXED_FIELD(T, void) FieldExtractorV2::GetCopy(const Value& record, T& data) const {
-    FMA_DBG_ASSERT(field_data_helper::FieldTypeSize(def_.type) == sizeof(T));
-    size_t offset = GetFieldOffset(record, def_.id);
-    size_t size = GetDataSize(record);
-    if (size == sizeof(T)) {
-        memcpy(&data, (char*)record.Data() + offset, sizeof(T));
-    } else {
-        ConvertData(&data, (char*)record.Data() + offset, size);
-    }
 }
 
 void FieldExtractorV2::GetCopy(const Value& record, std::string& data) const {
@@ -148,58 +137,6 @@ void FieldExtractorV2::GetCopyRaw(const Value& record, void* data, size_t size) 
     } else {
         FMA_DBG_ASSERT(off + size <= record.Size());
         memcpy(data, record.Data() + off, size);
-    }
-}
-
-/**
- *  Convert data for integral and floating types.
- *  If we change the data type of floating-point or integer values
- *  (i.e., by altering their defined length), we need to adjust their values accordingly.
- *  For example, when converting from INT64 to INT8 (a relatively rare operation),
- *  we need to return an appropriate value within the range of the new type.
- *  This approach allows us to retain the original value when modifying the data type,
- *  without requiring a complete scan of the data to generate a new field.
- */
-
-ENABLE_IF_FIXED_FIELD(T, void)
-FieldExtractorV2::ConvertData(T* dst, const char* data, size_t size) const {
-    if (std::is_integral_v<T>) {
-        int64_t temp = 0;
-        switch (size) {
-        case 1:
-            temp = *reinterpret_cast<const int8_t*>(data);
-            break;
-        case 2:
-            temp = *reinterpret_cast<const int16_t*>(data);
-            break;
-        case 4:
-            temp = *reinterpret_cast<const int32_t*>(data);
-            break;
-        case 8:
-            temp = *reinterpret_cast<const int64_t*>(data);
-            break;
-        default:
-            FMA_ASSERT(false) << "Invalid size";
-        }
-
-        if (temp > std::numeric_limits<T>::max()) {
-            *dst = std::numeric_limits<T>::max();
-        } else if (temp < std::numeric_limits<T>::min()) {
-            *dst = std::numeric_limits<T>::min();
-        } else {
-            *dst = static_cast<T>(temp);
-        }
-    } else if (std::is_floating_point_v<T>) {
-        switch (size) {
-        case 4:
-            *dst = static_cast<T>(*reinterpret_cast<const float*>(data));
-            break;
-        case 8:
-            *dst = static_cast<T>(*reinterpret_cast<const double*>(data));
-            break;
-        default:
-            FMA_ASSERT(false) << "Invalid size";
-        }
     }
 }
 
@@ -244,7 +181,7 @@ void* FieldExtractorV2::GetFieldPointer(const Value& record) const {
     return (char*)record.Data() + GetFieldOffset(record, def_.id);
 }
 
-void FieldExtractorV2::SetIsNull(const Value& record, const bool is_null) const {
+void FieldExtractorV2::SetIsNull(const Value& record, bool is_null) const {
     if (!def_.optional) {
         if (is_null) throw FieldCannotBeSetNullException(Name());
     }
