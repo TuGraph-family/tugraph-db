@@ -41,7 +41,7 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          path: './docs/zh-CN/source',
+          path: '../docs/zh-CN/source',
           routeBasePath: 'zh/latest',
         },
         theme: {
@@ -57,7 +57,7 @@ const config: Config = {
       {
         id: 'latest-en',
         sidebarPath: './sidebarsEn.ts',
-        path: './docs/en-US/source',
+        path: '../docs/en-US/source',
         routeBasePath: 'en/latest',
       } satisfies DocsOptions,
     ],

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "start": "node script/convert.js start",
-    "build": "node script/convert.js build",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
     "docusaurus:start": "docusaurus start",
     "docusaurus:build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
