@@ -66,20 +66,7 @@ class FieldExtractorV2 {
         count_offset_ = rhs.count_offset_;
     }
 
-    FieldExtractorV2& operator=(const FieldExtractorV2& rhs) {
-        if (this == &rhs) return *this;
-        def_ = rhs.def_;
-        is_vfield_ = rhs.is_vfield_;
-        vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
-        edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
-        fulltext_indexed_ = rhs.fulltext_indexed_;
-        vector_index_ = rhs.vector_index_;
-        nullarray_offset_ = rhs.nullarray_offset_;
-        count_offset_ = rhs.count_offset_;
-        return *this;
-    }
-
-    FieldExtractorV2(FieldExtractorV2&& rhs) noexcept {
+    explicit FieldExtractorV2(FieldExtractorV2&& rhs) noexcept {
         def_ = std::move(rhs.def_);
         is_vfield_ = rhs.is_vfield_;
         vertex_index_ = std::move(rhs.vertex_index_);
@@ -91,6 +78,32 @@ class FieldExtractorV2 {
         rhs.vector_index_ = nullptr;
         count_offset_ = rhs.count_offset_;
         nullarray_offset_ = rhs.nullarray_offset_;
+    }
+
+    explicit FieldExtractorV2(const FieldSpecV2& d) noexcept : def_(d) {
+        is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
+        vertex_index_ = nullptr;
+        edge_index_ = nullptr;
+    }
+
+    FieldExtractorV2(const FieldSpecV2& d, FieldId id) noexcept : def_(d) {
+        is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
+        vertex_index_ = nullptr;
+        edge_index_ = nullptr;
+        SetFieldId(id);
+    }
+
+    FieldExtractorV2& operator=(const FieldExtractorV2& rhs) {
+        if (this == &rhs) return *this;
+        def_ = rhs.def_;
+        is_vfield_ = rhs.is_vfield_;
+        vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
+        edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
+        fulltext_indexed_ = rhs.fulltext_indexed_;
+        vector_index_ = rhs.vector_index_;
+        nullarray_offset_ = rhs.nullarray_offset_;
+        count_offset_ = rhs.count_offset_;
+        return *this;
     }
 
     FieldExtractorV2& operator=(FieldExtractorV2&& rhs) noexcept {
@@ -142,7 +155,7 @@ class FieldExtractorV2 {
 
     VectorIndex* GetVectorIndex() const { return vector_index_.get(); }
 
-    uint16_t GetFieldId() const { return def_.id; }
+    FieldId GetFieldId() const { return def_.id; }
 
     /**
      * Print the string representation of the field. For digital types, it prints
@@ -175,11 +188,14 @@ class FieldExtractorV2 {
         def_.set_default_value = false;
     }
 
-    void SetLabelInRecord(const bool label_in_record);
+    void SetLabelInRecord(bool label_in_record);
 
     void SetRecordCount(Value& record, FieldId count) const {
         memcpy(record.Data() + count_offset_, &count, sizeof(FieldId));
     }
+
+    // set null in the record.
+    void SetIsNull(const Value& record, bool is_null) const;
 
     /**
      * Extract a field from record into data of type T. T must be fixed-length
@@ -190,7 +206,16 @@ class FieldExtractorV2 {
      *
      * Assert fails if data is corrupted.
      */
-    ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const;
+    ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const {
+        FMA_DBG_ASSERT(field_data_helper::FieldTypeSize(def_.type) == sizeof(T));
+        size_t offset = GetFieldOffset(record, def_.id);
+        size_t size = GetDataSize(record);
+        if (size == sizeof(T)) {
+            memcpy(&data, (char*)record.Data() + offset, sizeof(T));
+        } else {
+            ConvertData(&data, (char*)record.Data() + offset, size);
+        }
+    }
 
     /**
      * Extracts a copy of field into the string.
@@ -223,7 +248,75 @@ class FieldExtractorV2 {
      *  This approach allows us to retain the original value when modifying the data type,
      *  without requiring a complete scan of the data to generate a new field.
      */
-    ENABLE_IF_FIXED_FIELD(T, void) ConvertData(T* dst, const char* data, size_t size) const;
+    ENABLE_IF_FIXED_FIELD(T, void) ConvertData(T* dst, const char* data, size_t size) const {
+        if (std::is_integral_v<T>) {
+            int64_t temp = 0;
+            switch (size) {
+            case 1:
+                temp = *reinterpret_cast<const int8_t*>(data);
+                break;
+            case 2:
+                temp = *reinterpret_cast<const int16_t*>(data);
+                break;
+            case 4:
+                temp = *reinterpret_cast<const int32_t*>(data);
+                break;
+            case 8:
+                temp = *reinterpret_cast<const int64_t*>(data);
+                break;
+            default:
+                FMA_ASSERT(false) << "Invalid size";
+            }
+
+            if (temp > std::numeric_limits<T>::max()) {
+                *dst = std::numeric_limits<T>::max();
+            } else if (temp < std::numeric_limits<T>::min()) {
+                *dst = std::numeric_limits<T>::min();
+            } else {
+                *dst = static_cast<T>(temp);
+            }
+        } else if (std::is_floating_point_v<T>) {
+            switch (size) {
+            case 4:
+                *dst = static_cast<T>(*reinterpret_cast<const float*>(data));
+                break;
+            case 8:
+                *dst = static_cast<T>(*reinterpret_cast<const double*>(data));
+                break;
+            default:
+                FMA_ASSERT(false) << "Invalid size";
+            }
+        }
+    }
+
+    /** Retrieve the starting position of the Field data for the given ID.
+     *  Note that both fixed-length and variable-length data are not distinguished here.
+     */
+    size_t GetFieldOffset(const Value& record, const FieldId id) const;
+
+    // return the position of the field's offset.
+    size_t GetOffsetPosition(const Value& record, const FieldId id) const;
+
+    // set variable's offset, they are stored at fixed-data area.
+    void SetVariableOffset(Value& record, FieldId id, DataOffset offset) const;
+
+    // set fixed length data, only if length of the data in record equal its definition.
+    void _SetFixedSizeValueRaw(Value& record, const Value& data) const;
+
+    // for test only.
+    void _SetVariableValueRaw(Value& record, const Value& data) const;
+
+    ENABLE_IF_FIXED_FIELD(T, void)
+    SetFixedSizeValue(Value& record, const T& data) const {
+        // "Cannot call SetField(Value&, const T&) on a variable length field";
+        FMA_DBG_ASSERT(!is_vfield_);
+        // "Type size mismatch"
+        FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
+        // copy the buffer so we don't accidentally overwrite memory
+        record.Resize(record.Size());
+        char* ptr = (char*)record.Data() + GetFieldOffset(record, def_.id);
+        ::lgraph::_detail::UnalignedSet<T>(ptr, data);
+    }
 
  private:
     void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
@@ -236,8 +329,6 @@ class FieldExtractorV2 {
 
     void SetFieldId(uint16_t n) { def_.id = n; }
 
-    // reocrd related
-
     // return null array pointer.
     char* GetNullArray(const Value& record) const { return record.Data() + nullarray_offset_; }
 
@@ -246,28 +337,7 @@ class FieldExtractorV2 {
 
     size_t GetDataSize(const Value& record) const;
 
-    /** Retrieve the starting position of the Field data for the given ID.
-     *  Note that both fixed-length and variable-length data are not distinguished here.
-     */
-    size_t GetFieldOffset(const Value& record, const FieldId id) const;
-
-    // return the position of the field's offset.
-    size_t GetOffsetPosition(const Value& record, const FieldId id) const;
-
-    // return the pointer of fields.
     void* GetFieldPointer(const Value& record) const;
-
-    // set null in the record.
-    void SetIsNull(const Value& record, const bool is_null) const;
-
-    // set variable's offset, they are stored at fixed-data area.
-    void SetVariableOffset(Value& record, FieldId id, DataOffset offset) const;
-
-    // set fixed length data, only if length of the data in record equal its' definition.
-    void _SetFixedSizeValueRaw(Value& record, const Value& data) const;
-
-    // for test only.
-    void _SetVariableValueRaw(Value& record, const Value& data) const;
 };
 
 }  // namespace _detail
