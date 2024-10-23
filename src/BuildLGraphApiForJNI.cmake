@@ -32,6 +32,7 @@ set(LGRAPH_CORE_SRC
         core/data_type.cpp
         core/edge_index.cpp
         core/field_extractor.cpp
+        core/field_extractor_v2.cpp
         core/full_text_index.cpp
         core/global_config.cpp
         core/graph.cpp
