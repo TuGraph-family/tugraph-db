@@ -47,5 +47,6 @@
   },
   "engines": {
     "node": ">=18.0"
-  }
+  },
+  "repository": "https://github.com/liukaiming-alipay/tugraph-db.git"
 }
