@@ -292,10 +292,9 @@ const config: Config = {
       maxHeadingLevel: 5,
     },
     algolia: {
-      apiKey: "543db0cadd3173a4b801cd13f89aa996",
-      indexName: "tugraph-antgroup",
-      appId: "NDSB2X7NZ3",
-      contextualSearch: true,
+      apiKey: "829a7e48ddbd6916e159c003391543a0",
+      indexName: "zhongyunwanio",
+      appId: "DGYVABHR0M",
     },
     navbar: {
       logo: {
@@ -303,37 +302,6 @@ const config: Config = {
         src: "https://mdn.alipayobjects.com/huamei_qcdryc/afts/img/A*AbamQ5lxv0IAAAAAAAAAAAAADgOBAQ/original",
       },
       items: [
-        {
-          label: "切换语言",
-          type: "docsVersionDropdown",
-          position: "right",
-          items: [
-            {
-              label: "中文",
-              to: "/zh/guide",
-            },
-            {
-              label: "英文",
-              to: "/en/guide",
-            },
-          ],
-        },
-
-        {
-          label: "Version",
-          type: "dropdown",
-          position: "right",
-          items: [
-            {
-              label: "master",
-              to: "/zh/guide",
-            },
-            {
-              label: "4.3.2",
-              to: "/zh/4.3.2/guide",
-            },
-          ],
-        },
         {
           href: "https://github.com/TuGraph-family/tugraph-db",
           label: "GitHub",
