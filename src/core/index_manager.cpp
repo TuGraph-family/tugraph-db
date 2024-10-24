@@ -107,7 +107,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             std::unique_ptr<VectorIndex> vsag_index;
             vsag_index.reset(dynamic_cast<lgraph::VectorIndex*> (
                 new HNSW(idx.label, idx.field, idx.distance_type, idx.index_type,
-                         idx.dimension, {idx.hnsm_m, idx.hnsm_ef_construction})));
+                         idx.dimension, {idx.hnsw_m, idx.hnsw_ef_construction})));
             uint64_t count = 0;
             std::vector<std::vector<float>> floatvector;
             std::vector<int64_t> vids;
@@ -185,8 +185,8 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
     idx.index_type = index_type;
     idx.dimension = vec_dimension;
     idx.distance_type = distance_type;
-    idx.hnsm_m = index_spec[0];
-    idx.hnsm_ef_construction = index_spec[1];
+    idx.hnsw_m = index_spec[0];
+    idx.hnsw_ef_construction = index_spec[1];
     auto table_name = GetVertexVectorIndexTableName(label, field);
     auto it = index_list_table_->GetIterator(txn, Value::ConstRef(table_name));
     if (it->IsValid()) return false;  // already exist
@@ -315,8 +315,8 @@ std::vector<VectorIndexSpec> IndexManager::ListVectorIndex(KvTransaction& txn) {
             vs.index_type = vi.index_type;
             vs.dimension = vi.dimension;
             vs.distance_type = vi.distance_type;
-            vs.hnsm_m = vi.hnsm_m;
-            vs.hnsm_ef_construction = vi.hnsm_ef_construction;
+            vs.hnsw_m = vi.hnsw_m;
+            vs.hnsw_ef_construction = vi.hnsw_ef_construction;
             ret.emplace_back(vs);
         }
     }
