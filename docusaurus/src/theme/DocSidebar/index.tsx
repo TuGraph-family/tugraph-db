@@ -47,6 +47,15 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     return "4.5.0";
   };
 
+  const formatDocSearchVersion = (tag: string) => {
+    return tag.replace(/docs-(\d+\.\d+\.\d+)|docs-latest_zh/g, (match, version) => {
+      if (match.includes('latest_zh')) {
+        return 'docs-default';
+      }
+      return `docs-${version.replace(/\./g, '-')}`;
+    });
+  };
+
   const onVersionChange = (version) => {
     const lang = getCurrentLanguage();
     const prefix = "/tugraph-db";
@@ -80,6 +89,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       window.parent.postMessage({ path: currentPath + hash }, "*");
     });
   }, []);
+  console.log(formatDocSearchVersion(`docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`));
 
   return (
     <div
@@ -103,16 +113,21 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
               indexName: "zhongyunwanio",
               appId: "DGYVABHR0M",
               searchParameters: {
-                facetFilters: [`docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`],
+                facetFilters: [formatDocSearchVersion(`docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`)],
               },
               transformItems: (items) => {
                 return items.map(item => {
                   return {
                     ...item,
-                    url: '/docs' + item?.url?.split('/tugraph-db')[1] ?? ''
+                    url: '/tugraph-db' + item?.url?.split('/tugraph-db')[1] ?? ''
                   };
                 })
               },
+              navigator: {
+                navigate: ({ suggestionUrl }: { suggestionUrl: string }) => {
+                  history.push(suggestionUrl);
+                }
+              }
             }}
           />
         </div>
