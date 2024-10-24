@@ -985,15 +985,15 @@ class OlapOnDB : public OlapBase<EdgeData> {
         }
         Init(txn.GetNumVertices());
 
-//        if (flags_ & SNAPSHOT_IDMAPPING) {
-//            Construct();
-//        } else {
-//            if ((out_edge_filter == nullptr) && (flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
-//                ConstructWithDegree();
-//            } else {
-//                ConstructWithVid();
-//            }
-//        }
+        /*if (flags_ & SNAPSHOT_IDMAPPING) {
+            Construct();
+        } else {
+            if ((out_edge_filter == nullptr) && (flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
+                ConstructWithDegree();
+            } else {
+                ConstructWithVid();
+            }
+        }*/
         Construct();
     }
 
