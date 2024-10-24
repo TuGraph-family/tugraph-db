@@ -4,6 +4,7 @@ import type DocSidebarType from "@theme/DocSidebar";
 import type { WrapperProps } from "@docusaurus/types";
 import { useLocation, useHistory } from "react-router-dom";
 import { Select } from "antd";
+import { DocSearch } from '@docsearch/react';
 
 type Props = WrapperProps<typeof DocSidebarType>;
 
@@ -88,13 +89,33 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
         flexDirection: "column",
       }}
     >
-      <div>
+      <div style={{display: 'flex', alignItems: 'center'}}>
         <Select
           defaultValue={getCurrentVersion()}
-          style={{ width: 120, margin: "16px 0 8px 8px" }}
+          style={{ width: 120, margin: "10px 4px 8px 8px" }}
           options={versions.map((item) => ({ value: item, label: item }))}
           onChange={onVersionChange}
         />
+        <div style={{ margin: "10px 4px 8px 8px" }}>
+          <DocSearch
+            {...{
+              apiKey: "829a7e48ddbd6916e159c003391543a0",
+              indexName: "zhongyunwanio",
+              appId: "DGYVABHR0M",
+              searchParameters: {
+                facetFilters: [`docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`],
+              },
+              transformItems: (items) => {
+                return items.map(item => {
+                  return {
+                    ...item,
+                    url: '/docs' + item?.url?.split('/tugraph-db')[1] ?? ''
+                  };
+                })
+              },
+            }}
+          />
+        </div>
       </div>
       <DocSidebar {...props} />
     </div>

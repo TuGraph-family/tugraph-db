@@ -291,12 +291,6 @@ const config: Config = {
     tableOfContents: {
       maxHeadingLevel: 5,
     },
-    algolia: {
-      apiKey: "543db0cadd3173a4b801cd13f89aa996",
-      indexName: "tugraph-antgroup",
-      appId: "NDSB2X7NZ3",
-      contextualSearch: true,
-    },
     navbar: {
       logo: {
         alt: "Tugraph Site Logo",
