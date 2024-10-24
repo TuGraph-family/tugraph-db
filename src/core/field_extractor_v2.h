@@ -239,6 +239,13 @@ class FieldExtractorV2 {
 
     void GetCopyRaw(const Value& record, void* data, size_t size) const;
 
+    // Gets a const reference of the field.
+    // Formatted data is returned for blob, which means [is_large_blob] [blob_data | blob_key]
+    Value GetConstRef(const Value& record) const {
+        if (GetIsNull(record)) return Value();
+        return Value((char*)GetFieldPointer(record), GetDataSize(record));
+    }
+
     /**
      *  Convert data for integral and floating types.
      *  If we change the data type of floating-point or integer values
