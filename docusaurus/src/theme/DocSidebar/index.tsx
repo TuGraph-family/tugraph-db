@@ -1,10 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import DocSidebar from "@theme-original/DocSidebar";
 import type DocSidebarType from "@theme/DocSidebar";
 import type { WrapperProps } from "@docusaurus/types";
 import { useLocation, useHistory } from "react-router-dom";
-import { Select } from "antd";
+import Select from "antd/lib/select/index";
 import { DocSearch } from '@docsearch/react';
+import Link from '@docusaurus/Link';
 
 type Props = WrapperProps<typeof DocSidebarType>;
 
@@ -78,6 +79,16 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     history.push(newPath);
   };
 
+  const navigator = useRef({
+    navigate({itemUrl}: {itemUrl?: string}) {
+      history.push(itemUrl!);
+    },
+  }).current;
+
+  const Hit: React.FC = ({ hit, children }) => {
+    return <Link to={hit.url}>{children}</Link>;
+  }
+
   useEffect(() => {
     window.addEventListener("click", () => {
       const currentPath = window.location.pathname;
@@ -89,7 +100,6 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       window.parent.postMessage({ path: currentPath + hash }, "*");
     });
   }, []);
-  console.log(formatDocSearchVersion(`docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`));
 
   return (
     <div
@@ -115,6 +125,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
               searchParameters: {
                 facetFilters: [formatDocSearchVersion(`docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`)],
               },
+              hitComponent: Hit,
               transformItems: (items) => {
                 return items.map(item => {
                   return {
@@ -123,11 +134,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
                   };
                 })
               },
-              navigator: {
-                navigate: ({ suggestionUrl }: { suggestionUrl: string }) => {
-                  history.push(suggestionUrl);
-                }
-              }
+              navigator: navigator
             }}
           />
         </div>
