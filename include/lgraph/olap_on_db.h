@@ -515,6 +515,9 @@ class OlapOnDB : public OlapBase<EdgeData> {
                     for (size_t vi = partition_begin; vi < partition_end; vi++) {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
                         vit.Goto(vi);
+                        if (!vit.IsValid() || vit.GetNumOutEdges() == 0) {
+                            continue;
+                        }
                         for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                             size_t dst = eit.GetDst();
                             EdgeData edata;
@@ -982,15 +985,16 @@ class OlapOnDB : public OlapBase<EdgeData> {
         }
         Init(txn.GetNumVertices());
 
-        if (flags_ & SNAPSHOT_IDMAPPING) {
-            Construct();
-        } else {
-            if ((out_edge_filter == nullptr) && (flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
-                ConstructWithDegree();
-            } else {
-                ConstructWithVid();
-            }
-        }
+//        if (flags_ & SNAPSHOT_IDMAPPING) {
+//            Construct();
+//        } else {
+//            if ((out_edge_filter == nullptr) && (flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
+//                ConstructWithDegree();
+//            } else {
+//                ConstructWithVid();
+//            }
+//        }
+        Construct();
     }
 
     /**
