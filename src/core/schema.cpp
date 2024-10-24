@@ -225,8 +225,12 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
             }
             if (flag && !visited.count(kv.first)) {
                 std::vector<std::string> field_names;
-                for (const auto &id : field_ids) {
-                    field_names.push_back(fields_[std::stoi(id)].Name());
+                for (const auto& id : field_ids) {
+                    if (fast_alter_schema) {
+                        field_names.push_back(fieldsV2_[std::stoi(id)].Name());
+                    } else {
+                        field_names.push_back(fields_[std::stoi(id)].Name());
+                    }
                 }
                 result.push_back(field_names);
                 visited.insert(kv.first);
@@ -238,13 +242,25 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
 
 bool Schema::VertexUniqueIndexConflict(KvTransaction& txn, const Value& record) {
     for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        if (!index->IsUnique()) continue;
-        if (fe.GetIsNull(record)) continue;
-        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
-            return true;
+        VertexIndex* index;
+        if (fast_alter_schema) {
+            auto &fe = fieldsV2_[idx];
+            index = fe.GetVertexIndex();
+            if (fe.GetIsNull(record)) continue;
+            FMA_ASSERT(index);
+            if (!index->IsUnique()) continue;
+            if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+                return true;
+            }
+        } else {
+            auto& fe = fields_[idx];
+            index = fe.GetVertexIndex();
+            if (fe.GetIsNull(record)) continue;
+            FMA_ASSERT(index);
+            if (!index->IsUnique()) continue;
+            if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+                return true;
+            }
         }
     }
     return false;
@@ -252,15 +268,30 @@ bool Schema::VertexUniqueIndexConflict(KvTransaction& txn, const Value& record) 
 
 void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
     for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError, "Failed to un-index edge with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record));
+        if (fast_alter_schema) {
+            auto& fe = fieldsV2_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(InputError,
+                           "Failed to un-index edge with field "
+                           "value [{}:{}]: index value does not exist.",
+                           fe.Name(), fe.FieldToString(record));
+            }
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(InputError,
+                           "Failed to un-index edge with field "
+                           "value [{}:{}]: index value does not exist.",
+                           fe.Name(), fe.FieldToString(record));
+            }
         }
     }
 }
@@ -268,51 +299,101 @@ void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Valu
 void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                                     const std::vector<size_t>& created) {
     for (auto& idx : created) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        // the aim of this method is delete the index that has been created
-        if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError, "Failed to un-index edge with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record));
+        if (fast_alter_schema) {
+            auto& fe = fieldsV2_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // the aim of this method is delete the index that has been created
+            if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(InputError,
+                           "Failed to un-index edge with field "
+                           "value [{}:{}]: index value does not exist.",
+                           fe.Name(), fe.FieldToString(record));
+            }
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // the aim of this method is delete the index that has been created
+            if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(InputError,
+                           "Failed to un-index edge with field "
+                           "value [{}:{}]: index value does not exist.",
+                           fe.Name(), fe.FieldToString(record));
+            }
         }
     }
 }
 
 void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                             std::vector<size_t>& created) {
-    created.reserve(fields_.size());
+    created.reserve(fast_alter_schema ? fieldsV2_.size() : fields_.size());
     for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Add(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError,
-                "Failed to index edge with field value [{}:{}]: index value already exists.",
-                fe.Name(), fe.FieldToString(record));
+        if (fast_alter_schema) {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Add(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(
+                    InputError,
+                    "Failed to index edge with field value [{}:{}]: index value already exists.",
+                    fe.Name(), fe.FieldToString(record));
+            }
+            created.push_back(idx);
+
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Add(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(
+                    InputError,
+                    "Failed to index edge with field value [{}:{}]: index value already exists.",
+                    fe.Name(), fe.FieldToString(record));
+            }
+            created.push_back(idx);
         }
-        created.push_back(idx);
     }
 }
 
 void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : vector_index_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        VectorIndex* index = fe.GetVectorIndex();
-        auto dim = index->GetVecDimension();
-        std::vector<std::vector<float>> floatvector;
-        std::vector<int64_t> vids;
-        floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
-        vids.push_back(vid);
-        if (floatvector.back().size() != (size_t)dim) {
-            THROW_CODE(InputError,
-                       "vector index dimension mismatch, vector size:{}, dim:{}",
-                       floatvector.back().size(), dim);
+        if (fast_alter_schema) {
+            auto& fe = fieldsV2_[idx];
+            if (fe.GetIsNull(record)) continue;
+            VectorIndex* index = fe.GetVectorIndex();
+            auto dim = index->GetVecDimension();
+            std::vector<std::vector<float>> floatvector;
+            std::vector<int64_t> vids;
+            floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+            vids.push_back(vid);
+            if (floatvector.back().size() != (size_t)dim) {
+                THROW_CODE(InputError,
+                           "vector index dimension mismatch, vector size:{}, dim:{}",
+                           floatvector.back().size(), dim);
+            }
+            index->Add(floatvector, vids, 1);
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            VectorIndex* index = fe.GetVectorIndex();
+            auto dim = index->GetVecDimension();
+            std::vector<std::vector<float>> floatvector;
+            std::vector<int64_t> vids;
+            floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+            vids.push_back(vid);
+            if (floatvector.back().size() != (size_t)dim) {
+                THROW_CODE(InputError,
+                           "vector index dimension mismatch, vector size:{}, dim:{}",
+                           floatvector.back().size(), dim);
+            }
+            index->Add(floatvector, vids, 1);
         }
         index->Add(floatvector, vids);
     }
@@ -320,10 +401,17 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
 
 void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : vector_index_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        VectorIndex* index = fe.GetVectorIndex();
-        index->Remove({vid});
+        if (fast_alter_schema) {
+            auto& fe = fieldsV2_[idx];
+            if (fe.GetIsNull(record)) continue;
+            VectorIndex* index = fe.GetVectorIndex();
+            index->Remove({vid});
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            VectorIndex* index = fe.GetVectorIndex();
+            index->Remove({vid});
+        }
     }
 }
 
@@ -447,6 +535,10 @@ void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
 }
 
 void Schema::RefreshLayout() {
+    if (fast_alter_schema) {
+        RefreshLayoutForFastSchema();
+        return;
+    }
     // check field types
     // check if there is any blob
     blob_fields_.clear();
@@ -517,6 +609,43 @@ void Schema::RefreshLayout() {
     }
 }
 
+void Schema::RefreshLayoutForFastSchema() {
+    FMA_ASSERT(fast_alter_schema);
+    blob_fields_.clear();
+    name_to_idx_.clear();
+    for (size_t i = 0; i < fieldsV2_.size(); i++) {
+        auto& f = fieldsV2_[i];
+        if (f.IsDeleted()) continue;
+        f.SetLabelInRecord(label_in_record_);
+        if (f.Type() == FieldType::NUL) throw FieldCannotBeNullTypeException(f.Name());
+        if (f.Type() == FieldType::BLOB) blob_fields_.push_back(i);
+        if (_F_UNLIKELY(name_to_idx_.find(f.Name()) != name_to_idx_.end()))
+            throw FieldAlreadyExistsException(f.Name());
+        name_to_idx_[f.Name()] = i;
+    }
+
+    indexed_fields_.clear();
+    bool found_primary = false;
+    for (auto& f : fieldsV2_) {
+        if (!f.GetVertexIndex() && !f.GetEdgeIndex()) continue;
+        indexed_fields_.emplace_hint(indexed_fields_.end(), f.GetFieldId());
+        if (f.Name() == primary_field_) {
+            FMA_ASSERT(!found_primary);
+            found_primary = true;
+        }
+    }
+    // vertex must have primary property
+    if (is_vertex_ && !indexed_fields_.empty()) {
+        FMA_ASSERT(found_primary);
+    }
+
+    fulltext_fields_.clear();
+    for (auto& f : fieldsV2_) {
+        if (!f.FullTextIndexed()) continue;
+        fulltext_fields_.emplace(f.GetFieldId());
+    }
+}
+
 /**
  * Creates an empty record
  *
@@ -526,30 +655,111 @@ void Schema::RefreshLayout() {
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);
-    size_t min_size = v_offset_start_;
-    if (n_variable_ > 0) min_size += sizeof(DataOffset) * (n_variable_ - 1);
-    v.Resize(min_size);
-    // first data is the LabelId
-    if (label_in_record_) {
-        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
-        // nullable bits
-        memset(v.Data() + sizeof(LabelId), 0xFF, (n_nullable_ + 7) / 8);
+    if (!fast_alter_schema) {
+        size_t min_size = v_offset_start_;
+        if (n_variable_ > 0) min_size += sizeof(DataOffset) * (n_variable_ - 1);
+        v.Resize(min_size);
+        // first data is the LabelId
+        if (label_in_record_) {
+            ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
+            // nullable bits
+            memset(v.Data() + sizeof(LabelId), 0xFF, (n_nullable_ + 7) / 8);
+        } else {
+            // nullbable bits
+            memset(v.Data(), 0xFF, (n_nullable_ + 7) / 8);
+        }
+        // initialize variable length array offsets
+        if (n_variable_ > 0) {
+            char* offsets = v.Data() + v_offset_start_;
+            for (size_t i = 1; i < n_variable_; i++) {
+                ::lgraph::_detail::UnalignedSet<DataOffset>(offsets + sizeof(DataOffset) * (i - 1),
+                                                            static_cast<DataOffset>(min_size));
+            }
+        }
     } else {
-        // nullbable bits
-        memset(v.Data(), 0xFF, (n_nullable_ + 7) / 8);
-    }
-    // initialize variable length array offsets
-    if (n_variable_ > 0) {
-        char* offsets = v.Data() + v_offset_start_;
-        for (size_t i = 1; i < n_variable_; i++) {
-            ::lgraph::_detail::UnalignedSet<DataOffset>(offsets + sizeof(DataOffset) * (i - 1),
-                                                        static_cast<DataOffset>(min_size));
+        size_t num_fields = fieldsV2_.size();
+        // version - [label] - count - null_array - offset_array
+        size_t min_size = sizeof(VersionId) + (label_in_record_ ? sizeof(LabelId) : 0) +
+                          sizeof(FieldId) + (num_fields + 7) / 8 + num_fields * sizeof(DataOffset);
+        // Fixed-value and Variable-value. Variable-value will store an offset at Fixed-value area
+        // and assume the length of every variable value is 0;
+        for (const auto& field : fieldsV2_) {
+            min_size +=
+                field.IsFixedType() ? field.TypeSize() : (sizeof(DataOffset) + sizeof(uint32_t));
+        }
+
+        v.Resize(min_size);
+
+        char* ptr = v.Data();
+        DataOffset offset = 0;
+
+        // 2. Set version id.
+        ::lgraph::_detail::UnalignedSet<VersionId>(ptr + offset, ::lgraph::_detail::SCHEMA_VERSION);
+        offset += sizeof(VersionId);
+
+        // 3. Set label id.
+        if (label_in_record_) {
+            ::lgraph::_detail::UnalignedSet<LabelId>(ptr + offset, label_id_);
+            offset += sizeof(LabelId);
+        }
+
+        // 4. Set fields count.
+        ::lgraph::_detail::UnalignedSet<FieldId>(ptr + offset, static_cast<FieldId>(num_fields));
+        offset += sizeof(FieldId);
+
+        // 5. Set nullable array
+        memset(ptr + offset, 0xFF, (num_fields + 7) / 8);
+        offset += (num_fields + 7) / 8;
+
+        if (num_fields == 0) return v;
+
+        // 6. Set fields' offset.
+        DataOffset offset_begin = offset;
+        DataOffset data_offset = offset + num_fields * sizeof(DataOffset);  // data area begin.
+        char* offset_ptr = ptr + offset_begin;                              // offset area begin.
+
+        // field0 do not need to store its offset.
+        for (size_t i = 1; i < num_fields; i++) {
+            data_offset +=
+                fieldsV2_[i - 1].IsFixedType() ? fieldsV2_[i - 1].TypeSize() : sizeof(DataOffset);
+            ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
+            offset_ptr += sizeof(DataOffset);
+        }
+
+        // the latest offset marks the end of the fixed-area.
+        data_offset += fieldsV2_[num_fields - 1].IsFixedType()
+                           ? fieldsV2_[num_fields - 1].TypeSize()
+                           : sizeof(DataOffset);
+        ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
+
+        // 7. Set variable fields offset. They are stored at fixed-area, and their sizes are all
+        // zero.
+        for (const auto& field : fieldsV2_) {
+            if (!field.IsFixedType()) {
+                DataOffset var_offset = 0;  // variable fields offset.
+                if (field.GetFieldId() == 0) {
+                    var_offset = offset + num_fields * sizeof(DataOffset);
+                } else {
+                    var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(
+                        ptr + offset_begin + (field.GetFieldId() - 1) * sizeof(DataOffset));
+                }
+
+                ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + var_offset, data_offset);
+                ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + data_offset, 0);
+                data_offset += sizeof(DataOffset);
+            }
         }
     }
     return v;
 }
 
 Value Schema::CreateRecordWithLabelId() const {
+    if (fast_alter_schema) {
+        Value v(sizeof(LabelId) + sizeof(VersionId));
+        ::lgraph::_detail::UnalignedSet<VersionId>(v.Data(), ::lgraph::_detail::SCHEMA_VERSION);
+        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + sizeof(VersionId), label_id_);
+        return v;
+    }
     Value v(sizeof(LabelId));
     ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
     return v;
@@ -630,6 +840,7 @@ void Schema::DeleteDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) 
 void Schema::ClearFields() {
     label_.clear();
     fields_.clear();
+    fieldsV2_.clear();
     name_to_idx_.clear();
     n_fixed_ = 0;
     n_variable_ = 0;
@@ -657,19 +868,28 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
                        const TemporalFieldOrder& temporal_order,
                        const EdgeConstraints& edge_constraints) {
     lgraph::CheckValidFieldNum(n_fields);
-    fields_.clear();
     name_to_idx_.clear();
     // assign id to fields, starting from fixed length types
     // then variable length types
-    fields_.reserve(n_fields);
-    for (size_t i = 0; i < n_fields; i++) {
-        const FieldSpec& fs = fields[i];
-        if (field_data_helper::IsFixedLengthFieldType(fs.type)) fields_.emplace_back(fs);
-    }
-    for (size_t i = 0; i < n_fields; i++) {
-        const FieldSpec& fs = fields[i];
-        if (!field_data_helper::IsFixedLengthFieldType(fs.type))
-            fields_.push_back(_detail::FieldExtractor(fs));
+    if (!fast_alter_schema) {
+        fields_.clear();
+        fields_.reserve(n_fields);
+        for (size_t i = 0; i < n_fields; i++) {
+            const FieldSpec& fs = fields[i];
+            if (field_data_helper::IsFixedLengthFieldType(fs.type)) fields_.emplace_back(fs);
+        }
+        for (size_t i = 0; i < n_fields; i++) {
+            const FieldSpec& fs = fields[i];
+            if (!field_data_helper::IsFixedLengthFieldType(fs.type))
+                fields_.push_back(_detail::FieldExtractor(fs));
+        }
+    } else {
+        fieldsV2_.clear();
+        fieldsV2_.reserve(n_fields);
+        for (size_t i = 0; i < n_fields; i++) {
+            fieldsV2_.emplace_back(FieldSpecV2(fields[i]));
+            fieldsV2_.back().SetFieldId(i);
+        }
     }
     is_vertex_ = is_vertex;
     primary_field_ = primary;
@@ -706,18 +926,26 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
         UnVertexIndex(id);
         UnEdgeIndex(id);
     }
+
     auto composite_index_key = GetRelationalCompositeIndexKey(del_ids);
     for (const auto &k : composite_index_key) {
         UnVertexCompositeIndex(k);
     }
-    del_ids.push_back(fields_.size());
-    size_t put_pos = del_ids.front();
-    for (size_t i = 0; i < del_ids.size() - 1; i++) {
-        for (size_t get_pos = del_ids[i] + 1; get_pos < del_ids[i + 1]; get_pos++) {
-            fields_[put_pos++] = std::move(fields_[get_pos]);
+
+    if (fast_alter_schema) {
+        for (size_t del_id : del_ids) {
+            fieldsV2_[del_id].MarkDeleted();
         }
+    } else {
+        del_ids.push_back(fields_.size());
+        size_t put_pos = del_ids.front();
+        for (size_t i = 0; i < del_ids.size() - 1; i++) {
+            for (size_t get_pos = del_ids[i] + 1; get_pos < del_ids[i + 1]; get_pos++) {
+                fields_[put_pos++] = std::move(fields_[get_pos]);
+            }
+        }
+        fields_.erase(fields_.begin() + put_pos, fields_.end());
     }
-    fields_.erase(fields_.begin() + put_pos, fields_.end());
     RefreshLayout();
 }
 
@@ -733,9 +961,15 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
         }
         if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end()))
             throw FieldAlreadyExistsException(f.name);
-        fields_.push_back(_detail::FieldExtractor(f));
+        if (fast_alter_schema) {
+            FieldId id = fieldsV2_.size();
+            fieldsV2_.push_back(_detail::FieldExtractorV2(FieldSpecV2(f), id));
+            lgraph::CheckValidFieldNum(fieldsV2_.size());
+        } else {
+            fields_.push_back(_detail::FieldExtractor(f));
+            lgraph::CheckValidFieldNum(fields_.size());
+        }
     }
-    lgraph::CheckValidFieldNum(fields_.size());
     RefreshLayout();
 }
 
@@ -748,8 +982,14 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         size_t fid = it->second;
         UnVertexIndex(fid);
         UnEdgeIndex(fid);
-        auto& extractor = fields_[fid];
-        extractor = _detail::FieldExtractor(f);
+        if (fast_alter_schema) {
+            auto& extractor = fieldsV2_[fid];
+            extractor = _detail::FieldExtractorV2(FieldSpecV2(f));
+            extractor.SetFieldId(fid);
+        } else {
+            auto& extractor = fields_[fid];
+            extractor = _detail::FieldExtractor(f);
+        }
         mod_ids.push_back(fid);
     }
     auto composite_index_key = GetRelationalCompositeIndexKey(mod_ids);
@@ -795,6 +1035,16 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(size_t field_num) co
     return &fields_[field_num];
 }
 
+const _detail::FieldExtractorV2* Schema::GetFieldExtractorV2(size_t field_num) const {
+    if (_F_UNLIKELY(field_num >= fields_.size())) throw FieldNotFoundException(field_num);
+    return &fieldsV2_[field_num];
+}
+
+const _detail::FieldExtractorV2* Schema::TryGetFieldExtractorV2(size_t field_num) const {
+    if (_F_UNLIKELY(field_num >= fields_.size())) return nullptr;
+    return &fieldsV2_[field_num];
+}
+
 const _detail::FieldExtractor* Schema::GetFieldExtractor(const std::string& field_name) const {
     auto it = name_to_idx_.find(field_name);
     if (_F_UNLIKELY(it == name_to_idx_.end())) throw FieldNotFoundException(field_name);
@@ -807,6 +1057,19 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(const std::string& f
     return &fields_[it->second];
 }
 
+const _detail::FieldExtractorV2* Schema::GetFieldExtractorV2(const std::string& field_name) const {
+    auto it = name_to_idx_.find(field_name);
+    if (_F_UNLIKELY(it == name_to_idx_.end())) throw FieldNotFoundException(field_name);
+    return &fieldsV2_[it->second];
+}
+
+const _detail::FieldExtractorV2* Schema::TryGetFieldExtractorV2(
+    const std::string& field_name) const {
+    auto it = name_to_idx_.find(field_name);
+    if (_F_UNLIKELY(it == name_to_idx_.end())) return nullptr;
+    return &fieldsV2_[it->second];
+}
+
 std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
     std::vector<CompositeIndexSpec> compositeIndexSpecList;
     for (const auto &kv : composite_index_map) {
@@ -814,7 +1077,8 @@ std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
         boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;
         for (int i = 0; i < (int)ids.size(); i++) {
-            fields.emplace_back(this->fields_[std::stoi(ids[i])].Name());
+            fields.emplace_back(fast_alter_schema ? this->fieldsV2_[std::stoi(ids[i])].Name() :
+                this->fields_[std::stoi(ids[i])].Name());
         }
         compositeIndexSpecList.push_back({label_, fields, kv.second->type_});
     }
@@ -822,6 +1086,9 @@ std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
 }
 
 size_t Schema::GetFieldId(const std::string& name) const {
+    if (fast_alter_schema) {
+        return GetFieldExtractorV2(name)->GetFieldId();
+    }
     auto fe = GetFieldExtractor(name);
     return fe->GetFieldId();
 }
@@ -844,10 +1111,18 @@ std::vector<size_t> Schema::GetFieldIds(const std::vector<std::string>& names) c
 
 std::string Schema::DumpRecord(const Value& record) const {
     std::string ret = "{";
-    for (size_t i = 0; i < fields_.size(); i++) {
-        auto& f = fields_[i];
-        ret.append(f.Name()).append("=").append(f.FieldToString(record));
-        if (i != fields_.size() - 1) ret.append(", ");
+    if (fast_alter_schema) {
+        for (size_t i = 0; i < fieldsV2_.size(); i++) {
+            auto& f = fieldsV2_[i];
+            ret.append(f.Name()).append("=").append(f.FieldToString(record));
+            if (i != fieldsV2_.size() - 1) ret.append(", ");
+        }
+    } else {
+        for (size_t i = 0; i < fields_.size(); i++) {
+            auto& f = fields_[i];
+            ret.append(f.Name()).append("=").append(f.FieldToString(record));
+            if (i != fields_.size() - 1) ret.append(", ");
+        }
     }
     ret.append("}");
     return ret;

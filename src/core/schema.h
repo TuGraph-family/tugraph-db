@@ -27,6 +27,7 @@
 #include "core/blob_manager.h"
 #include "core/data_type.h"
 #include "core/field_extractor.h"
+#include "core/field_extractor_v2.h"
 #include "core/schema_common.h"
 #include "core/value.h"
 #include "core/full_text_index.h"
@@ -58,6 +59,33 @@ class SchemaManager;
  **                     are recorded, since the first offset is obvious.
  **     V-data:         stores the data of the variable-length fields
 */
+
+/**
+ * If fast_alter_schema in labeloptions is ture, Schema will have another order.
+ ** The record is layout as the following:
+ ** [Version][LabelId][Field-count][Null-array][Offset-array][Fixed-data and V-data Pointer]
+ [V-data]
+ ** in which:
+ **     Version:        indicates the version of the schema.[1 byte]
+ **     LabelId:        indicates the label of the record, different
+ **                     label has different schema.
+ **                     LabelId is left out for edges since edges are
+ **                     sorted by LabelId so it becomes part of the key.
+ **                     [2 bytes]
+ **     Field-count:    indicates the number of fields in the record.[2 bytes]
+ **     Null-array:     records whether a field is null. [Field-count +7 / 8 bytes]
+ **     Offset-array:   stores the offsets of the fields in the record.
+ **                     Note that the offsets from field 1 to N-1
+ **                     are recorded, since the first offset is obvious.
+ **                     The last offset is Fixed-fields end position.[Field-count * 4 bytes]
+ **     Fixed-data and V-data Pointer:
+ **                     Store fixed-length data and pointers to the locations
+ **                     of variable-length data, with their order determined
+ **                     by the attribute IDs. [Fixed-data size + num-vfields * 4 bytes]
+ **     V-data:         stores the data of the variable-length fields. Store them as
+ **                     [Length][Data] pairs.
+*/
+
 class Schema {
     friend class SchemaManager;
     friend class Transaction;
@@ -68,6 +96,7 @@ class Schema {
     bool is_vertex_ = false;
 
     std::vector<_detail::FieldExtractor> fields_;
+    std::vector<_detail::FieldExtractorV2> fieldsV2_;
     std::unordered_map<std::string, size_t> name_to_idx_;
     size_t n_fixed_ = 0;
     size_t n_variable_ = 0;
@@ -85,6 +114,7 @@ class Schema {
     std::unordered_set<size_t> fulltext_fields_;
     std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
     bool detach_property_ = false;
+    bool fast_alter_schema = false;
     std::shared_ptr<KvTable> property_table_;
     std::unordered_map<std::string, std::shared_ptr<CompositeIndex>> composite_index_map;
     std::unordered_set<size_t> vector_index_fields_;
@@ -96,6 +126,8 @@ class Schema {
     void SetLabelId(LabelId lid) { label_id_ = lid; }
 
     void SetDetachProperty(bool detach) { detach_property_ = detach; }
+
+    void SetFastAlterSchema(bool fast_alter) { fast_alter_schema = fast_alter;}
 
     void SetDeleted(bool deleted) { deleted_ = deleted; }
 
@@ -238,6 +270,12 @@ class Schema {
 
     const _detail::FieldExtractor* GetFieldExtractor(const std::string& field_name) const;
     const _detail::FieldExtractor* TryGetFieldExtractor(const std::string& field_name) const;
+
+    const _detail::FieldExtractorV2* GetFieldExtractorV2(size_t field_num) const;
+    const _detail::FieldExtractorV2* TryGetFieldExtractorV2(size_t field_num) const;
+
+    const _detail::FieldExtractorV2* GetFieldExtractorV2(const std::string& field_name) const;
+    const _detail::FieldExtractorV2* TryGetFieldExtractorV2(const std::string& field_name) const;
 
     size_t GetFieldId(const std::string& name) const;
 
@@ -608,5 +646,6 @@ class Schema {
     }
 
     void RefreshLayout();
+    void RefreshLayoutForFastSchema();
 };  // Schema
 }  // namespace lgraph

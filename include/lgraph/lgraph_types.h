@@ -105,6 +105,7 @@ struct LabelOptions {
     // store property data in detached model
     // Default: false
     bool detach_property = false;
+    bool fast_alter_schema = false;
     virtual std::string to_string() const = 0;
     virtual void clear() = 0;
     virtual ~LabelOptions() {}
@@ -1297,6 +1298,8 @@ struct FieldSpecV2 {
           inited_value(true),
           default_value(dv),
           set_default_value(true) {}
+    explicit FieldSpecV2(const FieldSpec& spec)
+        : name(spec.name), type(spec.type), optional(spec.optional), deleted(false), id(0) {}
 
     inline bool operator==(const FieldSpecV2& rhs) const {
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&

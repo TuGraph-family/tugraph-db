@@ -312,6 +312,7 @@ static const size_t MAX_IN_PLACE_BLOB_SIZE = 512;
 static const size_t MAX_BLOB_SIZE = ((size_t)1 << 32) - 1;
 static const size_t MAX_KEY_SIZE = 480;
 static const size_t MAX_HOST_ADDR_LEN = 256;
+static const uint8_t SCHEMA_VERSION = 0;
 
 template <size_t NBYTE>
 inline int64_t GetNByteIdFromBuf(const char* p) {
