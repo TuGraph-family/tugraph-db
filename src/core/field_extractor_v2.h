@@ -36,7 +36,7 @@ namespace _detail {
 class FieldExtractorV2 {
     friend class lgraph::Schema;
     // type information
-    FieldSpecV2 def_;
+    FieldSpec def_;
     // is variable property field
     bool is_vfield_ = false;
     bool label_in_record_ = true;
@@ -80,13 +80,13 @@ class FieldExtractorV2 {
         nullarray_offset_ = rhs.nullarray_offset_;
     }
 
-    explicit FieldExtractorV2(const FieldSpecV2& d) noexcept : def_(d) {
+    explicit FieldExtractorV2(const FieldSpec& d) noexcept : def_(d) {
         is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         vertex_index_ = nullptr;
         edge_index_ = nullptr;
     }
 
-    FieldExtractorV2(const FieldSpecV2& d, FieldId id) noexcept : def_(d) {
+    FieldExtractorV2(const FieldSpec& d, FieldId id) noexcept : def_(d) {
         is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         vertex_index_ = nullptr;
         edge_index_ = nullptr;
@@ -121,7 +121,7 @@ class FieldExtractorV2 {
 
     // get
 
-    const FieldSpecV2& GetFieldSpec() const { return def_; }
+    const FieldSpec& GetFieldSpec() const { return def_; }
 
     bool GetIsNull(const Value& record) const;
 
@@ -304,6 +304,9 @@ class FieldExtractorV2 {
     // return the position of the field's offset.
     size_t GetOffsetPosition(const Value& record, const FieldId id) const;
 
+    // return field num in the record.
+    FieldId GetRecordCount(const Value& record) const;
+
     // set variable's offset, they are stored at fixed-data area.
     void SetVariableOffset(Value& record, FieldId id, DataOffset offset) const;
 
@@ -338,9 +341,6 @@ class FieldExtractorV2 {
 
     // return null array pointer.
     char* GetNullArray(const Value& record) const { return record.Data() + nullarray_offset_; }
-
-    // return field num in the record.
-    FieldId GetRecordCount(const Value& record) const;
 
     size_t GetDataSize(const Value& record) const;
 

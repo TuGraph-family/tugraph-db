@@ -887,7 +887,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
         fieldsV2_.clear();
         fieldsV2_.reserve(n_fields);
         for (size_t i = 0; i < n_fields; i++) {
-            fieldsV2_.emplace_back(FieldSpecV2(fields[i]));
+            fieldsV2_.emplace_back(FieldSpec(fields[i]));
             fieldsV2_.back().SetFieldId(i);
         }
     }
@@ -963,7 +963,7 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
             throw FieldAlreadyExistsException(f.name);
         if (fast_alter_schema) {
             FieldId id = fieldsV2_.size();
-            fieldsV2_.push_back(_detail::FieldExtractorV2(FieldSpecV2(f), id));
+            fieldsV2_.push_back(_detail::FieldExtractorV2(FieldSpec(f), id));
             lgraph::CheckValidFieldNum(fieldsV2_.size());
         } else {
             fields_.push_back(_detail::FieldExtractor(f));
@@ -984,7 +984,7 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         UnEdgeIndex(fid);
         if (fast_alter_schema) {
             auto& extractor = fieldsV2_[fid];
-            extractor = _detail::FieldExtractorV2(FieldSpecV2(f));
+            extractor = _detail::FieldExtractorV2(FieldSpec(f));
             extractor.SetFieldId(fid);
         } else {
             auto& extractor = fields_[fid];
@@ -1010,6 +1010,13 @@ std::vector<const FieldSpec*> Schema::GetFieldSpecPtrs() const {
 
 std::vector<FieldSpec> Schema::GetFieldSpecs() const {
     std::vector<FieldSpec> schema;
+    if (fast_alter_schema) {
+        schema.reserve(fieldsV2_.size());
+        for (auto& f : fieldsV2_) {
+            schema.emplace_back(f.GetFieldSpec());
+        }
+        return schema;
+    }
     schema.reserve(fields_.size());
     for (auto& f : fields_) {
         schema.emplace_back(f.GetFieldSpec());
@@ -1020,7 +1027,10 @@ std::vector<FieldSpec> Schema::GetFieldSpecs() const {
 std::map<std::string, FieldSpec> Schema::GetFieldSpecsAsMap() const {
     std::map<std::string, FieldSpec> ret;
     for (auto& kv : name_to_idx_) {
-        ret.emplace_hint(ret.end(), std::make_pair(kv.first, fields_[kv.second].GetFieldSpec()));
+        ret.emplace_hint(
+            ret.end(),
+            std::make_pair(kv.first, fast_alter_schema ? fieldsV2_[kv.second].GetFieldSpec()
+                                                       : fields_[kv.second].GetFieldSpec()));
     }
     return ret;
 }
@@ -1036,12 +1046,12 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(size_t field_num) co
 }
 
 const _detail::FieldExtractorV2* Schema::GetFieldExtractorV2(size_t field_num) const {
-    if (_F_UNLIKELY(field_num >= fields_.size())) throw FieldNotFoundException(field_num);
+    if (_F_UNLIKELY(field_num >= fieldsV2_.size())) throw FieldNotFoundException(field_num);
     return &fieldsV2_[field_num];
 }
 
 const _detail::FieldExtractorV2* Schema::TryGetFieldExtractorV2(size_t field_num) const {
-    if (_F_UNLIKELY(field_num >= fields_.size())) return nullptr;
+    if (_F_UNLIKELY(field_num >= fieldsV2_.size())) return nullptr;
     return &fieldsV2_[field_num];
 }
 

@@ -1220,39 +1220,40 @@ struct FieldData {
                   "sizeof int64_t is supposed to be equal to Pointer types");
 };
 
-/** @brief   Specification for a field. */
+// /** @brief   Specification for a field. */
+// struct FieldSpec {
+//     /** @brief   name of the field */
+//     std::string name;
+//     /** @brief   type of that field */
+//     FieldType type;
+//     /** @brief   is this field optional? */
+//     bool optional;
+//
+//     FieldSpec() : name(), type(FieldType::NUL), optional(false) {}
+//
+//     /**
+//      * @brief   Constructor
+//      *
+//      * @param   n   Field name
+//      * @param   t   Field type
+//      * @param   nu  True if field is optional
+//      */
+//     FieldSpec(const std::string& n, FieldType t, bool nu) : name(n), type(t), optional(nu) {}
+//     FieldSpec(std::string&& n, FieldType t, bool nu) : name(std::move(n)), type(t), optional(nu)
+//     {}
+//
+//     inline bool operator==(const FieldSpec& rhs) const {
+//         return name == rhs.name && type == rhs.type && optional == rhs.optional;
+//     }
+//
+//     /** @brief   Get the string representation of the FieldSpec. */
+//     std::string ToString() const {
+//         return "lgraph_api::FieldSpec(name=[" + name + "],type=" + lgraph_api::to_string(type) +
+//                "),optional=" + std::to_string(optional);
+//     }
+// };
+
 struct FieldSpec {
-    /** @brief   name of the field */
-    std::string name;
-    /** @brief   type of that field */
-    FieldType type;
-    /** @brief   is this field optional? */
-    bool optional;
-
-    FieldSpec() : name(), type(FieldType::NUL), optional(false) {}
-
-    /**
-     * @brief   Constructor
-     *
-     * @param   n   Field name
-     * @param   t   Field type
-     * @param   nu  True if field is optional
-     */
-    FieldSpec(const std::string& n, FieldType t, bool nu) : name(n), type(t), optional(nu) {}
-    FieldSpec(std::string&& n, FieldType t, bool nu) : name(std::move(n)), type(t), optional(nu) {}
-
-    inline bool operator==(const FieldSpec& rhs) const {
-        return name == rhs.name && type == rhs.type && optional == rhs.optional;
-    }
-
-    /** @brief   Get the string representation of the FieldSpec. */
-    std::string ToString() const {
-        return "lgraph_api::FieldSpec(name=[" + name + "],type=" + lgraph_api::to_string(type) +
-               "),optional=" + std::to_string(optional);
-    }
-};
-
-struct FieldSpecV2 {
     /** @brief   name of the field */
     std::string name;
     /** @brief   type of that field */
@@ -1272,7 +1273,7 @@ struct FieldSpecV2 {
     /** @brief  is set default value? */
     bool set_default_value;
 
-    FieldSpecV2() : name(), type(FieldType::NUL), optional(false), deleted(false), id(0) {}
+    FieldSpec() : name(), type(FieldType::NUL), optional(false), deleted(false), id(0) {}
 
     /**
      * @brief   Constructor
@@ -1282,13 +1283,13 @@ struct FieldSpecV2 {
      * @param   nu  True if field is optional
      * @param   id  Field id
      */
-    FieldSpecV2(const std::string& n, FieldType t, bool nu)
+    FieldSpec(const std::string& n, FieldType t, bool nu)
         : name(n), type(t), optional(nu), deleted(false), id(0) {}
-    FieldSpecV2(const std::string& n, FieldType t, bool nu, uint16_t id)
+    FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id)
         : name(n), type(t), optional(nu), deleted(false), id(id) {}
-    FieldSpecV2(std::string&& n, FieldType t, bool nu, uint16_t id)
+    FieldSpec(std::string&& n, FieldType t, bool nu, uint16_t id)
         : name(std::move(n)), type(t), optional(nu), deleted(false), id(id) {}
-    FieldSpecV2(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& iv,
+    FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& iv,
                 const FieldData& dv)
         : name(n),
           type(t),
@@ -1298,10 +1299,10 @@ struct FieldSpecV2 {
           inited_value(true),
           default_value(dv),
           set_default_value(true) {}
-    explicit FieldSpecV2(const FieldSpec& spec)
-        : name(spec.name), type(spec.type), optional(spec.optional), deleted(false), id(0) {}
+    // explicit FieldSpecV2(const FieldSpec& spec)
+    //     : name(spec.name), type(spec.type), optional(spec.optional), deleted(false), id(0) {}
 
-    inline bool operator==(const FieldSpecV2& rhs) const {
+    inline bool operator==(const FieldSpec& rhs) const {
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&
                deleted == rhs.deleted && id == rhs.id && init_value == rhs.init_value &&
                inited_value == rhs.inited_value && default_value == rhs.default_value &&
@@ -1310,7 +1311,7 @@ struct FieldSpecV2 {
 
     /** @brief   Get the string representation of the FieldSpec. */
     std::string ToString() const {
-        return "lgraph_api::FieldSpecV2(name=[" + name + "],type=" + lgraph_api::to_string(type) +
+        return "lgraph_api::FieldSpec(name=[" + name + "],type=" + lgraph_api::to_string(type) +
                "),optional=" + std::to_string(optional) + ",fieldid=" + std::to_string(id) +
                ",isDeleted=" + std::to_string(deleted) +
                (inited_value ? ",init_value=" + init_value.ToString() : "") +

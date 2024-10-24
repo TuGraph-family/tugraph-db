@@ -101,6 +101,7 @@ add_executable(unit_test
         test_rpc.cpp
         test_schema.cpp
         test_schema_change.cpp
+        test_schema_fast_alter.cpp
         test_schema_manager.cpp
         test_bolt_hydrator.cpp
         test_service.cpp

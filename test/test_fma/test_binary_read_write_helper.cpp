@@ -18,6 +18,7 @@
 #include "fma-common/snappy_stream.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
+#include "core/data_type.h"
 
 using namespace fma_common;
 using namespace lgraph_api;
