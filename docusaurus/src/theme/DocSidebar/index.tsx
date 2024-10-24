@@ -15,7 +15,6 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   const { pathname } = location;
   const languages = ["en", "zh"];
   const versions = [
-    "latest",
     "4.5.0",
     "4.3.2",
     "4.3.1",
