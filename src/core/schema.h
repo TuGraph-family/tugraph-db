@@ -127,8 +127,6 @@ class Schema {
 
     void SetDetachProperty(bool detach) { detach_property_ = detach; }
 
-    void SetFastAlterSchema(bool fast_alter) { fast_alter_schema = fast_alter;}
-
     void SetDeleted(bool deleted) { deleted_ = deleted; }
 
     bool GetDeleted() const { return deleted_; }
@@ -208,6 +206,7 @@ class Schema {
                   edge_constraints);
     }
 
+    void SetFastAlterSchema(bool fast_alter) { fast_alter_schema = fast_alter;}
     void SetEdgeConstraintsLids(std::unordered_map<LabelId, std::unordered_set<LabelId>> lids) {
         edge_constraints_lids_ = std::move(lids);
     }
@@ -263,7 +262,7 @@ class Schema {
 
     std::map<std::string, FieldSpec> GetFieldSpecsAsMap() const;
 
-    size_t GetNumFields() const { return fields_.size(); }
+    size_t GetNumFields() const { return fast_alter_schema ? fieldsV2_.size() : fields_.size(); }
 
     const _detail::FieldExtractor* GetFieldExtractor(size_t field_num) const;
     const _detail::FieldExtractor* TryGetFieldExtractor(size_t field_num) const;
@@ -359,6 +358,7 @@ class Schema {
     // typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type GetField(
     //    const Value& record, const FieldT& field_name_or_num) const {
     //    auto extractor = GetFieldExtractor(field_name_or_num);
+    //    if(extractor->GetIsNull(record)) return FieldData();
     //    if(extractor->GetIsNull(record)) return FieldData();
     //    return GetFieldDataFromField(extractor, record);
     //}
@@ -584,6 +584,8 @@ class Schema {
         s = BinaryRead(buf, deleted_);
         if (!s) return 0;
         bytes_read += s;
+        s = BinaryRead(buf, fast_alter_schema);
+        bytes_read += s;
         std::vector<FieldSpec> fds;
         s = BinaryRead(buf, fds);
         if (!s) return 0;
@@ -615,6 +617,7 @@ class Schema {
     size_t Serialize(StreamT& buf) const {
         return BinaryWrite(buf, label_) + BinaryWrite(buf, label_id_) +
                BinaryWrite(buf, label_in_record_) + BinaryWrite(buf, deleted_) +
+                   BinaryWrite(buf, fast_alter_schema) +
                BinaryWrite(buf, GetFieldSpecs()) + BinaryWrite(buf, is_vertex_) +
                BinaryWrite(buf, primary_field_) + BinaryWrite(buf, temporal_field_) +
                BinaryWrite(buf, temporal_order_) + BinaryWrite(buf, edge_constraints_) +
