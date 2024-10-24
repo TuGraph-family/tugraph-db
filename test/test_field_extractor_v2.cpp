@@ -42,7 +42,7 @@ static DataOffset GetFixStart(const bool label_in_record, const FieldId count) {
 
 static void CheckSetAndGet(FieldType ft, Value& v, bool label_in_record, const FieldData& data,
                            const std::string& str_data) {
-    _detail::FieldExtractorV2 fe(FieldSpecV2("FieldSpec", ft, true, 0));
+    _detail::FieldExtractorV2 fe(FieldSpec("FieldSpec", ft, true, 0));
     fe.SetLabelInRecord(label_in_record);
     fe.SetIsNull(v, true);
     UT_EXPECT_TRUE(fe.GetIsNull(v));
@@ -99,7 +99,7 @@ static void CheckSetAndGet(FieldType ft, Value& v, bool label_in_record, const F
     v = Value(1024, 0);
 
     // 2. id 1;
-    _detail::FieldExtractorV2 fe2(FieldSpecV2("FieldSpace", ft, true, 1));
+    _detail::FieldExtractorV2 fe2(FieldSpec("FieldSpace", ft, true, 1));
     fe2.SetLabelInRecord(label_in_record);
     fe2.SetRecordCount(v, 2);
     DataOffset offset = fe2.GetOffsetPosition(v, 1);
