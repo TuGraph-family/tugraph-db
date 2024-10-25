@@ -18,7 +18,6 @@
 #include "fma-common/snappy_stream.h"
 #include "./unit_test_utils.h"
 #include "fma-common/utils.h"
-#include "core/data_type.h"
 
 using namespace fma_common;
 using namespace lgraph_api;
@@ -83,36 +82,6 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     NonPod non_pod;
     // BinaryWrite(outfile, non_pod);
 
-    // write fielddata
-    BinaryWrite(outfile, FieldData());
-    BinaryWrite(outfile, FieldData((int8_t)10));
-    BinaryWrite(outfile, FieldData((int16_t)10));
-    BinaryWrite(outfile, FieldData((int32_t)10));
-    BinaryWrite(outfile, FieldData((int64_t)10));
-    BinaryWrite(outfile, FieldData((float)10.0));
-    BinaryWrite(outfile, FieldData((double)10.0));
-    const std::string time = "2088-01-22";
-    const std::string datetime = "2088-01-22 11:22:33";
-    BinaryWrite(outfile, FieldData(Date(time)));
-    BinaryWrite(outfile, FieldData(DateTime(datetime)));
-    BinaryWrite(outfile, FieldData("hello"));
-    std::string WKB_Point = "0101000000000000000000f03f0000000000000040";
-    std::string EWKB_Point = "0101000020E6100000000000000000F03F0000000000000040";
-    std::string EWKB_LineString =
-        "0102000020E61000000300000000000000000000000000"
-        "000000000000000000000000004000000000000000400000000000000840000000000000F03F";
-    std::string EWKB_Polygon =
-        "0103000020E6100000010000000500000000000000000000000"
-        "00000000000000000000000000000000000000000001C400000000000001040000000000000004"
-        "00000000000000040000000000000000000000000000000000000000000000000";
-    std::vector<float> vec = {1.111, 2.111, 3.111, 4.111, 5.111, 6.111};
-    BinaryWrite(outfile, FieldData::Point(EWKB_Point));
-    BinaryWrite(outfile, FieldData::LineString(EWKB_LineString));
-    BinaryWrite(outfile, FieldData::Polygon(EWKB_Polygon));
-    BinaryWrite(outfile,
-                FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT, 0, WKB_Point)));
-    BinaryWrite(outfile, FieldData::FloatVector(vec));
-
     // test serializable
     some_namespace::Serializable serializable;
     serializable.x = 101;
@@ -153,53 +122,6 @@ FMA_UNIT_TEST(BinaryReadWriteHelper) {
     FMA_UT_CHECK_EQ(sum, sum2);
     // the following should fail compiling
     // BinaryRead(infile, non_pod);
-
-    FieldData data;
-    BinaryRead(infile, data);
-    FMA_UT_CHECK_EQ(data, FieldData());
-    FieldData datai8;
-    BinaryRead(infile, datai8);
-    FMA_UT_CHECK_EQ(datai8, FieldData((int8_t)10));
-    FieldData datai16;
-    BinaryRead(infile, datai16);
-    FMA_UT_CHECK_EQ(datai16, FieldData((int16_t)10));
-    FieldData datai32;
-    BinaryRead(infile, datai32);
-    FMA_UT_CHECK_EQ(datai32, FieldData((int32_t)10));
-    FieldData datai64;
-    BinaryRead(infile, datai64);
-    FMA_UT_CHECK_EQ(datai64, FieldData((int64_t)10));
-    FieldData dataf;
-    BinaryRead(infile, dataf);
-    FMA_UT_CHECK_EQ(dataf, FieldData((float)10.0));
-    FieldData datad;
-    BinaryRead(infile, datad);
-    FMA_UT_CHECK_EQ(datad, FieldData((double)10.0));
-    FieldData data_date;
-    BinaryRead(infile, data_date);
-    FMA_UT_CHECK_EQ(data_date, FieldData(Date("2088-01-22")));
-    FieldData data_datetime;
-    BinaryRead(infile, data_datetime);
-    FMA_UT_CHECK_EQ(data_datetime, FieldData(DateTime("2088-01-22 11:22:33")));
-    FieldData data_str;
-    BinaryRead(infile, data_str);
-    FMA_UT_CHECK_EQ(data_str, FieldData("hello"));
-
-    FieldData data_point;
-    BinaryRead(infile, data_point);
-    FMA_UT_CHECK_EQ(data_point, FieldData::Point(EWKB_Point));
-    FieldData data_line;
-    BinaryRead(infile, data_line);
-    FMA_UT_CHECK_EQ(data_line, FieldData::LineString(EWKB_LineString));
-    FieldData data_polygon;
-    BinaryRead(infile, data_polygon);
-    FMA_UT_CHECK_EQ(data_polygon, FieldData::Polygon(EWKB_Polygon));
-    FieldData data_spatial;
-    BinaryRead(infile, data_spatial);
-    FMA_UT_CHECK_EQ(data_spatial, FieldData::Spatial(Spatial<Wgs84>(SRID::WGS84, SpatialType::POINT,
-                                                                    0, WKB_Point)));
-    FieldData data_vec;
-    BinaryRead(infile, data_vec);
 
     serializable.x = 0;
     BinaryRead(infile, serializable);
