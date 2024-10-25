@@ -848,10 +848,10 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                 } else {
                     fd = item.second.scalar;
                 }
-                /*if (fd.IsNull()) {
+                if (fd.IsNull()) {
                     success = false;
                     break;
-                }*/
+                }
                 auto iiter = txn.GetVertexIndexIterator(
                     start_label_id, start_pf_id, fd, fd);
                 if (!iiter.IsValid()) {
@@ -910,7 +910,7 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                     } else {
                         fd = item.second.scalar;
                     }
-                    if (fd.IsNull()) {
+                    if (fd.IsNull() && !iter->second.second.optional) {
                         success = false;
                         break;
                     }
