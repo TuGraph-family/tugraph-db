@@ -100,7 +100,7 @@ class AllNodeScanCol : public OpBase {
                         columnar_->columnar_data_.end()) {
                         size_t element_size = ColumnVector::GetFieldSize(field.type);
                         columnar_->columnar_data_[property_name] =
-                            std::make_unique<ColumnVector>(element_size, 
+                            std::make_unique<ColumnVector>(element_size,
                                 FLAGS_BATCH_SIZE, field.type);
                         columnar_->property_positions_[property_name] = 0;
                     }
