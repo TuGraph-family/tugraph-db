@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import DocSidebar from "@theme-original/DocSidebar";
 import type DocSidebarType from "@theme/DocSidebar";
 import type { WrapperProps } from "@docusaurus/types";
@@ -49,15 +49,22 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const formatDocSearchVersion = (tag: string) => {
-    return tag.replace(
-      /docs-(\d+\.\d+\.\d+)|docs-latest_zh/g,
-      (match, version) => {
-        if (match.includes("latest_zh")) {
-          return "docs-default";
-        }
-        return `docs-${version.replace(/\./g, "-")}`;
+    return tag.replace(/docs-(\d+\.\d+\.\d+)|docs-latest_zh/g, (match, version) => {
+      
+      if (['3.5.1', '3.5.0'].includes(version)) {
+        return 'docs-3-6-0';
       }
-    );
+
+      if (['4.0.1', '4.0.0'].includes(version)) {
+        return 'docs-4-1-0';
+      }
+
+      if (['4.3.2', '4.3.1', '4.3.0', '4.2.0'].includes(version)) {
+        return 'docs-4-5-0';
+      }
+
+      return `docs-${version.replace(/\./g, '-')}`;
+    });
   };
 
   const onVersionChange = (version) => {
@@ -87,6 +94,31 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   const Hit: React.FC = ({ hit, children }) => {
     return <Link to={hit.url}>{children}</Link>;
   };
+
+  const replaceVersionInLink = (baseLink: string): string => {
+    const currentVersion = getCurrentVersion();
+    const updatedLink = baseLink.replace(/\/\d+\.\d+\.\d+\//, `/${currentVersion}/`);
+    return updatedLink;
+  };
+
+  const getDocSearchKey = useMemo(() => {
+
+    const currentVersion = getCurrentVersion();
+
+    if (['4.1.0', '4.0.1', '4.0.0', '3.6.0', '3.5.1', '3.5.0'].includes(currentVersion)) {
+      return {
+        apiKey: "7d995257839cea75cceb969a6d96e40a",
+        indexName: "zhongyunwanio",
+        appId: "FHM90YCZ2Z",
+      }
+    }
+    
+    return {
+      apiKey: "829a7e48ddbd6916e159c003391543a0",
+      indexName: "zhongyunwanio",
+      appId: "DGYVABHR0M",
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     window.addEventListener("click", () => {
@@ -132,9 +164,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
         <div style={{ margin: "10px 4px 8px 8px" }}>
           <DocSearch
             {...{
-              apiKey: "829a7e48ddbd6916e159c003391543a0",
-              indexName: "zhongyunwanio",
-              appId: "DGYVABHR0M",
+              ...getDocSearchKey,
               searchParameters: {
                 facetFilters: [
                   formatDocSearchVersion(
@@ -144,11 +174,10 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
               },
               hitComponent: Hit,
               transformItems: (items) => {
-                return items.map((item) => {
+                return items.map(item => {
                   return {
                     ...item,
-                    url:
-                      "/tugraph-db" + item?.url?.split("/tugraph-db")[1] ?? "",
+                    url: replaceVersionInLink('/tugraph-db' + item?.url?.split('/tugraph-db')[1] ?? '')
                   };
                 });
               },
