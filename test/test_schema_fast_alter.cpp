@@ -124,71 +124,71 @@ TEST_F(TestSchemaFastAlter, CreateEmptyRecord) {
     UT_EXPECT_EQ(s.GetFieldExtractorV2(0)->GetRecordCount(v), 4);
 }
 
-// TEST_F(TestSchemaFastAlter, DumpRecord) {
-//     Value v_old("name");
+TEST_F(TestSchemaFastAlter, DumpRecord) {
+    Value v_old("name");
 
-//     Value v_new("name1");
-//     Schema schema(false);
-//     Schema schema_1(true);
-//     Schema schema_lg = schema;
-//     FieldSpec fd_0("name", FieldType::STRING, false);
-//     FieldSpec fd_1("uid", FieldType::INT32, false);
-//     FieldSpec fd_2("weight", FieldType::FLOAT, false);
-//     FieldSpec fd_3("age", FieldType::INT8, true);
-//     FieldSpec fd_4("addr", FieldType::STRING, true);
-//     FieldSpec fd_5("float", FieldType::DOUBLE, true);
-//     std::vector<FieldSpec> fds{fd_0, fd_1, fd_2, fd_3, fd_4, fd_5};
-//     schema.SetSchema(true, fds, "uid", "", {}, {});
-//     schema_1.SetSchema(true, fds, "uid", "", {}, {});
-//     UT_EXPECT_EQ(schema.GetNumFields(), 6);
-//     UT_LOG() << "size of schema:" << schema.GetNumFields();
-//     schema.SetSchema(true, fds, "uid", "", {}, {});
-//     Value va_tmp = schema.CreateEmptyRecord();
-//     UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData()),
-//                          FieldCannotBeSetNull);
-//     UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "age", FieldData(256)),
-//                     lgraph::ParseFieldDataException);
-//     UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData(256)),
-//                          ParseIncompatibleType);
-//     UT_EXPECT_TRUE(schema_1.GetField(va_tmp, (std::string) "does_not_exist",
-//                                      [](const BlobManager::BlobKey&) { return Value(); }) ==
-//                    FieldData());
+    Value v_new("name1");
+    Schema schema(false);
+    Schema schema_1(true);
+    schema.SetFastAlterSchema(true);
+    schema_1.SetFastAlterSchema(true);
+    Schema schema_lg = schema;
+    FieldSpec fd_0("name", FieldType::STRING, false);
+    FieldSpec fd_1("uid", FieldType::INT32, false);
+    FieldSpec fd_2("weight", FieldType::FLOAT, false);
+    FieldSpec fd_3("age", FieldType::INT8, true);
+    FieldSpec fd_4("addr", FieldType::STRING, true);
+    FieldSpec fd_5("float", FieldType::DOUBLE, true);
+    std::vector<FieldSpec> fds{fd_0, fd_1, fd_2, fd_3, fd_4, fd_5};
+    schema.SetSchema(true, fds, "uid", "", {}, {});
+    schema_1.SetSchema(true, fds, "uid", "", {}, {});
+    UT_EXPECT_EQ(schema.GetNumFields(), 6);
+    UT_LOG() << "size of schema:" << schema.GetNumFields();
+    schema.SetSchema(true, fds, "uid", "", {}, {});
+    Value va_tmp = schema.CreateEmptyRecord();
+    UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData()),
+                         FieldCannotBeSetNull);
+    UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "age", FieldData(256)),
+                    lgraph::ParseFieldDataException);
+    UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData(256)),
+                         ParseIncompatibleType);
+    UT_EXPECT_TRUE(schema_1.GetField(va_tmp, (std::string) "does_not_exist",
+                                     [](const BlobManager::BlobKey&) { return Value(); }) ==
+                   FieldData());
 
-//     // update index
-//     Value v_new_1("name");
-//     FieldData v_feild_str("weight");
-//     FieldData v_feild_int((int64_t)12);
-//     FieldData v_feild_real(12.01);
-//     FieldData v_feild_nul;
-//     UT_LOG() << "schema: " << fma_common::ToString(schema.GetFieldSpecs());
-//     {
-//         std::vector<size_t> fid = schema.GetFieldIds({"name", "uid", "weight", "age"});
-//         std::vector<std::string> value{"marko", "one", "80.2", "45"};
-//         // failed to parse uid
-//         UT_EXPECT_THROW(schema.CreateRecord(fid.size(), fid.data(), value.data()),
-//                         lgraph::ParseStringException);
-//     }
-//     {
-//         std::vector<size_t> fid = schema.GetFieldIds({"name", "uid"});
-//         std::vector<std::string> value{"marko", "300"};
-//         // missing weight field
-//         UT_EXPECT_THROW_CODE(schema.CreateRecord(fid.size(), fid.data(), value.data()),
-//                              FieldCannotBeSetNull);
-//     }
+    // update index
+    Value v_new_1("name");
+    FieldData v_feild_str("weight");
+    FieldData v_feild_int((int64_t)12);
+    FieldData v_feild_real(12.01);
+    FieldData v_feild_nul;
+    UT_LOG() << "schema: " << fma_common::ToString(schema.GetFieldSpecs());
+    {
+        std::vector<size_t> fid = schema.GetFieldIds({"name", "uid", "weight", "age"});
+        std::vector<std::string> value{"marko", "one", "80.2", "45"};
+        // failed to parse uid
+        UT_EXPECT_THROW(schema.CreateRecord(fid.size(), fid.data(), value.data()),
+                        lgraph::ParseStringException);
+    }
+    {
+        std::vector<size_t> fid = schema.GetFieldIds({"name", "uid"});
+        std::vector<std::string> value{"marko", "300"};
+        // missing weight field
+        UT_EXPECT_THROW_CODE(schema.CreateRecord(fid.size(), fid.data(), value.data()),
+                             FieldCannotBeSetNull);
+    }
 
-//     std::vector<size_t> fid = schema.GetFieldIds({"name", "uid", "weight", "age", "addr"});
-//     std::vector<std::string> value{"peter", "101", "65.25", "49", "fifth avenue"};
-//     Value record = schema.CreateRecord(fid.size(), fid.data(), value.data());
-//     // UT_LOG() << "record: " << schema.DumpRecord(record);
+    std::vector<size_t> fid = schema.GetFieldIds({"name", "uid", "weight", "age", "addr"});
+    std::vector<std::string> value{"peter", "101", "65.25", "49", "fifth avenue"};
+    Value record = schema.CreateRecord(fid.size(), fid.data(), value.data());
+    // UT_LOG() << "record: " << schema.DumpRecord(record);
 
-//     UT_EXPECT_EQ(schema.GetFieldId("float"), 5);
-//     UT_EXPECT_EQ(schema.GetFieldExtractor("name")->FieldToString(record), "peter");
-//     UT_EXPECT_EQ(schema.GetFieldExtractor("uid")->FieldToString(record), "101");
-//     UT_EXPECT_EQ(schema.GetFieldExtractor("weight")->FieldToString(record), "6.525e1");
-//     UT_EXPECT_EQ(schema.GetFieldExtractor("age")->FieldToString(record), "49");
-//     UT_EXPECT_EQ(schema.GetFieldExtractor("addr")->FieldToString(record), "fifth avenue");
-//     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor("hash"), FieldNotFound);
-//     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor(1024), FieldNotFound);
-//     const _detail::FieldExtractor fe_temp = *(schema.GetFieldExtractor("name"));
-//     _detail::FieldExtractor fe_5(*schema.GetFieldExtractor(0));
-// }
+    UT_EXPECT_EQ(schema.GetFieldId("float"), 5);
+    UT_EXPECT_EQ(schema.GetFieldExtractorV2("name")->FieldToString(record), "peter");
+    UT_EXPECT_EQ(schema.GetFieldExtractorV2("uid")->FieldToString(record), "101");
+    UT_EXPECT_EQ(schema.GetFieldExtractorV2("weight")->FieldToString(record), "6.525e1");
+    UT_EXPECT_EQ(schema.GetFieldExtractorV2("age")->FieldToString(record), "49");
+    UT_EXPECT_EQ(schema.GetFieldExtractorV2("addr")->FieldToString(record), "fifth avenue");
+    UT_EXPECT_THROW_CODE(schema.GetFieldExtractorV2("hash"), FieldNotFound);
+    UT_EXPECT_THROW_CODE(schema.GetFieldExtractorV2(1024), FieldNotFound);
+}

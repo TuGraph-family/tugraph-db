@@ -157,6 +157,50 @@ class FieldExtractorV2 {
 
     FieldId GetFieldId() const { return def_.id; }
 
+    template <typename GetBlobByKeyFunc>
+    Value GetBlobConstRef(const Value& record, const GetBlobByKeyFunc& get_blob_by_key) const {
+        FMA_DBG_ASSERT(Type() == FieldType::BLOB);
+        if (GetIsNull(record)) return Value();
+        Value v((char*)GetFieldPointer(record), GetDataSize(record));
+        if (BlobManager::IsLargeBlob(v)) {
+            return get_blob_by_key(BlobManager::GetLargeBlobKey(v));
+        } else {
+            return BlobManager::GetSmallBlobContent(v);
+        }
+    }
+
+    inline Value ParseBlob(const std::string& str, bool& is_null) const {
+        // string input is always seen as non-NULL
+        is_null = false;
+        // decode str as base64
+        std::string decoded;
+        if (!::lgraph_api::base64::TryDecode(str.data(), str.size(), decoded))
+            throw ParseStringException(Name(), str, Type());
+        return Value(decoded);
+    }
+
+    // get a const ref of raw blob data
+    inline Value ParseBlob(const FieldData& fd, bool& is_null) const {
+        if (fd.type == FieldType::NUL) {
+            is_null = true;
+            return Value();
+        }
+        is_null = false;
+        if (fd.type == FieldType::BLOB) {
+            return Value::ConstRef(*fd.data.buf);
+        }
+        if (fd.type == FieldType::STRING) {
+            std::string decoded;
+            const std::string& s = *fd.data.buf;
+            if (!::lgraph_api::base64::TryDecode(s.data(), s.size(), decoded))
+                throw ParseStringException(Name(), s, Type());
+            return Value(decoded);
+        } else {
+            throw ParseIncompatibleTypeException(Name(), fd.type, FieldType::BLOB);
+            return Value();
+        }
+    }
+
     /**
      * Print the string representation of the field. For digital types, it prints
      * it into ASCII string; for NBytes and String, it just copies the content of
