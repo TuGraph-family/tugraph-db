@@ -4,8 +4,9 @@ import type DocSidebarType from "@theme/DocSidebar";
 import type { WrapperProps } from "@docusaurus/types";
 import { useLocation, useHistory } from "react-router-dom";
 import Select from "antd/lib/select/index";
-import { DocSearch } from '@docsearch/react';
-import Link from '@docusaurus/Link';
+import { DocSearch } from "@docsearch/react";
+import Link from "@docusaurus/Link";
+import { EN_TRANSLATIONS, ZH_TRANSLATIONS } from "@site/src/constants";
 
 type Props = WrapperProps<typeof DocSidebarType>;
 
@@ -48,12 +49,15 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const formatDocSearchVersion = (tag: string) => {
-    return tag.replace(/docs-(\d+\.\d+\.\d+)|docs-latest_zh/g, (match, version) => {
-      if (match.includes('latest_zh')) {
-        return 'docs-default';
+    return tag.replace(
+      /docs-(\d+\.\d+\.\d+)|docs-latest_zh/g,
+      (match, version) => {
+        if (match.includes("latest_zh")) {
+          return "docs-default";
+        }
+        return `docs-${version.replace(/\./g, "-")}`;
       }
-      return `docs-${version.replace(/\./g, '-')}`;
-    });
+    );
   };
 
   const onVersionChange = (version) => {
@@ -75,14 +79,14 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const navigator = useRef({
-    navigate({itemUrl}: {itemUrl?: string}) {
+    navigate({ itemUrl }: { itemUrl?: string }) {
       history.push(itemUrl!);
     },
   }).current;
 
   const Hit: React.FC = ({ hit, children }) => {
     return <Link to={hit.url}>{children}</Link>;
-  }
+  };
 
   useEffect(() => {
     window.addEventListener("click", () => {
@@ -96,6 +100,20 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     });
   }, []);
 
+  const getTranslationsByLanguage = (lang: string) => {
+    if (lang === "zh") {
+      return ZH_TRANSLATIONS;
+    }
+    return EN_TRANSLATIONS;
+  };
+
+  const getPlaceholderByLanguage = (lang: string) => {
+    if (lang === "zh") {
+      return "搜索文档";
+    }
+    return "Search docs";
+  };
+
   return (
     <div
       style={{
@@ -104,7 +122,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
         flexDirection: "column",
       }}
     >
-      <div style={{display: 'flex', alignItems: 'center'}}>
+      <div style={{ display: "flex", alignItems: "center" }}>
         <Select
           defaultValue={getCurrentVersion()}
           style={{ width: 120, margin: "10px 4px 8px 8px" }}
@@ -118,18 +136,25 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
               indexName: "zhongyunwanio",
               appId: "DGYVABHR0M",
               searchParameters: {
-                facetFilters: [formatDocSearchVersion(`docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`)],
+                facetFilters: [
+                  formatDocSearchVersion(
+                    `docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`
+                  ),
+                ],
               },
               hitComponent: Hit,
               transformItems: (items) => {
-                return items.map(item => {
+                return items.map((item) => {
                   return {
                     ...item,
-                    url: '/tugraph-db' + item?.url?.split('/tugraph-db')[1] ?? ''
+                    url:
+                      "/tugraph-db" + item?.url?.split("/tugraph-db")[1] ?? "",
                   };
-                })
+                });
               },
-              navigator: navigator
+              navigator: navigator,
+              translations: getTranslationsByLanguage(getCurrentLanguage()),
+              placeholder: getPlaceholderByLanguage(getCurrentLanguage()),
             }}
           />
         </div>

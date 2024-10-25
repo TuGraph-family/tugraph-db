@@ -1,0 +1,91 @@
+import { DocSearchTranslations } from "@docsearch/react";
+
+const EN_TRANSLATIONS: DocSearchTranslations = {
+  button: {
+    buttonText: "Search",
+    buttonAriaLabel: "Search",
+  },
+  modal: {
+    searchBox: {
+      resetButtonTitle: "Clear the query",
+      resetButtonAriaLabel: "Clear the query",
+      cancelButtonText: "Cancel",
+      cancelButtonAriaLabel: "Cancel",
+      searchInputLabel: "Search",
+    },
+    startScreen: {
+      recentSearchesTitle: "Recent",
+      noRecentSearchesText: "No recent searches",
+      saveRecentSearchButtonTitle: "Save this search",
+      removeRecentSearchButtonTitle: "Remove this search from history",
+      favoriteSearchesTitle: "Favorite",
+      removeFavoriteSearchButtonTitle: "Remove this search from favorites",
+    },
+    errorScreen: {
+      titleText: "Unable to fetch results",
+      helpText: "You might want to check your network connection.",
+    },
+    footer: {
+      selectText: "to select",
+      selectKeyAriaLabel: "Enter key",
+      navigateText: "to navigate",
+      navigateUpKeyAriaLabel: "Arrow up",
+      navigateDownKeyAriaLabel: "Arrow down",
+      closeText: "to close",
+      closeKeyAriaLabel: "Escape key",
+      searchByText: "Search by",
+    },
+    noResultsScreen: {
+      noResultsText: "No results for",
+      suggestedQueryText: "Try searching for",
+      reportMissingResultsText: "Believe this query should return results?",
+      reportMissingResultsLinkText: "Let us know.",
+    },
+  },
+};
+
+const ZH_TRANSLATIONS: DocSearchTranslations = {
+  button: {
+    buttonText: "搜索",
+    buttonAriaLabel: "搜索",
+  },
+  modal: {
+    searchBox: {
+      resetButtonTitle: "盒子",
+      resetButtonAriaLabel: "清除查询",
+      cancelButtonText: "取消",
+      cancelButtonAriaLabel: "取消",
+      searchInputLabel: "搜索文档",
+    },
+    startScreen: {
+      recentSearchesTitle: "最近的",
+      noRecentSearchesText: "没有最近搜索记录",
+      saveRecentSearchButtonTitle: "保存此搜索",
+      removeRecentSearchButtonTitle: "从历史记录中删除此搜索",
+      favoriteSearchesTitle: "最喜欢的",
+      removeFavoriteSearchButtonTitle: "从收藏夹中删除此搜索",
+    },
+    errorScreen: {
+      titleText: "无法获取结果",
+      helpText: "您可能想检查您的网络连接.",
+    },
+    footer: {
+      selectText: "选择",
+      selectKeyAriaLabel: "输入键",
+      navigateText: "导航",
+      navigateUpKeyAriaLabel: "向上箭头",
+      navigateDownKeyAriaLabel: "向下箭头",
+      closeText: "关闭",
+      closeKeyAriaLabel: "退出键",
+      searchByText: "搜索提供",
+    },
+    noResultsScreen: {
+      noResultsText: "未搜索到",
+      suggestedQueryText: "尝试搜索",
+      reportMissingResultsText: "相信这个查询应该返回结果?",
+      reportMissingResultsLinkText: "让我们知道.",
+    },
+  },
+};
+
+export { EN_TRANSLATIONS, ZH_TRANSLATIONS };
