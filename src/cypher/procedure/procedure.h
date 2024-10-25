@@ -952,6 +952,7 @@ static std::vector<Procedure> global_procedures = {
                   {"hnsw.ef_construction", {6, lgraph_api::LGraphType::INTEGER}},
                   {"elements_num", {7, lgraph_api::LGraphType::INTEGER}},
                   {"memory_usage", {8, lgraph_api::LGraphType::INTEGER}},
+                  {"deleted_ids_num", {9, lgraph_api::LGraphType::INTEGER}},
               }),
 
     Procedure("db.vertexVectorKnnSearch", VectorFunc::VertexVectorKnnSearch,

@@ -319,7 +319,8 @@ class IndexManager {
                 is.type = ent.type;
                 indexes.emplace_back(std::move(is));
             } else if (index_name.size() > ve_index_len &&
-                       index_name.substr(index_name.size() - ve_index_len) == _detail::VERTEX_VECTOR_INDEX) {
+                       index_name.substr(index_name.size() - ve_index_len)
+                           == _detail::VERTEX_VECTOR_INDEX) {
                 _detail::VectorIndexEntry ent = LoadVectorIndex(it->GetValue());
                 VectorIndexSpec vis;
                 vis.label = ent.label;

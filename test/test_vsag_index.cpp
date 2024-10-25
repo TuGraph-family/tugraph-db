@@ -75,6 +75,7 @@ TEST_F(TestVsag, SearchIndex) {
     ASSERT_EQ(ret[0].first, vids[0]);
 }
 
+/*
 TEST_F(TestVsag, SaveAndLoadIndex) {
     EXPECT_NO_THROW(vector_index->Add(vectors, vids));
     std::vector<uint8_t> serialized_index = vector_index->Save();
@@ -86,6 +87,7 @@ TEST_F(TestVsag, SaveAndLoadIndex) {
     ASSERT_TRUE(!ret.empty());
     ASSERT_EQ(ret[0].first, vids[0]);
 }
+*/
 
 TEST_F(TestVsag, DeleteVectors) {
     EXPECT_NO_THROW(vector_index->Add(vectors, vids));

@@ -88,6 +88,7 @@ class VectorIndex {
 
     virtual int64_t GetElementsNum() = 0;
     virtual int64_t GetMemoryUsage() = 0;
+    virtual int64_t GetDeletedIdsNum() = 0;
 };
 
 struct VectorIndexEntry {

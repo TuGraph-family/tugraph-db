@@ -66,7 +66,8 @@ void LightningGraph::DropAllVertex() {
         Transaction txn = CreateWriteTxn(false);
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         // clear indexes
-        auto [indexes, composite_indexes, vector_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
+        auto [indexes, composite_indexes, vector_indexes]
+            = index_manager_->ListAllIndexes(txn.GetTxn());
         for (auto& idx : indexes) {
             auto v_schema = curr_schema->v_schema_manager.GetSchema(idx.label);
             auto e_schema = curr_schema->e_schema_manager.GetSchema(idx.label);
@@ -2816,7 +2817,8 @@ void LightningGraph::DropAllIndex() {
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
         std::unique_ptr<SchemaInfo> backup_schema(new SchemaInfo(*curr_schema.Get()));
-        auto [indexes, composite_indexes, vector_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
+        auto [indexes, composite_indexes, vector_indexes]
+            = index_manager_->ListAllIndexes(txn.GetTxn());
 
         bool success = true;
         for (auto& idx : indexes) {

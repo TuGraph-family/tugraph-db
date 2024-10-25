@@ -4257,6 +4257,7 @@ void VectorFunc::ShowVertexVectorIndex(RTContext *ctx, const cypher::Record *rec
         auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(item.label, item.field);
         r.AddConstant(lgraph::FieldData(index->GetElementsNum()));
         r.AddConstant(lgraph::FieldData(index->GetMemoryUsage()));
+        r.AddConstant(lgraph::FieldData(index->GetDeletedIdsNum()));
         records->emplace_back(r.Snapshot());
     }
     FillProcedureYieldItem("db.showVertexVectorIndex", yield_items, records);
