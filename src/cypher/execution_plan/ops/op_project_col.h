@@ -55,13 +55,11 @@ class ProjectCol : public OpBase {
         }
     }
 
-    void ExtractAlias() {
+    void ExtractAlias() { // TODO(Myrrolinz): refactor this function to use ArithExprNode
         std::string prefix = "n.";
         for (const auto& i : return_alias_) {
-            // 找到 "n." 的位置
             std::size_t pos = i.find(prefix);
             if (pos != std::string::npos) {
-                // 提取 "n." 后面的部分
                 std::string alias = i.substr(pos + prefix.size());
                 std::cout << "This is alias in Project: " << alias << std::endl;
                 aliases.push_back(alias);
