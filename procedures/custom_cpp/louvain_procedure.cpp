@@ -66,28 +66,34 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         json communityNode;
         for (size_t i = 0; i < olapondb.NumVertices(); i++) {
             if (label[i]) {
-                auto vit = txn.GetVertexIterator(i, false);
-                auto vit_label = vit.GetLabel();
-                auto primary_field = txn.GetVertexPrimaryField(vit_label);
-                auto field_data = vit.GetField(primary_field);
-                curNode["vid"] = i;
-                curNode["label"] = vit_label;
-                curNode["primary_field"] = primary_field;
-                curNode["field_data"] = field_data.ToString();
+                auto vit = txn.GetVertexIterator();
+                vit.Goto(i);
+                if (vit.IsValid()) {
+                    auto vit_label = vit.GetLabel();
+                    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+                    auto field_data = vit.GetField(primary_field);
+                    curNode["vid"] = i;
+                    curNode["label"] = vit_label;
+                    curNode["primary_field"] = primary_field;
+                    curNode["field_data"] = field_data.ToString();
 
-                vit = txn.GetVertexIterator(label[i], false);
-                vit_label = vit.GetLabel();
-                primary_field = txn.GetVertexPrimaryField(vit_label);
-                field_data = vit.GetField(primary_field);
-                communityNode["vid"] = label[i];
-                communityNode["label"] = vit_label;
-                communityNode["primary_field"] = primary_field;
-                communityNode["field_data"] = field_data.ToString();
+                    vit = txn.GetVertexIterator();
+                    vit.Goto(label[i]);
+                    if (vit.IsValid()) {
+                        vit_label = vit.GetLabel();
+                        primary_field = txn.GetVertexPrimaryField(vit_label);
+                        field_data = vit.GetField(primary_field);
+                        communityNode["vid"] = label[i];
+                        communityNode["label"] = vit_label;
+                        communityNode["primary_field"] = primary_field;
+                        communityNode["field_data"] = field_data.ToString();
 
-                cur["cur"] = curNode;
-                cur["community"] = communityNode;
-                auto content = cur.dump() + "\n";
-                fout.Write(content.c_str(), content.size());
+                        cur["cur"] = curNode;
+                        cur["community"] = communityNode;
+                        auto content = cur.dump() + "\n";
+                        fout.Write(content.c_str(), content.size());
+                    }
+                }
             }
         }
     }
