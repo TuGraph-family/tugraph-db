@@ -1337,6 +1337,28 @@ inline int ValueCompare<FieldType::FLOAT_VECTOR>(const void* p1, size_t s1, cons
     throw std::runtime_error("cannot compare vectors");
 }
 
+inline bool IsIntegerType(FieldType type) {
+    switch (type) {
+    case FieldType::INT8:
+    case FieldType::INT16:
+    case FieldType::INT32:
+    case FieldType::INT64:
+        return true;
+    default:
+        return false;
+    }
+}
+
+inline bool IsFloatingType(FieldType type) {
+    switch (type) {
+    case FieldType::FLOAT:
+    case FieldType::DOUBLE:
+        return true;
+    default:
+        return false;
+    }
+}
+
 }  // namespace field_data_helper
 }  // namespace lgraph
 
