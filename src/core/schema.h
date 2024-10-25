@@ -263,6 +263,7 @@ class Schema {
     std::map<std::string, FieldSpec> GetFieldSpecsAsMap() const;
 
     size_t GetNumFields() const { return fast_alter_schema ? fieldsV2_.size() : fields_.size(); }
+    bool GetFastAlterSchema() const {return fast_alter_schema;}
 
     const _detail::FieldExtractor* GetFieldExtractor(size_t field_num) const;
     const _detail::FieldExtractor* TryGetFieldExtractor(size_t field_num) const;
