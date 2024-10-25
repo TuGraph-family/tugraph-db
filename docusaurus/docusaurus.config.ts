@@ -41,10 +41,16 @@ const config: Config = {
     [
       "classic",
       {
+        // docs: {
+        //   sidebarPath: "./sidebars.ts",
+        //   path: "../docs/zh-CN/source",
+        //   routeBasePath: "zh/latest",
+        // },
         docs: {
-          sidebarPath: "./sidebars.ts",
-          path: "../docs/zh-CN/source",
-          routeBasePath: "zh/latest",
+          id: "4-5-0_zh",
+          sidebarPath: "./versions_sidebars/version-4.5.0_zh.ts",
+          path: "./versions/version-4.5.0/zh-CN/source",
+          routeBasePath: "zh/4.5.0",
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -54,32 +60,22 @@ const config: Config = {
   ],
 
   plugins: [
-    [
-      "content-docs",
-      {
-        id: "latest-en",
-        sidebarPath: "./sidebarsEn.ts",
-        path: "../docs/en-US/source",
-        routeBasePath: "en/latest",
-      } satisfies DocsOptions,
-    ],
+    // [
+    //   "content-docs",
+    //   {
+    //     id: "latest-en",
+    //     sidebarPath: "./sidebarsEn.ts",
+    //     path: "../docs/en-US/source",
+    //     routeBasePath: "en/latest",
+    //   } satisfies DocsOptions,
+    // ],
     [
       "content-docs",
       {
         id: "4-5-0_en",
         sidebarPath: "./versions_sidebars/version-4.5.0_en.ts",
         path: "./versions/version-4.5.0/en-US/source",
-        routeBasePath: "en",
-        editCurrentVersion: false,
-      } satisfies DocsOptions,
-    ],
-    [
-      "content-docs",
-      {
-        id: "4-5-0_zh",
-        sidebarPath: "./versions_sidebars/version-4.5.0_zh.ts",
-        path: "./versions/version-4.5.0/zh-CN/source",
-        routeBasePath: "zh",
+        routeBasePath: "en/4.5.0",
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],

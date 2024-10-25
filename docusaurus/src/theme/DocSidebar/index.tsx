@@ -70,11 +70,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       .join("/");
 
     // 构造新路径
-    const newPath =
-      version === "4.5.0"
-        ? `${basePath}/${remainingPath}`
-        : `${basePath}/${version}/${remainingPath}`;
-
+    const newPath = `${basePath}/${version}/${remainingPath}`;
     history.push(newPath);
   };
 
