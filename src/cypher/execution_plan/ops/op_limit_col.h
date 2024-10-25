@@ -43,7 +43,8 @@ class LimitCol : public OpBase {
         auto &child = children[0];
         auto res = child->Consume(ctx);
         columnar_ = child->columnar_;
-        int usable_r = std::min(FLAGS_BATCH_SIZE, limit_ - consumed_);
+        int usable_r = std::min(static_cast<size_t>(FLAGS_BATCH_SIZE),
+                                limit_ - consumed_);
         columnar_->TruncateData(usable_r);
         consumed_ += usable_r;
         return res;
