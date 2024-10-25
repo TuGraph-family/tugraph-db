@@ -522,6 +522,8 @@ class Value {
      */
     std::string AsString() const { return AsType<std::string>(); }
 
+    std::vector<float> AsFloatVector() const { return AsType<std::vector<float>>(); }
+
     /**
      * Create a Value that is a const reference to the object t
      *

@@ -109,8 +109,6 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 new HNSW(idx.label, idx.field, idx.distance_type, idx.index_type,
                          idx.dimension, {idx.hnsw_m, idx.hnsw_ef_construction})));
             uint64_t count = 0;
-            std::vector<std::vector<float>> floatvector;
-            std::vector<int64_t> vids;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn);
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto prop = kv_iter->GetValue();
@@ -119,14 +117,14 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 }
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
-                floatvector.emplace_back(vector);
-                vids.emplace_back(vid);
+                vsag_index->Add({std::move(vector)}, {vid});
                 count++;
+                if ((count % 10000) == 0) {
+                    LOG_INFO() << "vector index count: " << count;
+                }
             }
-            vsag_index->Build();
-            vsag_index->Add(floatvector, vids, count);
             kv_iter.reset();
-            LOG_DEBUG() << "index count: " << count;
+            LOG_INFO() << "vector index count: " << count;
             schema->MarkVectorIndexed(extractor->GetFieldId(), vsag_index.release());
             LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
                                   idx.label, idx.field);

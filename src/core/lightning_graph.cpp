@@ -66,7 +66,7 @@ void LightningGraph::DropAllVertex() {
         Transaction txn = CreateWriteTxn(false);
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         // clear indexes
-        auto [indexes, composite_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
+        auto [indexes, composite_indexes, vector_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
         for (auto& idx : indexes) {
             auto v_schema = curr_schema->v_schema_manager.GetSchema(idx.label);
             auto e_schema = curr_schema->e_schema_manager.GetSchema(idx.label);
@@ -87,6 +87,15 @@ void LightningGraph::DropAllVertex() {
             FMA_DBG_ASSERT(v_schema);
             if (v_schema) {
                 v_schema->GetCompositeIndex(idx.fields)->Clear(txn.GetTxn());
+            }
+        }
+        for (auto& idx : vector_indexes) {
+            auto v_schema = curr_schema->v_schema_manager.GetSchema(idx.label);
+            FMA_DBG_ASSERT(v_schema);
+            if (v_schema) {
+                auto ext = v_schema->GetFieldExtractor(idx.field);
+                FMA_DBG_ASSERT(ext);
+                ext->GetVectorIndex()->Clear();
             }
         }
         // clear detached property data
@@ -2219,8 +2228,6 @@ bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& l
                           label, field);
     VectorIndex* index = extractor->GetVectorIndex();
     uint64_t count = 0;
-    std::vector<std::vector<float>> floatvector;
-    std::vector<int64_t> vids;
     auto dim = index->GetVecDimension();
     auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
     for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
@@ -2234,13 +2241,13 @@ bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& l
             THROW_CODE(VectorIndexException,
                        "vector size error, size:{}, dim:{}", vector.size(), dim);
         }
-        floatvector.emplace_back(std::move(vector));
-        vids.emplace_back(vid);
+        index->Add({std::move(vector)}, {vid});
         count++;
+        if ((count % 10000) == 0) {
+            LOG_INFO() << "vector index count: " << count;
+        }
     }
-    index->Build();
-    index->Add(floatvector, vids, count);
-    LOG_INFO() << "index count: " << count;
+    LOG_INFO() << "vector index count: " << count;
     LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
                           label, field);
     kv_iter.reset();
@@ -2809,7 +2816,7 @@ void LightningGraph::DropAllIndex() {
         ScopedRef<SchemaInfo> curr_schema = schema_.GetScopedRef();
         std::unique_ptr<SchemaInfo> new_schema(new SchemaInfo(*curr_schema.Get()));
         std::unique_ptr<SchemaInfo> backup_schema(new SchemaInfo(*curr_schema.Get()));
-        auto [indexes, composite_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
+        auto [indexes, composite_indexes, vector_indexes] = index_manager_->ListAllIndexes(txn.GetTxn());
 
         bool success = true;
         for (auto& idx : indexes) {
@@ -2839,6 +2846,14 @@ void LightningGraph::DropAllIndex() {
                 break;
             }
             v_schema->UnVertexCompositeIndex(idx.fields);
+        }
+        for (auto& idx : vector_indexes) {
+            auto v_schema = new_schema->v_schema_manager.GetSchema(idx.label);
+            FMA_DBG_ASSERT(v_schema);
+            auto ret = index_manager_->DeleteVectorIndex(txn.GetTxn(), idx.label, idx.field);
+            FMA_DBG_ASSERT(ret);
+            auto ext = v_schema->GetFieldExtractor(idx.field);
+            v_schema->UnVectorIndex(ext->GetFieldId());
         }
         if (success) {
             schema_.Assign(new_schema.release());
