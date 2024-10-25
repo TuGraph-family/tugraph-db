@@ -552,39 +552,83 @@ bool LightningGraph::_AlterLabel(
     // TODO(hct): commit periodically to avoid too large transaction
     // Problem: If an exception occurs during vertex/edge update, we cannot rollback the committed
     // changes. We need a way to guarantee data consistency.
-
-    // modify vertexes and edges
     size_t modified = 0;
-    size_t n_committed = 0;
-    LabelId curr_lid = curr_schema->GetLabelId();
-    if (curr_schema->DetachProperty()) {
-        auto table_name = curr_schema->GetPropertyTable().Name();
-        LOG_INFO() << FMA_FMT("begin to scan detached table: {}", table_name);
-        auto kv_iter = curr_schema->GetPropertyTable().GetIterator(txn.GetTxn());
-        for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
-            auto prop = kv_iter->GetValue();
-            Value new_prop = make_new_prop_and_destroy_old(prop, curr_schema, new_schema, txn);
-            kv_iter->SetValue(new_prop);
-            modified++;
-            if (modified % 1000000 == 0) {
-                LOG_INFO() << "modified: " << modified;
-            }
-        }
-        LOG_INFO() << "modified: " << modified;
-        kv_iter.reset();
-        LOG_INFO() << FMA_FMT("end to scan detached table: {}", table_name);
-    } else if (is_vertex) {
-        // scan and modify the vertexes
-        std::unique_ptr<lgraph::graph::VertexIterator> vit(
-            new graph::VertexIterator(graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
-        while (vit->IsValid()) {
-            Value prop = vit->GetProperty();
-            if (curr_sm->GetRecordLabelId(prop) == curr_lid) {
+    if (!new_schema->GetFastAlterSchema()) {
+        // modify vertexes and edges
+        size_t n_committed = 0;
+        LabelId curr_lid = curr_schema->GetLabelId();
+        if (curr_schema->DetachProperty()) {
+            auto table_name = curr_schema->GetPropertyTable().Name();
+            LOG_INFO() << FMA_FMT("begin to scan detached table: {}", table_name);
+            auto kv_iter = curr_schema->GetPropertyTable().GetIterator(txn.GetTxn());
+            for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
+                auto prop = kv_iter->GetValue();
+                Value new_prop = make_new_prop_and_destroy_old(prop, curr_schema, new_schema, txn);
+                kv_iter->SetValue(new_prop);
                 modified++;
-                Value new_prop = make_new_prop_and_destroy_old(
-                    prop, curr_schema, new_schema, txn);
+                if (modified % 1000000 == 0) {
+                    LOG_INFO() << "modified: " << modified;
+                }
+            }
+            LOG_INFO() << "modified: " << modified;
+            kv_iter.reset();
+            LOG_INFO() << FMA_FMT("end to scan detached table: {}", table_name);
+        } else if (is_vertex) {
+            // scan and modify the vertexes
+            std::unique_ptr<lgraph::graph::VertexIterator> vit(
+                new graph::VertexIterator(graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
+            while (vit->IsValid()) {
+                Value prop = vit->GetProperty();
+                if (curr_sm->GetRecordLabelId(prop) == curr_lid) {
+                    modified++;
+                    Value new_prop =
+                        make_new_prop_and_destroy_old(prop, curr_schema, new_schema, txn);
+                    vit->RefreshContentIfKvIteratorModified();
+                    vit->SetProperty(new_prop);
+                    if (modified - n_committed >= commit_size) {
+#if PERIODIC_COMMIT
+                        VertexId vid = vit->GetId();
+                        vit.reset();
+                        txn.Commit();
+                        n_committed = modified;
+                        FMA_LOG() << "Committed " << n_committed << " changes.";
+                        txn = CreateWriteTxn(false, false, false);
+                        vit.reset(new lgraph::graph::VertexIterator(
+                            graph_->GetUnmanagedVertexIterator(&txn.GetTxn(), vid, true)));
+#else
+                        n_committed = modified;
+                        LOG_INFO() << "Made " << n_committed << " changes.";
+#endif
+                    }
+                }
+                vit->Next();
+            }
+        } else {
+            // scan and modify
+            std::unique_ptr<lgraph::graph::VertexIterator> vit(new lgraph::graph::VertexIterator(
+                graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
+            while (vit->IsValid()) {
+                for (auto eit = vit->GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() == curr_lid) {
+                        modified++;
+                        Value property = eit.GetProperty();
+                        Value new_prop =
+                            make_new_prop_and_destroy_old(property, curr_schema, new_schema, txn);
+                        eit.RefreshContentIfKvIteratorModified();
+                        eit.SetProperty(new_prop);
+                    }
+                }
                 vit->RefreshContentIfKvIteratorModified();
-                vit->SetProperty(new_prop);
+                for (auto eit = vit->GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
+                    if (eit.GetLabelId() == curr_lid) {
+                        Value property = eit.GetProperty();
+                        Value new_prop =
+                            make_new_prop_and_destroy_old(property, curr_schema, new_schema, txn);
+                        eit.RefreshContentIfKvIteratorModified();
+                        eit.SetProperty(new_prop);
+                    }
+                }
+                vit->RefreshContentIfKvIteratorModified();
                 if (modified - n_committed >= commit_size) {
 #if PERIODIC_COMMIT
                     VertexId vid = vit->GetId();
@@ -600,51 +644,8 @@ bool LightningGraph::_AlterLabel(
                     LOG_INFO() << "Made " << n_committed << " changes.";
 #endif
                 }
+                vit->Next();
             }
-            vit->Next();
-        }
-    } else {
-        // scan and modify
-        std::unique_ptr<lgraph::graph::VertexIterator> vit(
-            new lgraph::graph::VertexIterator(graph_->GetUnmanagedVertexIterator(&txn.GetTxn())));
-        while (vit->IsValid()) {
-            for (auto eit = vit->GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() == curr_lid) {
-                    modified++;
-                    Value property = eit.GetProperty();
-                    Value new_prop = make_new_prop_and_destroy_old(property, curr_schema,
-                                                                   new_schema, txn);
-                    eit.RefreshContentIfKvIteratorModified();
-                    eit.SetProperty(new_prop);
-                }
-            }
-            vit->RefreshContentIfKvIteratorModified();
-            for (auto eit = vit->GetInEdgeIterator(); eit.IsValid(); eit.Next()) {
-                if (eit.GetLabelId() == curr_lid) {
-                    Value property = eit.GetProperty();
-                    Value new_prop =
-                        make_new_prop_and_destroy_old(property, curr_schema, new_schema, txn);
-                    eit.RefreshContentIfKvIteratorModified();
-                    eit.SetProperty(new_prop);
-                }
-            }
-            vit->RefreshContentIfKvIteratorModified();
-            if (modified - n_committed >= commit_size) {
-#if PERIODIC_COMMIT
-                VertexId vid = vit->GetId();
-                vit.reset();
-                txn.Commit();
-                n_committed = modified;
-                FMA_LOG() << "Committed " << n_committed << " changes.";
-                txn = CreateWriteTxn(false, false, false);
-                vit.reset(new lgraph::graph::VertexIterator(
-                    graph_->GetUnmanagedVertexIterator(&txn.GetTxn(), vid, true)));
-#else
-                n_committed = modified;
-                LOG_INFO() << "Made " << n_committed << " changes.";
-#endif
-            }
-            vit->Next();
         }
     }
     modify_index(curr_schema, new_schema, rollback_actions, txn);
@@ -789,6 +790,10 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
     // make new schema
     auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
         Schema new_schema(*curr_schema);
+        if (curr_schema->GetFastAlterSchema()) {
+            new_schema.DelFields(del_fields);
+            return new_schema;
+        }
         new_schema.DelFields(del_fields);
         size_t n_new_fields = new_schema.GetNumFields();
         for (size_t i = 0; i < n_new_fields; i++) new_fids.push_back(i);
@@ -891,6 +896,16 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
     std::vector<size_t> new_fids;  // ids of newly added fields
     // make new schema
     auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
+        if (curr_schema->GetFastAlterSchema()) {
+            Schema new_schema(*curr_schema);
+            new_schema.AddFields(to_add);
+            for (size_t i = 0; i < to_add.size(); i++) {
+                auto* extractor = const_cast<lgraph::_detail::FieldExtractorV2*>(
+                    new_schema.GetFieldExtractorV2(to_add[i].name));
+                extractor->SetInitValue(default_values[i]);
+            }
+            return new_schema;
+        }
         Schema new_schema(*curr_schema);
         new_schema.AddFields(to_add);
         // setup auxiliary data
@@ -963,6 +978,40 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
     std::vector<size_t> mod_dst_fids;
     std::vector<size_t> mod_src_fids;
     auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
+        if (curr_schema->GetFastAlterSchema()) {
+            // check field types
+            for (auto& f : to_mod) {
+                auto* extractor = curr_schema->GetFieldExtractorV2(f.name);
+                if (extractor->Type() == f.type) {
+                    continue;
+                }
+
+                if (extractor->Type() == FieldType::BLOB && f.type != FieldType::BLOB) {
+                    THROW_CODE(
+                        InputError,
+                        "Field [{}] is of type BLOB, which cannot be converted to other types.",
+                        f.name);
+                }
+                if (extractor->FullTextIndexed()) {
+                    THROW_CODE(InputError,
+                               "Field [{}] has fulltext index, which cannot be converted to other "
+                               "non-STRING types.",
+                               f.name);
+                }
+                if (!((field_data_helper::IsIntegerType(extractor->Type()) &&
+                       field_data_helper::IsIntegerType(f.type)) ||
+                      (field_data_helper::IsFloatingType(extractor->Type()) &&
+                       field_data_helper::IsFloatingType(f.type)) ||
+                      f.type == FieldType::BLOB)) {
+                    THROW_CODE(InputError,
+                               "Field type can only changed within integer type or floating type");
+                }
+            }
+            Schema new_schema(*curr_schema);
+            new_schema.ModFields(to_mod);
+            FMA_DBG_ASSERT(new_schema.GetNumFields() == curr_schema->GetNumFields());
+            return new_schema;
+        }
         // check field types
         for (auto& f : to_mod) {
             auto* extractor = curr_schema->GetFieldExtractor(f.name);
