@@ -1,36 +1,53 @@
-import React from 'react';
-import clsx from 'clsx';
-import Translate from '@docusaurus/Translate';
-import type {Props} from '@theme/NotFound/Content';
-import Heading from '@theme/Heading';
+import React, { useMemo } from "react";
+import clsx from "clsx";
+import { useLocation } from "react-router-dom";
+import type { Props } from "@theme/NotFound/Content";
+import Heading from "@theme/Heading";
+import { Button } from "antd";
+import { EN_NOT_FOUND_CONFIG, ZH_NOT_FOUND_CONFIG } from "@site/src/constants";
 
-export default function NotFoundContent({className}: Props): JSX.Element {
+export default function NotFoundContent({ className }: Props): JSX.Element {
+  const { pathname } = useLocation();
+
+  const getHomeHref = () => {
+    try {
+      const pathSegments = pathname
+        .split("/")
+        .filter((segment) => segment !== "");
+
+      // 截取前三个路径段
+      const basePathSegments = pathSegments.slice(0, 3);
+      const basePath = `/${basePathSegments.join("/")}/guide`;
+      return basePath;
+    } catch (error) {
+      console.error("Invalid URL:", error);
+      return "";
+    }
+  };
+
+  const contentConfig = useMemo(() => {
+    const lang =
+      pathname?.split("/")?.find((item) => ["zh", "en"].includes(item)) || "en";
+
+    if (lang === "en") {
+      return EN_NOT_FOUND_CONFIG;
+    }
+    return ZH_NOT_FOUND_CONFIG;
+  }, [pathname]);
+
   return (
-    <main className={clsx('container margin-vert--xl', className)}>
+    <main className={clsx("container margin-vert--xl", className)}>
       <div className="row">
         <div className="col col--6 col--offset-3">
           <Heading as="h1" className="hero__title">
-            <Translate
-              id="theme.NotFound.title"
-              description="The title of the 404 page">
-              Page Not Found
-            </Translate>
+            {contentConfig.title}
           </Heading>
-          <p>
-            <Translate
-              id="theme.NotFound.p1"
-              description="The first paragraph of the 404 page">
-              We could not find what you were looking for.
-            </Translate>
-          </p>
-          <p>
-            <Translate
-              id="theme.NotFound.p2"
-              description="The 2nd paragraph of the 404 page">
-              Please contact the owner of the site that linked you to the
-              original URL and let them know their link is broken.
-            </Translate>
-          </p>
+          {contentConfig.descriptions?.map((desc) => (
+            <p>{desc}</p>
+          ))}
+          <Button type="primary" href={getHomeHref()}>
+            {contentConfig.homeBtnText}
+          </Button>
         </div>
       </div>
     </main>
