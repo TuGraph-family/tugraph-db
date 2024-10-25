@@ -55,7 +55,8 @@ class ProjectCol : public OpBase {
         }
     }
 
-    void ExtractAlias() { // TODO(Myrrolinz): refactor this function to use ArithExprNode
+    void ExtractAlias() {
+        // TODO(Myrrolinz): refactor this function to use ArithExprNode
         std::string prefix = "n.";
         for (const auto& i : return_alias_) {
             std::size_t pos = i.find(prefix);
