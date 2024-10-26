@@ -762,7 +762,7 @@ cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
     if (args.size() == 1) {
         // datetime() Returns the current DateTime.
-        return cypher::FieldData(::lgraph::FieldData(::lgraph::DateTime::Now()));
+        return cypher::FieldData(::lgraph::FieldData(::lgraph::DateTime::LocalNow()));
     } else {
         CYPHER_THROW_ASSERT(args.size() == 2);
         // datetime(string) Returns a DateTime by parsing a string.
