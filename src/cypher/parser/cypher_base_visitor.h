@@ -942,7 +942,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             std::string parameter_val = ctx->oC_Parameter()->getText();
             if (ctx_->bolt_parameters_) {
                 auto iter = ctx_->bolt_parameters_->find(parameter_val);
-                if (iter != ctx_->bolt_parameters_->end()) {
+                if (iter == ctx_->bolt_parameters_->end()) {
                     throw lgraph::CypherException(
                         FMA_FMT("Parameter {} missing value", parameter_val));
                 }
