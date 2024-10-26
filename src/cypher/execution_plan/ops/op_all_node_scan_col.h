@@ -16,10 +16,9 @@
 
 #include "cypher/execution_plan/ops/op.h"
 #include "cypher/resultset/column_vector.h"
+#include "cypher/execution_plan/ops/op_config.h"
 
 namespace cypher {
-
-// constexpr size_t BATCH_SIZE = 10;
 
 class AllNodeScanCol : public OpBase {
     /* NOTE: Nodes in pattern graph are stored in std::vector, whose reference
@@ -68,7 +67,7 @@ class AllNodeScanCol : public OpBase {
     OpResult RealConsume(RTContext *ctx) override {
         uint32_t count = 0;
         columnar_ = std::make_shared<DataChunk>();
-        while (count < BATCH_SIZE) {
+        while (count < FLAGS_BATCH_SIZE) {
             node_->SetVid(-1);
             if (!it_ || !it_->IsValid()) return (count > 0) ? OP_OK : OP_DEPLETED;
             if (!consuming_) {
@@ -88,7 +87,7 @@ class AllNodeScanCol : public OpBase {
                         columnar_->string_columns_.end()) {
                         columnar_->string_columns_[property_name] =
                             std::make_unique<ColumnVector>(sizeof(cypher_string_t),
-                            BATCH_SIZE, field.type);
+                            FLAGS_BATCH_SIZE, field.type);
                         columnar_->property_positions_[property_name] = 0;
                     }
                     columnar_->property_vids_[property_name].push_back(vid);
@@ -101,7 +100,8 @@ class AllNodeScanCol : public OpBase {
                         columnar_->columnar_data_.end()) {
                         size_t element_size = ColumnVector::GetFieldSize(field.type);
                         columnar_->columnar_data_[property_name] =
-                            std::make_unique<ColumnVector>(element_size, BATCH_SIZE, field.type);
+                            std::make_unique<ColumnVector>(element_size,
+                                FLAGS_BATCH_SIZE, field.type);
                         columnar_->property_positions_[property_name] = 0;
                     }
                     columnar_->property_vids_[property_name].push_back(vid);
