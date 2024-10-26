@@ -17,6 +17,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/execution_plan_v2.cpp
         cypher/execution_plan/execution_plan_maker.cpp
         cypher/execution_plan/pattern_graph_maker.cpp
+        cypher/execution_plan/ops/op_config.cpp
         cypher/execution_plan/ops/op_aggregate.cpp
         cypher/execution_plan/ops/op_all_node_scan.cpp
         cypher/execution_plan/ops/op_all_node_scan_col.cpp

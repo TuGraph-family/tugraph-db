@@ -95,7 +95,6 @@ struct OpBase {
     enum StreamState { StreamUnInitialized, StreamConsuming, StreamDepleted } state;
     /* Stream state. */              // TODO(anyone) remove
     std::shared_ptr<Record> record;  // Result of consume.
-    size_t BATCH_SIZE = 10;          // Batch size.
     std::shared_ptr<DataChunk> columnar_;
     OpStats stats;                   // Profiling statistics.
     enum OpResult {
