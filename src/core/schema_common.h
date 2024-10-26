@@ -160,7 +160,10 @@ template <typename StreamT>
 struct BinaryWriter<StreamT, lgraph::FieldSpec> {
     static size_t Write(StreamT& stream, const lgraph::FieldSpec& fs) {
         return BinaryWrite(stream, fs.name) + BinaryWrite(stream, fs.type) +
-               BinaryWrite(stream, fs.optional);
+               BinaryWrite(stream, fs.optional) + BinaryWrite(stream, fs.deleted) +
+               BinaryWrite(stream, fs.id) + BinaryWrite(stream, fs.inited_value) +
+               BinaryWrite(stream, fs.init_value) + BinaryWrite(stream, fs.set_default_value) +
+               BinaryWrite(stream, fs.default_value);
     }
 };
 }  // namespace fma_common
