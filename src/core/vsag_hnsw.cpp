@@ -53,6 +53,8 @@ void HNSW::Add(const std::vector<std::vector<float>>& vectors,
         vectorid_++;
         ids[i] = vectorid_;
         if (vid_vectorid_.count(vids[i])) {
+            delete[] ids;
+            delete[] index_vectors;
             THROW_CODE(VectorIndexException, "[HNSW Add] vid {} already exists", vids[i]);
         }
         vid_vectorid_[vids[i]] = vectorid_;
