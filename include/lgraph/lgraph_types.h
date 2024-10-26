@@ -1273,7 +1273,14 @@ struct FieldSpec {
     /** @brief  is set default value? */
     bool set_default_value;
 
-    FieldSpec() : name(), type(FieldType::NUL), optional(false), deleted(false), id(0) {}
+    FieldSpec()
+        : name(),
+          type(FieldType::NUL),
+          optional(false),
+          deleted(false),
+          id(0),
+          inited_value(false),
+          set_default_value(false) {}
 
     /**
      * @brief   Constructor
