@@ -579,7 +579,7 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
                 } else {
                     fd = item.second.scalar;
                 }
-                if (fd.IsNull()) {
+                if (fd.IsNull() && !iter->second.second.optional) {
                     success = false;
                     break;
                 }
@@ -910,7 +910,7 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                     } else {
                         fd = item.second.scalar;
                     }
-                    if (fd.IsNull()) {
+                    if (fd.IsNull() && !iter->second.second.optional) {
                         success = false;
                         break;
                     }
@@ -4254,6 +4254,10 @@ void VectorFunc::ShowVertexVectorIndex(RTContext *ctx, const cypher::Record *rec
         r.AddConstant(lgraph::FieldData(item.distance_type));
         r.AddConstant(lgraph::FieldData(item.hnsw_m));
         r.AddConstant(lgraph::FieldData(item.hnsw_ef_construction));
+        auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(item.label, item.field);
+        r.AddConstant(lgraph::FieldData(index->GetElementsNum()));
+        r.AddConstant(lgraph::FieldData(index->GetMemoryUsage()));
+        r.AddConstant(lgraph::FieldData(index->GetDeletedIdsNum()));
         records->emplace_back(r.Snapshot());
     }
     FillProcedureYieldItem("db.showVertexVectorIndex", yield_items, records);

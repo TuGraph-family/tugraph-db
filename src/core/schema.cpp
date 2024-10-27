@@ -314,7 +314,7 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
                        "vector index dimension mismatch, vector size:{}, dim:{}",
                        floatvector.back().size(), dim);
         }
-        index->Add(floatvector, vids, 1);
+        index->Add(floatvector, vids);
     }
 }
 
@@ -323,9 +323,7 @@ void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& re
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         VectorIndex* index = fe.GetVectorIndex();
-        std::vector<int64_t> vids;
-        vids.push_back(vid);
-        index->Add({}, vids, 0);
+        index->Remove({vid});
     }
 }
 

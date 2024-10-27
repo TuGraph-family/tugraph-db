@@ -289,21 +289,23 @@ class IndexManager {
     std::vector<VectorIndexSpec> ListVectorIndex(KvTransaction& txn);
 
     // vertex index
-    std::pair<std::vector<IndexSpec>, std::vector<CompositeIndexSpec>> ListAllIndexes(
+    std::tuple<std::vector<IndexSpec>, std::vector<CompositeIndexSpec>,
+        std::vector<VectorIndexSpec>> ListAllIndexes(
         KvTransaction& txn) {
         std::vector<IndexSpec> indexes;
         std::vector<CompositeIndexSpec> compositeIndexes;
-        IndexSpec is;
-        CompositeIndexSpec cis;
+        std::vector<VectorIndexSpec> vectorIndexes;
         size_t v_index_len = strlen(_detail::VERTEX_INDEX);
         size_t e_index_len = strlen(_detail::EDGE_INDEX);
         size_t c_index_len = strlen(_detail::COMPOSITE_INDEX);
+        size_t ve_index_len = strlen(_detail::VERTEX_VECTOR_INDEX);
         auto it = index_list_table_->GetIterator(txn);
         for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
             std::string index_name = it->GetKey().AsString();
             if (index_name.size() > v_index_len &&
                 index_name.substr(index_name.size() - v_index_len) == _detail::VERTEX_INDEX) {
                 _detail::IndexEntry ent = LoadIndex(it->GetValue());
+                IndexSpec is;
                 is.label = ent.label;
                 is.field = ent.field;
                 is.type = ent.type;
@@ -311,21 +313,36 @@ class IndexManager {
             } else if (index_name.size() > e_index_len &&
                 index_name.substr(index_name.size() - e_index_len) == _detail::EDGE_INDEX) {
                 _detail::IndexEntry ent = LoadIndex(it->GetValue());
+                IndexSpec is;
                 is.label = ent.label;
                 is.field = ent.field;
                 is.type = ent.type;
                 indexes.emplace_back(std::move(is));
+            } else if (index_name.size() > ve_index_len &&
+                       index_name.substr(index_name.size() - ve_index_len)
+                           == _detail::VERTEX_VECTOR_INDEX) {
+                _detail::VectorIndexEntry ent = LoadVectorIndex(it->GetValue());
+                VectorIndexSpec vis;
+                vis.label = ent.label;
+                vis.field = ent.field;
+                vis.distance_type = ent.distance_type;
+                vis.dimension = ent.dimension;
+                vis.hnsw_ef_construction = ent.hnsw_ef_construction;
+                vis.hnsw_m = ent.hnsw_m;
+                vis.index_type = ent.index_type;
+                vectorIndexes.emplace_back(vis);
             } else if (index_name.size() > c_index_len &&
                        index_name.substr(index_name.size() - c_index_len) ==
                        _detail::COMPOSITE_INDEX) {
                 _detail::CompositeIndexEntry idx = LoadCompositeIndex(it->GetValue());
+                CompositeIndexSpec cis;
                 cis.label = idx.label;
                 cis.fields = idx.field_names;
                 cis.type = idx.index_type;
                 compositeIndexes.emplace_back(std::move(cis));
             }
         }
-        return {indexes, compositeIndexes};
+        return {std::move(indexes), std::move(compositeIndexes), std::move(vectorIndexes)};
     }
 };
 }  // namespace lgraph
