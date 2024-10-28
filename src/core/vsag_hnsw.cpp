@@ -23,33 +23,42 @@ HNSW::HNSW(const std::string& label, const std::string& name,
                            const std::string& index_type, int vec_dimension,
                            std::vector<int> index_spec)
     : VectorIndex(label, name, distance_type, index_type,
-                    vec_dimension, std::move(index_spec)),
-      createindex_(nullptr), index_(createindex_.get()) {}
+                    vec_dimension, std::move(index_spec)) {
+    Build();
+    LOG_INFO() << FMA_FMT("Create HNSW instance, {}:{}", GetLabel(), GetName());
+}
+
+HNSW::~HNSW() {
+    LOG_INFO() << FMA_FMT("Destroy HNSW instance, {}:{}", GetLabel(), GetName());
+    index_ = nullptr;
+}
 
 // add vector to index
 void HNSW::Add(const std::vector<std::vector<float>>& vectors,
-               const std::vector<int64_t>& vids, int64_t num_vectors) {
-    // reduce dimension
-    if (num_vectors == 0) {
-        for (auto vid : vids) {
-            auto result = index_->Remove(vid);
-            if (result.has_value()) {
-                if (!result.value()) {
-                    THROW_CODE(InputError, "failed to remove vector from index, vid:{}", vid);
-                }
-            } else {
-                THROW_CODE(InputError, "failed to remove vector from index, vid:{}, error:{}",
-                           vid, result.error().message);
-            }
-        }
+               const std::vector<int64_t>& vids) {
+    if (vectors.size() != vids.size()) {
+        THROW_CODE(VectorIndexException,
+                   "size mismatch, vectors.size:{}, vids.size:{}", vectors.size(), vids.size());
     }
+    if (vectors.empty()) {
+        return;
+    }
+    auto num_vectors = vectors.size();
     auto* index_vectors = new float[num_vectors * vec_dimension_];
     auto* ids = new int64_t[num_vectors];
-    for (int64_t i = 0; i < num_vectors; i++) {
+    for (size_t i = 0; i < num_vectors; i++) {
         std::copy(vectors[i].begin(), vectors[i].end(), &index_vectors[i * vec_dimension_]);
     }
-    for (int64_t i = 0; i < num_vectors; i++) {
-        ids[i] = vids[i];
+    for (size_t i = 0; i < num_vectors; i++) {
+        vectorid_++;
+        ids[i] = vectorid_;
+        if (vid_vectorid_.count(vids[i])) {
+            delete[] ids;
+            delete[] index_vectors;
+            THROW_CODE(VectorIndexException, "[HNSW Add] vid {} already exists", vids[i]);
+        }
+        vid_vectorid_[vids[i]] = vectorid_;
+        vectorid_vid_[vectorid_] = {false, vids[i]};
     }
     auto dataset = vsag::Dataset::Make();
     dataset->Dim(vec_dimension_)->NumElements(num_vectors)
@@ -62,6 +71,27 @@ void HNSW::Add(const std::vector<std::vector<float>>& vectors,
         }
     } else {
         THROW_CODE(VectorIndexException, "add vector into index, error:{}", result.error().message);
+    }
+}
+
+void HNSW::Clear() {
+    vectorid_ = 0;
+    index_ = nullptr;
+    deleted_vectorid_ = 0;
+    std::unordered_map<int64_t, int64_t>().swap(vid_vectorid_);
+    std::unordered_map<int64_t, std::pair<bool, int64_t>>().swap(vectorid_vid_);
+    Build();
+}
+
+void HNSW::Remove(const std::vector<int64_t>& vids) {
+    for (auto vid : vids) {
+        auto iter = vid_vectorid_.find(vid);
+        if (iter == vid_vectorid_.end()) {
+            THROW_CODE(VectorIndexException, "[HNSW Remove] vid {} does not exist", vid);
+        }
+        vectorid_vid_.at(iter->second) = {true, -1};
+        deleted_vectorid_++;
+        vid_vectorid_.erase(iter);
     }
 }
 
@@ -78,8 +108,7 @@ void HNSW::Build() {
     };
     auto temp = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
     if (temp.has_value()) {
-        createindex_ = std::move(temp.value());
-        index_ = createindex_.get();
+        index_ = std::move(temp.value());
     } else {
         THROW_CODE(VectorIndexException, temp.error().message);
     }
@@ -185,10 +214,13 @@ HNSW::KnnSearch(const std::vector<float>& query, int64_t top_k, int ef_search) {
         {"hnsw", {{"ef_search", ef_search}}},
     };
     std::vector<std::pair<int64_t, float>> ret;
-    auto result = index_->KnnSearch(dataset, top_k, parameters.dump());
+    auto result = index_->KnnSearch(dataset, top_k, parameters.dump(), [this](int64_t id)->bool {
+        return vectorid_vid_.at(id).first;
+    });
     if (result.has_value()) {
         for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
-            ret.emplace_back(result.value()->GetIds()[i], result.value()->GetDistances()[i]);
+            auto vector_id = result.value()->GetIds()[i];
+            ret.emplace_back(vectorid_vid_.at(vector_id).second, result.value()->GetDistances()[i]);
         }
     } else {
         THROW_CODE(VectorIndexException, result.error().message);
@@ -208,15 +240,30 @@ HNSW::RangeSearch(const std::vector<float>& query, float radius, int ef_search, 
         {"hnsw", {{"ef_search", ef_search}}},
     };
     std::vector<std::pair<int64_t, float>> ret;
-    auto result = index_->RangeSearch(dataset, radius, parameters.dump(), limit);
+    auto result = index_->RangeSearch(dataset, radius, parameters.dump(), [this](int64_t id)->bool {
+        return vectorid_vid_.at(id).first;
+    }, limit);
     if (result.has_value()) {
         for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
-            ret.emplace_back(result.value()->GetIds()[i], result.value()->GetDistances()[i]);
+            int64_t vector_id = result.value()->GetIds()[i];
+            ret.emplace_back(vectorid_vid_.at(vector_id).second, result.value()->GetDistances()[i]);
         }
     } else {
         THROW_CODE(VectorIndexException, result.error().message);
     }
     return ret;
+}
+
+int64_t HNSW::GetElementsNum() {
+    return index_->GetNumElements();
+}
+
+int64_t HNSW::GetMemoryUsage() {
+    return index_->GetMemoryUsage();
+}
+
+int64_t HNSW::GetDeletedIdsNum() {
+    return deleted_vectorid_;
 }
 
 }  // namespace lgraph

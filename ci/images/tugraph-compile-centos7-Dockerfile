@@ -339,8 +339,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/Gr
 # tabulate
 # if it is not accessible, replace it with the link below
 # https://github.com/p-ranav/tabulate/archive/refs/tags/v1.5.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-d553e5.tar.gz \
-    && tar zxf tabulate-d553e5.tar.gz && cp -rf tabulate-d553e5/include/tabulate /usr/local/include \
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-3a5830.tar.gz \
+    && tar zxf tabulate-3a5830.tar.gz && cp -rf tabulate/include/tabulate /usr/local/include \
     && rm -rf /tabulate*
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
