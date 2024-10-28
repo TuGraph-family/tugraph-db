@@ -378,7 +378,7 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
                            "vector index dimension mismatch, vector size:{}, dim:{}",
                            floatvector.back().size(), dim);
             }
-            index->Add(floatvector, vids, 1);
+            index->Add(floatvector, vids);
         } else {
             auto& fe = fields_[idx];
             if (fe.GetIsNull(record)) continue;
@@ -393,9 +393,8 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
                            "vector index dimension mismatch, vector size:{}, dim:{}",
                            floatvector.back().size(), dim);
             }
-            index->Add(floatvector, vids, 1);
+            index->Add(floatvector, vids);
         }
-        index->Add(floatvector, vids);
     }
 }
 
