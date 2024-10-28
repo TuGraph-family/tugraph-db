@@ -88,4 +88,27 @@ const ZH_TRANSLATIONS: DocSearchTranslations = {
   },
 };
 
-export { EN_TRANSLATIONS, ZH_TRANSLATIONS };
+const EN_NOT_FOUND_CONFIG = {
+  title: "Page Not Found",
+  descriptions: [
+    "We could not find what you were looking for.",
+    "Please contact the owner of the site that linked you to the original URL and let them know their link is broken.",
+  ],
+  homeBtnText: "Back to Home",
+};
+
+const ZH_NOT_FOUND_CONFIG = {
+  title: "找不到页面",
+  descriptions: [
+    "我们找不到您要找的页面",
+    "请联系原始链接来源网站的所有者，并告知他们链接已损坏",
+  ],
+  homeBtnText: "返回首页",
+};
+
+export {
+  EN_TRANSLATIONS,
+  ZH_TRANSLATIONS,
+  ZH_NOT_FOUND_CONFIG,
+  EN_NOT_FOUND_CONFIG,
+};
