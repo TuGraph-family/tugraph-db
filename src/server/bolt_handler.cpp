@@ -285,9 +285,9 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         }
         session->state = SessionState::READY;
         session->user = principal;
+        conn.SetContext(session);
         session->fsm_thread = std::thread(BoltFSM, conn.shared_from_this());
         session->fsm_thread.detach();
-        conn.SetContext(std::move(session));
         bolt::PackStream ps;
         ps.AppendSuccess(meta);
         conn.Respond(std::move(ps.MutableBuffer()));
