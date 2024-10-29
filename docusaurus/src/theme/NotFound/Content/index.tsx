@@ -3,7 +3,6 @@ import clsx from "clsx";
 import { useLocation } from "react-router-dom";
 import type { Props } from "@theme/NotFound/Content";
 import Heading from "@theme/Heading";
-import { Button } from "antd";
 import { EN_NOT_FOUND_CONFIG, ZH_NOT_FOUND_CONFIG } from "@site/src/constants";
 
 export default function NotFoundContent({ className }: Props): JSX.Element {
@@ -45,9 +44,9 @@ export default function NotFoundContent({ className }: Props): JSX.Element {
           {contentConfig.descriptions?.map((desc) => (
             <p>{desc}</p>
           ))}
-          <Button type="primary" href={getHomeHref()}>
+          <a href={getHomeHref()}>
             {contentConfig.homeBtnText}
-          </Button>
+          </a>
         </div>
       </div>
     </main>

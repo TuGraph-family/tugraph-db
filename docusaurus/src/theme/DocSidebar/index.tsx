@@ -3,7 +3,7 @@ import DocSidebar from "@theme-original/DocSidebar";
 import type DocSidebarType from "@theme/DocSidebar";
 import type { WrapperProps } from "@docusaurus/types";
 import { useLocation, useHistory } from "react-router-dom";
-import Select from "antd/lib/select/index";
+import Select from 'react-select';
 import { DocSearch } from "@docsearch/react";
 import Link from "@docusaurus/Link";
 import { EN_TRANSLATIONS, ZH_TRANSLATIONS } from "@site/src/constants";
@@ -43,9 +43,9 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       segments.length > versionIndex &&
       versions.includes(segments[versionIndex])
     ) {
-      return segments[versionIndex];
+      return { label: segments[versionIndex], value: segments[versionIndex] };
     }
-    return "4.5.0";
+    return {label: "4.5.0", value: "4.5.0"};
   };
 
   const formatDocSearchVersion = (tag: string) => {
@@ -68,6 +68,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const onVersionChange = (version) => {
+    const { value } = version;
     const lang = getCurrentLanguage();
     const prefix = "/tugraph-db";
     const basePath = `${prefix}/${lang}`;
@@ -81,7 +82,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       .join("/");
 
     // 构造新路径
-    const newPath = `${basePath}/${version}/${remainingPath}`;
+    const newPath = `${basePath}/${value}/${remainingPath}`;
     history.push(newPath);
   };
 
@@ -96,16 +97,16 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const replaceVersionInLink = (baseLink: string): string => {
-    const currentVersion = getCurrentVersion();
-    const updatedLink = baseLink.replace(/\/\d+\.\d+\.\d+\//, `/${currentVersion}/`);
+    const { value } = getCurrentVersion();
+    const updatedLink = baseLink.replace(/\/\d+\.\d+\.\d+\//, `/${value}/`);
     return updatedLink;
   };
 
   const getDocSearchKey = useMemo(() => {
 
-    const currentVersion = getCurrentVersion();
+    const { value } = getCurrentVersion();
 
-    if (['4.1.0', '4.0.1', '4.0.0', '3.6.0', '3.5.1', '3.5.0'].includes(currentVersion)) {
+    if (['4.1.0', '4.0.1', '4.0.0', '3.6.0', '3.5.1', '3.5.0'].includes(value)) {
       return {
         apiKey: "7d995257839cea75cceb969a6d96e40a",
         indexName: "zhongyunwanio",
@@ -119,18 +120,6 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       appId: "DGYVABHR0M",
     }
   }, [location.pathname]);
-
-  useEffect(() => {
-    window.addEventListener("click", () => {
-      const currentPath = window.location.pathname;
-      window.parent.postMessage({ path: currentPath }, "*");
-    });
-    window.addEventListener("hashchange", () => {
-      const currentPath = window.location.pathname;
-      const hash = window.location.hash;
-      window.parent.postMessage({ path: currentPath + hash }, "*");
-    });
-  }, []);
 
   const getTranslationsByLanguage = (lang: string) => {
     if (lang === "zh") {
@@ -146,29 +135,57 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     return "Search docs";
   };
 
+  const versionOptions = versions.map((item) => ({ value: item, label: item }));
+
+  const customStyles = {
+    control: (provided: React.CSSProperties) => ({
+      ...provided,
+      width: '120px',
+      minHeight: '36px',
+      height: '36px',
+      margin: "10px 4px 0 8px"
+    }),
+    valueContainer: (provided: React.CSSProperties) => ({
+      ...provided,
+      padding: '0 8px'
+    }),
+  };
+
+  useEffect(() => {
+    window.addEventListener("click", () => {
+      const currentPath = window.location.pathname;
+      window.parent.postMessage({ path: currentPath }, "*");
+    });
+    window.addEventListener("hashchange", () => {
+      const currentPath = window.location.pathname;
+      const hash = window.location.hash;
+      window.parent.postMessage({ path: currentPath + hash }, "*");
+    });
+  }, []);
+
   return (
     <div
       style={{
         display: "flex",
         justifyContent: "center",
-        flexDirection: "column",
+        flexDirection: "column"
       }}
     >
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: '8px' }}>
         <Select
           defaultValue={getCurrentVersion()}
-          style={{ width: 120, margin: "10px 4px 8px 8px" }}
-          options={versions.map((item) => ({ value: item, label: item }))}
+          styles={customStyles}
+          options={versionOptions}
           onChange={onVersionChange}
         />
-        <div style={{ margin: "10px 4px 8px 8px" }}>
+        <div style={{ margin: "10px 4px 0 8px" }}>
           <DocSearch
             {...{
               ...getDocSearchKey,
               searchParameters: {
                 facetFilters: [
                   formatDocSearchVersion(
-                    `docusaurus_tag:docs-${getCurrentVersion()}_${getCurrentLanguage()}-current`
+                    `docusaurus_tag:docs-${getCurrentVersion()?.value}_${getCurrentLanguage()}-current`
                   ),
                 ],
               },
