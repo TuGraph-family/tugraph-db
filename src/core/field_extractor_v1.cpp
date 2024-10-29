@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "core/field_extractor.h"
+#include "core/field_extractor_v1.h"
 
 namespace lgraph {
 namespace _detail {
@@ -28,7 +28,7 @@ namespace _detail {
  *          FIELD_PARSE_FAILED.
  */
 
-bool FieldExtractor::GetIsNull(const Value& record) const {
+bool FieldExtractorV1::GetIsNull(const Value& record) const {
     if (!IsOptional()) {
         return false;
     } else {
@@ -39,7 +39,7 @@ bool FieldExtractor::GetIsNull(const Value& record) const {
 }
 
 // set field value to null
-void FieldExtractor::SetIsNull(const Value& record, bool is_null) const {
+void FieldExtractorV1::SetIsNull(const Value& record, bool is_null) const {
     if (!IsOptional()) {
         if (is_null) throw FieldCannotBeSetNullException(Name());
         return;
@@ -54,7 +54,7 @@ void FieldExtractor::SetIsNull(const Value& record, bool is_null) const {
 }
 
 template <FieldType FT>
-void FieldExtractor::_ParseStringAndSet(Value& record, const std::string& data) const {
+void FieldExtractorV1::_ParseStringAndSet(Value& record, const std::string& data) const {
     typedef typename field_data_helper::FieldType2CType<FT>::type CT;
     typedef typename field_data_helper::FieldType2StorageType<FT>::type ST;
     CT s{};
@@ -64,13 +64,13 @@ void FieldExtractor::_ParseStringAndSet(Value& record, const std::string& data) 
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::STRING>(Value& record,
+void FieldExtractorV1::_ParseStringAndSet<FieldType::STRING>(Value& record,
                                                            const std::string& data) const {
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
+void FieldExtractorV1::_ParseStringAndSet<FieldType::POINT>(Value& record,
                                                           const std::string& data) const {
     FMA_DBG_ASSERT(!is_vfield_);
     // check whether the point data is valid;
@@ -84,7 +84,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
+void FieldExtractorV1::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
                                                                const std::string& data) const {
     // check whether the linestring data is valid;
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::LINESTRING))
@@ -93,7 +93,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
+void FieldExtractorV1::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
                                                             const std::string& data) const {
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POLYGON))
         throw ParseStringException(Name(), data, FieldType::POLYGON);
@@ -101,7 +101,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
+void FieldExtractorV1::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
                                                             const std::string& data) const {
     ::lgraph_api::SpatialType s;
     // throw ParseStringException in this function;
@@ -117,7 +117,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
+void FieldExtractorV1::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
                                                                  const std::string& data) const {
     std::vector<float> vec;
     // check if there are only numbers and commas
@@ -156,7 +156,7 @@ void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
  *          DATA_RANGE_OVERFLOW   if record size overflow
  *          FIELD_PARSE_FAILED.
  */
-void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
+void FieldExtractorV1::ParseAndSet(Value& record, const std::string& data) const {
     if (data.empty() &&
         (IsFixedType() || Type() == FieldType::LINESTRING || Type() == FieldType::POLYGON ||
          Type() == FieldType::SPATIAL || Type() == FieldType::FLOAT_VECTOR)) {
@@ -208,7 +208,7 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
 
 // parse data from FieldData and set field
 // for BLOBs, only formatted data is allowed
-void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
+void FieldExtractorV1::ParseAndSet(Value& record, const FieldData& data) const {
     // NULL FieldData is seen as explicitly setting field to NUL
     bool data_is_null = data.type == FieldType::NUL;
     SetIsNull(record, data_is_null);
@@ -321,7 +321,7 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
 }
 
 // sets variable length value to the field
-void FieldExtractor::_SetVariableLengthValue(Value& record, const Value& data) const {
+void FieldExtractorV1::_SetVariableLengthValue(Value& record, const Value& data) const {
     FMA_DBG_ASSERT(is_vfield_);
     if (data.Size() > _detail::MAX_STRING_SIZE)
         throw DataSizeTooLargeException(Name(), data.Size(), _detail::MAX_STRING_SIZE);

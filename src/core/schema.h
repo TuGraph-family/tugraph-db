@@ -26,7 +26,7 @@
 
 #include "core/blob_manager.h"
 #include "core/data_type.h"
-#include "core/field_extractor.h"
+#include "core/field_extractor_v1.h"
 #include "core/field_extractor_v2.h"
 #include "core/field_extractor_base.h"
 #include "core/schema_common.h"
@@ -285,17 +285,17 @@ class Schema {
         return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_name));
     }
 
-    _detail::FieldExtractor* GetFieldExtractor(size_t field_num) const {
-        return dynamic_cast<_detail::FieldExtractor*>(GetFieldExtractorBase(field_num));
+    _detail::FieldExtractorV1* GetFieldExtractor(size_t field_num) const {
+        return dynamic_cast<_detail::FieldExtractorV1*>(GetFieldExtractorBase(field_num));
     }
-    _detail::FieldExtractor* TryGetFieldExtractor(size_t field_num) const {
-        return dynamic_cast<_detail::FieldExtractor*>(GetFieldExtractorBase(field_num));
+    _detail::FieldExtractorV1* TryGetFieldExtractor(size_t field_num) const {
+        return dynamic_cast<_detail::FieldExtractorV1*>(GetFieldExtractorBase(field_num));
     }
-    _detail::FieldExtractor* GetFieldExtractor(const std::string& field_name) const {
-        return dynamic_cast<_detail::FieldExtractor*>(GetFieldExtractorBase(field_name));
+    _detail::FieldExtractorV1* GetFieldExtractor(const std::string& field_name) const {
+        return dynamic_cast<_detail::FieldExtractorV1*>(GetFieldExtractorBase(field_name));
     }
-    _detail::FieldExtractor* TryGetFieldExtractor(const std::string& field_name) const {
-        return dynamic_cast<_detail::FieldExtractor*>(GetFieldExtractorBase(field_name));
+    _detail::FieldExtractorV1* TryGetFieldExtractor(const std::string& field_name) const {
+        return dynamic_cast<_detail::FieldExtractorV1*>(GetFieldExtractorBase(field_name));
     }
 
     size_t GetFieldId(const std::string& name) const;
@@ -334,7 +334,7 @@ class Schema {
         std::vector<FieldData> fds;
         fds.reserve(n_fields);
         for (size_t i = 0; i < n_fields; i++) {
-            const _detail::FieldExtractor* fe = GetFieldExtractor(fields[i]);
+            const _detail::FieldExtractorV1* fe = GetFieldExtractor(fields[i]);
             if (fe->GetIsNull(record)) return FieldData();
             fds.push_back(GetFieldDataFromField(fe, record));
         }
@@ -349,7 +349,7 @@ class Schema {
         std::vector<FieldData> fds;
         fds.reserve(n_fields);
         for (size_t i = 0; i < n_fields; i++) {
-            const _detail::FieldExtractor* fe = GetFieldExtractor(fields[i]);
+            const _detail::FieldExtractorV1* fe = GetFieldExtractor(fields[i]);
             if (fe->GetIsNull(record)) return FieldData();
             fds.push_back(GetFieldDataFromField(fe, record));
         }
@@ -418,13 +418,14 @@ class Schema {
             if (fast_alter_schema)
                 return GetFieldDataFromBlobField(
                     dynamic_cast<_detail::FieldExtractorV2*>(extractor), record, get_blob);
-            return GetFieldDataFromBlobField(dynamic_cast<_detail::FieldExtractor*>(extractor),
+            return GetFieldDataFromBlobField(dynamic_cast<_detail::FieldExtractorV1*>(extractor),
                                              record, get_blob);
         } else {
             if (fast_alter_schema)
                 return GetFieldDataFromField(dynamic_cast<_detail::FieldExtractorV2*>(extractor),
                                              record);
-            return GetFieldDataFromField(dynamic_cast<_detail::FieldExtractor*>(extractor), record);
+            return GetFieldDataFromField(dynamic_cast<_detail::FieldExtractorV1*>(extractor),
+                                         record);
         }
     }
 
@@ -445,7 +446,7 @@ class Schema {
             if (fast_alter_schema) {
                 ParseAndSet(v, data, extr);
             } else {
-                dynamic_cast<_detail::FieldExtractor*>(extr)->ParseAndSet(v, data);
+                dynamic_cast<_detail::FieldExtractorV1*>(extr)->ParseAndSet(v, data);
             }
         }
         for (size_t i = 0; i < fields_.size(); i++) {
@@ -474,14 +475,14 @@ class Schema {
                 if (fast_alter_schema) {
                     ParseAndSetBlob(prop, data, on_large_blob, extr);
                 } else {
-                    dynamic_cast<_detail::FieldExtractor*>(extr)->ParseAndSetBlob(prop, data,
+                    dynamic_cast<_detail::FieldExtractorV1*>(extr)->ParseAndSetBlob(prop, data,
                                                                                   on_large_blob);
                 }
             } else {
                 if (fast_alter_schema) {
                     ParseAndSet(prop, data, extr);
                 } else {
-                    dynamic_cast<_detail::FieldExtractor*>(extr)->ParseAndSet(prop, data);
+                    dynamic_cast<_detail::FieldExtractorV1*>(extr)->ParseAndSet(prop, data);
                 }
             }
         }
@@ -789,13 +790,13 @@ class Schema {
     Value CreateRecordWithLabelId() const;
 
  protected:
-    FieldData GetFieldDataFromField(const _detail::FieldExtractor* extractor,
+    FieldData GetFieldDataFromField(const _detail::FieldExtractorV1* extractor,
                                     const Value& record) const;
     FieldData GetFieldDataFromField(const _detail::FieldExtractorV2* extractor,
                                 const Value& record) const;
 
     template <typename GetBlobFunc>
-    FieldData GetFieldDataFromBlobField(const _detail::FieldExtractor* extractor,
+    FieldData GetFieldDataFromBlobField(const _detail::FieldExtractorV1* extractor,
                                         const Value& record, const GetBlobFunc& get_blob) const {
         return FieldData::Blob(extractor->GetBlobConstRef(record, get_blob).AsString());
     }

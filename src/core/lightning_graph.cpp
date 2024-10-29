@@ -1024,9 +1024,9 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
         new_schema.ModFields(to_mod);
         FMA_DBG_ASSERT(new_schema.GetNumFields() == curr_schema->GetNumFields());
         for (size_t i = 0; i < new_schema.GetNumFields(); i++) {
-            const _detail::FieldExtractor* dst_fe = new_schema.GetFieldExtractor(i);
+            const _detail::FieldExtractorV1* dst_fe = new_schema.GetFieldExtractor(i);
             const std::string& fname = dst_fe->Name();
-            const _detail::FieldExtractor* src_fe = curr_schema->GetFieldExtractor(i);
+            const _detail::FieldExtractorV1* src_fe = curr_schema->GetFieldExtractor(i);
             size_t src_fid = curr_schema->GetFieldId(fname);
             if (dst_fe->Type() == src_fe->Type()) {
                 direct_copy_dst_fids.push_back(i);
@@ -1047,7 +1047,8 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
         new_schema->CopyFieldsRaw(new_prop, direct_copy_dst_fids, curr_schema, old_prop,
                                   direct_copy_src_fids);
         for (size_t i = 0; i < mod_dst_fids.size(); i++) {
-            const _detail::FieldExtractor* dst_fe = new_schema->GetFieldExtractor(mod_dst_fids[i]);
+            const _detail::FieldExtractorV1* dst_fe =
+                new_schema->GetFieldExtractor(mod_dst_fids[i]);
             FieldData data = curr_schema->GetField(old_prop, mod_src_fids[i],
                                                    [&](const BlobManager::BlobKey& key) {
                                                        return blob_manager_->Get(txn.GetTxn(), key);

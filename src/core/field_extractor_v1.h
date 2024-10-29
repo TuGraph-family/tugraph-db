@@ -28,7 +28,7 @@ class Schema;
 namespace _detail {
 
 /** A field extractor can be used to get/set a field in the record. */
-class FieldExtractor : public FieldExtractorBase {
+class FieldExtractorV1 : public FieldExtractorBase {
     friend class lgraph::Schema;
     // layout
     bool is_vfield_ = false;
@@ -44,23 +44,23 @@ class FieldExtractor : public FieldExtractorBase {
     size_t null_bit_off_ = 0;
 
  public:
-    FieldExtractor() : FieldExtractorBase() {}
+    FieldExtractorV1() : FieldExtractorBase() {}
 
-    FieldExtractor(const FieldExtractor& rhs) : FieldExtractorBase(rhs.GetFieldSpec()) {
+    FieldExtractorV1(const FieldExtractorV1& rhs) : FieldExtractorBase(rhs.GetFieldSpec()) {
         is_vfield_ = !rhs.IsFixedType();
         offset_ = rhs.offset_;
         nullable_array_off_ = rhs.nullable_array_off_;
         null_bit_off_ = rhs.null_bit_off_;
     }
 
-    FieldExtractor(FieldExtractor&& rhs) noexcept : FieldExtractorBase(std::move(rhs)) {
+    FieldExtractorV1(FieldExtractorV1&& rhs) noexcept : FieldExtractorBase(std::move(rhs)) {
         is_vfield_ = !rhs.IsFixedType();
         offset_ = rhs.offset_;
         null_bit_off_ = rhs.null_bit_off_;
         nullable_array_off_ = rhs.nullable_array_off_;
     }
 
-    FieldExtractor& operator=(const FieldExtractor& rhs) {
+    FieldExtractorV1& operator=(const FieldExtractorV1& rhs) {
         if (this == &rhs) return *this;
         FieldExtractorBase::operator=(std::move(rhs));
         is_vfield_ = rhs.IsFixedType();
@@ -70,7 +70,7 @@ class FieldExtractor : public FieldExtractorBase {
         return *this;
     }
 
-    FieldExtractor& operator=(FieldExtractor&& rhs) noexcept {
+    FieldExtractorV1& operator=(FieldExtractorV1&& rhs) noexcept {
         if (this == &rhs) return *this;
         FieldExtractorBase::operator=(std::move(rhs));
         is_vfield_ = rhs.IsFixedType();
@@ -80,10 +80,10 @@ class FieldExtractor : public FieldExtractorBase {
         return *this;
     }
 
-    ~FieldExtractor() override = default;
+    ~FieldExtractorV1() override = default;
 
     // for test only
-    explicit FieldExtractor(const FieldSpec& d) noexcept : FieldExtractorBase(d) {
+    explicit FieldExtractorV1(const FieldSpec& d) noexcept : FieldExtractorBase(d) {
         null_bit_off_ = 0;
         is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         if (is_vfield_) SetVLayoutInfo(d.optional ? 1 : 0, 1, 0);
@@ -120,7 +120,8 @@ class FieldExtractor : public FieldExtractorBase {
         }
     }
 
-    void CopyDataRaw(Value& dst_record, const Value& src_record, const FieldExtractor* extr) const {
+    void CopyDataRaw(Value& dst_record, const Value& src_record,
+                     const FieldExtractorV1* extr) const {
         if (extr->GetIsNull(src_record)) {
             SetIsNull(dst_record, true);
             return;

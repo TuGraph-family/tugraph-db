@@ -194,6 +194,6 @@ TEST_F(TestSchema, DumpRecord) {
     schema.GetFieldExtractor("addr");
     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor("hash"), FieldNotFound);
     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor(1024), FieldNotFound);
-    const _detail::FieldExtractor fe_temp = *(schema.GetFieldExtractor("name"));
-    _detail::FieldExtractor fe_5(*schema.GetFieldExtractor(0));
+    const _detail::FieldExtractorV1 fe_temp = *(schema.GetFieldExtractor("name"));
+    _detail::FieldExtractorV1 fe_5(*schema.GetFieldExtractor(0));
 }

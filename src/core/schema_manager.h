@@ -297,7 +297,7 @@ class SchemaManager {
         return ::lgraph::_detail::UnalignedGet<LabelId>(record.Data());
     }
 
-    const _detail::FieldExtractor* GetExtractor(const Value& record,
+    const _detail::FieldExtractorV1* GetExtractor(const Value& record,
                                                 const std::string& field) const {
         auto ls = GetSchema(record);
         if (!ls) return nullptr;

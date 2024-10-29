@@ -41,7 +41,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             FMA_DBG_CHECK_EQ(idx.table_name, it->GetKey().AsString());
             Schema* schema = v_schema_manager->GetSchema(idx.label);
             FMA_DBG_ASSERT(schema);
-            const _detail::FieldExtractor* fe = schema->GetFieldExtractor(idx.field);
+            const _detail::FieldExtractorV1* fe = schema->GetFieldExtractor(idx.field);
             FMA_DBG_ASSERT(fe);
             auto tbl =
                 VertexIndex::OpenTable(txn, db_->GetStore(), index_name, fe->Type(), idx.type);
@@ -54,7 +54,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             FMA_DBG_CHECK_EQ(idx.table_name, it->GetKey().AsString());
             Schema* schema = e_schema_manager->GetSchema(idx.label);
             FMA_DBG_ASSERT(schema);
-            const _detail::FieldExtractor* fe = schema->GetFieldExtractor(idx.field);
+            const _detail::FieldExtractorV1* fe = schema->GetFieldExtractor(idx.field);
             FMA_DBG_ASSERT(fe);
             auto tbl =
                 EdgeIndex::OpenTable(txn, db_->GetStore(), index_name, fe->Type(), idx.type);
@@ -68,7 +68,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             FMA_DBG_CHECK_EQ(ft_idx.table_name, it->GetKey().AsString());
             Schema* schema = v_schema_manager->GetSchema(ft_idx.label);
             FMA_DBG_ASSERT(schema);
-            const _detail::FieldExtractor* fe = schema->GetFieldExtractor(ft_idx.field);
+            const _detail::FieldExtractorV1* fe = schema->GetFieldExtractor(ft_idx.field);
             FMA_DBG_ASSERT(fe);
             schema->MarkFullTextIndexed(fe->GetFieldId(), true);
         } else if (index_name.size() > e_ft_index_len &&
@@ -78,7 +78,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             FMA_DBG_CHECK_EQ(ft_idx.table_name, it->GetKey().AsString());
             Schema* schema = e_schema_manager->GetSchema(ft_idx.label);
             FMA_DBG_ASSERT(schema);
-            const _detail::FieldExtractor* fe = schema->GetFieldExtractor(ft_idx.field);
+            const _detail::FieldExtractorV1* fe = schema->GetFieldExtractor(ft_idx.field);
             FMA_DBG_ASSERT(fe);
             schema->MarkFullTextIndexed(fe->GetFieldId(), true);
         } else if (index_name.size() > c_index_len &&
@@ -102,7 +102,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             FMA_DBG_ASSERT(schema->DetachProperty());
             LOG_INFO() << FMA_FMT("start building vertex vector index for {}:{} in detached model",
                                   idx.label, idx.field);
-            const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(idx.field);
+            const _detail::FieldExtractorV1* extractor = schema->GetFieldExtractor(idx.field);
             FMA_DBG_ASSERT(extractor);
             std::unique_ptr<VectorIndex> vsag_index;
             vsag_index.reset(dynamic_cast<lgraph::VectorIndex*> (

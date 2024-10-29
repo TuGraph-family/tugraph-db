@@ -84,7 +84,7 @@ class FieldExtractorV2 : public FieldExtractorBase {
     ENABLE_IF_FIXED_FIELD(T, void)
     SetFixedSizeValue(Value& record, const T& data) const {
         // "Cannot call SetField(Value&, const T&) on a variable length field";
-        FMA_DBG_ASSERT(!IsFixedType());
+        FMA_DBG_ASSERT(IsFixedType());
         // "Type size mismatch"
         FMA_DBG_CHECK_EQ(sizeof(data), TypeSize());
         // copy the buffer so we don't accidentally overwrite memory
