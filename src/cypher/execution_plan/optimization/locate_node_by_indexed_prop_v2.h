@@ -114,7 +114,7 @@ class LocateNodeByIndexedPropV2 : public OptPass {
             (op->children[0]->type == OpType::ALL_NODE_SCAN ||
              op->children[0]->type == OpType::NODE_BY_LABEL_SCAN)) {
             op_filter = dynamic_cast<OpFilter *>(op);
-            if (_CheckPropFilter(op_filter,  target_value_datas)) {
+            if (_CheckPropFilter(op_filter, target_value_datas)) {
                 return true;
             }
         }
