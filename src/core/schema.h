@@ -499,7 +499,6 @@ class Schema {
 
     void AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                         std::vector<size_t>& created);
-    bool EdgeUniqueIndexConflict(KvTransaction& txn, const Value& record);
 
     void AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record);
 
