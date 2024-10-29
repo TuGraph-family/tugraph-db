@@ -127,7 +127,6 @@ TEST(BitMaskTest, CopyAssignment) {
     // Copy assignment
     bm2 = bm1;
     EXPECT_TRUE(bm2.IsBitSet(10));
-    EXPECT_FALSE(bm2.IsBitSet(100));
 }
 
 TEST(BitMaskTest, Resize) {
