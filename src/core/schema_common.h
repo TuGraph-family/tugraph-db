@@ -143,16 +143,14 @@ class BinaryReader<StreamT, ::lgraph_api::FieldData> : public BinaryReaderForFie
 template <typename StreamT>
 class BinaryWriter<StreamT, ::lgraph_api::FieldData> : public BinaryWriterForFieldData<StreamT> {};
 
-
-
 template <typename StreamT>
 struct BinaryReader<StreamT, lgraph::FieldSpec> {
     static size_t Read(StreamT& stream, lgraph::FieldSpec& fs) {
         return BinaryRead(stream, fs.name) + BinaryRead(stream, fs.type) +
                BinaryRead(stream, fs.optional) + BinaryRead(stream, fs.deleted) +
-                   BinaryRead(stream, fs.id) + BinaryRead(stream, fs.init_value) +
-                       BinaryRead(stream, fs.inited_value) + BinaryRead(stream, fs.default_value) +
-                           BinaryRead(stream, fs.set_default_value);
+               BinaryRead(stream, fs.id) + BinaryRead(stream, fs.inited_value) +
+               BinaryRead(stream, fs.init_value) + BinaryRead(stream, fs.set_default_value) +
+               BinaryRead(stream, fs.default_value);
     }
 };
 

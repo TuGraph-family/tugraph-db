@@ -218,7 +218,7 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
         Schema* schema = sm->GetSchema(label);
         FMA_DBG_ASSERT(schema);
         const auto& primary_field = dynamic_cast<const VertexOptions&>(options).primary_field;
-        const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(primary_field);
+        const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(primary_field);
         FMA_DBG_ASSERT(extractor);
         std::unique_ptr<VertexIndex> index;
         index_manager_->AddVertexIndex(txn.GetTxn(), label, primary_field, extractor->Type(),
@@ -350,10 +350,10 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
         for (auto& fid : indexed_fids) {
             if (is_vertex) {
                 index_manager_->DeleteVertexIndex(txn.GetTxn(), label,
-                                                  schema->GetFieldExtractor(fid)->Name());
+                                                  schema->GetFieldExtractorBase(fid)->Name());
             } else {
                 index_manager_->DeleteEdgeIndex(txn.GetTxn(), label,
-                                                schema->GetFieldExtractor(fid)->Name());
+                                                schema->GetFieldExtractorBase(fid)->Name());
             }
         }
         // delete detached property table
@@ -362,7 +362,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
         std::vector<VertexIndex*> indexes;
         auto indexed_fids = schema->GetIndexedFields();
         for (auto fid : indexed_fids) {
-            indexes.push_back(schema->GetFieldExtractor(fid)->GetVertexIndex());
+            indexes.push_back(schema->GetFieldExtractorBase(fid)->GetVertexIndex());
         }
         // get unique index
         VertexIndex* unique_idx = nullptr;
@@ -465,7 +465,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
         Schema* to_unindex = schema_with_no_index->v_schema_manager.GetSchema(lid);
         for (auto& fid : indexed_fids) {
             index_manager_->DeleteVertexIndex(txn.GetTxn(), label,
-                                              schema->GetFieldExtractor(fid)->Name());
+                                              schema->GetFieldExtractorBase(fid)->Name());
             to_unindex->UnVertexIndex(fid);
         }
     } else {
@@ -481,7 +481,7 @@ bool LightningGraph::DelLabel(const std::string& label, bool is_vertex, size_t* 
         Schema* to_unedgeindex = schema_with_no_index->e_schema_manager.GetSchema(lid);
         for (auto& fid : indexed_fids) {
             index_manager_->DeleteEdgeIndex(txn.GetTxn(), label,
-                                            schema->GetFieldExtractor(fid)->Name());
+                                            schema->GetFieldExtractorBase(fid)->Name());
             to_unedgeindex->UnEdgeIndex(fid);
         }
     }
@@ -777,7 +777,7 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
     // get fids of the fields in new schema
     std::vector<size_t> new_fids;
     std::vector<size_t> old_field_pos;
-    std::vector<const _detail::FieldExtractor*> blob_deleted_fes;
+    std::vector<const _detail::FieldExtractorBase*> blob_deleted_fes;
 
     // make new schema
     auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
@@ -828,7 +828,7 @@ bool LightningGraph::AlterLabelDelFields(const std::string& label,
         auto fids = curr_schema->GetFieldIds(del_fields);
         // delete indexes if necessary
         for (auto& f : fids) {
-            auto* extractor = curr_schema->GetFieldExtractor(f);
+            auto* extractor = curr_schema->GetFieldExtractorBase(f);
             if (extractor->GetVertexIndex()) {
                 // delete vertex index
                 index_manager_->DeleteVertexIndex(txn.GetTxn(), label, extractor->Name());
@@ -892,8 +892,8 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
             Schema new_schema(*curr_schema);
             new_schema.AddFields(to_add);
             for (size_t i = 0; i < to_add.size(); i++) {
-                auto* extractor = const_cast<lgraph::_detail::FieldExtractorV2*>(
-                    new_schema.GetFieldExtractorV2(to_add[i].name));
+                auto extractor =
+                    new_schema.GetFieldExtractorBase(to_add[i].name);
                 extractor->SetInitValue(default_values[i]);
             }
             return new_schema;
@@ -907,7 +907,7 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
         src_fids.reserve(curr_schema->GetNumFields());
         for (size_t i = 0; i < new_schema.GetNumFields(); i++) {
             size_t fid = 0;
-            if (curr_schema->TryGetFieldId(new_schema.GetFieldExtractor(i)->Name(), fid)) {
+            if (curr_schema->TryGetFieldId(new_schema.GetFieldExtractorBase(i)->Name(), fid)) {
                 dst_fids.push_back(i);
                 src_fids.push_back(fid);
             }
@@ -928,7 +928,8 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
         new_schema->CopyFieldsRaw(new_prop, dst_fids, curr_schema, old_prop, src_fids);
         for (size_t i = 0; i < new_fids.size(); i++) {
             size_t fid = new_fids[i];
-            auto* extr = new_schema->GetFieldExtractor(fid);
+            auto* extr =
+                new_schema->GetFieldExtractor(fid);
             if (extr->Type() == FieldType::BLOB) {
                 extr->ParseAndSetBlob(new_prop, default_values[i], [&](const Value& v) {
                     return blob_manager_->Add(txn.GetTxn(), v);
@@ -1115,7 +1116,7 @@ bool LightningGraph::_AddEmptyIndex(const std::string& label, const std::string&
     Schema* schema = is_vertex ? new_schema->v_schema_manager.GetSchema(label)
                                : new_schema->e_schema_manager.GetSchema(label);
     if (!schema) throw LabelNotExistException(label);
-    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+    const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(field);
     if ((extractor->GetVertexIndex() && is_vertex) || (extractor->GetEdgeIndex() && !is_vertex))
         return false;  // index already exist
     if (is_vertex) {
@@ -1358,7 +1359,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
     if (is_vertex) {
         SchemaManager* schema_manager = &new_schema_info->v_schema_manager;
         auto v_schema = schema_manager->GetSchema(label_id);
-        auto* field_extractor = v_schema->GetFieldExtractor(field_id);
+        auto* field_extractor = v_schema->GetFieldExtractorBase(field_id);
         FMA_DBG_ASSERT(field_extractor);
         VertexIndex* index = field_extractor->GetVertexIndex();
         FMA_DBG_ASSERT(index);
@@ -1438,7 +1439,7 @@ void LightningGraph::BatchBuildIndex(Transaction& txn, SchemaInfo* new_schema_in
     } else {
         SchemaManager* schema_manager = &new_schema_info->e_schema_manager;
         auto e_schema = schema_manager->GetSchema(label_id);
-        auto* field_extractor = e_schema->GetFieldExtractor(field_id);
+        auto* field_extractor = e_schema->GetFieldExtractorBase(field_id);
         FMA_DBG_ASSERT(field_extractor);
         EdgeIndex* edge_index = field_extractor->GetEdgeIndex();
         FMA_DBG_ASSERT(edge_index);
@@ -1571,8 +1572,9 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                     prop = v_schema->GetDetachedVertexProperty(txn.GetTxn(), it.GetId());
                 }
                 bool can_index = true;
-                for (const std::string &field : fields) {
-                    const _detail::FieldExtractor* extractor = v_schema->GetFieldExtractor(field);
+                for (const std::string& field : fields) {
+                    const _detail::FieldExtractorBase* extractor =
+                        v_schema->GetFieldExtractorBase(field);
                     if (extractor->GetIsNull(prop)) {
                         can_index = false;
                         break;
@@ -1583,9 +1585,9 @@ void LightningGraph::BatchBuildCompositeIndex(Transaction& txn, SchemaInfo* new_
                 }
                 std::vector<Value> values;
                 std::vector<FieldType> types;
-                for (auto &field : fields) {
-                    values.emplace_back(v_schema->GetFieldExtractor(field)->GetConstRef(prop));
-                    types.emplace_back(v_schema->GetFieldExtractor(field)->Type());
+                for (auto& field : fields) {
+                    values.emplace_back(v_schema->GetFieldExtractorBase(field)->GetConstRef(prop));
+                    types.emplace_back(v_schema->GetFieldExtractorBase(field)->Type());
                 }
                 key_vids.emplace_back(values, types, it.GetId());
             }
@@ -1782,7 +1784,7 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
             }
             std::vector<std::pair<std::string, std::string>> kvs;
             for (auto& idx : fulltext_filelds) {
-                auto fe = schema->GetFieldExtractor(idx);
+                auto fe = schema->GetFieldExtractorBase(idx);
                 if (fe->GetIsNull(properties)) continue;
                 kvs.emplace_back(fe->Name(), fe->FieldToString(properties));
             }
@@ -1805,7 +1807,7 @@ void LightningGraph::RebuildFullTextIndex(const std::set<LabelId>& v_lids,
                     Schema* schema = curr_schema_info->e_schema_manager.GetSchema(lid);
                     const auto& fulltext_filelds = schema->GetFullTextFields();
                     for (auto& idx : fulltext_filelds) {
-                        auto fe = schema->GetFieldExtractor(idx);
+                        auto fe = schema->GetFieldExtractorBase(idx);
                         Value properties;
                         if (schema->DetachProperty()) {
                             properties = schema->GetDetachedEdgeProperty(txn.GetTxn(), euid);
@@ -1846,7 +1848,7 @@ bool LightningGraph::AddFullTextIndex(bool is_vertex, const std::string& label,
     if (!schema) {
         THROW_CODE(InputError, "label \"{}\" does not exist.", label);
     }
-    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+    const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(field);
     if (!extractor) {
         THROW_CODE(InputError, "field \"{}\":\"{}\" does not exist.", label, field);
     }
@@ -1926,7 +1928,7 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
     }
     std::vector<FieldType> field_types;
     for (const std::string &field : fields) {
-        const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+        const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(field);
         if (!extractor) {
             if (is_vertex)
                 THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
@@ -1967,8 +1969,8 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
                 std::vector<Value> values;
                 std::vector<FieldType> types;
                 for (auto &field : fields) {
-                    values.emplace_back(schema->GetFieldExtractor(field)->GetConstRef(prop));
-                    types.emplace_back(schema->GetFieldExtractor(field)->Type());
+                    values.emplace_back(schema->GetFieldExtractorBase(field)->GetConstRef(prop));
+                    types.emplace_back(schema->GetFieldExtractorBase(field)->Type());
                 }
                 index->Add(txn.GetTxn(),
                            composite_index_helper::GenerateCompositeIndexKey(values), vid);
@@ -1993,7 +1995,7 @@ bool LightningGraph::BlockingAddCompositeIndex(const std::string& label,
             end_vid = txn.GetLooseNumVertex();
             // vid range not known, try getting from index
             VertexIndex* idx =
-                schema->GetFieldExtractor(schema->GetPrimaryField())->GetVertexIndex();
+                schema->GetFieldExtractorBase(schema->GetPrimaryField())->GetVertexIndex();
             FMA_DBG_ASSERT(idx);
             VertexId beg = std::numeric_limits<VertexId>::max();
             VertexId end = 0;
@@ -2030,7 +2032,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
         else
             THROW_CODE(InputError, "Edge label \"{}\" does not exist.", label);
     }
-    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+    const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(field);
     if (!extractor) {
         if (is_vertex)
             THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
@@ -2099,7 +2101,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             end_vid = txn.GetLooseNumVertex();
             // vid range not known, try getting from index
             VertexIndex* idx =
-                schema->GetFieldExtractor(schema->GetPrimaryField())->GetVertexIndex();
+                schema->GetFieldExtractorBase(schema->GetPrimaryField())->GetVertexIndex();
             FMA_DBG_ASSERT(idx);
             VertexId beg = std::numeric_limits<VertexId>::max();
             VertexId end = 0;
@@ -2160,7 +2162,7 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
             // vid range not known, try getting from index
             auto& indexed_fields = schema->GetIndexedFields();
             for (size_t pos : indexed_fields) {
-                auto fe = schema->GetFieldExtractor(pos);
+                auto fe = schema->GetFieldExtractorBase(pos);
                 if (!fe->IsOptional()) {
                     EdgeIndex* idx = fe->GetEdgeIndex();
                     FMA_DBG_ASSERT(idx);
@@ -2253,7 +2255,7 @@ bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& l
     if (!schema) {
         THROW_CODE(InputError, "Vertex label \"{}\" does not exist.", label);
     }
-    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+    const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(field);
     if (!extractor) {
         THROW_CODE(InputError, "Vertex field \"{}\":\"{}\" does not exist.", label, field);
     }
@@ -2336,7 +2338,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
             auto vit = txn.GetVertexIterator(first_vertex, true);
             auto schema = txn.curr_schema_->v_schema_manager.GetSchema(lid);
             FMA_DBG_ASSERT(schema);
-            auto extractor = schema->GetFieldExtractor(spec.field);
+            auto extractor = schema->GetFieldExtractorBase(spec.field);
             FMA_DBG_ASSERT(extractor);
             for (; vit.IsValid(); vit.Next()) {
                 Value v = vit.GetProperty();
@@ -2424,7 +2426,7 @@ void LightningGraph::_DumpIndex(const IndexSpec& spec, VertexId first_vertex,
             auto start_lid = SchemaManager::GetRecordLabelId(v);
             auto schema = txn.curr_schema_->e_schema_manager.GetSchema(lid);
             FMA_DBG_ASSERT(schema);
-            auto extractor = schema->GetFieldExtractor(spec.field);
+            auto extractor = schema->GetFieldExtractorBase(spec.field);
             FMA_DBG_ASSERT(extractor);
             for (; vit.IsValid(); vit.Next()) {
                 Value v = vit.GetProperty();
@@ -2700,7 +2702,7 @@ bool LightningGraph::IsIndexed(const std::string& label, const std::string& fiel
     const Schema* s = is_vertex ? curr_schema->v_schema_manager.GetSchema(label)
                                 : curr_schema->e_schema_manager.GetSchema(label);
     if (!s) throw LabelNotExistException(label);
-    auto fe = s->GetFieldExtractor(field);
+    auto fe = s->GetFieldExtractorBase(field);
 
     if (is_vertex) {
         VertexIndex* idx = fe->GetVertexIndex();
@@ -2735,7 +2737,7 @@ bool LightningGraph::DeleteFullTextIndex(bool is_vertex, const std::string& labe
     if (!schema) {
         THROW_CODE(InputError, "label \"{}\" does not exist.", label);
     }
-    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+    const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(field);
     if (!extractor) {
         THROW_CODE(InputError, "field \"{}\":\"{}\" does not exist.", label, field);
     }
@@ -2762,7 +2764,7 @@ bool LightningGraph::DeleteIndex(const std::string& label, const std::string& fi
     if (field == schema->GetPrimaryField()) {
         throw PrimaryIndexCannotBeDeletedException(field);
     }
-    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+    const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(field);
     bool index_exist =
         (is_vertex && extractor->GetVertexIndex()) || (!is_vertex && extractor->GetEdgeIndex());
     if (!index_exist) return false;
@@ -2835,7 +2837,7 @@ bool LightningGraph::DeleteVectorIndex(
         throw PrimaryIndexCannotBeDeletedException(field);
     }
     std::unique_ptr<SchemaInfo> old_schema_backup(new SchemaInfo(*curr_schema.Get()));
-    const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(field);
+    const _detail::FieldExtractorBase* extractor = schema->GetFieldExtractorBase(field);
     if (!extractor->GetVectorIndex()) {
         return false;
     }

@@ -28,6 +28,7 @@
 #include "core/data_type.h"
 #include "core/field_extractor.h"
 #include "core/field_extractor_v2.h"
+#include "core/field_extractor_base.h"
 #include "core/schema_common.h"
 #include "core/value.h"
 #include "core/full_text_index.h"
@@ -95,8 +96,7 @@ class Schema {
     bool deleted_ = false;
     bool is_vertex_ = false;
 
-    std::vector<_detail::FieldExtractor> fields_;
-    std::vector<_detail::FieldExtractorV2> fieldsV2_;
+    std::vector<std::shared_ptr<_detail::FieldExtractorBase>> fields_;
     std::unordered_map<std::string, size_t> name_to_idx_;
     size_t n_fixed_ = 0;
     size_t n_variable_ = 0;
@@ -225,7 +225,9 @@ class Schema {
     // mod fields, assuming fields are already de-duplicated
     void ModFields(const std::vector<FieldSpec>& mod_fields);
 
-    const std::vector<_detail::FieldExtractor>& GetFields() const { return fields_; }
+    const std::vector<std::shared_ptr<_detail::FieldExtractorBase>>& GetFields() const {
+        return fields_;
+    }
 
     //-----------------------
     // const accessors
@@ -262,20 +264,39 @@ class Schema {
 
     std::map<std::string, FieldSpec> GetFieldSpecsAsMap() const;
 
-    size_t GetNumFields() const { return fast_alter_schema ? fieldsV2_.size() : fields_.size(); }
+    size_t GetNumFields() const { return fields_.size(); }
     bool GetFastAlterSchema() const {return fast_alter_schema;}
 
-    const _detail::FieldExtractor* GetFieldExtractor(size_t field_num) const;
-    const _detail::FieldExtractor* TryGetFieldExtractor(size_t field_num) const;
+    _detail::FieldExtractorBase* GetFieldExtractorBase(size_t field_num) const;
+    _detail::FieldExtractorBase* TryGetFieldExtractorBase(size_t field_num) const;
+    _detail::FieldExtractorBase* GetFieldExtractorBase(const std::string& field_name) const;
+    _detail::FieldExtractorBase* TryGetFieldExtractorBase(const std::string& field_name) const;
 
-    const _detail::FieldExtractor* GetFieldExtractor(const std::string& field_name) const;
-    const _detail::FieldExtractor* TryGetFieldExtractor(const std::string& field_name) const;
+    _detail::FieldExtractorV2* GetFieldExtractorV2(size_t field_num) const {
+        return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_num));
+    }
+    _detail::FieldExtractorV2* TryGetFieldExtractorV2(size_t field_num) const {
+        return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_num));
+    }
+    _detail::FieldExtractorV2* GetFieldExtractorV2(const std::string& field_name) const {
+        return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_name));
+    }
+    _detail::FieldExtractorV2* TryGetFieldExtractorV2(const std::string& field_name) const {
+        return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_name));
+    }
 
-    const _detail::FieldExtractorV2* GetFieldExtractorV2(size_t field_num) const;
-    const _detail::FieldExtractorV2* TryGetFieldExtractorV2(size_t field_num) const;
-
-    const _detail::FieldExtractorV2* GetFieldExtractorV2(const std::string& field_name) const;
-    const _detail::FieldExtractorV2* TryGetFieldExtractorV2(const std::string& field_name) const;
+    _detail::FieldExtractor* GetFieldExtractor(size_t field_num) const {
+        return dynamic_cast<_detail::FieldExtractor*>(GetFieldExtractorBase(field_num));
+    }
+    _detail::FieldExtractor* TryGetFieldExtractor(size_t field_num) const {
+        return dynamic_cast<_detail::FieldExtractor*>(GetFieldExtractorBase(field_num));
+    }
+    _detail::FieldExtractor* GetFieldExtractor(const std::string& field_name) const {
+        return dynamic_cast<_detail::FieldExtractor*>(GetFieldExtractorBase(field_name));
+    }
+    _detail::FieldExtractor* TryGetFieldExtractor(const std::string& field_name) const {
+        return dynamic_cast<_detail::FieldExtractor*>(GetFieldExtractorBase(field_name));
+    }
 
     size_t GetFieldId(const std::string& name) const;
 
@@ -379,30 +400,32 @@ class Schema {
     typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type GetField(
         const Value& record, const FieldT& field_name_or_num,
         const GetBlobByKeyFunc& get_blob) const {
+        _detail::FieldExtractorBase* extractor = TryGetFieldExtractorBase(field_name_or_num);
+        if (!extractor) return FieldData();
+
         if (fast_alter_schema) {
-            const ::lgraph::_detail::FieldExtractorV2* extractor =
-                TryGetFieldExtractorV2(field_name_or_num);
-            if (!extractor) return FieldData();
-            if (extractor->GetRecordCount(record) < extractor->GetFieldId() + 1) {
+            if (dynamic_cast<_detail::FieldExtractorV2*>(extractor)->GetRecordCount(record) <
+                extractor->GetFieldId() + 1) {
                 if (extractor->HasInitedValue()) {
                     return extractor->GetInitedValue();
                 }
                 return FieldData();
             }
-            if (extractor->GetIsNull(record)) return FieldData();
-            if (_F_UNLIKELY(extractor->Type()) == FieldType::BLOB) {
-                return GetFieldDataFromBlobField(extractor, record, get_blob);
-            } else {
-                return GetFieldDataFromField(extractor, record);
-            }
         }
-        auto extractor = TryGetFieldExtractor(field_name_or_num);
-        if (!extractor) return FieldData();
+
         if (extractor->GetIsNull(record)) return FieldData();
-        if (_F_UNLIKELY(extractor->Type() == FieldType::BLOB))
-            return GetFieldDataFromBlobField(extractor, record, get_blob);
-        else
-            return GetFieldDataFromField(extractor, record);
+        if (_F_UNLIKELY(extractor->Type() == FieldType::BLOB)) {
+            if (fast_alter_schema)
+                return GetFieldDataFromBlobField(
+                    dynamic_cast<_detail::FieldExtractorV2*>(extractor), record, get_blob);
+            return GetFieldDataFromBlobField(dynamic_cast<_detail::FieldExtractor*>(extractor),
+                                             record, get_blob);
+        } else {
+            if (fast_alter_schema)
+                return GetFieldDataFromField(dynamic_cast<_detail::FieldExtractorV2*>(extractor),
+                                             record);
+            return GetFieldDataFromField(dynamic_cast<_detail::FieldExtractor*>(extractor), record);
+        }
     }
 
     // Create a record given properties as string or FieldData.
@@ -413,34 +436,22 @@ class Schema {
         FMA_DBG_ASSERT(!HasBlob());
         // TODO(anyone): optimize
         Value v = CreateEmptyRecord();
-        if (fast_alter_schema) {
-            std::vector<bool> is_set(fieldsV2_.size(), false);
-            for (size_t i = 0; i < n_fields; i++) {
-                const FieldT& name_or_num = fields[i];
-                const DataT& data = values[i];
-                const _detail::FieldExtractorV2* extr = GetFieldExtractorV2(name_or_num);
-                is_set[extr->GetFieldId()] = true;
-                ParseAndSet(v, data, extr);
-            }
-            for (size_t i = 0; i < fieldsV2_.size(); i++) {
-                auto& f = fieldsV2_[i];
-                if (_F_UNLIKELY(!f.IsOptional() && !is_set[i]))
-                    throw FieldCannotBeSetNullException(f.Name());
-            }
-            return v;
-        }
         std::vector<bool> is_set(fields_.size(), false);
         for (size_t i = 0; i < n_fields; i++) {
             const FieldT& name_or_num = fields[i];
             const DataT& data = values[i];
-            const _detail::FieldExtractor* extr = GetFieldExtractor(name_or_num);
+            _detail::FieldExtractorBase* extr = GetFieldExtractorBase(name_or_num);
             is_set[extr->GetFieldId()] = true;
-            extr->ParseAndSet(v, data);
+            if (fast_alter_schema) {
+                ParseAndSet(v, data, extr);
+            } else {
+                dynamic_cast<_detail::FieldExtractor*>(extr)->ParseAndSet(v, data);
+            }
         }
         for (size_t i = 0; i < fields_.size(); i++) {
             auto& f = fields_[i];
-            if (_F_UNLIKELY(!f.IsOptional() && !is_set[i]))
-                throw FieldCannotBeSetNullException(f.Name());
+            if (_F_UNLIKELY(!f->IsOptional() && !is_set[i]))
+                throw FieldCannotBeSetNullException(f->Name());
         }
         return v;
     }
@@ -453,42 +464,31 @@ class Schema {
                                 const StoreLargeBlobFunc& on_large_blob) {
         FMA_DBG_ASSERT(HasBlob());
         Value prop = CreateEmptyRecord();
-        if (fast_alter_schema) {
-            std::vector<bool> is_set(fieldsV2_.size(), false);
-            for (size_t i = 0; i < n_fields; i++) {
-                const FT& name_or_num = fields[i];
-                const DT& data = values[i];
-                const _detail::FieldExtractorV2* extr = GetFieldExtractorV2(name_or_num);
-                is_set[extr->GetFieldId()] = true;
-                if (_F_UNLIKELY(extr->Type() == FieldType::BLOB)) {
-                    ParseAndSetBlob(prop, data, on_large_blob, extr);
-                } else {
-                    ParseAndSet(prop, data, extr);
-                }
-            }
-            for (size_t i = 0; i < fields_.size(); i++) {
-                auto& f = fieldsV2_[i];
-                if (_F_UNLIKELY(!f.IsOptional() && !is_set[i]))
-                    throw FieldCannotBeSetNullException(f.Name());
-            }
-            return prop;
-        }
         std::vector<bool> is_set(fields_.size(), false);
         for (size_t i = 0; i < n_fields; i++) {
             const FT& name_or_num = fields[i];
             const DT& data = values[i];
-            const _detail::FieldExtractor* extr = GetFieldExtractor(name_or_num);
+            _detail::FieldExtractorBase* extr = GetFieldExtractorBase(name_or_num);
             is_set[extr->GetFieldId()] = true;
             if (_F_UNLIKELY(extr->Type() == FieldType::BLOB)) {
-                extr->ParseAndSetBlob(prop, data, on_large_blob);
+                if (fast_alter_schema) {
+                    ParseAndSetBlob(prop, data, on_large_blob, extr);
+                } else {
+                    dynamic_cast<_detail::FieldExtractor*>(extr)->ParseAndSetBlob(prop, data,
+                                                                                  on_large_blob);
+                }
             } else {
-                extr->ParseAndSet(prop, data);
+                if (fast_alter_schema) {
+                    ParseAndSet(prop, data, extr);
+                } else {
+                    dynamic_cast<_detail::FieldExtractor*>(extr)->ParseAndSet(prop, data);
+                }
             }
         }
         for (size_t i = 0; i < fields_.size(); i++) {
             auto& f = fields_[i];
-            if (_F_UNLIKELY(!f.IsOptional() && !is_set[i]))
-                throw FieldCannotBeSetNullException(f.Name());
+            if (_F_UNLIKELY(!f->IsOptional() && !is_set[i]))
+                throw FieldCannotBeSetNullException(f->Name());
         }
         return prop;
     }
@@ -496,13 +496,13 @@ class Schema {
     // --------------------
     // fieldextractor v2 related
     void ParseAndSet(Value& record, const FieldData& data,
-                             const _detail::FieldExtractorV2* extractor) const;
+                              _detail::FieldExtractorBase* extractor) const;
     void ParseAndSet(Value& record, const std::string& data,
-                 const _detail::FieldExtractorV2* extractor) const;
+                  _detail::FieldExtractorBase* extractor) const;
 
     template <typename DataT, typename StoreBlobAndGetKeyFunc>
     void ParseAndSetBlob(Value& record, const DataT& data, const StoreBlobAndGetKeyFunc& store_blob,
-                     const _detail::FieldExtractorV2* extr) const {
+                      _detail::FieldExtractorBase* extr) const {
         FMA_DBG_ASSERT(extr->Type() == FieldType::BLOB);
         bool is_null;
         Value v = extr->ParseBlob(data, is_null);
@@ -519,21 +519,22 @@ class Schema {
 
     template <FieldType FT>
     void _ParseStringAndSet(Value& record, const std::string& data,
-                        const ::lgraph::_detail::FieldExtractorV2* extractor) const;
+                         ::lgraph::_detail::FieldExtractorBase* extractor) const;
 
     void _SetVariableLengthValue(Value& record, const Value& data,
-                             const ::lgraph::_detail::FieldExtractorV2* extractor) const;
+                              ::lgraph::_detail::FieldExtractorBase* extr) const;
 
     ENABLE_IF_FIXED_FIELD(T, void)
     SetFixedSizeValue(Value& record, const T& data,
-                              const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+                               ::lgraph::_detail::FieldExtractorBase* extractor) const {
+        _detail::FieldExtractorV2* extr = dynamic_cast<_detail::FieldExtractorV2*>(extractor);
         // "Cannot call SetField(Value&, const T&) on a variable length field";
-        FMA_DBG_ASSERT(extractor->IsFixedType());
+        FMA_DBG_ASSERT(extr->IsFixedType());
         // "Type size mismatch"
-        FMA_DBG_CHECK_EQ(sizeof(data), extractor->TypeSize());
+        FMA_DBG_CHECK_EQ(sizeof(data), extr->TypeSize());
         // copy the buffer so we don't accidentally overwrite memory
-        int data_size = extractor->GetDataSize(record);
-        size_t offset = extractor->GetFieldOffset(record, extractor->GetFieldId());
+        int data_size = extr->GetDataSize(record);
+        size_t offset = extr->GetFieldOffset(record);
         char* ptr = (char*)record.Data();
         if (_F_LIKELY(data_size == sizeof(data))) {
             record.Resize(record.Size());
@@ -558,19 +559,19 @@ class Schema {
             ::lgraph::_detail::UnalignedSet<T>(ptr + offset, data);
 
             // Update the offset of the subsequent fields.
-            for (FieldId i = extractor->GetFieldId() + 1; i < extractor->GetRecordCount(record) + 1;
+            for (FieldId i = extr->GetFieldId() + 1; i < extr->GetRecordCount(record) + 1;
                  ++i) {
-                size_t off = extractor->GetOffsetPosition(record, i);
+                size_t off = extr->GetOffsetPosition(record, i);
                 size_t property_offset =
                     ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
                 ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
             }
 
             // Update the offset of veriable length fields.
-            for (FieldId i = extractor->GetRecordCount(record) + 1;
-                 i < extractor->GetRecordCount(record); i++) {
-                if (fieldsV2_[i].IsFixedType()) continue;
-                size_t off = extractor->GetFieldOffset(record, i);
+            for (FieldId i = extr->GetRecordCount(record) + 1;
+                 i < extr->GetRecordCount(record); i++) {
+                if (fields_[i]->IsFixedType()) continue;
+                size_t off = extr->GetFieldOffset(record, i);
                 size_t property_offset =
                     ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
                 ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
@@ -589,46 +590,46 @@ class Schema {
     void MarkVertexIndexed(size_t field_idx, VertexIndex* index) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         indexed_fields_.insert(field_idx);
-        fields_[field_idx].SetVertexIndex(index);
+        fields_[field_idx]->SetVertexIndex(index);
     }
 
     void MarkEdgeIndexed(size_t field_idx, EdgeIndex* edge_index) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         indexed_fields_.insert(field_idx);
-        fields_[field_idx].SetEdgeIndex(edge_index);
+        fields_[field_idx]->SetEdgeIndex(edge_index);
     }
 
     void MarkVectorIndexed(size_t field_idx, VectorIndex* index) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         vector_index_fields_.insert(field_idx);
-        fields_[field_idx].SetVectorIndex(index);
+        fields_[field_idx]->SetVectorIndex(index);
     }
 
     bool IsVertexIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
-        return fields_[field_idx].GetVertexIndex() == nullptr;
+        return fields_[field_idx]->GetVertexIndex() == nullptr;
     }
 
     bool IsEdgeIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
-        return fields_[field_idx].GetEdgeIndex() == nullptr;
+        return fields_[field_idx]->GetEdgeIndex() == nullptr;
     }
 
     bool IsVectorIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
-        return fields_[field_idx].GetVectorIndex() == nullptr;
+        return fields_[field_idx]->GetVectorIndex() == nullptr;
     }
 
     void UnVertexIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         indexed_fields_.erase(field_idx);
-        fields_[field_idx].SetVertexIndex(nullptr);
+        fields_[field_idx]->SetVertexIndex(nullptr);
     }
 
     void UnEdgeIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         indexed_fields_.erase(field_idx);
-        fields_[field_idx].SetEdgeIndex(nullptr);
+        fields_[field_idx]->SetEdgeIndex(nullptr);
     }
 
     void UnVertexCompositeIndex(const std::vector<std::string> &fields) {
@@ -638,7 +639,7 @@ class Schema {
     void UnVectorIndex(size_t field_idx) {
         FMA_DBG_ASSERT(field_idx < fields_.size());
         vector_index_fields_.erase(field_idx);
-        fields_[field_idx].SetVectorIndex(nullptr);
+        fields_[field_idx]->SetVectorIndex(nullptr);
     }
 
     void MarkFullTextIndexed(size_t field_idx, bool fulltext_indexed) {
@@ -648,7 +649,7 @@ class Schema {
         } else {
             fulltext_fields_.emplace(field_idx);
         }
-        fields_[field_idx].SetFullTextIndex(fulltext_indexed);
+        fields_[field_idx]->SetFullTextIndex(fulltext_indexed);
     }
 
     const std::unordered_set<size_t>& GetIndexedFields() const { return indexed_fields_; }
