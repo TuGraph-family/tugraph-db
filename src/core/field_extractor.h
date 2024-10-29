@@ -14,11 +14,11 @@
 
 #pragma once
 
+#include "core/field_extractor_base.h"
+
 #include "core/blob_manager.h"
 #include "core/field_data_helper.h"
 #include "core/vertex_index.h"
-#include "core/edge_index.h"
-#include "core/schema_common.h"
 #include "core/vector_index.h"
 #include "core/vsag_hnsw.h"
 
@@ -27,18 +27,10 @@ class Schema;
 
 namespace _detail {
 
-#define ENABLE_IF_FIXED_FIELD(_TYPE_, _RT_) \
-    template <typename _TYPE_>              \
-    typename std::enable_if<                \
-        std::is_integral<_TYPE_>::value || std::is_floating_point<_TYPE_>::value, _RT_>::type
-
 /** A field extractor can be used to get/set a field in the record. */
-class FieldExtractor {
+class FieldExtractor : public FieldExtractorBase {
     friend class lgraph::Schema;
-    // type information
-    FieldSpec def_;
     // layout
-    size_t field_id_ = 0;
     bool is_vfield_ = false;
     union {
         size_t data_off = 0;
@@ -50,164 +42,54 @@ class FieldExtractor {
     } offset_;
     size_t nullable_array_off_ = 0;  // offset of nullable array in record
     size_t null_bit_off_ = 0;
-    // index
-    std::unique_ptr<VertexIndex> vertex_index_;
-    std::unique_ptr<EdgeIndex> edge_index_;
-    // fulltext index
-    bool fulltext_indexed_ = false;
-    // vector index
-    std::shared_ptr<VectorIndex> vector_index_;
 
  public:
-    FieldExtractor() : null_bit_off_(0), vertex_index_(nullptr),
-                       edge_index_(nullptr), vector_index_(nullptr) {}
+    FieldExtractor() : FieldExtractorBase() {}
 
-    ~FieldExtractor() {}
-
-    FieldExtractor(const FieldExtractor& rhs) {
-        def_ = rhs.def_;
-        field_id_ = rhs.field_id_;
-        is_vfield_ = rhs.is_vfield_;
+    FieldExtractor(const FieldExtractor& rhs) : FieldExtractorBase(rhs.GetFieldSpec()) {
+        is_vfield_ = !rhs.IsFixedType();
         offset_ = rhs.offset_;
         nullable_array_off_ = rhs.nullable_array_off_;
         null_bit_off_ = rhs.null_bit_off_;
-        vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
-        edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
-        fulltext_indexed_ = rhs.fulltext_indexed_;
-        vector_index_ = rhs.vector_index_;
+    }
+
+    FieldExtractor(FieldExtractor&& rhs) noexcept : FieldExtractorBase(std::move(rhs)) {
+        is_vfield_ = !rhs.IsFixedType();
+        offset_ = rhs.offset_;
+        null_bit_off_ = rhs.null_bit_off_;
+        nullable_array_off_ = rhs.nullable_array_off_;
     }
 
     FieldExtractor& operator=(const FieldExtractor& rhs) {
         if (this == &rhs) return *this;
-        def_ = rhs.def_;
-        field_id_ = rhs.field_id_;
-        is_vfield_ = rhs.is_vfield_;
+        FieldExtractorBase::operator=(std::move(rhs));
+        is_vfield_ = rhs.IsFixedType();
         offset_ = rhs.offset_;
         null_bit_off_ = rhs.null_bit_off_;
         nullable_array_off_ = rhs.nullable_array_off_;
-        vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
-        edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
-        fulltext_indexed_ = rhs.fulltext_indexed_;
-        vector_index_ = rhs.vector_index_;
         return *this;
-    }
-
-    FieldExtractor(FieldExtractor&& rhs) noexcept {
-        def_ = std::move(rhs.def_);
-        field_id_ = rhs.field_id_;
-        is_vfield_ = rhs.is_vfield_;
-        offset_ = rhs.offset_;
-        null_bit_off_ = rhs.null_bit_off_;
-        nullable_array_off_ = rhs.nullable_array_off_;
-        vertex_index_ = std::move(rhs.vertex_index_);
-        edge_index_ = std::move(rhs.edge_index_);
-        rhs.vertex_index_ = nullptr;
-        rhs.edge_index_ = nullptr;
-        fulltext_indexed_ = rhs.fulltext_indexed_;
-        vector_index_ = std::move(rhs.vector_index_);
-        rhs.vector_index_ = nullptr;
     }
 
     FieldExtractor& operator=(FieldExtractor&& rhs) noexcept {
         if (this == &rhs) return *this;
-        def_ = std::move(rhs.def_);
-        field_id_ = rhs.field_id_;
-        is_vfield_ = rhs.is_vfield_;
+        FieldExtractorBase::operator=(std::move(rhs));
+        is_vfield_ = rhs.IsFixedType();
         offset_ = rhs.offset_;
         null_bit_off_ = rhs.null_bit_off_;
         nullable_array_off_ = rhs.nullable_array_off_;
-        vertex_index_ = std::move(rhs.vertex_index_);
-        edge_index_ = std::move(rhs.edge_index_);
-        fulltext_indexed_ = rhs.fulltext_indexed_;
-        vector_index_ = std::move(rhs.vector_index_);
         return *this;
     }
 
+    ~FieldExtractor() override = default;
+
     // for test only
-    explicit FieldExtractor(const FieldSpec& d) noexcept : def_(d) {
-        is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
-        vertex_index_ = nullptr;
-        edge_index_ = nullptr;
-        vector_index_ = nullptr;
+    explicit FieldExtractor(const FieldSpec& d) noexcept : FieldExtractorBase(d) {
         null_bit_off_ = 0;
+        is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         if (is_vfield_) SetVLayoutInfo(d.optional ? 1 : 0, 1, 0);
     }
 
-    const FieldSpec& GetFieldSpec() const { return def_; }
-
-    bool GetIsNull(const Value& record) const {
-        if (!def_.optional) {
-            return false;
-        } else {
-            // get the Kth bit from NullArray
-            char* arr = GetNullArray(record);
-            return arr[null_bit_off_ / 8] & (0x1 << (null_bit_off_ % 8));
-        }
-    }
-
-    /**
-     * Extract a field from record into data of type T. T must be fixed-length
-     * type.
-     *
-     * \param   record  The record in which fields are stored.
-     * \param   data    Place where the extracted data will be stored.
-     *
-     * Assert fails if data is corrupted.
-     */
-    ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const {
-        FMA_DBG_ASSERT(field_data_helper::FieldTypeSize(def_.type) == sizeof(T));
-        FMA_DBG_ASSERT(offset_.data_off + field_data_helper::FieldTypeSize(def_.type) <=
-                       record.Size());
-        memcpy(&data, (char*)record.Data() + offset_.data_off, sizeof(T));
-    }
-
-    /**
-     * Extracts a copy of field into the string.
-     *
-     * \param           record  The record.
-     * \param [in,out]  data    The result data.
-     *
-     * Assert fails if data is corrupted.
-     */
-    void GetCopy(const Value& record, std::string& data) const {
-        FMA_DBG_ASSERT(Type() != FieldType::BLOB);
-        data.resize(GetDataSize(record));
-        GetCopyRaw(record, &data[0], data.size());
-    }
-
-    /**
-     * Extracts field data from the record
-     *
-     * \param           record  The record.
-     * \param [in,out]  data    The result.
-     *
-     * Assert fails if data is corrupted.
-     */
-    void GetCopy(const Value& record, Value& data) const {
-        data.Resize(GetDataSize(record));
-        GetCopyRaw(record, data.Data(), data.Size());
-    }
-
-    // Gets a const reference of the field.
-    // Formatted data is returned for blob, which means [is_large_blob] [blob_data | blob_key]
-    Value GetConstRef(const Value& record) const {
-        if (GetIsNull(record)) return Value();
-        return Value((char*)GetFieldPointer(record), GetDataSize(record));
-    }
-
-    // gets a const ref to the blob content
-    // get_blob_by_key is a function that accepts BlobKey and returns Value containing blob content
-    template <typename GetBlobByKeyFunc>
-    Value GetBlobConstRef(const Value& record, const GetBlobByKeyFunc& get_blob_by_key) const {
-        FMA_DBG_ASSERT(Type() == FieldType::BLOB);
-        if (GetIsNull(record)) return Value();
-        Value v((char*)GetFieldPointer(record), GetDataSize(record));
-        if (BlobManager::IsLargeBlob(v)) {
-            return get_blob_by_key(BlobManager::GetLargeBlobKey(v));
-        } else {
-            return BlobManager::GetSmallBlobContent(v);
-        }
-    }
+    bool GetIsNull(const Value& record) const override;
 
     // parse a string as input and then set field in record
     // cannot be used for blobs since they need formatting
@@ -226,7 +108,7 @@ class FieldExtractor {
                          const StoreBlobAndGetKeyFunc& store_blob) const {
         FMA_DBG_ASSERT(Type() == FieldType::BLOB);
         bool is_null;
-        Value v = ParseBlob(data, is_null);
+        Value v = FieldExtractorBase::ParseBlob(data, is_null);
         SetIsNull(record, is_null);
         if (is_null) return;
         if (v.Size() <= _detail::MAX_IN_PLACE_BLOB_SIZE) {
@@ -251,46 +133,7 @@ class FieldExtractor {
         }
     }
 
-    const std::string& Name() const { return def_.name; }
-
-    FieldType Type() const { return def_.type; }
-
-    size_t TypeSize() const { return field_data_helper::FieldTypeSize(def_.type); }
-
-    size_t DataSize(const Value& record) const { return GetDataSize(record); }
-
-    bool IsOptional() const { return def_.optional; }
-
-    /**
-     * Print the string representation of the field. For digital types, it prints
-     * it into ASCII string; for NBytes and String, it just copies the content of
-     * the field into the string.
-     *
-     * \param   record  The record.
-     *
-     * \return  String representation of the field.
-     */
-    std::string FieldToString(const Value& record) const;
-
-    VertexIndex* GetVertexIndex() const { return vertex_index_.get(); }
-
-    EdgeIndex* GetEdgeIndex() const { return edge_index_.get(); }
-
-    bool FullTextIndexed() const { return fulltext_indexed_; }
-
-    VectorIndex* GetVectorIndex() const { return vector_index_.get(); }
-
-    size_t GetFieldId() const { return field_id_; }
-
  private:
-    void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
-
-    void SetEdgeIndex(EdgeIndex* edgeindex) { edge_index_.reset(edgeindex); }
-
-    void SetVectorIndex(VectorIndex* vectorindex) { vector_index_.reset(vectorindex); }
-
-    void SetFullTextIndex(bool fulltext_indexed) { fulltext_indexed_ = fulltext_indexed; }
-
     void SetFixedLayoutInfo(size_t offset) {
         is_vfield_ = false;
         offset_.data_off = offset;
@@ -307,42 +150,8 @@ class FieldExtractor {
 
     void SetNullableArrayOff(size_t offset) { nullable_array_off_ = offset; }
 
-    void SetFieldId(size_t n) { field_id_ = n; }
-
     //-----------------------
     // record accessors
-
-    // get a const ref of raw blob data
-    inline Value ParseBlob(const FieldData& fd, bool& is_null) const {
-        if (fd.type == FieldType::NUL) {
-            is_null = true;
-            return Value();
-        }
-        is_null = false;
-        if (fd.type == FieldType::BLOB) {
-            return Value::ConstRef(*fd.data.buf);
-        }
-        if (fd.type == FieldType::STRING) {
-            std::string decoded;
-            const std::string& s = *fd.data.buf;
-            if (!::lgraph_api::base64::TryDecode(s.data(), s.size(), decoded))
-                throw ParseStringException(Name(), s, Type());
-            return Value(decoded);
-        } else {
-            throw ParseIncompatibleTypeException(Name(), fd.type, FieldType::BLOB);
-            return Value();
-        }
-    }
-
-    inline Value ParseBlob(const std::string& str, bool& is_null) const {
-        // string input is always seen as non-NULL
-        is_null = false;
-        // decode str as base64
-        std::string decoded;
-        if (!::lgraph_api::base64::TryDecode(str.data(), str.size(), decoded))
-            throw ParseStringException(Name(), str, Type());
-        return Value(decoded);
-    }
 
     template <FieldType FT>
     void _ParseStringAndSet(Value& record, const std::string& data) const;
@@ -373,7 +182,7 @@ class FieldExtractor {
         // "Cannot call SetField(Value&, const T&) on a variable length field";
         FMA_DBG_ASSERT(!is_vfield_);
         // "Type size mismatch"
-        FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
+        FMA_DBG_CHECK_EQ(sizeof(data), TypeSize());
         // copy the buffer so we don't accidentally overwrite memory
         record.Resize(record.Size());
         char* ptr = (char*)record.Data() + offset_.data_off;
@@ -384,26 +193,14 @@ class FieldExtractor {
         // "Cannot call SetField(Value&, const T&) on a variable length field";
         FMA_DBG_ASSERT(!is_vfield_);
         // "Type size mismatch"
-        FMA_DBG_CHECK_EQ(data.Size(), field_data_helper::FieldTypeSize(def_.type));
+        FMA_DBG_CHECK_EQ(data.Size(), TypeSize());
         // copy the buffer so we don't accidentally overwrite memory
         char* ptr = (char*)record.Data() + offset_.data_off;
         memcpy(ptr, data.Data(), data.Size());
     }
 
     // set field value to null
-    void SetIsNull(Value& record, bool is_null) const {
-        if (!def_.optional) {
-            if (is_null) throw FieldCannotBeSetNullException(Name());
-            return;
-        }
-        // set the Kth bit from NullArray
-        char* arr = GetNullArray(record);
-        if (is_null) {
-            arr[null_bit_off_ / 8] |= (0x1 << (null_bit_off_ % 8));
-        } else {
-            arr[null_bit_off_ / 8] &= ~(0x1 << (null_bit_off_ % 8));
-        }
-    }
+    void SetIsNull(const Value& record, bool is_null) const override;
 
     /**
      * Extracts field data from the record to the buffer pointed to by data. This
@@ -415,23 +212,25 @@ class FieldExtractor {
      *
      * Assert fails if data is corrupted.
      */
-    void GetCopyRaw(const Value& record, void* data, size_t size) const {
+    void GetCopyRaw(const Value& record, void* data, size_t size) const override {
         size_t off = GetFieldOffset(record);
         FMA_DBG_ASSERT(off + size <= record.Size());
         memcpy(data, record.Data() + off, size);
     }
 
-    char* GetNullArray(const Value& record) const { return record.Data() + nullable_array_off_; }
+    char* GetNullArray(const Value& record) const override {
+        return record.Data() + nullable_array_off_;
+    }
 
-    size_t GetDataSize(const Value& record) const {
+    size_t GetDataSize(const Value& record) const override {
         if (is_vfield_) {
             return GetNextOffset(record) - GetFieldOffset(record);
         } else {
-            return field_data_helper::FieldTypeSize(def_.type);
+            return TypeSize();
         }
     }
 
-    size_t GetFieldOffset(const Value& record) const {
+    size_t GetFieldOffset(const Value& record) const override {
         if (is_vfield_) {
             size_t off =
                 (offset_.idx == 0)
@@ -453,11 +252,11 @@ class FieldExtractor {
                                                                   offset_.idx * sizeof(DataOffset));
             return off;
         } else {
-            return offset_.data_off + field_data_helper::FieldTypeSize(def_.type);
+            return offset_.data_off + TypeSize();
         }
     }
 
-    void* GetFieldPointer(const Value& record) const {
+    void* GetFieldPointer(const Value& record) const override {
         return (char*)record.Data() + GetFieldOffset(record);
     }
 };

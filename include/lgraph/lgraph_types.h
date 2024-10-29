@@ -1401,8 +1401,16 @@ struct FieldSpec {
           inited_value(true),
           default_value(dv),
           set_default_value(true) {}
-    // explicit FieldSpecV2(const FieldSpec& spec)
-    //     : name(spec.name), type(spec.type), optional(spec.optional), deleted(false), id(0) {}
+    FieldSpec(const FieldSpec& spec)
+        : name(spec.name),
+          type(spec.type),
+          optional(spec.optional),
+          deleted(false),
+          id(0),
+          init_value(spec.init_value),
+          inited_value(spec.inited_value),
+          default_value(spec.default_value),
+          set_default_value(spec.set_default_value) {}
 
     inline bool operator==(const FieldSpec& rhs) const {
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&
