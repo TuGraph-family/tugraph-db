@@ -4,7 +4,7 @@
     var session = driver.session({database: 'default'})
     await session.run("CALL db.dropDB()");
     console.log("clean db");
-    await session.run("CALL db.createVertexLabel('person', 'id' , 'id' ,INT32, false, 'name' ,STRING, false)");
+    await session.run("CALL db.createVertexLabel('person', 'id' , 'id', 'INT32', false, 'name', 'STRING', false)");
     console.log("add vertex label");
     await session.run("CALL db.createEdgeLabel('is_friend','[[\"person\",\"person\"]]')");
     console.log("add edge label");

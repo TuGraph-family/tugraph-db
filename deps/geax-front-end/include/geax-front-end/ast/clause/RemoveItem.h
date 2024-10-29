@@ -13,7 +13,7 @@ namespace frontend {
 class RemoveItem : public AstNode {
  public:
     explicit RemoveItem(AstNodeType type) : AstNode(type) {}
-    ~RemoveItem() = default;
+    virtual ~RemoveItem() = default;
 };
 
 }  // namespace frontend

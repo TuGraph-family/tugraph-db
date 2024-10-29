@@ -26,7 +26,7 @@ namespace frontend {
 class PathPrefix : public AstNode {
 public:
     explicit PathPrefix(AstNodeType type) : AstNode(type) {}
-    ~PathPrefix() = default;
+    virtual ~PathPrefix() = default;
 };
 
 }  // namespace frontend

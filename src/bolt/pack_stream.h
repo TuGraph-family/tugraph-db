@@ -221,6 +221,10 @@ class PackStream {
         AppendStructMessage(BoltMsg::Ignored);
     }
 
+    void AppendReset() {
+        AppendStructMessage(BoltMsg::Reset);
+    }
+
     void AppendFailure(const std::unordered_map<std::string, std::any>& meta) {
         AppendStructMessage(BoltMsg::Failure, meta);
     }
