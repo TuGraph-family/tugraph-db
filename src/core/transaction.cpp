@@ -968,8 +968,46 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
             // no need to update index since blob cannot be indexed
         } else if (fe->Type() == FieldType::FLOAT_VECTOR) {
             fe->ParseAndSet(new_prop, values[i]);
-            schema->DeleteVectorIndex(*txn_, vid, old_prop);
-            schema->AddVectorToVectorIndex(*txn_, vid, new_prop);
+            VectorIndex* index = fe->GetVectorIndex();
+            if (index) {
+                bool oldnull = fe->GetIsNull(old_prop);
+                bool newnull = fe->GetIsNull(new_prop);
+                std::vector<int64_t> vids {vid};
+                if (!oldnull && !newnull) {
+                    const auto& old_v = fe->GetConstRef(old_prop);
+                    const auto& new_v = fe->GetConstRef(new_prop);
+                    if (old_v == new_v) {
+                        continue;
+                    }
+                    // delete
+                    index->Remove(vids);
+                    // add
+                    auto dim = index->GetVecDimension();
+                    std::vector<std::vector<float>> floatvector;
+                    floatvector.emplace_back(new_v.AsFloatVector());
+                    if (floatvector.back().size() != (size_t)dim) {
+                        THROW_CODE(InputError,
+                                   "vector index dimension mismatch, vector size:{}, dim:{}",
+                                   floatvector.back().size(), dim);
+                    }
+                    index->Add(floatvector, vids);
+                } else if (oldnull && !newnull) {
+                    // add
+                    const auto& new_v = fe->GetConstRef(new_prop);
+                    auto dim = index->GetVecDimension();
+                    std::vector<std::vector<float>> floatvector;
+                    floatvector.emplace_back(new_v.AsFloatVector());
+                    if (floatvector.back().size() != (size_t)dim) {
+                        THROW_CODE(InputError,
+                                   "vector index dimension mismatch, vector size:{}, dim:{}",
+                                   floatvector.back().size(), dim);
+                    }
+                    index->Add(floatvector, vids);
+                } else if (!oldnull && newnull) {
+                    // delete
+                    index->Remove(vids);
+                }
+            }
         } else {
             fe->ParseAndSet(new_prop, values[i]);
             // update index if there is no error
