@@ -338,7 +338,7 @@ void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& re
     }
 }
 
-FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor,
+FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractorV1* extractor,
                                         const Value& record) const {
 #define _GET_COPY_AND_RETURN_FD(ft)                                                    \
     do {                                                                               \
@@ -887,10 +887,10 @@ void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
     FMA_DBG_ASSERT(fids_in_dst.size() == fids_in_src.size());
     dst.Resize(dst.Size());
     for (size_t i = 0; i < fids_in_dst.size(); i++) {
-        const _detail::FieldExtractor* dst_fe =
-            static_cast<_detail::FieldExtractor*>(GetFieldExtractor(fids_in_dst[i]));
-        const _detail::FieldExtractor* src_fe =
-            static_cast<_detail::FieldExtractor*>(src_schema->GetFieldExtractor(fids_in_src[i]));
+        const _detail::FieldExtractorV1* dst_fe =
+            static_cast<_detail::FieldExtractorV1*>(GetFieldExtractor(fids_in_dst[i]));
+        const _detail::FieldExtractorV1* src_fe =
+            static_cast<_detail::FieldExtractorV1*>(src_schema->GetFieldExtractor(fids_in_src[i]));
         dst_fe->CopyDataRaw(dst, src, src_fe);
     }
 }
@@ -913,7 +913,7 @@ void Schema::RefreshLayout() {
     // setup name_to_fields
     name_to_idx_.clear();
     for (size_t i = 0; i < fields_.size(); i++) {
-        auto f = (_detail::FieldExtractor*)fields_[i].get();
+        auto f = (_detail::FieldExtractorV1*)fields_[i].get();
         f->SetFieldId(i);
         f->SetNullableArrayOff(data_start_off);
         if (_F_UNLIKELY(name_to_idx_.find(f->Name()) != name_to_idx_.end()))
@@ -924,7 +924,7 @@ void Schema::RefreshLayout() {
     n_nullable_ = 0;
     for (auto& f : fields_) {
         if (f->IsOptional()) {
-            (static_cast<_detail::FieldExtractor*>(f.get()))->SetNullableOff(n_nullable_);
+            (static_cast<_detail::FieldExtractorV1*>(f.get()))->SetNullableOff(n_nullable_);
             n_nullable_++;
         }
     }
@@ -935,7 +935,7 @@ void Schema::RefreshLayout() {
     for (auto& f : fields_) {
         if (field_data_helper::IsFixedLengthFieldType(f->Type())) {
             n_fixed_++;
-            (static_cast<_detail::FieldExtractor*>(f.get()))->SetFixedLayoutInfo(v_offset_start_);
+            (static_cast<_detail::FieldExtractorV1*>(f.get()))->SetFixedLayoutInfo(v_offset_start_);
             v_offset_start_ += f->TypeSize();
         } else {
             n_variable_++;
@@ -945,7 +945,7 @@ void Schema::RefreshLayout() {
     size_t vidx = 0;
     for (auto& f : fields_) {
         if (!field_data_helper::IsFixedLengthFieldType(f->Type()))
-            (static_cast<_detail::FieldExtractor*>(f.get()))
+            (static_cast<_detail::FieldExtractorV1*>(f.get()))
                 ->SetVLayoutInfo(v_offset_start_, n_variable_, vidx++);
     }
     // finally, check the indexed fields
@@ -1238,12 +1238,12 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
         for (size_t i = 0; i < n_fields; i++) {
             const FieldSpec& fs = fields[i];
             if (field_data_helper::IsFixedLengthFieldType(fs.type))
-                fields_.push_back(std::make_shared<_detail::FieldExtractor>(fs));
+                fields_.push_back(std::make_shared<_detail::FieldExtractorV1>(fs));
         }
         for (size_t i = 0; i < n_fields; i++) {
             const FieldSpec& fs = fields[i];
             if (!field_data_helper::IsFixedLengthFieldType(fs.type))
-                fields_.push_back(std::make_shared<_detail::FieldExtractor>(fs));
+                fields_.push_back(std::make_shared<_detail::FieldExtractorV1>(fs));
         }
     } else {
         for (size_t i = 0; i < n_fields; i++) {
@@ -1325,7 +1325,7 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
             fields_.push_back(
                 std::make_shared<_detail::FieldExtractorV2>(FieldSpec(f), fields_.size()));
         } else {
-            fields_.push_back(std::make_shared<_detail::FieldExtractor>(FieldSpec(f)));
+            fields_.push_back(std::make_shared<_detail::FieldExtractorV1>(FieldSpec(f)));
         }
     }
     lgraph::CheckValidFieldNum(fields_.size());
@@ -1349,7 +1349,7 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         } else {
             auto& extractor = fields_[fid];
             extractor.reset();
-            extractor = std::make_shared<_detail::FieldExtractor>(f);
+            extractor = std::make_shared<_detail::FieldExtractorV1>(f);
         }
         mod_ids.push_back(fid);
     }

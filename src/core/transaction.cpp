@@ -170,7 +170,7 @@ inline FieldData GetField(const Schema* s, const Value& v, const FT& field, Blob
 }
 
 template <typename DT>
-inline void UpdateBlobField(const _detail::FieldExtractor* fe,  // field extractor
+inline void UpdateBlobField(const _detail::FieldExtractorV1* fe,  // field extractor
                             const DT& data,                     // data as string or FieldData
                             Value& record,                      // record to be updated
                             BlobManager* bm,                    // blob manager
