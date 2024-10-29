@@ -26,7 +26,7 @@ namespace frontend {
 class BinaryOp : public Expr {
 public:
     explicit BinaryOp(AstNodeType type) : Expr(type), left_(nullptr), right_(nullptr) {}
-    ~BinaryOp() = default;
+    virtual ~BinaryOp() = default;
 
     void setLeft(Expr* left) { left_ = left; }
     Expr* left() const { return left_; }

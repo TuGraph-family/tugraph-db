@@ -26,7 +26,7 @@ namespace frontend {
 class LinearQueryStatement : public AstNode {
 public:
     explicit LinearQueryStatement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~LinearQueryStatement() = default;
+    virtual ~LinearQueryStatement() = default;
 };  // class LinearQueryStatement
 
 }  // namespace frontend

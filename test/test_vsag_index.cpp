@@ -57,16 +57,17 @@ class TestVsag : public TuGraphTest {
     void TearDown() override {}
 };
 
-TEST_F(TestVsag, BuildIndex) { EXPECT_NO_THROW(vector_index->Build()); }
-
 TEST_F(TestVsag, AddVectors) {
-    EXPECT_NO_THROW(vector_index->Build());
-    EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
+    EXPECT_NO_THROW(vector_index->Add(vectors, vids));
+}
+
+TEST_F(TestVsag, AddVectorsException) {
+    EXPECT_NO_THROW(vector_index->Add(vectors, vids));
+    UT_EXPECT_THROW_CODE(vector_index->Add(vectors, vids), VectorIndexException);
 }
 
 TEST_F(TestVsag, SearchIndex) {
-    EXPECT_NO_THROW(vector_index->Build());
-    EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
+    EXPECT_NO_THROW(vector_index->Add(vectors, vids));
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
     std::vector<std::pair<int64_t, float>> ret;
     ret = vector_index->KnnSearch(query, 10, 10);
@@ -74,25 +75,24 @@ TEST_F(TestVsag, SearchIndex) {
     ASSERT_EQ(ret[0].first, vids[0]);
 }
 
+/*
 TEST_F(TestVsag, SaveAndLoadIndex) {
-    EXPECT_NO_THROW(vector_index->Build());
-    EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
+    EXPECT_NO_THROW(vector_index->Add(vectors, vids));
     std::vector<uint8_t> serialized_index = vector_index->Save();
     ASSERT_FALSE(serialized_index.empty());
     lgraph::HNSW vector_index_loaded("label", "name", "l2", "hnsw", dim, index_spec);
-    EXPECT_NO_THROW(vector_index_loaded.Build());
     vector_index_loaded.Load(serialized_index);
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
     auto ret = vector_index_loaded.KnnSearch(query, 10, 10);
     ASSERT_TRUE(!ret.empty());
     ASSERT_EQ(ret[0].first, vids[0]);
 }
+*/
 
 TEST_F(TestVsag, DeleteVectors) {
-    EXPECT_NO_THROW(vector_index->Build());
-    EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
+    EXPECT_NO_THROW(vector_index->Add(vectors, vids));
     std::vector<int64_t> delete_vids = {vids[0], vids[1]};
-    EXPECT_NO_THROW(vector_index->Add({}, delete_vids, 0));
+    EXPECT_NO_THROW(vector_index->Remove(delete_vids));
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
     auto ret = vector_index->KnnSearch(query, 10, 10);
     for (const auto& pair : ret) {

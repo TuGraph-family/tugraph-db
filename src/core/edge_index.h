@@ -475,7 +475,10 @@ class EdgeIndex {
     }
 
     bool IsUnique() const {
-        return type_ == IndexType::GlobalUniqueIndex || type_ == IndexType::PairUniqueIndex;
+        return type_ == IndexType::GlobalUniqueIndex;
+    }
+    bool IsPairUnique() const {
+        return type_ == IndexType::PairUniqueIndex;
     }
     IndexType GetType() const { return type_; }
 
