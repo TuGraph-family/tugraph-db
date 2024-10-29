@@ -255,6 +255,17 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             return;
         }
         auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[0]);
+        if (!val.count("principal") || !val.count("credentials")) {
+            LOG_ERROR() << "Hello msg fields error, "
+                           "'principal' or 'credentials' are missing.";
+            bolt::PackStream ps;
+            ps.AppendFailure({{"code", "error"},
+                              {"message", "Hello msg fields error, "
+                               "'principal' or 'credentials' are missing."}});
+            conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
+            return;
+        }
         auto& principal = std::any_cast<const std::string&>(val.at("principal"));
         auto& credentials = std::any_cast<const std::string&>(val.at("credentials"));
         auto galaxy = BoltServer::Instance().StateMachine()->GetGalaxy();
