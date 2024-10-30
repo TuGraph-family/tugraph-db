@@ -27,6 +27,7 @@
 #include "core/blob_manager.h"
 #include "core/data_type.h"
 #include "core/field_extractor.h"
+#include "core/field_extractor_v2.h"
 #include "core/schema_common.h"
 #include "core/value.h"
 #include "core/full_text_index.h"
@@ -58,6 +59,33 @@ class SchemaManager;
  **                     are recorded, since the first offset is obvious.
  **     V-data:         stores the data of the variable-length fields
 */
+
+/**
+ * If fast_alter_schema in labeloptions is ture, Schema will have another order.
+ ** The record is layout as the following:
+ ** [Version][LabelId][Field-count][Null-array][Offset-array][Fixed-data and V-data Pointer]
+ [V-data]
+ ** in which:
+ **     Version:        indicates the version of the schema.[1 byte]
+ **     LabelId:        indicates the label of the record, different
+ **                     label has different schema.
+ **                     LabelId is left out for edges since edges are
+ **                     sorted by LabelId so it becomes part of the key.
+ **                     [2 bytes]
+ **     Field-count:    indicates the number of fields in the record.[2 bytes]
+ **     Null-array:     records whether a field is null. [Field-count +7 / 8 bytes]
+ **     Offset-array:   stores the offsets of the fields in the record.
+ **                     Note that the offsets from field 1 to N-1
+ **                     are recorded, since the first offset is obvious.
+ **                     The last offset is Fixed-fields end position.[Field-count * 4 bytes]
+ **     Fixed-data and V-data Pointer:
+ **                     Store fixed-length data and pointers to the locations
+ **                     of variable-length data, with their order determined
+ **                     by the attribute IDs. [Fixed-data size + num-vfields * 4 bytes]
+ **     V-data:         stores the data of the variable-length fields. Store them as
+ **                     [Length][Data] pairs.
+*/
+
 class Schema {
     friend class SchemaManager;
     friend class Transaction;
@@ -68,6 +96,7 @@ class Schema {
     bool is_vertex_ = false;
 
     std::vector<_detail::FieldExtractor> fields_;
+    std::vector<_detail::FieldExtractorV2> fieldsV2_;
     std::unordered_map<std::string, size_t> name_to_idx_;
     size_t n_fixed_ = 0;
     size_t n_variable_ = 0;
@@ -85,6 +114,7 @@ class Schema {
     std::unordered_set<size_t> fulltext_fields_;
     std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
     bool detach_property_ = false;
+    bool fast_alter_schema = false;
     std::shared_ptr<KvTable> property_table_;
     std::unordered_map<std::string, std::shared_ptr<CompositeIndex>> composite_index_map;
     std::unordered_set<size_t> vector_index_fields_;
@@ -176,6 +206,7 @@ class Schema {
                   edge_constraints);
     }
 
+    void SetFastAlterSchema(bool fast_alter) { fast_alter_schema = fast_alter;}
     void SetEdgeConstraintsLids(std::unordered_map<LabelId, std::unordered_set<LabelId>> lids) {
         edge_constraints_lids_ = std::move(lids);
     }
@@ -231,13 +262,20 @@ class Schema {
 
     std::map<std::string, FieldSpec> GetFieldSpecsAsMap() const;
 
-    size_t GetNumFields() const { return fields_.size(); }
+    size_t GetNumFields() const { return fast_alter_schema ? fieldsV2_.size() : fields_.size(); }
+    bool GetFastAlterSchema() const {return fast_alter_schema;}
 
     const _detail::FieldExtractor* GetFieldExtractor(size_t field_num) const;
     const _detail::FieldExtractor* TryGetFieldExtractor(size_t field_num) const;
 
     const _detail::FieldExtractor* GetFieldExtractor(const std::string& field_name) const;
     const _detail::FieldExtractor* TryGetFieldExtractor(const std::string& field_name) const;
+
+    const _detail::FieldExtractorV2* GetFieldExtractorV2(size_t field_num) const;
+    const _detail::FieldExtractorV2* TryGetFieldExtractorV2(size_t field_num) const;
+
+    const _detail::FieldExtractorV2* GetFieldExtractorV2(const std::string& field_name) const;
+    const _detail::FieldExtractorV2* TryGetFieldExtractorV2(const std::string& field_name) const;
 
     size_t GetFieldId(const std::string& name) const;
 
@@ -301,6 +339,11 @@ class Schema {
     template <typename FieldT, typename DataT>
     typename std::enable_if<IS_FIELD_TYPE(FieldT) && IS_DATA_TYPE(DataT), void>::type SetField(
         Value& record, const FieldT& name_or_num, const DataT& value) const {
+        if (fast_alter_schema) {
+            auto extr = GetFieldExtractorV2(name_or_num);
+            FMA_DBG_ASSERT(extr->Type() != FieldType::BLOB);
+            ParseAndSet(record, value, extr);
+        }
         auto extractor = GetFieldExtractor(name_or_num);
         FMA_DBG_ASSERT(extractor->Type() != FieldType::BLOB);
         extractor->ParseAndSet(record, value);
@@ -311,6 +354,11 @@ class Schema {
     typename std::enable_if<IS_FIELD_TYPE(FieldT) && IS_DATA_TYPE(DataT), void>::type SetBlobField(
         Value& record, const FieldT& name_or_num, const DataT& value,
         const OnLargeBlobFunc& on_large_blob) const {
+        if (fast_alter_schema) {
+            auto extractor = GetFieldExtractorV2(name_or_num);
+            FMA_DBG_ASSERT(extractor->Type() == FieldType::BLOB);
+            ParseAndSet(record, value, on_large_blob. extr);
+        }
         auto extractor = GetFieldExtractor(name_or_num);
         FMA_DBG_ASSERT(extractor->Type() == FieldType::BLOB);
         extractor->ParseAndSet(record, value, on_large_blob);
@@ -322,6 +370,7 @@ class Schema {
     //    const Value& record, const FieldT& field_name_or_num) const {
     //    auto extractor = GetFieldExtractor(field_name_or_num);
     //    if(extractor->GetIsNull(record)) return FieldData();
+    //    if(extractor->GetIsNull(record)) return FieldData();
     //    return GetFieldDataFromField(extractor, record);
     //}
 
@@ -330,6 +379,23 @@ class Schema {
     typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type GetField(
         const Value& record, const FieldT& field_name_or_num,
         const GetBlobByKeyFunc& get_blob) const {
+        if (fast_alter_schema) {
+            const ::lgraph::_detail::FieldExtractorV2* extractor =
+                TryGetFieldExtractorV2(field_name_or_num);
+            if (!extractor) return FieldData();
+            if (extractor->GetRecordCount(record) < extractor->GetFieldId() + 1) {
+                if (extractor->HasInitedValue()) {
+                    return extractor->GetInitedValue();
+                }
+                return FieldData();
+            }
+            if (extractor->GetIsNull(record)) return FieldData();
+            if (_F_UNLIKELY(extractor->Type()) == FieldType::BLOB) {
+                return GetFieldDataFromBlobField(extractor, record, get_blob);
+            } else {
+                return GetFieldDataFromField(extractor, record);
+            }
+        }
         auto extractor = TryGetFieldExtractor(field_name_or_num);
         if (!extractor) return FieldData();
         if (extractor->GetIsNull(record)) return FieldData();
@@ -347,6 +413,22 @@ class Schema {
         FMA_DBG_ASSERT(!HasBlob());
         // TODO(anyone): optimize
         Value v = CreateEmptyRecord();
+        if (fast_alter_schema) {
+            std::vector<bool> is_set(fieldsV2_.size(), false);
+            for (size_t i = 0; i < n_fields; i++) {
+                const FieldT& name_or_num = fields[i];
+                const DataT& data = values[i];
+                const _detail::FieldExtractorV2* extr = GetFieldExtractorV2(name_or_num);
+                is_set[extr->GetFieldId()] = true;
+                ParseAndSet(v, data, extr);
+            }
+            for (size_t i = 0; i < fieldsV2_.size(); i++) {
+                auto& f = fieldsV2_[i];
+                if (_F_UNLIKELY(!f.IsOptional() && !is_set[i]))
+                    throw FieldCannotBeSetNullException(f.Name());
+            }
+            return v;
+        }
         std::vector<bool> is_set(fields_.size(), false);
         for (size_t i = 0; i < n_fields; i++) {
             const FieldT& name_or_num = fields[i];
@@ -371,6 +453,26 @@ class Schema {
                                 const StoreLargeBlobFunc& on_large_blob) {
         FMA_DBG_ASSERT(HasBlob());
         Value prop = CreateEmptyRecord();
+        if (fast_alter_schema) {
+            std::vector<bool> is_set(fieldsV2_.size(), false);
+            for (size_t i = 0; i < n_fields; i++) {
+                const FT& name_or_num = fields[i];
+                const DT& data = values[i];
+                const _detail::FieldExtractorV2* extr = GetFieldExtractorV2(name_or_num);
+                is_set[extr->GetFieldId()] = true;
+                if (_F_UNLIKELY(extr->Type() == FieldType::BLOB)) {
+                    ParseAndSetBlob(prop, data, on_large_blob, extr);
+                } else {
+                    ParseAndSet(prop, data, extr);
+                }
+            }
+            for (size_t i = 0; i < fields_.size(); i++) {
+                auto& f = fieldsV2_[i];
+                if (_F_UNLIKELY(!f.IsOptional() && !is_set[i]))
+                    throw FieldCannotBeSetNullException(f.Name());
+            }
+            return prop;
+        }
         std::vector<bool> is_set(fields_.size(), false);
         for (size_t i = 0; i < n_fields; i++) {
             const FT& name_or_num = fields[i];
@@ -389,6 +491,91 @@ class Schema {
                 throw FieldCannotBeSetNullException(f.Name());
         }
         return prop;
+    }
+
+    // --------------------
+    // fieldextractor v2 related
+    void ParseAndSet(Value& record, const FieldData& data,
+                             const _detail::FieldExtractorV2* extractor) const;
+    void ParseAndSet(Value& record, const std::string& data,
+                 const _detail::FieldExtractorV2* extractor) const;
+
+    template <typename DataT, typename StoreBlobAndGetKeyFunc>
+    void ParseAndSetBlob(Value& record, const DataT& data, const StoreBlobAndGetKeyFunc& store_blob,
+                     const _detail::FieldExtractorV2* extr) const {
+        FMA_DBG_ASSERT(extr->Type() == FieldType::BLOB);
+        bool is_null;
+        Value v = extr->ParseBlob(data, is_null);
+        extr->SetIsNull(record, is_null);
+        if (is_null) return;
+        if (v.Size() <= _detail::MAX_IN_PLACE_BLOB_SIZE) {
+            _SetVariableLengthValue(record, BlobManager::ComposeSmallBlobData(v), extr);
+        } else {
+            BlobManager::BlobKey key = store_blob(v);
+            v.Clear();
+            _SetVariableLengthValue(record, BlobManager::ComposeLargeBlobData(key), extr);
+        }
+    }
+
+    template <FieldType FT>
+    void _ParseStringAndSet(Value& record, const std::string& data,
+                        const ::lgraph::_detail::FieldExtractorV2* extractor) const;
+
+    void _SetVariableLengthValue(Value& record, const Value& data,
+                             const ::lgraph::_detail::FieldExtractorV2* extractor) const;
+
+    ENABLE_IF_FIXED_FIELD(T, void)
+    SetFixedSizeValue(Value& record, const T& data,
+                              const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+        // "Cannot call SetField(Value&, const T&) on a variable length field";
+        FMA_DBG_ASSERT(extractor->IsFixedType());
+        // "Type size mismatch"
+        FMA_DBG_CHECK_EQ(sizeof(data), extractor->TypeSize());
+        // copy the buffer so we don't accidentally overwrite memory
+        int data_size = extractor->GetDataSize(record);
+        size_t offset = extractor->GetFieldOffset(record, extractor->GetFieldId());
+        char* ptr = (char*)record.Data();
+        if (_F_LIKELY(data_size == sizeof(data))) {
+            record.Resize(record.Size());
+            ptr = ptr + offset;
+            ::lgraph::_detail::UnalignedSet<T>(ptr, data);
+        } else {
+            // If the data size differs, we need to resize the record:
+            // 1. Move the data to the correct position.
+            // 2. Modify the offset of the subsequent fields.
+
+            // Move the data to the correct position.
+            int diff = sizeof(data) - data_size;
+            if (diff > 0) {
+                record.Resize(record.Size() + diff);
+                memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
+                        record.Size() - (offset + sizeof(data)));
+            } else {
+                memmove(ptr + offset + sizeof(data), ptr + offset + data_size,
+                        record.Size() - (offset + data_size));
+                record.Resize(record.Size() + diff);
+            }
+            ::lgraph::_detail::UnalignedSet<T>(ptr + offset, data);
+
+            // Update the offset of the subsequent fields.
+            for (FieldId i = extractor->GetFieldId() + 1; i < extractor->GetRecordCount(record) + 1;
+                 ++i) {
+                size_t off = extractor->GetOffsetPosition(record, i);
+                size_t property_offset =
+                    ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
+                ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
+            }
+
+            // Update the offset of veriable length fields.
+            for (FieldId i = extractor->GetRecordCount(record) + 1;
+                 i < extractor->GetRecordCount(record); i++) {
+                if (fieldsV2_[i].IsFixedType()) continue;
+                size_t off = extractor->GetFieldOffset(record, i);
+                size_t property_offset =
+                    ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
+                ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + off, property_offset + diff);
+            }
+        }
     }
 
     // copy field values from src to dst
@@ -546,6 +733,8 @@ class Schema {
         s = BinaryRead(buf, deleted_);
         if (!s) return 0;
         bytes_read += s;
+        s = BinaryRead(buf, fast_alter_schema);
+        bytes_read += s;
         std::vector<FieldSpec> fds;
         s = BinaryRead(buf, fds);
         if (!s) return 0;
@@ -577,6 +766,7 @@ class Schema {
     size_t Serialize(StreamT& buf) const {
         return BinaryWrite(buf, label_) + BinaryWrite(buf, label_id_) +
                BinaryWrite(buf, label_in_record_) + BinaryWrite(buf, deleted_) +
+                   BinaryWrite(buf, fast_alter_schema) +
                BinaryWrite(buf, GetFieldSpecs()) + BinaryWrite(buf, is_vertex_) +
                BinaryWrite(buf, primary_field_) + BinaryWrite(buf, temporal_field_) +
                BinaryWrite(buf, temporal_order_) + BinaryWrite(buf, edge_constraints_) +
@@ -600,6 +790,8 @@ class Schema {
  protected:
     FieldData GetFieldDataFromField(const _detail::FieldExtractor* extractor,
                                     const Value& record) const;
+    FieldData GetFieldDataFromField(const _detail::FieldExtractorV2* extractor,
+                                const Value& record) const;
 
     template <typename GetBlobFunc>
     FieldData GetFieldDataFromBlobField(const _detail::FieldExtractor* extractor,
@@ -607,6 +799,13 @@ class Schema {
         return FieldData::Blob(extractor->GetBlobConstRef(record, get_blob).AsString());
     }
 
+    template <typename GetBlobFunc>
+    FieldData GetFieldDataFromBlobField(const _detail::FieldExtractorV2* extractor,
+                                    const Value& record, const GetBlobFunc& get_blob) const {
+        return FieldData::Blob(extractor->GetBlobConstRef(record, get_blob).AsString());
+    }
+
     void RefreshLayout();
+    void RefreshLayoutForFastSchema();
 };  // Schema
 }  // namespace lgraph

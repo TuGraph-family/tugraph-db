@@ -225,8 +225,12 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
             }
             if (flag && !visited.count(kv.first)) {
                 std::vector<std::string> field_names;
-                for (const auto &id : field_ids) {
-                    field_names.push_back(fields_[std::stoi(id)].Name());
+                for (const auto& id : field_ids) {
+                    if (fast_alter_schema) {
+                        field_names.push_back(fieldsV2_[std::stoi(id)].Name());
+                    } else {
+                        field_names.push_back(fields_[std::stoi(id)].Name());
+                    }
                 }
                 result.push_back(field_names);
                 visited.insert(kv.first);
@@ -238,13 +242,25 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
 
 bool Schema::VertexUniqueIndexConflict(KvTransaction& txn, const Value& record) {
     for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        if (!index->IsUnique()) continue;
-        if (fe.GetIsNull(record)) continue;
-        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
-            return true;
+        VertexIndex* index;
+        if (fast_alter_schema) {
+            auto &fe = fieldsV2_[idx];
+            index = fe.GetVertexIndex();
+            if (fe.GetIsNull(record)) continue;
+            FMA_ASSERT(index);
+            if (!index->IsUnique()) continue;
+            if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+                return true;
+            }
+        } else {
+            auto& fe = fields_[idx];
+            index = fe.GetVertexIndex();
+            if (fe.GetIsNull(record)) continue;
+            FMA_ASSERT(index);
+            if (!index->IsUnique()) continue;
+            if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+                return true;
+            }
         }
     }
     return false;
@@ -252,15 +268,30 @@ bool Schema::VertexUniqueIndexConflict(KvTransaction& txn, const Value& record) 
 
 void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
     for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError, "Failed to un-index edge with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record));
+        if (fast_alter_schema) {
+            auto& fe = fieldsV2_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(InputError,
+                           "Failed to un-index edge with field "
+                           "value [{}:{}]: index value does not exist.",
+                           fe.Name(), fe.FieldToString(record));
+            }
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(InputError,
+                           "Failed to un-index edge with field "
+                           "value [{}:{}]: index value does not exist.",
+                           fe.Name(), fe.FieldToString(record));
+            }
         }
     }
 }
@@ -268,62 +299,118 @@ void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Valu
 void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                                     const std::vector<size_t>& created) {
     for (auto& idx : created) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        // the aim of this method is delete the index that has been created
-        if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError, "Failed to un-index edge with field "
-                                                    "value [{}:{}]: index value does not exist.",
-                                                    fe.Name(), fe.FieldToString(record));
+        if (fast_alter_schema) {
+            auto& fe = fieldsV2_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // the aim of this method is delete the index that has been created
+            if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(InputError,
+                           "Failed to un-index edge with field "
+                           "value [{}:{}]: index value does not exist.",
+                           fe.Name(), fe.FieldToString(record));
+            }
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // the aim of this method is delete the index that has been created
+            if (!index->Delete(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(InputError,
+                           "Failed to un-index edge with field "
+                           "value [{}:{}]: index value does not exist.",
+                           fe.Name(), fe.FieldToString(record));
+            }
         }
     }
 }
 
 void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                             std::vector<size_t>& created) {
-    created.reserve(fields_.size());
+    created.reserve(fast_alter_schema ? fieldsV2_.size() : fields_.size());
     for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Add(txn, fe.GetConstRef(record), euid)) {
-            THROW_CODE(InputError,
-                "Failed to index edge with field value [{}:{}]: index value already exists.",
-                fe.Name(), fe.FieldToString(record));
+        if (fast_alter_schema) {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Add(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(
+                    InputError,
+                    "Failed to index edge with field value [{}:{}]: index value already exists.",
+                    fe.Name(), fe.FieldToString(record));
+            }
+            created.push_back(idx);
+
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            EdgeIndex* index = fe.GetEdgeIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Add(txn, fe.GetConstRef(record), euid)) {
+                THROW_CODE(
+                    InputError,
+                    "Failed to index edge with field value [{}:{}]: index value already exists.",
+                    fe.Name(), fe.FieldToString(record));
+            }
+            created.push_back(idx);
         }
-        created.push_back(idx);
     }
 }
 
 void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : vector_index_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        VectorIndex* index = fe.GetVectorIndex();
-        auto dim = index->GetVecDimension();
-        std::vector<std::vector<float>> floatvector;
-        std::vector<int64_t> vids;
-        floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
-        vids.push_back(vid);
-        if (floatvector.back().size() != (size_t)dim) {
-            THROW_CODE(InputError,
-                       "vector index dimension mismatch, vector size:{}, dim:{}",
-                       floatvector.back().size(), dim);
+        if (fast_alter_schema) {
+            auto& fe = fieldsV2_[idx];
+            if (fe.GetIsNull(record)) continue;
+            VectorIndex* index = fe.GetVectorIndex();
+            auto dim = index->GetVecDimension();
+            std::vector<std::vector<float>> floatvector;
+            std::vector<int64_t> vids;
+            floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+            vids.push_back(vid);
+            if (floatvector.back().size() != (size_t)dim) {
+                THROW_CODE(InputError,
+                           "vector index dimension mismatch, vector size:{}, dim:{}",
+                           floatvector.back().size(), dim);
+            }
+            index->Add(floatvector, vids);
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            VectorIndex* index = fe.GetVectorIndex();
+            auto dim = index->GetVecDimension();
+            std::vector<std::vector<float>> floatvector;
+            std::vector<int64_t> vids;
+            floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+            vids.push_back(vid);
+            if (floatvector.back().size() != (size_t)dim) {
+                THROW_CODE(InputError,
+                           "vector index dimension mismatch, vector size:{}, dim:{}",
+                           floatvector.back().size(), dim);
+            }
+            index->Add(floatvector, vids);
         }
-        index->Add(floatvector, vids);
     }
 }
 
 void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : vector_index_fields_) {
-        auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
-        VectorIndex* index = fe.GetVectorIndex();
-        index->Remove({vid});
+        if (fast_alter_schema) {
+            auto& fe = fieldsV2_[idx];
+            if (fe.GetIsNull(record)) continue;
+            VectorIndex* index = fe.GetVectorIndex();
+            index->Remove({vid});
+        } else {
+            auto& fe = fields_[idx];
+            if (fe.GetIsNull(record)) continue;
+            VectorIndex* index = fe.GetVectorIndex();
+            index->Remove({vid});
+        }
     }
 }
 
@@ -434,6 +521,442 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
     return FieldData();
 }
 
+
+FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractorV2* extractor,
+                                        const Value& record) const {
+#define _GET_COPY_AND_RETURN_FD(ft)                                                    \
+    do {                                                                               \
+        typename field_data_helper::FieldType2StorageType<FieldType::ft>::type sd;     \
+        extractor->GetCopy(record, sd);                                                \
+        return FieldData(                                                              \
+            static_cast<field_data_helper::FieldType2CType<FieldType::ft>::type>(sd)); \
+    } while (0)
+
+    switch (extractor->Type()) {
+    case FieldType::BOOL:
+        _GET_COPY_AND_RETURN_FD(BOOL);
+    case FieldType::INT8:
+        _GET_COPY_AND_RETURN_FD(INT8);
+    case FieldType::INT16:
+        _GET_COPY_AND_RETURN_FD(INT16);
+    case FieldType::INT32:
+        _GET_COPY_AND_RETURN_FD(INT32);
+    case FieldType::INT64:
+        _GET_COPY_AND_RETURN_FD(INT64);
+    case FieldType::DATE:
+        _GET_COPY_AND_RETURN_FD(DATE);
+    case FieldType::DATETIME:
+        _GET_COPY_AND_RETURN_FD(DATETIME);
+    case FieldType::FLOAT:
+        _GET_COPY_AND_RETURN_FD(FLOAT);
+    case FieldType::DOUBLE:
+        _GET_COPY_AND_RETURN_FD(DOUBLE);
+    case FieldType::STRING:
+        return FieldData(extractor->GetConstRef(record).AsString());
+    case FieldType::BLOB:
+        LOG_ERROR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
+                       "Extractor, GetBlobKeyFunc)";
+    case FieldType::POINT:
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
+            case lgraph_api::SRID::NUL:
+                THROW_CODE(InputError, "invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(PointWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(PointCartesian(EWKB));
+            default:
+                THROW_CODE(InputError, "invalid srid!\n");
+            }
+        }
+
+    case FieldType::LINESTRING:
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
+            case lgraph_api::SRID::NUL:
+                THROW_CODE(InputError, "invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(LineStringWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(LineStringCartesian(EWKB));
+            default:
+                THROW_CODE(InputError, "invalid srid!\n");
+            }
+        }
+
+    case FieldType::POLYGON:
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
+            case lgraph_api::SRID::NUL:
+                THROW_CODE(InputError, "invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(PolygonWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(PolygonCartesian(EWKB));
+            default:
+                THROW_CODE(InputError, "invalid srid!\n");
+            }
+        }
+
+    case FieldType::SPATIAL:
+        {
+            std::string EWKB = extractor->GetConstRef(record).AsString();
+            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
+            switch (srid) {
+            case lgraph_api::SRID::NUL:
+                THROW_CODE(InputError, "invalid srid!\n");
+            case lgraph_api::SRID::WGS84:
+                return FieldData(SpatialWgs84(EWKB));
+            case lgraph_api::SRID::CARTESIAN:
+                return FieldData(SpatialCartesian(EWKB));
+            default:
+                THROW_CODE(InputError, "invalid srid!\n");
+            }
+        }
+    case FieldType::FLOAT_VECTOR:
+        {
+            return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
+        }
+    case FieldType::NUL:
+        LOG_ERROR() << "FieldType NUL";
+    }
+    return FieldData();
+}
+
+void Schema::ParseAndSet(Value& record, const FieldData& data,
+                         const _detail::FieldExtractorV2* extractor) const {
+    bool data_is_null = data.type == FieldType::NUL;
+    extractor->SetIsNull(record, data_is_null);
+    if (data_is_null) return;
+
+#define _SET_FIXED_TYPE_VALUE_FROM_FD(ft)                                                   \
+    do {                                                                                    \
+        if (data.type == extractor->Type()) {                                               \
+            return SetFixedSizeValue(                                                       \
+                record, field_data_helper::GetStoredValue<FieldType::ft>(data), extractor); \
+        } else {                                                                            \
+            typename field_data_helper::FieldType2StorageType<FieldType::ft>::type s;       \
+            if (!field_data_helper::FieldDataTypeConvert<FieldType::ft>::Convert(data, s))  \
+                throw ParseFieldDataException(extractor->Name(), data, extractor->Type());  \
+            return SetFixedSizeValue(record, s, extractor);                                 \
+        }                                                                                   \
+    } while (0)
+
+    switch (extractor->Type()) {
+    case FieldType::BOOL:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(BOOL);
+    case FieldType::INT8:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(INT8);
+    case FieldType::INT16:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(INT16);
+    case FieldType::INT32:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(INT32);
+    case FieldType::INT64:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(INT64);
+    case FieldType::DATE:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(DATE);
+    case FieldType::DATETIME:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(DATETIME);
+    case FieldType::FLOAT:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(FLOAT);
+    case FieldType::DOUBLE:
+        _SET_FIXED_TYPE_VALUE_FROM_FD(DOUBLE);
+
+    case FieldType::STRING:
+        if (data.type != FieldType::STRING)
+            throw ParseIncompatibleTypeException(extractor->Name(), data.type, FieldType::STRING);
+        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+    case FieldType::BLOB:
+        {
+            // used in AlterLabel, when copying old blob value to new
+            // In this case, the value must already be correctly formatted, so just copy it
+            if (data.type != FieldType::BLOB)
+                throw ParseIncompatibleTypeException(extractor->Name(), data.type, FieldType::BLOB);
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+        }
+    case FieldType::POINT:
+        {
+            // point type can only be converted from point and string;
+            if (data.type != FieldType::POINT && data.type != FieldType::STRING)
+                throw ParseFieldDataException(extractor->Name(), data, extractor->Type());
+            FMA_DBG_ASSERT(extractor->IsFixedType());
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POINT))
+                throw ParseStringException(extractor->Name(), *data.data.buf, FieldType::POINT);
+
+            record.Resize(record.Size());
+            char* ptr =
+                (char*)record.Data() + extractor->GetFieldOffset(record, extractor->GetFieldId());
+            memcpy(ptr, (*data.data.buf).data(), 50);
+            return;
+        }
+    case FieldType::LINESTRING:
+        {
+            if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
+                throw ParseFieldDataException(extractor->Name(), data, extractor->Type());
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::LINESTRING))
+                throw ParseStringException(extractor->Name(), *data.data.buf,
+                                           FieldType::LINESTRING);
+
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+        }
+    case FieldType::POLYGON:
+        {
+            if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
+                throw ParseFieldDataException(extractor->Name(), data, extractor->Type());
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
+                throw ParseStringException(extractor->Name(), *data.data.buf, FieldType::POLYGON);
+
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+        }
+    case FieldType::SPATIAL:
+        {
+            if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
+                throw ParseFieldDataException(extractor->Name(), data, extractor->Type());
+            ::lgraph_api::SpatialType s;
+
+            // throw ParseStringException in this function;
+            try {
+                s = ::lgraph_api::ExtractType(*data.data.buf);
+            } catch (...) {
+                throw ParseStringException(extractor->Name(), *data.data.buf, FieldType::SPATIAL);
+            }
+
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
+                throw ParseStringException(extractor->Name(), *data.data.buf, FieldType::SPATIAL);
+
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf), extractor);
+        }
+    case FieldType::FLOAT_VECTOR:
+        {
+            if (data.type != FieldType::FLOAT_VECTOR)
+                throw ParseFieldDataException(extractor->Name(), data, extractor->Type());
+
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.vp), extractor);
+        }
+    default:
+        LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(extractor->Type())
+                    << " not handled";
+    }
+}
+
+template <FieldType FT>
+void Schema::_ParseStringAndSet(Value& record, const std::string& data,
+                                const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    typedef typename field_data_helper::FieldType2CType<FT>::type CT;
+    typedef typename field_data_helper::FieldType2StorageType<FT>::type ST;
+    CT s{};
+    size_t tmp = fma_common::TextParserUtils::ParseT<CT>(data.data(), data.data() + data.size(), s);
+    if (_F_UNLIKELY(tmp != data.size())) throw ParseStringException(extractor->Name(), data, FT);
+    return SetFixedSizeValue(record, static_cast<ST>(s), extractor);
+}
+
+template <>
+void Schema::_ParseStringAndSet<FieldType::STRING>(
+    Value& record, const std::string& data,
+    const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    return _SetVariableLengthValue(record, Value::ConstRef(data), extractor);
+}
+
+template <>
+void Schema::_ParseStringAndSet<FieldType::POINT>(
+    Value& record, const std::string& data,
+    const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    // check whether the point data is valid;
+    if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POINT))
+        throw ParseStringException(extractor->Name(), data, FieldType::POINT);
+    // FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
+    size_t Size = record.Size();
+    record.Resize(Size);
+    char* ptr = (char*)record.Data() + extractor->GetFieldOffset(record, extractor->GetFieldId());
+    memcpy(ptr, data.data(), 50);
+}
+
+template <>
+void Schema::_ParseStringAndSet<FieldType::LINESTRING>(
+    Value& record, const std::string& data,
+    const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    // check whether the linestring data is valid;
+    if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::LINESTRING))
+        throw ParseStringException(extractor->Name(), data, FieldType::LINESTRING);
+    return _SetVariableLengthValue(record, Value::ConstRef(data), extractor);
+}
+
+template <>
+void Schema::_ParseStringAndSet<FieldType::POLYGON>(
+    Value& record, const std::string& data,
+    const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POLYGON))
+        throw ParseStringException(extractor->Name(), data, FieldType::POLYGON);
+    return _SetVariableLengthValue(record, Value::ConstRef(data), extractor);
+}
+
+template <>
+void Schema::_ParseStringAndSet<FieldType::SPATIAL>(
+    Value& record, const std::string& data,
+    const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    ::lgraph_api::SpatialType s;
+    // throw ParseStringException in this function;
+    try {
+        s = ::lgraph_api::ExtractType(data);
+    } catch (...) {
+        throw ParseStringException(extractor->Name(), data, FieldType::SPATIAL);
+    }
+
+    if (!::lgraph_api::TryDecodeEWKB(data, s))
+        throw ParseStringException(extractor->Name(), data, FieldType::SPATIAL);
+    return _SetVariableLengthValue(record, Value::ConstRef(data), extractor);
+}
+
+template <>
+void Schema::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(
+    Value& record, const std::string& data,
+    const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    std::vector<float> vec;
+    // check if there are only numbers and commas
+    std::regex nonNumbersAndCommas("[^0-9,.]");
+    if (std::regex_search(data, nonNumbersAndCommas)) {
+        throw ParseStringException(extractor->Name(), data, FieldType::FLOAT_VECTOR);
+    }
+    // Check if the string conforms to the following format : 1.000000,2.000000,3.000000,...
+    std::regex vector("^(?:[-+]?\\d*(?:\\.\\d+)?)(?:,[-+]?\\d*(?:\\.\\d+)?){1,}$");
+    if (!std::regex_match(data, vector)) {
+        throw ParseStringException(extractor->Name(), data, FieldType::FLOAT_VECTOR);
+    }
+    // check if there are 1.000,,2.000 & 1.000,2.000,
+    if (data.front() == ',' || data.back() == ',' || data.find(",,") != std::string::npos) {
+        throw ParseStringException(extractor->Name(), data, FieldType::FLOAT_VECTOR);
+    }
+    std::regex pattern("-?[0-9]+\\.?[0-9]*");
+    std::sregex_iterator begin_it(data.begin(), data.end(), pattern), end_it;
+    while (begin_it != end_it) {
+        std::smatch match = *begin_it;
+        vec.push_back(std::stof(match.str()));
+        ++begin_it;
+    }
+    if (vec.size() <= 0)
+        throw ParseStringException(extractor->Name(), data, FieldType::FLOAT_VECTOR);
+    return _SetVariableLengthValue(record, Value::ConstRef(vec), extractor);
+}
+
+/**
+ * Parse the string data and set the field
+ *
+ * \param [in,out]  record  The record.
+ * \param           data    The string representation of the data.
+ */
+void Schema::ParseAndSet(Value& record, const std::string& data,
+                         const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    if (data.empty() &&
+        (extractor->IsFixedType() || extractor->Type() == FieldType::LINESTRING ||
+         extractor->Type() == FieldType::POLYGON || extractor->Type() == FieldType::SPATIAL ||
+         extractor->Type() == FieldType::FLOAT_VECTOR)) {
+        extractor->SetIsNull(record, true);
+        return;
+    }
+    // empty string is treated as non-NULL
+    extractor->SetIsNull(record, false);
+    switch (extractor->Type()) {
+    case FieldType::BOOL:
+        return _ParseStringAndSet<FieldType::BOOL>(record, data, extractor);
+    case FieldType::INT8:
+        return _ParseStringAndSet<FieldType::INT8>(record, data, extractor);
+    case FieldType::INT16:
+        return _ParseStringAndSet<FieldType::INT16>(record, data, extractor);
+    case FieldType::INT32:
+        return _ParseStringAndSet<FieldType::INT32>(record, data, extractor);
+    case FieldType::INT64:
+        return _ParseStringAndSet<FieldType::INT64>(record, data, extractor);
+    case FieldType::FLOAT:
+        return _ParseStringAndSet<FieldType::FLOAT>(record, data, extractor);
+    case FieldType::DOUBLE:
+        return _ParseStringAndSet<FieldType::DOUBLE>(record, data, extractor);
+    case FieldType::DATE:
+        return _ParseStringAndSet<FieldType::DATE>(record, data, extractor);
+    case FieldType::DATETIME:
+        return _ParseStringAndSet<FieldType::DATETIME>(record, data, extractor);
+    case FieldType::STRING:
+        return _ParseStringAndSet<FieldType::STRING>(record, data, extractor);
+    case FieldType::BLOB:
+        LOG_ERROR() << "ParseAndSet(Value, std::string) is not supposed to"
+                       " be called directly. We should first parse blobs "
+                       "into BlobValue and use SetBlobField(Value, FieldData)";
+    case FieldType::POINT:
+        return _ParseStringAndSet<FieldType::POINT>(record, data, extractor);
+    case FieldType::LINESTRING:
+        return _ParseStringAndSet<FieldType::LINESTRING>(record, data, extractor);
+    case FieldType::POLYGON:
+        return _ParseStringAndSet<FieldType::POLYGON>(record, data, extractor);
+    case FieldType::SPATIAL:
+        return _ParseStringAndSet<FieldType::SPATIAL>(record, data, extractor);
+    case FieldType::FLOAT_VECTOR:
+        return _ParseStringAndSet<FieldType::FLOAT_VECTOR>(record, data, extractor);
+    case FieldType::NUL:
+        LOG_ERROR() << "NUL FieldType";
+    }
+    LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(extractor->Type())
+                << " not handled";
+}
+
+/**
+ * Sets the value of the variable field in record. Valid only for variable-length fields.
+ *
+ * \param   record  The record.
+ * \param   data    Value to be set.
+ * \param   extractor  The field extractor pointer.
+ */
+void Schema::_SetVariableLengthValue(Value& record, const Value& data,
+                                     const ::lgraph::_detail::FieldExtractorV2* extractor) const {
+    FMA_DBG_ASSERT(extractor->is_vfield_);
+    if (data.Size() > _detail::MAX_STRING_SIZE)
+        throw DataSizeTooLargeException(extractor->Name(), data.Size(), _detail::MAX_STRING_SIZE);
+    size_t foff = extractor->GetFieldOffset(record, extractor->GetFieldId());
+    char* rptr = (char*)record.Data();
+    size_t variable_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(rptr + foff);
+    size_t fsize = extractor->GetDataSize(record);
+
+    // realloc record with original size to make sure we own the memory
+    record.Resize(record.Size());
+
+    // move data to the correct position
+    int32_t diff = data.Size() - fsize;
+    if (diff > 0) {
+        record.Resize(record.Size() + diff);
+        rptr = (char*)record.Data();
+        memmove(rptr + variable_offset + sizeof(DataOffset) + data.Size(),
+                rptr + variable_offset + sizeof(DataOffset) + fsize,
+                record.Size() - (variable_offset + sizeof(DataOffset) + data.Size()));
+    } else {
+        memmove(rptr + variable_offset + sizeof(DataOffset) + data.Size(),
+                rptr + variable_offset + sizeof(DataOffset) + fsize,
+                record.Size() - (variable_offset + sizeof(DataOffset) + fsize));
+        record.Resize(record.Size() + diff);
+    }
+
+    // set data
+    rptr = (char*)record.Data();
+    // set data size
+    ::lgraph::_detail::UnalignedSet<uint32_t>(rptr + variable_offset, data.Size());
+    // set data value
+    memcpy(rptr + variable_offset + sizeof(uint32_t), data.Data(), data.Size());
+
+    // update offset of other veriable fields
+    size_t count = extractor->GetRecordCount(record);
+    // adjust offset of other fields
+    for (size_t i = extractor->GetFieldId() + 1; i < count; i++) {
+        if (fieldsV2_[i].IsFixedType()) continue;
+        size_t offset = extractor->GetFieldOffset(record, i);
+        size_t var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(rptr + offset);
+        ::lgraph::_detail::UnalignedSet<DataOffset>(rptr + offset, var_offset + diff);
+    }
+}
+
+
 void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
                            const Schema* src_schema, const Value& src,
                            const std::vector<size_t> fids_in_src) {
@@ -447,6 +970,10 @@ void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
 }
 
 void Schema::RefreshLayout() {
+    if (fast_alter_schema) {
+        RefreshLayoutForFastSchema();
+        return;
+    }
     // check field types
     // check if there is any blob
     blob_fields_.clear();
@@ -517,6 +1044,43 @@ void Schema::RefreshLayout() {
     }
 }
 
+void Schema::RefreshLayoutForFastSchema() {
+    FMA_ASSERT(fast_alter_schema);
+    blob_fields_.clear();
+    name_to_idx_.clear();
+    for (size_t i = 0; i < fieldsV2_.size(); i++) {
+        auto& f = fieldsV2_[i];
+        if (f.IsDeleted()) continue;
+        f.SetLabelInRecord(label_in_record_);
+        if (f.Type() == FieldType::NUL) throw FieldCannotBeNullTypeException(f.Name());
+        if (f.Type() == FieldType::BLOB) blob_fields_.push_back(i);
+        if (_F_UNLIKELY(name_to_idx_.find(f.Name()) != name_to_idx_.end()))
+            throw FieldAlreadyExistsException(f.Name());
+        name_to_idx_[f.Name()] = i;
+    }
+
+    indexed_fields_.clear();
+    bool found_primary = false;
+    for (auto& f : fieldsV2_) {
+        if (!f.GetVertexIndex() && !f.GetEdgeIndex()) continue;
+        indexed_fields_.emplace_hint(indexed_fields_.end(), f.GetFieldId());
+        if (f.Name() == primary_field_) {
+            FMA_ASSERT(!found_primary);
+            found_primary = true;
+        }
+    }
+    // vertex must have primary property
+    if (is_vertex_ && !indexed_fields_.empty()) {
+        FMA_ASSERT(found_primary);
+    }
+
+    fulltext_fields_.clear();
+    for (auto& f : fieldsV2_) {
+        if (!f.FullTextIndexed()) continue;
+        fulltext_fields_.emplace(f.GetFieldId());
+    }
+}
+
 /**
  * Creates an empty record
  *
@@ -526,30 +1090,111 @@ void Schema::RefreshLayout() {
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);
-    size_t min_size = v_offset_start_;
-    if (n_variable_ > 0) min_size += sizeof(DataOffset) * (n_variable_ - 1);
-    v.Resize(min_size);
-    // first data is the LabelId
-    if (label_in_record_) {
-        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
-        // nullable bits
-        memset(v.Data() + sizeof(LabelId), 0xFF, (n_nullable_ + 7) / 8);
+    if (!fast_alter_schema) {
+        size_t min_size = v_offset_start_;
+        if (n_variable_ > 0) min_size += sizeof(DataOffset) * (n_variable_ - 1);
+        v.Resize(min_size);
+        // first data is the LabelId
+        if (label_in_record_) {
+            ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
+            // nullable bits
+            memset(v.Data() + sizeof(LabelId), 0xFF, (n_nullable_ + 7) / 8);
+        } else {
+            // nullbable bits
+            memset(v.Data(), 0xFF, (n_nullable_ + 7) / 8);
+        }
+        // initialize variable length array offsets
+        if (n_variable_ > 0) {
+            char* offsets = v.Data() + v_offset_start_;
+            for (size_t i = 1; i < n_variable_; i++) {
+                ::lgraph::_detail::UnalignedSet<DataOffset>(offsets + sizeof(DataOffset) * (i - 1),
+                                                            static_cast<DataOffset>(min_size));
+            }
+        }
     } else {
-        // nullbable bits
-        memset(v.Data(), 0xFF, (n_nullable_ + 7) / 8);
-    }
-    // initialize variable length array offsets
-    if (n_variable_ > 0) {
-        char* offsets = v.Data() + v_offset_start_;
-        for (size_t i = 1; i < n_variable_; i++) {
-            ::lgraph::_detail::UnalignedSet<DataOffset>(offsets + sizeof(DataOffset) * (i - 1),
-                                                        static_cast<DataOffset>(min_size));
+        size_t num_fields = fieldsV2_.size();
+        // version - [label] - count - null_array - offset_array
+        size_t min_size = sizeof(VersionId) + (label_in_record_ ? sizeof(LabelId) : 0) +
+                          sizeof(FieldId) + (num_fields + 7) / 8 + num_fields * sizeof(DataOffset);
+        // Fixed-value and Variable-value. Variable-value will store an offset at Fixed-value area
+        // and assume the length of every variable value is 0;
+        for (const auto& field : fieldsV2_) {
+            min_size +=
+                field.IsFixedType() ? field.TypeSize() : (sizeof(DataOffset) + sizeof(uint32_t));
+        }
+
+        v.Resize(min_size);
+
+        char* ptr = v.Data();
+        DataOffset offset = 0;
+
+        // 2. Set version id.
+        ::lgraph::_detail::UnalignedSet<VersionId>(ptr + offset, ::lgraph::_detail::SCHEMA_VERSION);
+        offset += sizeof(VersionId);
+
+        // 3. Set label id.
+        if (label_in_record_) {
+            ::lgraph::_detail::UnalignedSet<LabelId>(ptr + offset, label_id_);
+            offset += sizeof(LabelId);
+        }
+
+        // 4. Set fields count.
+        ::lgraph::_detail::UnalignedSet<FieldId>(ptr + offset, static_cast<FieldId>(num_fields));
+        offset += sizeof(FieldId);
+
+        // 5. Set nullable array
+        memset(ptr + offset, 0xFF, (num_fields + 7) / 8);
+        offset += (num_fields + 7) / 8;
+
+        if (num_fields == 0) return v;
+
+        // 6. Set fields' offset.
+        DataOffset offset_begin = offset;
+        DataOffset data_offset = offset + num_fields * sizeof(DataOffset);  // data area begin.
+        char* offset_ptr = ptr + offset_begin;                              // offset area begin.
+
+        // field0 do not need to store its offset.
+        for (size_t i = 1; i < num_fields; i++) {
+            data_offset +=
+                fieldsV2_[i - 1].IsFixedType() ? fieldsV2_[i - 1].TypeSize() : sizeof(DataOffset);
+            ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
+            offset_ptr += sizeof(DataOffset);
+        }
+
+        // the latest offset marks the end of the fixed-area.
+        data_offset += fieldsV2_[num_fields - 1].IsFixedType()
+                           ? fieldsV2_[num_fields - 1].TypeSize()
+                           : sizeof(DataOffset);
+        ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
+
+        // 7. Set variable fields offset. They are stored at fixed-area, and their sizes are all
+        // zero.
+        for (const auto& field : fieldsV2_) {
+            if (!field.IsFixedType()) {
+                DataOffset var_offset = 0;  // variable fields offset.
+                if (field.GetFieldId() == 0) {
+                    var_offset = offset + num_fields * sizeof(DataOffset);
+                } else {
+                    var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(
+                        ptr + offset_begin + (field.GetFieldId() - 1) * sizeof(DataOffset));
+                }
+
+                ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + var_offset, data_offset);
+                ::lgraph::_detail::UnalignedSet<DataOffset>(ptr + data_offset, 0);
+                data_offset += sizeof(DataOffset);
+            }
         }
     }
     return v;
 }
 
 Value Schema::CreateRecordWithLabelId() const {
+    if (fast_alter_schema) {
+        Value v(sizeof(LabelId) + sizeof(VersionId));
+        ::lgraph::_detail::UnalignedSet<VersionId>(v.Data(), ::lgraph::_detail::SCHEMA_VERSION);
+        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + sizeof(VersionId), label_id_);
+        return v;
+    }
     Value v(sizeof(LabelId));
     ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
     return v;
@@ -630,6 +1275,7 @@ void Schema::DeleteDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) 
 void Schema::ClearFields() {
     label_.clear();
     fields_.clear();
+    fieldsV2_.clear();
     name_to_idx_.clear();
     n_fixed_ = 0;
     n_variable_ = 0;
@@ -657,19 +1303,28 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
                        const TemporalFieldOrder& temporal_order,
                        const EdgeConstraints& edge_constraints) {
     lgraph::CheckValidFieldNum(n_fields);
-    fields_.clear();
     name_to_idx_.clear();
     // assign id to fields, starting from fixed length types
     // then variable length types
-    fields_.reserve(n_fields);
-    for (size_t i = 0; i < n_fields; i++) {
-        const FieldSpec& fs = fields[i];
-        if (field_data_helper::IsFixedLengthFieldType(fs.type)) fields_.emplace_back(fs);
-    }
-    for (size_t i = 0; i < n_fields; i++) {
-        const FieldSpec& fs = fields[i];
-        if (!field_data_helper::IsFixedLengthFieldType(fs.type))
-            fields_.push_back(_detail::FieldExtractor(fs));
+    if (!fast_alter_schema) {
+        fields_.clear();
+        fields_.reserve(n_fields);
+        for (size_t i = 0; i < n_fields; i++) {
+            const FieldSpec& fs = fields[i];
+            if (field_data_helper::IsFixedLengthFieldType(fs.type)) fields_.emplace_back(fs);
+        }
+        for (size_t i = 0; i < n_fields; i++) {
+            const FieldSpec& fs = fields[i];
+            if (!field_data_helper::IsFixedLengthFieldType(fs.type))
+                fields_.push_back(_detail::FieldExtractor(fs));
+        }
+    } else {
+        fieldsV2_.clear();
+        fieldsV2_.reserve(n_fields);
+        for (size_t i = 0; i < n_fields; i++) {
+            fieldsV2_.emplace_back(FieldSpec(fields[i]));
+            fieldsV2_.back().SetFieldId(i);
+        }
     }
     is_vertex_ = is_vertex;
     primary_field_ = primary;
@@ -706,18 +1361,26 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
         UnVertexIndex(id);
         UnEdgeIndex(id);
     }
+
     auto composite_index_key = GetRelationalCompositeIndexKey(del_ids);
     for (const auto &k : composite_index_key) {
         UnVertexCompositeIndex(k);
     }
-    del_ids.push_back(fields_.size());
-    size_t put_pos = del_ids.front();
-    for (size_t i = 0; i < del_ids.size() - 1; i++) {
-        for (size_t get_pos = del_ids[i] + 1; get_pos < del_ids[i + 1]; get_pos++) {
-            fields_[put_pos++] = std::move(fields_[get_pos]);
+
+    if (fast_alter_schema) {
+        for (size_t del_id : del_ids) {
+            fieldsV2_[del_id].MarkDeleted();
         }
+    } else {
+        del_ids.push_back(fields_.size());
+        size_t put_pos = del_ids.front();
+        for (size_t i = 0; i < del_ids.size() - 1; i++) {
+            for (size_t get_pos = del_ids[i] + 1; get_pos < del_ids[i + 1]; get_pos++) {
+                fields_[put_pos++] = std::move(fields_[get_pos]);
+            }
+        }
+        fields_.erase(fields_.begin() + put_pos, fields_.end());
     }
-    fields_.erase(fields_.begin() + put_pos, fields_.end());
     RefreshLayout();
 }
 
@@ -733,9 +1396,15 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
         }
         if (_F_UNLIKELY(name_to_idx_.find(f.name) != name_to_idx_.end()))
             throw FieldAlreadyExistsException(f.name);
-        fields_.push_back(_detail::FieldExtractor(f));
+        if (fast_alter_schema) {
+            FieldId id = fieldsV2_.size();
+            fieldsV2_.push_back(_detail::FieldExtractorV2(FieldSpec(f), id));
+            lgraph::CheckValidFieldNum(fieldsV2_.size());
+        } else {
+            fields_.push_back(_detail::FieldExtractor(f));
+            lgraph::CheckValidFieldNum(fields_.size());
+        }
     }
-    lgraph::CheckValidFieldNum(fields_.size());
     RefreshLayout();
 }
 
@@ -748,8 +1417,14 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         size_t fid = it->second;
         UnVertexIndex(fid);
         UnEdgeIndex(fid);
-        auto& extractor = fields_[fid];
-        extractor = _detail::FieldExtractor(f);
+        if (fast_alter_schema) {
+            auto& extractor = fieldsV2_[fid];
+            extractor = _detail::FieldExtractorV2(FieldSpec(f));
+            extractor.SetFieldId(fid);
+        } else {
+            auto& extractor = fields_[fid];
+            extractor = _detail::FieldExtractor(f);
+        }
         mod_ids.push_back(fid);
     }
     auto composite_index_key = GetRelationalCompositeIndexKey(mod_ids);
@@ -770,6 +1445,13 @@ std::vector<const FieldSpec*> Schema::GetFieldSpecPtrs() const {
 
 std::vector<FieldSpec> Schema::GetFieldSpecs() const {
     std::vector<FieldSpec> schema;
+    if (fast_alter_schema) {
+        schema.reserve(fieldsV2_.size());
+        for (auto& f : fieldsV2_) {
+            schema.emplace_back(f.GetFieldSpec());
+        }
+        return schema;
+    }
     schema.reserve(fields_.size());
     for (auto& f : fields_) {
         schema.emplace_back(f.GetFieldSpec());
@@ -780,7 +1462,10 @@ std::vector<FieldSpec> Schema::GetFieldSpecs() const {
 std::map<std::string, FieldSpec> Schema::GetFieldSpecsAsMap() const {
     std::map<std::string, FieldSpec> ret;
     for (auto& kv : name_to_idx_) {
-        ret.emplace_hint(ret.end(), std::make_pair(kv.first, fields_[kv.second].GetFieldSpec()));
+        ret.emplace_hint(
+            ret.end(),
+            std::make_pair(kv.first, fast_alter_schema ? fieldsV2_[kv.second].GetFieldSpec()
+                                                       : fields_[kv.second].GetFieldSpec()));
     }
     return ret;
 }
@@ -795,6 +1480,16 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(size_t field_num) co
     return &fields_[field_num];
 }
 
+const _detail::FieldExtractorV2* Schema::GetFieldExtractorV2(size_t field_num) const {
+    if (_F_UNLIKELY(field_num >= fieldsV2_.size())) throw FieldNotFoundException(field_num);
+    return &fieldsV2_[field_num];
+}
+
+const _detail::FieldExtractorV2* Schema::TryGetFieldExtractorV2(size_t field_num) const {
+    if (_F_UNLIKELY(field_num >= fieldsV2_.size())) return nullptr;
+    return &fieldsV2_[field_num];
+}
+
 const _detail::FieldExtractor* Schema::GetFieldExtractor(const std::string& field_name) const {
     auto it = name_to_idx_.find(field_name);
     if (_F_UNLIKELY(it == name_to_idx_.end())) throw FieldNotFoundException(field_name);
@@ -807,6 +1502,19 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(const std::string& f
     return &fields_[it->second];
 }
 
+const _detail::FieldExtractorV2* Schema::GetFieldExtractorV2(const std::string& field_name) const {
+    auto it = name_to_idx_.find(field_name);
+    if (_F_UNLIKELY(it == name_to_idx_.end())) throw FieldNotFoundException(field_name);
+    return &fieldsV2_[it->second];
+}
+
+const _detail::FieldExtractorV2* Schema::TryGetFieldExtractorV2(
+    const std::string& field_name) const {
+    auto it = name_to_idx_.find(field_name);
+    if (_F_UNLIKELY(it == name_to_idx_.end())) return nullptr;
+    return &fieldsV2_[it->second];
+}
+
 std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
     std::vector<CompositeIndexSpec> compositeIndexSpecList;
     for (const auto &kv : composite_index_map) {
@@ -814,7 +1522,8 @@ std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
         boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;
         for (int i = 0; i < (int)ids.size(); i++) {
-            fields.emplace_back(this->fields_[std::stoi(ids[i])].Name());
+            fields.emplace_back(fast_alter_schema ? this->fieldsV2_[std::stoi(ids[i])].Name() :
+                this->fields_[std::stoi(ids[i])].Name());
         }
         compositeIndexSpecList.push_back({label_, fields, kv.second->type_});
     }
@@ -822,6 +1531,9 @@ std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
 }
 
 size_t Schema::GetFieldId(const std::string& name) const {
+    if (fast_alter_schema) {
+        return GetFieldExtractorV2(name)->GetFieldId();
+    }
     auto fe = GetFieldExtractor(name);
     return fe->GetFieldId();
 }
@@ -844,10 +1556,18 @@ std::vector<size_t> Schema::GetFieldIds(const std::vector<std::string>& names) c
 
 std::string Schema::DumpRecord(const Value& record) const {
     std::string ret = "{";
-    for (size_t i = 0; i < fields_.size(); i++) {
-        auto& f = fields_[i];
-        ret.append(f.Name()).append("=").append(f.FieldToString(record));
-        if (i != fields_.size() - 1) ret.append(", ");
+    if (fast_alter_schema) {
+        for (size_t i = 0; i < fieldsV2_.size(); i++) {
+            auto& f = fieldsV2_[i];
+            ret.append(f.Name()).append("=").append(f.FieldToString(record));
+            if (i != fieldsV2_.size() - 1) ret.append(", ");
+        }
+    } else {
+        for (size_t i = 0; i < fields_.size(); i++) {
+            auto& f = fields_[i];
+            ret.append(f.Name()).append("=").append(f.FieldToString(record));
+            if (i != fields_.size() - 1) ret.append(", ");
+        }
     }
     ret.append("}");
     return ret;

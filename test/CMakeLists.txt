@@ -40,6 +40,7 @@ add_executable(unit_test
         test_embed.cpp
         test_field_data_helper.cpp
         test_field_extractor.cpp
+        test_field_extractor_v2.cpp
         test_fulltext.cpp
         test_galaxy.cpp
         test_global_config.cpp
@@ -100,6 +101,7 @@ add_executable(unit_test
         test_rpc.cpp
         test_schema.cpp
         test_schema_change.cpp
+        test_schema_fast_alter.cpp
         test_schema_manager.cpp
         test_bolt_hydrator.cpp
         test_service.cpp
