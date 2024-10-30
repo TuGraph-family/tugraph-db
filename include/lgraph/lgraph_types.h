@@ -1344,7 +1344,7 @@ struct FieldSpec {
     /** @brief   the value of the field is set when it is created. */
     FieldData init_value;
     /** @brief   is set init value? */
-    bool inited_value;
+    bool set_init_value;
     /** @brief  the default value when inserting data. */
     FieldData default_value;
     /** @brief  is set default value? */
@@ -1356,7 +1356,7 @@ struct FieldSpec {
           optional(false),
           deleted(false),
           id(0),
-          inited_value(false),
+          set_init_value(false),
           set_default_value(false) {}
 
     /**
@@ -1373,7 +1373,7 @@ struct FieldSpec {
           optional(nu),
           deleted(false),
           id(0),
-          inited_value(false),
+          set_init_value(false),
           set_default_value(false) {}
     FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id)
         : name(n),
@@ -1381,7 +1381,7 @@ struct FieldSpec {
           optional(nu),
           deleted(false),
           id(id),
-          inited_value(false),
+          set_init_value(false),
           set_default_value(false) {}
     FieldSpec(std::string&& n, FieldType t, bool nu, uint16_t id)
         : name(std::move(n)),
@@ -1389,7 +1389,7 @@ struct FieldSpec {
           optional(nu),
           deleted(false),
           id(id),
-          inited_value(false),
+          set_init_value(false),
           set_default_value(false) {}
     FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& iv,
               const FieldData& dv)
@@ -1398,7 +1398,7 @@ struct FieldSpec {
           optional(nu),
           id(id),
           init_value(iv),
-          inited_value(true),
+          set_init_value(true),
           default_value(dv),
           set_default_value(true) {}
     FieldSpec(const FieldSpec& spec)
@@ -1408,14 +1408,14 @@ struct FieldSpec {
           deleted(false),
           id(0),
           init_value(spec.init_value),
-          inited_value(spec.inited_value),
+          set_init_value(spec.set_init_value),
           default_value(spec.default_value),
           set_default_value(spec.set_default_value) {}
 
     inline bool operator==(const FieldSpec& rhs) const {
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&
                deleted == rhs.deleted && id == rhs.id && init_value == rhs.init_value &&
-               inited_value == rhs.inited_value && default_value == rhs.default_value &&
+               set_init_value == rhs.set_init_value && default_value == rhs.default_value &&
                set_default_value == rhs.set_default_value;
     }
 
@@ -1424,7 +1424,7 @@ struct FieldSpec {
         return "lgraph_api::FieldSpec(name=[" + name + "],type=" + lgraph_api::to_string(type) +
                "),optional=" + std::to_string(optional) + ",fieldid=" + std::to_string(id) +
                ",isDeleted=" + std::to_string(deleted) +
-               (inited_value ? ",init_value=" + init_value.ToString() : "") +
+               (set_init_value ? ",init_value=" + init_value.ToString() : "") +
                (set_default_value ? ",default_value=" + default_value.ToString() : "");
     }
 };

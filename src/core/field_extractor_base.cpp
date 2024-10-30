@@ -39,7 +39,7 @@ std::string FieldExtractorBase::FieldToString(const Value& record) const {
     if (GetIsNull(record)) return "\"null\"";
     std::string ret;
 
-#define _COPY_FIELD_AND_RETURN_STR_(record, ft)                                       \
+#define COPY_FIELD_AND_RETURN_STR_(record, ft)                                       \
     do {                                                                              \
         typename field_data_helper::FieldType2StorageType<FieldType::ft>::type d = 0; \
         typedef typename field_data_helper::FieldType2CType<FieldType::ft>::type CT;  \
@@ -49,19 +49,19 @@ std::string FieldExtractorBase::FieldToString(const Value& record) const {
 
     switch (def_.type) {
     case FieldType::BOOL:
-        _COPY_FIELD_AND_RETURN_STR_(record, BOOL);
+        COPY_FIELD_AND_RETURN_STR_(record, BOOL);
     case FieldType::INT8:
-        _COPY_FIELD_AND_RETURN_STR_(record, INT8);
+        COPY_FIELD_AND_RETURN_STR_(record, INT8);
     case FieldType::INT16:
-        _COPY_FIELD_AND_RETURN_STR_(record, INT16);
+        COPY_FIELD_AND_RETURN_STR_(record, INT16);
     case FieldType::INT32:
-        _COPY_FIELD_AND_RETURN_STR_(record, INT32);
+        COPY_FIELD_AND_RETURN_STR_(record, INT32);
     case FieldType::INT64:
-        _COPY_FIELD_AND_RETURN_STR_(record, INT64);
+        COPY_FIELD_AND_RETURN_STR_(record, INT64);
     case FieldType::FLOAT:
-        _COPY_FIELD_AND_RETURN_STR_(record, FLOAT);
+        COPY_FIELD_AND_RETURN_STR_(record, FLOAT);
     case FieldType::DOUBLE:
-        _COPY_FIELD_AND_RETURN_STR_(record, DOUBLE);
+        COPY_FIELD_AND_RETURN_STR_(record, DOUBLE);
     case FieldType::DATE:
         {
             int32_t i;
@@ -82,9 +82,6 @@ std::string FieldExtractorBase::FieldToString(const Value& record) const {
         }
     case FieldType::BLOB:
         {
-            // std::string ret(GetDataSize(record), 0);
-            // GetCopyRaw(record, &ret[0], ret.size());
-            // return ::lgraph_api::base64::Encode(ret.substr(2));
             return fma_common::StringFormatter::Format("[BLOB]");
         }
     case FieldType::POINT:

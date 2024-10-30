@@ -15,18 +15,8 @@
 #include "core/field_extractor_v1.h"
 
 namespace lgraph {
+
 namespace _detail {
-/**
- * Parse string data as type and set the field
- *
- * \tparam  T   Type into which the data will be parsed.
- * \param [in,out]  record  The record.
- * \param           data    The string representation of the data. If it is
- * NBytes or String, then the data is stored as-is.
- *
- * \return  ErrorCode::OK if succeeds
- *          FIELD_PARSE_FAILED.
- */
 
 bool FieldExtractorV1::GetIsNull(const Value& record) const {
     if (!IsOptional()) {

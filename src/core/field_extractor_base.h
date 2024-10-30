@@ -31,8 +31,12 @@ namespace _detail {
     template <typename _TYPE_>              \
     typename std::enable_if<                \
         std::is_integral<_TYPE_>::value || std::is_floating_point<_TYPE_>::value, _RT_>::type
+
+// Base class for FieldExtractor, implementing all operations related to Field definitions,
+// including type/index retrieval, attribute access and obtaining copies from data.
+
 class FieldExtractorBase {
-    friend class lgraph::Schema;
+    friend class Schema;
     FieldSpec def_;
     FieldId field_id_ = 0;
     bool is_vfield_ = false;
@@ -55,7 +59,7 @@ class FieldExtractorBase {
     }
 
     FieldExtractorBase(FieldExtractorBase&& rhs) noexcept {
-        def_ = std::move(rhs.GetFieldSpec());
+        def_ = rhs.GetFieldSpec();
         is_vfield_ = rhs.is_vfield_;
         fulltext_indexed_ = rhs.fulltext_indexed_;
         vertex_index_ = std::move(rhs.vertex_index_);
@@ -68,12 +72,13 @@ class FieldExtractorBase {
 
     FieldExtractorBase& operator=(FieldExtractorBase&& rhs) noexcept {
         if (this == &rhs) return *this;
-        def_ = std::move(rhs.def_);
+        def_ = rhs.def_;
         is_vfield_ = rhs.is_vfield_;
         fulltext_indexed_ = rhs.fulltext_indexed_;
         vertex_index_ = std::move(rhs.vertex_index_);
         edge_index_ = std::move(rhs.edge_index_);
         vector_index_ = std::move(rhs.vector_index_);
+        return *this;
     }
 
     FieldExtractorBase& operator=(const FieldExtractorBase& rhs) {
@@ -84,39 +89,61 @@ class FieldExtractorBase {
         edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
         fulltext_indexed_ = rhs.fulltext_indexed_;
         vector_index_ = rhs.vector_index_;
+        return *this;
     }
 
-    // Get fieldExtractor.
+    // Get field info and index info.
     const FieldSpec& GetFieldSpec() const { return def_; }
+
     const std::string& Name() const { return def_.name; }
+
     FieldType Type() const { return def_.type; }
+
     size_t TypeSize() const { return field_data_helper::FieldTypeSize(def_.type); }
+
     FieldData GetDefaultValue() const { return def_.default_value; }
+
     FieldData GetInitedValue() const { return def_.init_value; }
+
     bool HasDefaultValue() const { return def_.set_default_value; }
-    bool HasInitedValue() const { return def_.inited_value; }
+
+    bool HasInitedValue() const { return def_.set_init_value; }
+
     bool IsOptional() const { return def_.optional; }
+
     bool IsFixedType() const { return field_data_helper::IsFixedLengthFieldType(def_.type); }
+
     bool IsDeleted() const { return def_.deleted; }
+
     VertexIndex* GetVertexIndex() const { return vertex_index_.get(); }
+
     EdgeIndex* GetEdgeIndex() const { return edge_index_.get(); }
+
     bool FullTextIndexed() const { return fulltext_indexed_; }
+
     VectorIndex* GetVectorIndex() const { return vector_index_.get(); }
+
     FieldId GetFieldId() const { return def_.id; }
 
-    // Set fieldExtractor.
-
+    // Set field info and index info.
     void SetFieldId(FieldId id) { def_.id = id; }
+
     void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
+
     void SetEdgeIndex(EdgeIndex* edgeindex) { edge_index_.reset(edgeindex); }
+
     void SetVectorIndex(VectorIndex* vectorindex) { vector_index_.reset(vectorindex); }
+
     void SetFullTextIndex(bool fulltext_indexed) { fulltext_indexed_ = fulltext_indexed; }
+
     void MarkDeleted() {
         def_.deleted = true;
-        // free data space when marked deleted
+        // free data when be marked deleted
         def_.init_value.~FieldData();
+        def_.init_value = FieldData();
         def_.default_value.~FieldData();
-        def_.inited_value = false;
+        def_.default_value = FieldData();
+        def_.set_init_value = false;
         def_.set_default_value = false;
     }
 
@@ -127,36 +154,50 @@ class FieldExtractorBase {
 
     void SetInitValue(const FieldData& data) {
         def_.init_value = FieldData(data);
-        def_.inited_value = true;
+        def_.set_init_value = true;
     }
 
-    // record related.
+    // record related. Get or modify record via field_extractor_base.
 
     // Get
+
+    // Get data size in record, working for both variable and fixed data.
     size_t DataSize(const Value& record) const { return GetDataSize(record); }
+
     virtual bool GetIsNull(const Value& record) const = 0;
+
     virtual size_t GetDataSize(const Value& record) const = 0;
+
     virtual void* GetFieldPointer(const Value& record) const = 0;
+
     virtual void GetCopyRaw(const Value& record, void* data, size_t size) const = 0;
+
     virtual size_t GetFieldOffset(const Value& record) const = 0;
+
     virtual char* GetNullArray(const Value& record) const = 0;
 
-    // Get copy
+    // Get copy from record.
     ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const {
         FMA_DBG_ASSERT(field_data_helper::FieldTypeSize(def_.type) == sizeof(T));
         size_t offset = GetFieldOffset(record);
         size_t size = GetDataSize(record);
+        // for Field_extractor_v1, size always equals sizeof(T)
         if (size == sizeof(T)) {
             memcpy(&data, (char*)record.Data() + offset, sizeof(T));
         } else {
+            // For FieldExtractorV2, even with fixed-length data, there may be cases where the data length
+            // in the record does not match the defined length, requiring conversion.
             ConvertData(&data, (char*)record.Data() + offset, size);
         }
     }
+
     void GetCopy(const Value& record, std::string& data) const;
+
     void GetCopy(const Value& record, Value& data) const;
+
     Value GetConstRef(const Value& record) const;
 
-    // Blob etc.
+    // Blob related.
     template <typename GetBlobByKeyFunc>
     Value GetBlobConstRef(const Value& record, const GetBlobByKeyFunc& get_blob_by_key) const {
         FMA_DBG_ASSERT(Type() == FieldType::BLOB);
@@ -195,13 +236,11 @@ class FieldExtractorBase {
             if (!::lgraph_api::base64::TryDecode(s.data(), s.size(), decoded))
                 throw ParseStringException(Name(), s, Type());
             return Value(decoded);
-        } else {
-            throw ParseIncompatibleTypeException(Name(), fd.type, FieldType::BLOB);
-            return Value();
         }
+        throw ParseIncompatibleTypeException(Name(), fd.type, FieldType::BLOB);
     }
 
-    // set record.
+    // set record via field_extractor_base.
     virtual void SetIsNull(const Value& record, bool is_null) const = 0;
 
     std::string FieldToString(const Value& record) const;
@@ -209,7 +248,7 @@ class FieldExtractorBase {
     /**
      *  Convert data for integral and floating types.
      *  If we change the data type of floating-point or integer values
-     *  (i.e., by altering their defined length), we need to adjust their values accordingly.
+     *  (i.e., by altering their defined length), we need to adjust their return values accordingly.
      *  For example, when converting from INT64 to INT8 (a relatively rare operation),
      *  we need to return an appropriate value within the range of the new type.
      *  This approach allows us to retain the original value when modifying the data type,
@@ -237,8 +276,8 @@ class FieldExtractorBase {
 
             if (temp > std::numeric_limits<T>::max()) {
                 *dst = std::numeric_limits<T>::max();
-            } else if (temp < std::numeric_limits<T>::min()) {
-                *dst = std::numeric_limits<T>::min();
+            } else if (temp < - std::numeric_limits<T>::max()) {
+                *dst = - std::numeric_limits<T>::max();
             } else {
                 *dst = static_cast<T>(temp);
             }

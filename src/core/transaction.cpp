@@ -1186,7 +1186,7 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
     Value new_prop;
     new_prop.Copy(old_prop);
     for (size_t i = 0; i < n_fields; i++) {
-        auto fe = schema->GetFieldExtractor(fields[i]);
+        auto fe = Schema::GetFieldExtractorV1(schema->GetFieldExtractor(fields[i]));
         if (fe->Type() == FieldType::BLOB) {
             UpdateBlobField(fe, values[i], new_prop, blob_manager_, *txn_);
         } else {

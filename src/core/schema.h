@@ -62,8 +62,8 @@ class SchemaManager;
 */
 
 /**
- * If fast_alter_schema in labeloptions is ture, Schema will have another order.
- ** The record is layout as the following:
+ * If fast_alter_schema is true, an alternative schema order is used.
+ ** Record layout:
  ** [Version][LabelId][Field-count][Null-array][Offset-array][Fixed-data and V-data Pointer]
  [V-data]
  ** in which:
@@ -84,7 +84,7 @@ class SchemaManager;
  **                     of variable-length data, with their order determined
  **                     by the attribute IDs. [Fixed-data size + num-vfields * 4 bytes]
  **     V-data:         stores the data of the variable-length fields. Store them as
- **                     [Length][Data] pairs.
+ **                     [Length][Data] pairs. |11|hello world|
 */
 
 class Schema {
@@ -96,8 +96,13 @@ class Schema {
     bool deleted_ = false;
     bool is_vertex_ = false;
 
+    // Conditionally instantiate either FieldExtractorV2 or FieldExtractorV1 based on
+    // whether fast_alter_schema is enabled or disabled.
+
     std::vector<std::shared_ptr<_detail::FieldExtractorBase>> fields_;
     std::unordered_map<std::string, size_t> name_to_idx_;
+
+    // these for fields only work for fast_alter_schema = false;
     size_t n_fixed_ = 0;
     size_t n_variable_ = 0;
     size_t n_nullable_ = 0;
@@ -207,6 +212,7 @@ class Schema {
     }
 
     void SetFastAlterSchema(bool fast_alter) { fast_alter_schema = fast_alter;}
+
     void SetEdgeConstraintsLids(std::unordered_map<LabelId, std::unordered_set<LabelId>> lids) {
         edge_constraints_lids_ = std::move(lids);
     }
@@ -267,35 +273,20 @@ class Schema {
     size_t GetNumFields() const { return fields_.size(); }
     bool GetFastAlterSchema() const {return fast_alter_schema;}
 
-    _detail::FieldExtractorBase* GetFieldExtractorBase(size_t field_num) const;
-    _detail::FieldExtractorBase* TryGetFieldExtractorBase(size_t field_num) const;
-    _detail::FieldExtractorBase* GetFieldExtractorBase(const std::string& field_name) const;
-    _detail::FieldExtractorBase* TryGetFieldExtractorBase(const std::string& field_name) const;
+    _detail::FieldExtractorBase* GetFieldExtractor(size_t field_num) const;
 
-    _detail::FieldExtractorV2* GetFieldExtractorV2(size_t field_num) const {
-        return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_num));
-    }
-    _detail::FieldExtractorV2* TryGetFieldExtractorV2(size_t field_num) const {
-        return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_num));
-    }
-    _detail::FieldExtractorV2* GetFieldExtractorV2(const std::string& field_name) const {
-        return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_name));
-    }
-    _detail::FieldExtractorV2* TryGetFieldExtractorV2(const std::string& field_name) const {
-        return dynamic_cast<_detail::FieldExtractorV2*>(GetFieldExtractorBase(field_name));
+    _detail::FieldExtractorBase* TryGetFieldExtractor(size_t field_num) const;
+
+    _detail::FieldExtractorBase* GetFieldExtractor(const std::string& field_name) const;
+
+    _detail::FieldExtractorBase* TryGetFieldExtractor(const std::string& field_name) const;
+
+    static _detail::FieldExtractorV2* GetFieldExtractorV2(_detail::FieldExtractorBase* extr) {
+        return dynamic_cast<_detail::FieldExtractorV2*>(extr);
     }
 
-    _detail::FieldExtractorV1* GetFieldExtractor(size_t field_num) const {
-        return dynamic_cast<_detail::FieldExtractorV1*>(GetFieldExtractorBase(field_num));
-    }
-    _detail::FieldExtractorV1* TryGetFieldExtractor(size_t field_num) const {
-        return dynamic_cast<_detail::FieldExtractorV1*>(GetFieldExtractorBase(field_num));
-    }
-    _detail::FieldExtractorV1* GetFieldExtractor(const std::string& field_name) const {
-        return dynamic_cast<_detail::FieldExtractorV1*>(GetFieldExtractorBase(field_name));
-    }
-    _detail::FieldExtractorV1* TryGetFieldExtractor(const std::string& field_name) const {
-        return dynamic_cast<_detail::FieldExtractorV1*>(GetFieldExtractorBase(field_name));
+    static _detail::FieldExtractorV1* GetFieldExtractorV1(_detail::FieldExtractorBase* extr) {
+        return dynamic_cast<_detail::FieldExtractorV1*>(extr);
     }
 
     size_t GetFieldId(const std::string& name) const;
@@ -334,7 +325,7 @@ class Schema {
         std::vector<FieldData> fds;
         fds.reserve(n_fields);
         for (size_t i = 0; i < n_fields; i++) {
-            const _detail::FieldExtractorV1* fe = GetFieldExtractor(fields[i]);
+            const _detail::FieldExtractorBase* fe = GetFieldExtractor(fields[i]);
             if (fe->GetIsNull(record)) return FieldData();
             fds.push_back(GetFieldDataFromField(fe, record));
         }
@@ -349,7 +340,7 @@ class Schema {
         std::vector<FieldData> fds;
         fds.reserve(n_fields);
         for (size_t i = 0; i < n_fields; i++) {
-            const _detail::FieldExtractorV1* fe = GetFieldExtractor(fields[i]);
+            const _detail::FieldExtractorBase* fe = GetFieldExtractor(fields[i]);
             if (fe->GetIsNull(record)) return FieldData();
             fds.push_back(GetFieldDataFromField(fe, record));
         }
@@ -360,14 +351,13 @@ class Schema {
     template <typename FieldT, typename DataT>
     typename std::enable_if<IS_FIELD_TYPE(FieldT) && IS_DATA_TYPE(DataT), void>::type SetField(
         Value& record, const FieldT& name_or_num, const DataT& value) const {
+        auto extr = GetFieldExtractor(name_or_num);
+        FMA_DBG_ASSERT(extr->Type() != FieldType::BLOB);
         if (fast_alter_schema) {
-            auto extr = GetFieldExtractorV2(name_or_num);
-            FMA_DBG_ASSERT(extr->Type() != FieldType::BLOB);
             ParseAndSet(record, value, extr);
+        } else {
+            GetFieldExtractorV1(extr)->ParseAndSet(record, value);
         }
-        auto extractor = GetFieldExtractor(name_or_num);
-        FMA_DBG_ASSERT(extractor->Type() != FieldType::BLOB);
-        extractor->ParseAndSet(record, value);
     }
 
     // sets blob field
@@ -375,14 +365,12 @@ class Schema {
     typename std::enable_if<IS_FIELD_TYPE(FieldT) && IS_DATA_TYPE(DataT), void>::type SetBlobField(
         Value& record, const FieldT& name_or_num, const DataT& value,
         const OnLargeBlobFunc& on_large_blob) const {
-        if (fast_alter_schema) {
-            auto extractor = GetFieldExtractorV2(name_or_num);
-            FMA_DBG_ASSERT(extractor->Type() == FieldType::BLOB);
-            ParseAndSet(record, value, on_large_blob. extr);
-        }
         auto extractor = GetFieldExtractor(name_or_num);
         FMA_DBG_ASSERT(extractor->Type() == FieldType::BLOB);
-        extractor->ParseAndSet(record, value, on_large_blob);
+        if (fast_alter_schema) {
+            ParseAndSetBlob(record, value, on_large_blob, extractor);
+        }
+        GetFieldExtractorV1(extractor)->ParseAndSet(record, value, on_large_blob);
     }
 
     //// get non-blob field
@@ -400,9 +388,8 @@ class Schema {
     typename std::enable_if<IS_FIELD_TYPE(FieldT), FieldData>::type GetField(
         const Value& record, const FieldT& field_name_or_num,
         const GetBlobByKeyFunc& get_blob) const {
-        _detail::FieldExtractorBase* extractor = TryGetFieldExtractorBase(field_name_or_num);
+        _detail::FieldExtractorBase* extractor = TryGetFieldExtractor(field_name_or_num);
         if (!extractor) return FieldData();
-
         if (fast_alter_schema) {
             if (dynamic_cast<_detail::FieldExtractorV2*>(extractor)->GetRecordCount(record) <
                 extractor->GetFieldId() + 1) {
@@ -415,17 +402,9 @@ class Schema {
 
         if (extractor->GetIsNull(record)) return FieldData();
         if (_F_UNLIKELY(extractor->Type() == FieldType::BLOB)) {
-            if (fast_alter_schema)
-                return GetFieldDataFromBlobField(
-                    dynamic_cast<_detail::FieldExtractorV2*>(extractor), record, get_blob);
-            return GetFieldDataFromBlobField(dynamic_cast<_detail::FieldExtractorV1*>(extractor),
-                                             record, get_blob);
+            return GetFieldDataFromBlobField(extractor, record, get_blob);
         } else {
-            if (fast_alter_schema)
-                return GetFieldDataFromField(dynamic_cast<_detail::FieldExtractorV2*>(extractor),
-                                             record);
-            return GetFieldDataFromField(dynamic_cast<_detail::FieldExtractorV1*>(extractor),
-                                         record);
+            return GetFieldDataFromField(extractor,record);
         }
     }
 
@@ -441,12 +420,12 @@ class Schema {
         for (size_t i = 0; i < n_fields; i++) {
             const FieldT& name_or_num = fields[i];
             const DataT& data = values[i];
-            _detail::FieldExtractorBase* extr = GetFieldExtractorBase(name_or_num);
+            _detail::FieldExtractorBase* extr = GetFieldExtractor(name_or_num);
             is_set[extr->GetFieldId()] = true;
             if (fast_alter_schema) {
                 ParseAndSet(v, data, extr);
             } else {
-                dynamic_cast<_detail::FieldExtractorV1*>(extr)->ParseAndSet(v, data);
+                GetFieldExtractorV1(extr)->ParseAndSet(v, data);
             }
         }
         for (size_t i = 0; i < fields_.size(); i++) {
@@ -469,20 +448,20 @@ class Schema {
         for (size_t i = 0; i < n_fields; i++) {
             const FT& name_or_num = fields[i];
             const DT& data = values[i];
-            _detail::FieldExtractorBase* extr = GetFieldExtractorBase(name_or_num);
+            _detail::FieldExtractorBase* extr = GetFieldExtractor(name_or_num);
             is_set[extr->GetFieldId()] = true;
             if (_F_UNLIKELY(extr->Type() == FieldType::BLOB)) {
                 if (fast_alter_schema) {
                     ParseAndSetBlob(prop, data, on_large_blob, extr);
                 } else {
-                    dynamic_cast<_detail::FieldExtractorV1*>(extr)->ParseAndSetBlob(prop, data,
+                    GetFieldExtractorV1(extr)->ParseAndSetBlob(prop, data,
                                                                                   on_large_blob);
                 }
             } else {
                 if (fast_alter_schema) {
                     ParseAndSet(prop, data, extr);
                 } else {
-                    dynamic_cast<_detail::FieldExtractorV1*>(extr)->ParseAndSet(prop, data);
+                    GetFieldExtractorV1(extr)->ParseAndSet(prop, data);
                 }
             }
         }
@@ -495,7 +474,6 @@ class Schema {
     }
 
     // --------------------
-    // fieldextractor v2 related
     void ParseAndSet(Value& record, const FieldData& data,
                               _detail::FieldExtractorBase* extractor) const;
     void ParseAndSet(Value& record, const std::string& data,
@@ -790,20 +768,12 @@ class Schema {
     Value CreateRecordWithLabelId() const;
 
  protected:
-    FieldData GetFieldDataFromField(const _detail::FieldExtractorV1* extractor,
+    FieldData GetFieldDataFromField(const _detail::FieldExtractorBase* extractor,
                                     const Value& record) const;
-    FieldData GetFieldDataFromField(const _detail::FieldExtractorV2* extractor,
-                                const Value& record) const;
 
     template <typename GetBlobFunc>
-    FieldData GetFieldDataFromBlobField(const _detail::FieldExtractorV1* extractor,
+    FieldData GetFieldDataFromBlobField(const _detail::FieldExtractorBase* extractor,
                                         const Value& record, const GetBlobFunc& get_blob) const {
-        return FieldData::Blob(extractor->GetBlobConstRef(record, get_blob).AsString());
-    }
-
-    template <typename GetBlobFunc>
-    FieldData GetFieldDataFromBlobField(const _detail::FieldExtractorV2* extractor,
-                                    const Value& record, const GetBlobFunc& get_blob) const {
         return FieldData::Blob(extractor->GetBlobConstRef(record, get_blob).AsString());
     }
 

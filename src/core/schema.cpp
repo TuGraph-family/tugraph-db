@@ -338,7 +338,7 @@ void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& re
     }
 }
 
-FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractorV1* extractor,
+FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractorBase* extractor,
                                         const Value& record) const {
 #define _GET_COPY_AND_RETURN_FD(ft)                                                    \
     do {                                                                               \
@@ -439,114 +439,6 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractorV1* extract
     {
         return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
     }
-    case FieldType::NUL:
-        LOG_ERROR() << "FieldType NUL";
-    }
-    return FieldData();
-}
-
-
-FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractorV2* extractor,
-                                        const Value& record) const {
-#define _GET_COPY_AND_RETURN_FD(ft)                                                    \
-    do {                                                                               \
-        typename field_data_helper::FieldType2StorageType<FieldType::ft>::type sd;     \
-        extractor->GetCopy(record, sd);                                                \
-        return FieldData(                                                              \
-            static_cast<field_data_helper::FieldType2CType<FieldType::ft>::type>(sd)); \
-    } while (0)
-
-    switch (extractor->Type()) {
-    case FieldType::BOOL:
-        _GET_COPY_AND_RETURN_FD(BOOL);
-    case FieldType::INT8:
-        _GET_COPY_AND_RETURN_FD(INT8);
-    case FieldType::INT16:
-        _GET_COPY_AND_RETURN_FD(INT16);
-    case FieldType::INT32:
-        _GET_COPY_AND_RETURN_FD(INT32);
-    case FieldType::INT64:
-        _GET_COPY_AND_RETURN_FD(INT64);
-    case FieldType::DATE:
-        _GET_COPY_AND_RETURN_FD(DATE);
-    case FieldType::DATETIME:
-        _GET_COPY_AND_RETURN_FD(DATETIME);
-    case FieldType::FLOAT:
-        _GET_COPY_AND_RETURN_FD(FLOAT);
-    case FieldType::DOUBLE:
-        _GET_COPY_AND_RETURN_FD(DOUBLE);
-    case FieldType::STRING:
-        return FieldData(extractor->GetConstRef(record).AsString());
-    case FieldType::BLOB:
-        LOG_ERROR() << "BLOB cannot be obtained directly, use GetFieldDataFromField(Value, "
-                       "Extractor, GetBlobKeyFunc)";
-    case FieldType::POINT:
-        {
-            std::string EWKB = extractor->GetConstRef(record).AsString();
-            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-            switch (srid) {
-            case lgraph_api::SRID::NUL:
-                THROW_CODE(InputError, "invalid srid!\n");
-            case lgraph_api::SRID::WGS84:
-                return FieldData(PointWgs84(EWKB));
-            case lgraph_api::SRID::CARTESIAN:
-                return FieldData(PointCartesian(EWKB));
-            default:
-                THROW_CODE(InputError, "invalid srid!\n");
-            }
-        }
-
-    case FieldType::LINESTRING:
-        {
-            std::string EWKB = extractor->GetConstRef(record).AsString();
-            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-            switch (srid) {
-            case lgraph_api::SRID::NUL:
-                THROW_CODE(InputError, "invalid srid!\n");
-            case lgraph_api::SRID::WGS84:
-                return FieldData(LineStringWgs84(EWKB));
-            case lgraph_api::SRID::CARTESIAN:
-                return FieldData(LineStringCartesian(EWKB));
-            default:
-                THROW_CODE(InputError, "invalid srid!\n");
-            }
-        }
-
-    case FieldType::POLYGON:
-        {
-            std::string EWKB = extractor->GetConstRef(record).AsString();
-            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-            switch (srid) {
-            case lgraph_api::SRID::NUL:
-                THROW_CODE(InputError, "invalid srid!\n");
-            case lgraph_api::SRID::WGS84:
-                return FieldData(PolygonWgs84(EWKB));
-            case lgraph_api::SRID::CARTESIAN:
-                return FieldData(PolygonCartesian(EWKB));
-            default:
-                THROW_CODE(InputError, "invalid srid!\n");
-            }
-        }
-
-    case FieldType::SPATIAL:
-        {
-            std::string EWKB = extractor->GetConstRef(record).AsString();
-            lgraph_api::SRID srid = lgraph_api::ExtractSRID(EWKB);
-            switch (srid) {
-            case lgraph_api::SRID::NUL:
-                THROW_CODE(InputError, "invalid srid!\n");
-            case lgraph_api::SRID::WGS84:
-                return FieldData(SpatialWgs84(EWKB));
-            case lgraph_api::SRID::CARTESIAN:
-                return FieldData(SpatialCartesian(EWKB));
-            default:
-                THROW_CODE(InputError, "invalid srid!\n");
-            }
-        }
-    case FieldType::FLOAT_VECTOR:
-        {
-            return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
-        }
     case FieldType::NUL:
         LOG_ERROR() << "FieldType NUL";
     }
@@ -888,9 +780,9 @@ void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
     dst.Resize(dst.Size());
     for (size_t i = 0; i < fids_in_dst.size(); i++) {
         const _detail::FieldExtractorV1* dst_fe =
-            static_cast<_detail::FieldExtractorV1*>(GetFieldExtractor(fids_in_dst[i]));
+            GetFieldExtractorV1(GetFieldExtractor(fids_in_dst[i]));
         const _detail::FieldExtractorV1* src_fe =
-            static_cast<_detail::FieldExtractorV1*>(src_schema->GetFieldExtractor(fids_in_src[i]));
+            GetFieldExtractorV1(src_schema->GetFieldExtractor(fids_in_src[i]));
         dst_fe->CopyDataRaw(dst, src, src_fe);
     }
 }
@@ -924,7 +816,7 @@ void Schema::RefreshLayout() {
     n_nullable_ = 0;
     for (auto& f : fields_) {
         if (f->IsOptional()) {
-            (static_cast<_detail::FieldExtractorV1*>(f.get()))->SetNullableOff(n_nullable_);
+            GetFieldExtractorV1(f.get())->SetNullableOff(n_nullable_);
             n_nullable_++;
         }
     }
@@ -1386,23 +1278,23 @@ std::map<std::string, FieldSpec> Schema::GetFieldSpecsAsMap() const {
     return ret;
 }
 
-_detail::FieldExtractorBase* Schema::GetFieldExtractorBase(size_t field_num) const {
+_detail::FieldExtractorBase* Schema::GetFieldExtractor(size_t field_num) const {
     if (_F_UNLIKELY(field_num >= fields_.size())) throw FieldNotFoundException(field_num);
     return fields_[field_num].get();
 }
 
-_detail::FieldExtractorBase* Schema::TryGetFieldExtractorBase(size_t field_num) const {
+_detail::FieldExtractorBase* Schema::TryGetFieldExtractor(size_t field_num) const {
     if (_F_UNLIKELY(field_num >= fields_.size())) return nullptr;
     return fields_[field_num].get();
 }
 
-_detail::FieldExtractorBase* Schema::GetFieldExtractorBase(const std::string& field_name) const {
+_detail::FieldExtractorBase* Schema::GetFieldExtractor(const std::string& field_name) const {
     auto it = name_to_idx_.find(field_name);
     if (_F_UNLIKELY(it == name_to_idx_.end())) throw FieldNotFoundException(field_name);
     return fields_[it->second].get();
 }
 
-_detail::FieldExtractorBase* Schema::TryGetFieldExtractorBase(const std::string& field_name) const {
+_detail::FieldExtractorBase* Schema::TryGetFieldExtractor(const std::string& field_name) const {
     auto it = name_to_idx_.find(field_name);
     if (_F_UNLIKELY(it == name_to_idx_.end())) return nullptr;
     return fields_[it->second].get();
@@ -1423,7 +1315,7 @@ std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
 }
 
 size_t Schema::GetFieldId(const std::string& name) const {
-    auto fe = GetFieldExtractorBase(name);
+    auto fe = GetFieldExtractor(name);
     return fe->GetFieldId();
 }
 

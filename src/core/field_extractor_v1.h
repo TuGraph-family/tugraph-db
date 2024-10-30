@@ -28,8 +28,13 @@ class Schema;
 namespace _detail {
 
 /** A field extractor can be used to get/set a field in the record. */
+
+// FieldExtractorV1 is the initial implementation of FieldExtractor, allowing data to be set
+// and retrieved within a record. However, this approach results in exceptionally high costs
+// for schema alterations.
+
 class FieldExtractorV1 : public FieldExtractorBase {
-    friend class lgraph::Schema;
+    friend class Schema;
     // layout
     bool is_vfield_ = false;
     union {
@@ -62,7 +67,7 @@ class FieldExtractorV1 : public FieldExtractorBase {
 
     FieldExtractorV1& operator=(const FieldExtractorV1& rhs) {
         if (this == &rhs) return *this;
-        FieldExtractorBase::operator=(std::move(rhs));
+        FieldExtractorBase::operator=(rhs);
         is_vfield_ = rhs.IsFixedType();
         offset_ = rhs.offset_;
         null_bit_off_ = rhs.null_bit_off_;

@@ -14,6 +14,7 @@
 #include "core/field_extractor_v2.h"
 
 namespace lgraph {
+
 namespace _detail {
 
 bool FieldExtractorV2::GetIsNull(const Value& record) const {
@@ -35,10 +36,14 @@ void FieldExtractorV2::SetLabelInRecord(bool label_in_record) {
 void FieldExtractorV2::GetCopyRaw(const Value& record, void* data, size_t size) const {
     size_t off = GetFieldOffset(record);
     if (!IsFixedType()) {
+        // Get variable data's offset.
         off = ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + off);
+        // for variable value : | data-size | data-raw|
         FMA_DBG_ASSERT(off + size + sizeof(DataOffset) <= record.Size());
+
         memcpy(data, record.Data() + off + sizeof(DataOffset), size);
     } else {
+        // for fixed type, size must get from GetDataSize()
         FMA_DBG_ASSERT(off + size <= record.Size());
         memcpy(data, record.Data() + off, size);
     }
@@ -61,7 +66,8 @@ size_t FieldExtractorV2::GetDataSize(const Value& record) const {
 size_t FieldExtractorV2::GetFieldOffset(const Value& record, const FieldId id) const {
     const uint16_t count = GetRecordCount(record);
     if (0 == id) {
-        // The starting position of Field0 is at the end of the offset section.
+        // The starting position of Field0 is at the end of the offset section
+        // which can be directly calculated.
         return nullarray_offset_ + (count + 7) / 8 + count * sizeof(DataOffset);
     }
 
@@ -71,6 +77,7 @@ size_t FieldExtractorV2::GetFieldOffset(const Value& record, const FieldId id) c
 }
 
 size_t FieldExtractorV2::GetOffsetPosition(const Value& record, const FieldId id) const {
+    // Field0 do not have offset.
     FMA_DBG_ASSERT(id > 0);
     const uint16_t count = GetRecordCount(record);
     return nullarray_offset_ + (count + 7) / 8 + (id - 1) * sizeof(DataOffset);
@@ -80,6 +87,7 @@ void* FieldExtractorV2::GetFieldPointer(const Value& record) const {
     if (!IsFixedType()) {
         DataOffset var_offset =
             ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + GetFieldOffset(record));
+        // For variable data, return data-raw's pointer.
         return (char*)record.Data() + sizeof(uint32_t) + var_offset;
     }
     return (char*)record.Data() + GetFieldOffset(record);
