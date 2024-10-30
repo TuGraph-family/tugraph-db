@@ -1,10 +1,26 @@
+/**
+ * Copyright 2024 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+#pragma once
+
 #include <unordered_map>
 #include <atomic>
 #include <mutex>
 
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/Target/TargetMachine.h>
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Target/TargetMachine.h"
 
 namespace cypher {
 namespace compilation {
@@ -39,22 +55,24 @@ class TuJIT {
     // Compile module. In compile function client responsiblity is to fill module with necessary
     // IR code, then it will be compiled by TuJIT instance.
     // Return compiled module.
-    CompileModule compileModule(std::function<void (llvm::Module &)> compile_funciton);
+    CompileModule compileModule(std::function<void(llvm::Module&)> compile_funciton);
 
-    // Delete compiled module. Pointers to functions from module become invalid after this call. 
+    // Delete compiled module. Pointers to functions from module become invalid after this call.
     // It is client reponsibility to be sure that there are no pointers to compiled module code.
     void deleteCompiledModule(const CompileModule& module_info);
 
     // Register external symbol for TuJIT instance to use, during linking.
     // It can be function, or global constant.
-    // It is client responsibility to be sure that address of symbol is valid during TuJIT instance lifetime.
+    // It is client responsibility to be sure that address of symbol is valid during TuJIT instance
+    // lifetime.
     void registerExternalSymbol(const std::string& symbol_name, void* address);
 
     // Total compiled code size for module that are current valid.
-    size_t getCompiledCodeSize() const { return compiled_code_size_.load(std::memory_order_relaxed); }
+    size_t getCompiledCodeSize() const {
+        return compiled_code_size_.load(std::memory_order_relaxed);
+    }
 
  private:
-
     std::unique_ptr<llvm::Module> createModulerForCompilation();
 
     CompileModule compileModule(std::unique_ptr<llvm::Module> module);
@@ -70,7 +88,8 @@ class TuJIT {
     llvm::DataLayout layout_;
     std::unique_ptr<JITCompiler> compiler_;
 
-    std::unordered_map<uint64_t, std::unique_ptr<JITModuleMemoryManager>> module_identifier_to_memory_manager_;
+    std::unordered_map<uint64_t, std::unique_ptr<JITModuleMemoryManager>>
+        module_identifier_to_memory_manager_;
     uint64_t current_module_key_ = 0;
     std::atomic<size_t> compiled_code_size_ = 0;
     mutable std::mutex jit_lock_;

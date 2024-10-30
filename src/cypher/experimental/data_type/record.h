@@ -1,3 +1,17 @@
+/**
+ * Copyright 2024 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
 #pragma once
 
 #include <utility>
@@ -38,43 +52,46 @@ struct CEntry {
 
     explicit CEntry(const cypher::Entry& entry) {
         switch (entry.type) {
-        case cypher::Entry::CONSTANT: {
-            constant_ = CScalarData(entry.constant.scalar);
-            type_ = CONSTANT;
-            break;
-        }
-        case cypher::Entry::NODE: {
-            node_ = entry.node;
-            type_ = NODE;
-            break;
-        }
-        case cypher::Entry::RELATIONSHIP: {
-            relationship_ = entry.relationship;
-            type_ = RELATIONSHIP;
-            break;
-        }
+        case cypher::Entry::CONSTANT:
+            {
+                constant_ = CScalarData(entry.constant.scalar);
+                type_ = CONSTANT;
+                break;
+            }
+        case cypher::Entry::NODE:
+            {
+                node_ = entry.node;
+                type_ = NODE;
+                break;
+            }
+        case cypher::Entry::RELATIONSHIP:
+            {
+                relationship_ = entry.relationship;
+                type_ = RELATIONSHIP;
+                break;
+            }
         default:
             CYPHER_TODO();
         }
     }
 
-    explicit CEntry(const CFieldData &data) : constant_(data), type_(CONSTANT) {}
+    explicit CEntry(const CFieldData& data) : constant_(data), type_(CONSTANT) {}
 
     explicit CEntry(CFieldData&& data) : constant_(std::move(data)), type_(CONSTANT) {}
 
     explicit CEntry(const CScalarData& scalar) : constant_(scalar), type_(CONSTANT) {}
 };
 
-struct CRecord { // Should be derived from cypher::Record
+struct CRecord {  // Should be derived from cypher::Record
     std::vector<CEntry> values;
-    
+
     CRecord() = default;
 
-    CRecord(const cypher::Record &record) {
+    explicit CRecord(const cypher::Record& record) {
         for (auto& entry : record.values) {
             values.emplace_back(entry);
         }
     }
 };
-} // namespace compilaiton
-} // namespace cypher
+}  // namespace compilation
+}  // namespace cypher

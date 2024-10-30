@@ -1,3 +1,19 @@
+/**
+ * Copyright 2024 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+#pragma once
+
 #include <builder/dyn_var.h>
 #include <builder/static_var.h>
 
@@ -20,9 +36,9 @@
 #include "experimental/data_type/record.h"
 #include "cypher/execution_plan/runtime_context.h"
 
-using builder::static_var;
-using builder::dyn_var;
 using builder::defer_init;
+using builder::dyn_var;
+using builder::static_var;
 using builder::with_name;
 
 namespace cypher {
@@ -55,7 +71,6 @@ namespace compilation {
 //         std::cout<<"use move constructor"<<std::endl;
 //         type = AR_OPERAND_CONSTANT;
 //     }
-
 
 //     inline CEntry Eval(const CRecord &record) {
 //         if (type == AR_OPERAND_CONSTANT) {
@@ -131,9 +146,7 @@ class ExprEvaluator : public geax::frontend::AstExprNodeVisitorImpl {
         }
     }
 
-    geax::frontend::Expr* GetExpression() {
-        return expr_;
-    }
+    geax::frontend::Expr* GetExpression() { return expr_; }
 
  private:
     std::any visit(geax::frontend::GetField* node) override;
@@ -221,9 +234,9 @@ struct CExprNode {
 
     CExprNode() = default;
 
-    inline CEntry Eval(cypher::RTContext *ctx, const CRecord &record) {
+    inline CEntry Eval(cypher::RTContext* ctx, const CRecord& record) {
         return evaluator_->Evaluate(ctx, &record);
     }
 };
-} // namespace compilation
-} // namespace cypher
+}  // namespace compilation
+}  // namespace cypher
