@@ -88,7 +88,7 @@ class RTContext : public SubmitQueryContext {
         return true;
     }
 
-    void moveDataChunk(std::shared_ptr<DataChunk> &column_data_) {
+    void moveDataChunk(std::shared_ptr<DataChunk> column_data_) {
         data_chunk_ = std::move(column_data_);
     }
 
