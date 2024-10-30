@@ -579,7 +579,7 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
                 } else {
                     fd = item.second.scalar;
                 }
-                if (fd.IsNull()) {
+                if (fd.IsNull() && !iter->second.second.optional) {
                     success = false;
                     break;
                 }
@@ -910,7 +910,7 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                     } else {
                         fd = item.second.scalar;
                     }
-                    if (fd.IsNull()) {
+                    if (fd.IsNull() && !iter->second.second.optional) {
                         success = false;
                         break;
                     }
@@ -2241,6 +2241,7 @@ void BuiltinProcedure::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *rec
             if (vi) {
                 property["index"] = true;
                 property["unique"] = vi->IsUnique();
+                property["pair_unique"] = vi->IsPairUnique();
             }
             edge["properties"].push_back(property);
         }
@@ -4188,19 +4189,19 @@ void VectorFunc::AddVertexVectorIndex(RTContext *ctx, const cypher::Record *reco
     }
     CYPHER_ARG_CHECK((distance_type == "l2" || distance_type == "ip"),
                      "Distance type should be one of them : l2, ip");
-    int hnsm_m = 16;
-    if (parameter.count("hnsm_m")) {
-        hnsm_m = (int)parameter.at("hnsm_m").AsInt64();
+    int hnsw_m = 16;
+    if (parameter.count("hnsw_m")) {
+        hnsw_m = (int)parameter.at("hnsw_m").AsInt64();
     }
-    CYPHER_ARG_CHECK((hnsm_m <= 64 && hnsm_m >= 5),
-                     "hnsm.m should be an integer in the range [5, 64]");
-    int hnsm_ef_construction = 100;
-    if (parameter.count("hnsm_ef_construction")) {
-        hnsm_ef_construction = (int)parameter.at("hnsm_ef_construction").AsInt64();
+    CYPHER_ARG_CHECK((hnsw_m <= 64 && hnsw_m >= 5),
+                     "hnsw.m should be an integer in the range [5, 64]");
+    int hnsw_ef_construction = 100;
+    if (parameter.count("hnsw_ef_construction")) {
+        hnsw_ef_construction = (int)parameter.at("hnsw_ef_construction").AsInt64();
     }
-    CYPHER_ARG_CHECK((hnsm_ef_construction <= 1000 && hnsm_ef_construction >= hnsm_m),
-                     "hnsm.efConstruction should be an integer in the range [hnsm.m,1000]");
-    std::vector<int> index_spec = {hnsm_m, hnsm_ef_construction};
+    CYPHER_ARG_CHECK((hnsw_ef_construction <= 1000 && hnsw_ef_construction >= hnsw_m),
+                     "hnsw.efConstruction should be an integer in the range [hnsw.m,1000]");
+    std::vector<int> index_spec = {hnsw_m, hnsw_ef_construction};
     auto ac_db = ctx->galaxy_->OpenGraph(ctx->user_, ctx->graph_);
     bool success = ac_db.AddVectorIndex(true, label, field, index_type,
                                         dimension, distance_type, index_spec);
@@ -4251,8 +4252,12 @@ void VectorFunc::ShowVertexVectorIndex(RTContext *ctx, const cypher::Record *rec
         r.AddConstant(lgraph::FieldData(item.index_type));
         r.AddConstant(lgraph::FieldData(item.dimension));
         r.AddConstant(lgraph::FieldData(item.distance_type));
-        r.AddConstant(lgraph::FieldData(item.hnsm_m));
-        r.AddConstant(lgraph::FieldData(item.hnsm_ef_construction));
+        r.AddConstant(lgraph::FieldData(item.hnsw_m));
+        r.AddConstant(lgraph::FieldData(item.hnsw_ef_construction));
+        auto index = ctx->txn_->GetTxn()->GetVertexVectorIndex(item.label, item.field);
+        r.AddConstant(lgraph::FieldData(index->GetElementsNum()));
+        r.AddConstant(lgraph::FieldData(index->GetMemoryUsage()));
+        r.AddConstant(lgraph::FieldData(index->GetDeletedIdsNum()));
         records->emplace_back(r.Snapshot());
     }
     FillProcedureYieldItem("db.showVertexVectorIndex", yield_items, records);

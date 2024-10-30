@@ -26,7 +26,7 @@ namespace frontend {
 class ProcedureCall : public AstNode {
 public:
     explicit ProcedureCall(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~ProcedureCall() = default;
+    virtual ~ProcedureCall() = default;
 };  // class ProcedureCall
 
 }  // namespace frontend

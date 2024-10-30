@@ -42,7 +42,7 @@ namespace frontend {
 class Statement : public AstNode {
 public:
     explicit Statement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~Statement() = default;
+    virtual ~Statement() = default;
 };  // class Statement
 
 }  // namespace frontend

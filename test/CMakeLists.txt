@@ -91,6 +91,7 @@ add_executable(unit_test
         test_perf_kv_fatkey.cpp
         test_perf_multi_writer.cpp
         test_perf_unaligned.cpp
+        test_plan_cache.cpp
         test_proto_convert.cpp
         test_python_plugin_manager.cpp
         test_python_plugin_manager_impl.cpp
