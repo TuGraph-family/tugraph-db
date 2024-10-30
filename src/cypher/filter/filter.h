@@ -34,83 +34,6 @@ class LocateNodeByIndexedProp;
 
 namespace lgraph {
 
-struct FieldDataHash {
-    size_t operator()(const lgraph::FieldData &fd) const {
-        switch (fd.type) {
-        case FieldType::NUL:
-            return 0;
-        case FieldType::BOOL:
-            return std::hash<bool>()(fd.AsBool());
-        case FieldType::INT8:
-            return std::hash<int8_t>()(fd.AsInt8());
-        case FieldType::INT16:
-            return std::hash<int16_t>()(fd.AsInt16());
-        case FieldType::INT32:
-            return std::hash<int32_t>()(fd.AsInt32());
-        case FieldType::INT64:
-            return std::hash<int64_t>()(fd.AsInt64());
-        case FieldType::FLOAT:
-            return std::hash<float>()(fd.AsFloat());
-        case FieldType::DOUBLE:
-            return std::hash<double>()(fd.AsDouble());
-        case FieldType::DATE:
-            return std::hash<int32_t>()(fd.AsDate().DaysSinceEpoch());
-        case FieldType::DATETIME:
-            return std::hash<int64_t>()(fd.AsDateTime().MicroSecondsSinceEpoch());
-        case FieldType::STRING:
-            return std::hash<std::string>()(fd.AsString());
-        case FieldType::BLOB:
-            return std::hash<std::string>()(fd.AsBlob());
-        case FieldType::POINT:
-            {
-                switch (fd.GetSRID()) {
-                case ::lgraph_api::SRID::WGS84:
-                    return std::hash<std::string>()(fd.AsWgsPoint().AsEWKB());
-                case ::lgraph_api::SRID::CARTESIAN:
-                    return std::hash<std::string>()(fd.AsCartesianPoint().AsEWKB());
-                default:
-                    THROW_CODE(InputError, "unsupported spatial srid");
-                }
-            }
-        case FieldType::LINESTRING:
-            {
-                switch (fd.GetSRID()) {
-                case ::lgraph_api::SRID::WGS84:
-                    return std::hash<std::string>()(fd.AsWgsLineString().AsEWKB());
-                case ::lgraph_api::SRID::CARTESIAN:
-                    return std::hash<std::string>()(fd.AsCartesianLineString().AsEWKB());
-                default:
-                    THROW_CODE(InputError, "unsupported spatial srid");
-                }
-            }
-        case FieldType::POLYGON:
-            {
-                switch (fd.GetSRID()) {
-                case ::lgraph_api::SRID::WGS84:
-                    return std::hash<std::string>()(fd.AsWgsPolygon().AsEWKB());
-                case ::lgraph_api::SRID::CARTESIAN:
-                    return std::hash<std::string>()(fd.AsCartesianPolygon().AsEWKB());
-                default:
-                    THROW_CODE(InputError, "unsupported spatial srid");
-                }
-            }
-        case FieldType::SPATIAL:
-            {
-                switch (fd.GetSRID()) {
-                case ::lgraph_api::SRID::WGS84:
-                    return std::hash<std::string>()(fd.AsWgsSpatial().AsEWKB());
-                case ::lgraph_api::SRID::CARTESIAN:
-                    return std::hash<std::string>()(fd.AsCartesianSpatial().AsEWKB());
-                default:
-                    THROW_CODE(InputError, "unsupported spatial srid");
-                }
-            }
-        default:
-            throw std::runtime_error("Unhandled data type, probably corrupted data.");
-        }
-    }
-};
-
 class Filter {
  public:
     enum Type {
@@ -608,7 +531,7 @@ class TestNullFilter : public Filter {
 class TestInFilter : public Filter {
     cypher::ArithExprNode ae_left_;
     cypher::ArithExprNode ae_right_;
-    std::unordered_set<lgraph::FieldData, FieldDataHash> right_set_;
+    std::unordered_set<lgraph::FieldData, lgraph::FieldData::Hash> right_set_;
     cypher::OpBase *producer_op_ = nullptr;
     size_t timestamp;
 
