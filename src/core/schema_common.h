@@ -148,7 +148,7 @@ struct BinaryReader<StreamT, lgraph::FieldSpec> {
     static size_t Read(StreamT& stream, lgraph::FieldSpec& fs) {
         return BinaryRead(stream, fs.name) + BinaryRead(stream, fs.type) +
                BinaryRead(stream, fs.optional) + BinaryRead(stream, fs.deleted) +
-               BinaryRead(stream, fs.id) + BinaryRead(stream, fs.inited_value) +
+               BinaryRead(stream, fs.id) + BinaryRead(stream, fs.set_init_value) +
                BinaryRead(stream, fs.init_value) + BinaryRead(stream, fs.set_default_value) +
                BinaryRead(stream, fs.default_value);
     }
@@ -159,7 +159,7 @@ struct BinaryWriter<StreamT, lgraph::FieldSpec> {
     static size_t Write(StreamT& stream, const lgraph::FieldSpec& fs) {
         return BinaryWrite(stream, fs.name) + BinaryWrite(stream, fs.type) +
                BinaryWrite(stream, fs.optional) + BinaryWrite(stream, fs.deleted) +
-               BinaryWrite(stream, fs.id) + BinaryWrite(stream, fs.inited_value) +
+               BinaryWrite(stream, fs.id) + BinaryWrite(stream, fs.set_init_value) +
                BinaryWrite(stream, fs.init_value) + BinaryWrite(stream, fs.set_default_value) +
                BinaryWrite(stream, fs.default_value);
     }

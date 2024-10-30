@@ -301,7 +301,7 @@ class SchemaManager {
                                                 const std::string& field) const {
         auto ls = GetSchema(record);
         if (!ls) return nullptr;
-        return ls->GetFieldExtractor(field);
+        return ls->GetFieldExtractorV1(ls->GetFieldExtractor(field));
     }
 
     const Schema* GetSchema(const std::string& label) const {
