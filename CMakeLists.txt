@@ -55,6 +55,15 @@ if (BUILD_PROCEDURE)
     add_subdirectory(procedures)
 endif (BUILD_PROCEDURE)
 
+
+
+# buildit
+# add_custom_target(buildit
+#     COMMAND ${CMAKE_COMMAND} -E chdir ${EXTERNAL_PROJECT_DIR} $(MAKE)
+#     COMMENT "Building external project"
+# )
+# add_dependencies(my_program build_external_project)
+
 # unit_test
 if (WITH_TESTS)
     add_subdirectory(test)

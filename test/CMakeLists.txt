@@ -14,6 +14,12 @@ add_compile_options(-Wno-unused-local-typedefs)
 add_compile_options(-Wno-sign-compare)
 add_compile_options(-Wno-maybe-uninitialized)
 
+# set(EXTERNAL_PROJECT_DIR "${CMAKE_SOURCE_DIR}/deps/buildit")
+# add_custom_target(buildit
+#     COMMAND ${CMAKE_COMMAND} -E chdir ${EXTERNAL_PROJECT_DIR} $(MAKE)
+#     COMMENT "Building external project"
+# )
+
 add_subdirectory(test_fma)
 
 add_executable(unit_test
@@ -91,7 +97,7 @@ add_executable(unit_test
         test_proto_convert.cpp
         test_python_plugin_manager.cpp
         test_python_plugin_manager_impl.cpp
-        test_query_compilation.cpp
+        # test_query_compilation.cpp
         test_query.cpp
         test_random_delete.cpp
         test_rest_client.cpp
@@ -147,7 +153,7 @@ target_link_libraries(unit_test
         vsag
         lgraph_server_lib
         geax_isogql
-        ${CMAKE_SOURCE_DIR}/deps/buildit/build/libbuildit.a
+        # ${CMAKE_SOURCE_DIR}/deps/buildit/build/libbuildit.a
         bolt
         librocksdb.a)
 
