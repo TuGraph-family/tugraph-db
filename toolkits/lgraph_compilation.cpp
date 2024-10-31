@@ -1,3 +1,17 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
 #include <variant>
 #include "cypher/experimental/data_type/field_data.h"
 #include "cypher/experimental/data_type/record.h"
@@ -28,12 +42,14 @@ dyn_var<int64_t> foo(void) {
     CFieldData a(std::move(CScalarData(10)));
     geax::frontend::Ref ref1;
     ref1.setName(std::string("a"));
-    sym_tab.symbols.emplace("a", cypher::SymbolNode(0, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
+    sym_tab.symbols.emplace("a",
+        cypher::SymbolNode(0, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
 
     CFieldData b(static_var<int64_t>(10));
     geax::frontend::Ref ref2;
     ref2.setName(std::string("b"));
-    sym_tab.symbols.emplace("b", cypher::SymbolNode(1, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
+    sym_tab.symbols.emplace("b",
+        cypher::SymbolNode(1, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
 
     geax::frontend::BAdd add;
     add.setLeft((geax::frontend::Expr*)&ref1);

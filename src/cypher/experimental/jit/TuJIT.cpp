@@ -17,5 +17,5 @@
 namespace cypher {
 namespace compilation {
 
-}  // namespace cypher
 }  // namespace compilation
+}  // namespace cypher

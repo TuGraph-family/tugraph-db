@@ -1,3 +1,17 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
 #include <variant>
 #include <iostream>
 #include <sstream>
@@ -66,25 +80,27 @@ std::string execute_func(std::string &func_body) {
     std::string output = execute("./a");
     // delete files
     if (std::remove(file_name.c_str()) && std::remove(output_name.c_str())) {
-        std::cerr << "Failed to delete files: " << file_name 
+        std::cerr << "Failed to delete files: " << file_name
                   << ", " << output_name << std::endl;
     }
     return output;
 }
 class TestQueryCompilation : public TuGraphTest {};
 
-dyn_var<long> add(void) {
+dyn_var<int64_t> add(void) {
     cypher::SymbolTable sym_tab;
 
     CFieldData a(std::move(CScalarData(10)));
     geax::frontend::Ref ref1;
     ref1.setName(std::string("a"));
-    sym_tab.symbols.emplace("a", cypher::SymbolNode(0, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
+    sym_tab.symbols.emplace("a",
+        cypher::SymbolNode(0, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
 
-    CFieldData b(static_var<long>(10));
+    CFieldData b(static_var<int64_t>(10));
     geax::frontend::Ref ref2;
     ref2.setName(std::string("b"));
-    sym_tab.symbols.emplace("b", cypher::SymbolNode(1, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
+    sym_tab.symbols.emplace("b",
+        cypher::SymbolNode(1, cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL));
 
     geax::frontend::BAdd add;
     add.setLeft((geax::frontend::Expr*)&ref1);
@@ -96,7 +112,7 @@ dyn_var<long> add(void) {
     cypher::compilation::ExprEvaluator evaluator(&add, &sym_tab);
     cypher::RTContext ctx;
     return evaluator.Evaluate(&ctx, &record).constant_.scalar.Int64();
-};
+}
 
 TEST_F(TestQueryCompilation, Add) {
     builder::builder_context context;
