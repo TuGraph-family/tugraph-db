@@ -24,8 +24,10 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/execution_plan_v2.cpp
         cypher/execution_plan/execution_plan_maker.cpp
         cypher/execution_plan/pattern_graph_maker.cpp
+        cypher/execution_plan/ops/op_config.cpp
         cypher/execution_plan/ops/op_aggregate.cpp
         cypher/execution_plan/ops/op_all_node_scan.cpp
+        cypher/execution_plan/ops/op_all_node_scan_col.cpp
         cypher/execution_plan/ops/op_apply.cpp
         cypher/execution_plan/ops/op_argument.cpp
         cypher/execution_plan/ops/op_cartesian_product.cpp
@@ -41,10 +43,13 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/ops/op_immediate_argument.cpp
         cypher/execution_plan/ops/op_inquery_call.cpp
         cypher/execution_plan/ops/op_limit.cpp
+        cypher/execution_plan/ops/op_limit_col.cpp
         cypher/execution_plan/ops/op_node_by_label_scan.cpp
         cypher/execution_plan/ops/op_optional.cpp
         cypher/execution_plan/ops/op_produce_results.cpp
+        cypher/execution_plan/ops/op_produce_results_col.cpp
         cypher/execution_plan/ops/op_project.cpp
+        cypher/execution_plan/ops/op_project_col.cpp
         cypher/execution_plan/ops/op_relationship_count.cpp
         cypher/execution_plan/ops/op_remove.cpp
         cypher/execution_plan/ops/op_set.cpp

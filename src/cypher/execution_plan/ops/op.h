@@ -95,6 +95,7 @@ struct OpBase {
     enum StreamState { StreamUnInitialized, StreamConsuming, StreamDepleted } state;
     /* Stream state. */              // TODO(anyone) remove
     std::shared_ptr<Record> record;  // Result of consume.
+    std::shared_ptr<DataChunk> columnar_;
     OpStats stats;                   // Profiling statistics.
     enum OpResult {
         OP_DEPLETED = 1,
