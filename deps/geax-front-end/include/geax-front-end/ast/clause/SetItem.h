@@ -26,7 +26,7 @@ namespace frontend {
 class SetItem : public AstNode {
 public:
     explicit SetItem(AstNodeType type) : AstNode(type) {}
-    ~SetItem() = default;
+    virtual ~SetItem() = default;
 };
 
 }  // namespace frontend
