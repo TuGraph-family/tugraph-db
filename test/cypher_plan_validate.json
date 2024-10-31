@@ -115,6 +115,26 @@
             "query": "match(c:City)<-[r:BORN_IN]-(p:Person) where c.name = 'London' and p.name <> 'Christopher Nolan' return r",
             "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Filter [(p.name!=\"Christopher Nolan\")]\n            Expand(All) [c <-- p ]\n                Node Index Seek [c]  IN []\n",
             "res": 2
+          },
+          {
+            "query": "match(n:Person) where n.birthyear > 1900 return n limit 5",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Limit [5]\n        Project [n]\n            Filter [(n.birthyear>1900)]\n                Node By Label Scan [n:Person] n.birthyear[1900,NUL)\n",
+            "res": 5
+          },
+          {
+            "query": "match(n:Person) where n.birthyear < 2000 return n limit 5",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Limit [5]\n        Project [n]\n            Filter [(n.birthyear<2000)]\n                Node By Label Scan [n:Person] n.birthyear[NUL,2000)\n",
+            "res": 5
+          },
+          {
+            "query": "match(n:Person) where n.birthyear > 1900 and n.birthyear < 2000 return n limit 5",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Limit [5]\n        Project [n]\n            Filter [((n.birthyear>1900) and (n.birthyear<2000))]\n                Node By Label Scan [n:Person] n.birthyear[1900,2000)\n",
+            "res": 5
+          },
+          {
+            "query": "match(n:Person) where n.birthyear > 1900 or n.birthyear > 2000 return n limit 5",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Limit [5]\n        Project [n]\n            Filter [((n.birthyear>1900) or (n.birthyear>2000))]\n                Node By Label Scan [n:Person] n.birthyear[1900,NUL)\n",
+            "res": 5
           }
         ],
         "start_vertex": [
