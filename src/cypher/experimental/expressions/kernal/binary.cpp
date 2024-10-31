@@ -1,3 +1,17 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
 #include <algorithm>
 #include <unordered_map>
 #include "cypher/cypher_types.h"
@@ -22,9 +36,11 @@ CFieldData CFieldData::operator+(const CFieldData &other) const {
         if (is_integer() && other.is_integer()) {
             ret.scalar = CScalarData(scalar.Int64() + other.scalar.Int64());
         } else {
-            dyn_var<double> x_n = is_integer() ? (dyn_var<double>)scalar.integer() : scalar.real();
-            dyn_var<double> y_n = is_integer()? (dyn_var<double>)other.scalar.integer() : other.scalar.real();
-            ret.scalar = std::move(CScalarData(x_n + y_n));
+            dyn_var<double> x_n = is_integer() ? (dyn_var<double>)scalar.integer()
+                : scalar.real();
+            dyn_var<double> y_n = is_integer()? (dyn_var<double>)other.scalar.integer()
+                : other.scalar.real();
+            ret.scalar = CScalarData(x_n + y_n);
         }
     }
     return ret;
@@ -41,9 +57,11 @@ CFieldData CFieldData::operator-(const CFieldData &other) const {
         if (is_integer() && other.is_integer()) {
             ret.scalar = CScalarData(scalar.Int64() - other.scalar.Int64());
         } else {
-            dyn_var<double> x_n = is_integer() ? (dyn_var<double>)scalar.integer() : scalar.real();
-            dyn_var<double> y_n = is_integer()? (dyn_var<double>)other.scalar.integer() : other.scalar.real();
-            ret.scalar = std::move(CScalarData(x_n - y_n));
+            dyn_var<double> x_n = is_integer() ? (dyn_var<double>)scalar.integer()
+                : scalar.real();
+            dyn_var<double> y_n = is_integer()? (dyn_var<double>)other.scalar.integer()
+                : other.scalar.real();
+            ret.scalar = CScalarData(x_n - y_n);
         }
     }
     return ret;
@@ -59,19 +77,21 @@ static CFieldData sub(const CFieldData& x, const CFieldData& y) {
 
 static CFieldData div(const CFieldData& x,  const CFieldData y) {
     if (x.is_null() || y.is_null()) return CFieldData();
-    if (!(x.is_integer() || x.is_real()) || !(y.is_integer() || y.is_real())) 
+    if (!(x.is_integer() || x.is_real()) || !(y.is_integer() || y.is_real()))
         throw lgraph::CypherException("Type mismatch: expect Integer or Float in div expr");
     CFieldData ret;
     if (x.is_integer() && y.is_integer()) {
-        dyn_var<long> x_n = x.scalar.integer();
-        dyn_var<long> y_n = y.scalar.integer();
+        dyn_var<int64_t> x_n = x.scalar.integer();
+        dyn_var<int64_t> y_n = y.scalar.integer();
         if (y_n == 0) throw lgraph::CypherException("divide by zero");
-        ret.scalar = std::move(CScalarData(x_n / y_n));
+        ret.scalar = CScalarData(x_n / y_n);
     } else {
-        dyn_var<double> x_n = x.is_integer() ? (dyn_var<double>) x.scalar.integer() : x.scalar.real();
-        dyn_var<double> y_n = y.is_integer()? (dyn_var<double>) y.scalar.integer() : y.scalar.real();
+        dyn_var<double> x_n = x.is_integer() ? (dyn_var<double>) x.scalar.integer()
+            : x.scalar.real();
+        dyn_var<double> y_n = y.is_integer()? (dyn_var<double>) y.scalar.integer()
+            : y.scalar.real();
         if (y_n == 0) CYPHER_TODO();
-        ret.scalar = std::move(CScalarData(x_n - y_n));
+        ret.scalar = CScalarData(x_n - y_n);
     }
     return ret;
 }
@@ -176,5 +196,5 @@ std::any ExprEvaluator::visit(geax::frontend::IsNull* node) { CYPHER_TODO(); }
 std::any ExprEvaluator::visit(geax::frontend::ListComprehension* node) { CYPHER_TODO(); }
 std::any ExprEvaluator::visit(geax::frontend::Exists* node) { CYPHER_TODO(); }
 std::any ExprEvaluator::reportError() { CYPHER_TODO(); }
-} // namespace compilation
-} // namepsace cypher
+}  // namespace compilation
+}  // namespace cypher

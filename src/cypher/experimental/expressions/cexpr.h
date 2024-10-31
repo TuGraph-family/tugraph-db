@@ -1,3 +1,17 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+#pragma once
 #include <builder/dyn_var.h>
 #include <builder/static_var.h>
 
@@ -19,11 +33,6 @@
 #include "experimental/data_type/field_data.h"
 #include "experimental/data_type/record.h"
 #include "cypher/execution_plan/runtime_context.h"
-
-using builder::static_var;
-using builder::dyn_var;
-using builder::defer_init;
-using builder::with_name;
 
 namespace cypher {
 namespace compilation {
@@ -225,5 +234,5 @@ struct CExprNode {
         return evaluator_->Evaluate(ctx, &record);
     }
 };
-} // namespace compilation
-} // namespace cypher
+}  // namespace compilation
+}  // namespace cypher
