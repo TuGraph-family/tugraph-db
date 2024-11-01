@@ -520,9 +520,10 @@ void Schema::RefreshLayout() {
 /**
  * Creates an empty record
  *
- * \param [in,out]  v           Value to store the result.
  * \param           size_hint   (Optional) Hint of size of the record, used to
  * reduce memory realloc.
+ *
+ * \return  A Value.
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);

@@ -261,9 +261,9 @@ bool EdgeIndexIterator::PrevKV() {
     return true;
 }
 
-bool EdgeIndexIterator::KeyEquals(Value& key, VertexId src, VertexId dst) {
-    // ust need to deal with NonuniqueIndex，because a key has a set of values in
-    // this kind index, and other types are guaranteed by lmdb
+bool EdgeIndexIterator::KeyEquals(Value& key) {
+    // just need to deal with NonuniqueIndex，because a key has a set of values in
+    // this index type, and other types are guaranteed by lmdb
     if (type_ == IndexType::NonuniqueIndex) {
         auto key_euid = it_->GetKey();
         if (key_euid.Size() - _detail::EUID_SIZE != key.Size()) {
@@ -375,6 +375,7 @@ VertexId EdgeIndexIterator::GetPairUniqueSrcVertexId() {
            _detail::VID_SIZE);
     return vid;
 }
+
 VertexId EdgeIndexIterator::GetPairUniqueDstVertexId() {
     VertexId vid = 0;
     Value key_vid = _detail::ReturnKeyEvenIfLong(it_->GetKey());
@@ -646,7 +647,7 @@ bool EdgeIndex::Add(KvTransaction& txn, const Value& k, const EdgeUid& euid) {
             EdgeIndexIterator it = GetUnmanagedIterator(txn, key, key, euid.src, euid.dst,
                                                         euid.lid, euid.tid, euid.eid);
             if (!it.IsValid() || it.KeyOutOfRange()) {
-                if (!it.PrevKV() || !it.KeyEquals(key, euid.src, euid.dst)) {
+                if (!it.PrevKV() || !it.KeyEquals(key)) {
                     // create a new VertexIndexValue
                     EdgeIndexValue iv;
                     uint8_t r = iv.InsertEUid({euid.src, euid.dst, euid.lid, euid.tid, euid.eid});

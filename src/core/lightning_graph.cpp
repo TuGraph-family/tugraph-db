@@ -140,12 +140,8 @@ size_t LightningGraph::GetNumVertices() {
  * \param   label       The label.
  * \param   n_fields    Number of fields for this label.
  * \param   fds         The FieldDefs.
- * \param   is_vertex   True if this is vertex label, otherwise
- *          it is edge label.
- * \param   primary_field The vertex primary property, must be
- *          set when is_vertex is true
- * \param   edge_constraints The edge constraints, can be set
- *          when is_vertex is false
+ * \param   is_vertex   True if this is vertex label, otherwise it is edge label.
+ * \param   options     Cast to VertexOptions when is_vertex is true, else cast to EdgeOptions.
  *
  * \return  True if it succeeds, false if the label already exists. Throws exception on error.
  */
@@ -261,12 +257,8 @@ bool LightningGraph::AddLabel(const std::string& label, size_t n_fields, const F
  *
  * \param   label       The label name.
  * \param   fds         The FieldDefs.
- * \param   is_vertex   True if this is vertex label, otherwise
- *          it is edge label.
- * \param   primary_field The vertex primary property, must be
- *          set when is_vertex is true
- * \param   edge_constraints The edge constraints, can be set
- *          when is_vertex is false
+ * \param   is_vertex   True if this is vertex label, otherwise it is edge label.
+ * \param   options     Cast to VertexOptions when is_vertex is true, else cast to EdgeOptions.
  *
  * \return  True if it succeeds, false if the label already exists. Throws exception on error.
  */
@@ -1061,7 +1053,8 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
  *
  * \param   label       The label.
  * \param   field       The field.
- * \param   is_unique   True if the field content is unique for each vertex.
+ * \param   type        The index type.
+ * \param   is_vertex   True if this is vertex label, otherwise it is edge label.
  *
  * \return  True if it succeeds, false if the index already exists. Throws exception on error.
  */
@@ -2884,6 +2877,7 @@ const DBConfig& LightningGraph::GetConfig() const { return config_; }
  * Backups the current DB to the path specified.
  *
  * \param path  Full pathname of the destination.
+ * \param compact  True to enable compaction
  *
  * \return  Transaction ID of the last committed transaction.
  */

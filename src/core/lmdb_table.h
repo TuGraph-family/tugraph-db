@@ -83,7 +83,7 @@ class LMDBKvTable final : public KvTable {
 
     bool GetValue(KvTransaction& txn, const Value& key, Value& val) override;
 
-        /**
+    /**
      * Gets number of k-v pairs in the table.
      *
      * \param [in,out]  txn The transaction.
