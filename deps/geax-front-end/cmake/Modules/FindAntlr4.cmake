@@ -3,7 +3,7 @@ if ("$ENV{JAVA_HOME}" STREQUAL "")
 else()
     set(Java_ROOT "$ENV{JAVA_HOME}")
 endif()
-set(Java_JAVA_EXECUTABLE ${Java_ROOT}/bin/java)
+set(Java_JAVA_EXECUTABLE /usr/lib/jvm/java-11-openjdk/bin/java)
 find_package(Java QUIET COMPONENTS Runtime)
 
 if ("$ENV{Antlr4_DIR}" STREQUAL "")
