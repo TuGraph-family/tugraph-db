@@ -160,7 +160,7 @@ class VertexIndexIterator : public ::lgraph::IteratorBase {
      * \param           key_start   The start key.
      * \param           key_end     The end key.
      * \param           vid         The vid from which to start searching.
-     * \param           unique      Whether the index is a unique index.
+     * \param           type        The index type.
      */
     VertexIndexIterator(VertexIndex* idx, Transaction* txn, KvTable& table,
                         const Value& key_start,
@@ -271,7 +271,6 @@ class VertexIndex {
     VertexIndex(std::shared_ptr<KvTable> table, FieldType key_type, IndexType type);
 
     VertexIndex(const VertexIndex& rhs);
-
 
     VertexIndex(VertexIndex&& rhs) = delete;
 
@@ -466,7 +465,7 @@ class VertexIndex {
      * \exception   IndexException  Thrown when an VertexIndex error condition occurs.
      *
      * \param [in,out]  txn The transaction.
-     * \param           key The key.
+     * \param           k   The key.
      * \param           vid The vid.
      *
      * \return  Whether the operation succeeds or not.
