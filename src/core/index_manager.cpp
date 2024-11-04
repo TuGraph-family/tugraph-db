@@ -109,7 +109,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             if (idx.index_type == "ivf_flat") {
                 vector_index.reset(dynamic_cast<lgraph::VectorIndex*> (
                     new IVFFlat(idx.label, idx.field, idx.distance_type, idx.index_type,
-                                idx.dimension, {idx.faiss_ivf_flat_nlist})));
+                                idx.dimension, {idx.ivf_flat_nlist})));
             } else if (idx.index_type == "hnsw") {
                 vector_index.reset(dynamic_cast<lgraph::VectorIndex*> (
                     new HNSW(idx.label, idx.field, idx.distance_type, idx.index_type,
@@ -128,12 +128,18 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 }
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
-                floatvector.emplace_back(vector);
-                vids.emplace_back(vid);
+                if (vector_index->GetIndexType() != "hnsw") {
+                    floatvector.emplace_back(vector);
+                    vids.emplace_back(vid);
+                } else {
+                    vector_index->Add({std::move(vector)}, {vid});
+                }
                 count++;
+                if ((count % 10000) == 0) {
+                    LOG_INFO() << "vector index count: " << count;
+                }
             }
-            vector_index->Build();
-            vector_index->Add(floatvector, vids, count);
+            if (vector_index->GetIndexType() != "hnsw") vector_index->Add(floatvector, vids);
             kv_iter.reset();
             LOG_DEBUG() << "index count: " << count;
             schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
@@ -197,11 +203,11 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
     if (idx.index_type == "ivf_flat") {
         idx.hnsw_m = 0;
         idx.hnsw_ef_construction = 0;
-        idx.faiss_ivf_flat_nlist = index_spec[0];
+        idx.ivf_flat_nlist = index_spec[0];
     } else if (idx.index_type == "hnsw") {
         idx.hnsw_m = index_spec[0];
         idx.hnsw_ef_construction = index_spec[1];
-        idx.faiss_ivf_flat_nlist = 0;
+        idx.ivf_flat_nlist = 0;
     } else {
         LOG_ERROR() << "Unknown index type: " << idx.index_type;
     }
@@ -342,7 +348,7 @@ std::vector<VectorIndexSpec> IndexManager::ListVectorIndex(KvTransaction& txn) {
             vs.distance_type = vi.distance_type;
             vs.hnsw_m = vi.hnsw_m;
             vs.hnsw_ef_construction = vi.hnsw_ef_construction;
-            vs.ivf_flat_nlist = vi.faiss_ivf_flat_nlist;
+            vs.ivf_flat_nlist = vi.ivf_flat_nlist;
             ret.emplace_back(vs);
         }
     }

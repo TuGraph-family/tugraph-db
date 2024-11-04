@@ -23,13 +23,29 @@ IVFFlat::IVFFlat(const std::string& label, const std::string& name,
                            const std::string& index_type, int vec_dimension,
                            std::vector<int> index_spec)
     : VectorIndex(label, name, distance_type, index_type,
-                    vec_dimension, std::move(index_spec)),
-      L2quantizer_(nullptr), IPquantizer_(nullptr), index_(nullptr) {}
+                    vec_dimension, std::move(index_spec)) {
+    Build();
+    LOG_INFO() << FMA_FMT("Create IVF_Flat instance, {}:{}", GetLabel(), GetName());
+}
+
+IVFFlat::~IVFFlat() {
+    LOG_INFO() << FMA_FMT("Destroy IVF_Flat instance, {}:{}", GetLabel(), GetName());
+    IPquantizer_ = nullptr;
+    L2quantizer_ = nullptr;   
+    index_ = nullptr;
+}
 
 // add vector to index
 void IVFFlat::Add(const std::vector<std::vector<float>>& vectors,
-                  const std::vector<int64_t>& vids, int64_t num_vectors) {
-    if (num_vectors == 0) return;
+                  const std::vector<int64_t>& vids) {
+    if (vectors.size() != vids.size()) {
+        THROW_CODE(VectorIndexException,
+                   "size mismatch, vectors.size:{}, vids.size:{}", vectors.size(), vids.size());
+    }
+    if (vectors.empty()) {
+        return;
+    }
+    auto num_vectors = vectors.size();
     // reduce dimension
     std::vector<float> index_vectors;
     index_vectors.reserve(num_vectors * vec_dimension_);
@@ -43,8 +59,19 @@ void IVFFlat::Add(const std::vector<std::vector<float>>& vectors,
         assert(index_->is_trained);
         index_->add_with_ids(num_vectors, index_vectors.data(), vids.data());
     } else {
-        THROW_CODE(InputError, "failed to add vector to index");
+        THROW_CODE(VectorIndexException, "failed to add vector to index");
     }
+}
+
+void IVFFlat::Clear() {
+    IPquantizer_ = nullptr;
+    L2quantizer_ = nullptr;   
+    index_ = nullptr;
+    Build();
+}
+
+void IVFFlat::Remove(const std::vector<int64_t>& vids) {
+    // not support now
 }
 
 // build index
@@ -122,4 +149,19 @@ IVFFlat::RangeSearch(const std::vector<float>& query, float radius, int ef_searc
     }
     return ret;
 }
+
+int64_t IVFFlat::GetElementsNum() {
+    return index_->ntotal;
+}
+
+int64_t IVFFlat::GetMemoryUsage() {
+    // not support
+    return 0;
+}
+
+int64_t IVFFlat::GetDeletedIdsNum() {
+    // not support
+    return 0;
+}
+
 }  // namespace lgraph

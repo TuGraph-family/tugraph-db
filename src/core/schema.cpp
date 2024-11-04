@@ -315,7 +315,7 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
                        "vector index dimension mismatch, vector size:{}, dim:{}",
                        floatvector.back().size(), dim);
         }
-        index->Add(floatvector, vids, 1);
+        index->Add(floatvector, vids);
     }
 }
 
@@ -325,9 +325,7 @@ void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& re
         if (fe.GetIsNull(record)) continue;
         VectorIndex* index = fe.GetVectorIndex();
         if (index->GetIndexType() == "ivf_flat") return;
-        std::vector<int64_t> vids;
-        vids.push_back(vid);
-        index->Add({}, vids, 0);
+        index->Remove({vid});
     }
 }
 
@@ -524,9 +522,10 @@ void Schema::RefreshLayout() {
 /**
  * Creates an empty record
  *
- * \param [in,out]  v           Value to store the result.
  * \param           size_hint   (Optional) Hint of size of the record, used to
  * reduce memory realloc.
+ * 
+ * \return  A Value.
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);

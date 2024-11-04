@@ -34,6 +34,9 @@ class IVFFlat : public VectorIndex {
   std::shared_ptr<faiss::IndexFlatIP> IPquantizer_;
   std::shared_ptr<faiss::IndexIVFFlat> index_;
 
+  // build index
+  void Build();
+
  public:
   IVFFlat(const std::string& label, const std::string& name,
                 const std::string& distance_type, const std::string& index_type,
@@ -43,7 +46,7 @@ class IVFFlat : public VectorIndex {
 
   IVFFlat(IVFFlat&& rhs) = delete;
 
-  ~IVFFlat() { L2quantizer_ = nullptr; IPquantizer_ = nullptr; index_ = nullptr; }
+  ~IVFFlat() override;
 
   IVFFlat& operator=(const IVFFlat& rhs) = delete;
 
@@ -51,10 +54,11 @@ class IVFFlat : public VectorIndex {
 
   // add vector to index and build index
   void Add(const std::vector<std::vector<float>>& vectors,
-           const std::vector<int64_t>& vids, int64_t num_vectors) override;
+           const std::vector<int64_t>& vids) override;
 
-  // build index
-  void Build() override;
+  void Remove(const std::vector<int64_t>& vids) override;
+
+  void Clear() override;
 
   // serialize index
   std::vector<uint8_t> Save() override;
@@ -68,6 +72,10 @@ class IVFFlat : public VectorIndex {
 
   std::vector<std::pair<int64_t, float>> RangeSearch(
       const std::vector<float>& query, float radius, int ef_search, int limit) override;
+
+  int64_t GetElementsNum() override;
+  int64_t GetMemoryUsage() override;
+  int64_t GetDeletedIdsNum() override;
 
   template <typename T>
   static void writeBinaryPOD(std::ostream& out, const T& podRef) {

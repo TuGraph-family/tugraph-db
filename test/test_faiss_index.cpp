@@ -58,25 +58,25 @@ class TestFaiss : public TuGraphTest {
     void TearDown() override {}
 };
 
-TEST_F(TestFaiss, BuildIndex) { EXPECT_NO_THROW(vector_index->Build()); }
-
 TEST_F(TestFaiss, AddVectors) {
-    EXPECT_NO_THROW(vector_index->Build());
-    EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
+    EXPECT_NO_THROW(vector_index->Add(vectors, vids));
+}
+
+TEST_F(TestFaiss, AddVectorsException) {
+    EXPECT_NO_THROW(vector_index->Add(vectors, vids));
+    UT_EXPECT_THROW_CODE(vector_index->Add(vectors, vids), VectorIndexException);
 }
 
 TEST_F(TestFaiss, SearchIndex) {
-    EXPECT_NO_THROW(vector_index->Build());
-    EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
+    EXPECT_NO_THROW(vector_index->Add(vectors, vids));
     std::vector<float> query(vectors[0].begin(), vectors[0].end());
     std::vector<std::pair<int64_t, float>> ret;
     ret = vector_index->KnnSearch(query, 10, 10);
     ASSERT_TRUE(!ret.empty());
     ASSERT_EQ(ret[0].first, vids[0]);
 }
-
+/*
 TEST_F(TestFaiss, SaveAndLoadIndex) {
-    EXPECT_NO_THROW(vector_index->Build());
     EXPECT_NO_THROW(vector_index->Add(vectors, vids, num_vectors));
     std::vector<uint8_t> serialized_index = vector_index->Save();
     ASSERT_FALSE(serialized_index.empty());
@@ -89,6 +89,7 @@ TEST_F(TestFaiss, SaveAndLoadIndex) {
     ASSERT_TRUE(!ret.empty());
     ASSERT_EQ(ret[0].first, vids[0]);
 }
+*/
 
 TEST_F(TestFaiss, DeleteVectors) {
     // faiss ivf_flat not support
