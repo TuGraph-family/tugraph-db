@@ -83,7 +83,7 @@ ParallelBitset::~ParallelBitset() {
 #else
     int error = munmap(data_, sizeof(uint64_t) * (WORD_OFFSET(size_) + 1));
     if (error != 0) {
-        fprintf(stderr, "warning: potential memory leak!\n");
+        LOG_WARN() << "potential memory leak!";
     }
 #endif
 }

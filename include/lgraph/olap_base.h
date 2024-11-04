@@ -39,6 +39,7 @@
 #include "lgraph/lgraph_atomic.h"
 #include "lgraph/lgraph_utils.h"
 #include "lgraph/lgraph.h"
+#include "tools/lgraph_log.h"
 
 #include "libcuckoo/cuckoohash_map.hh"
 
@@ -300,7 +301,7 @@ class ParallelVector {
 #else
         int error = munmap(data_, sizeof(T) * capacity_);
         if (error != 0) {
-            fprintf(stderr, "warning: potential memory leak!\n");
+            LOG_WARN() << "potential memory leak!";
         }
 #endif
         destroyed_ = true;
@@ -415,7 +416,7 @@ class ParallelVector {
             if (capacity_ != 0) {
                 int error = munmap(data_, sizeof(T) * capacity_);
                 if (error != 0) {
-                    fprintf(stderr, "warning: potential memory leak!\n");
+                    LOG_WARN() << "potential memory leak!";
                 }
             }
             data_ = new_data;
@@ -981,7 +982,7 @@ class OlapBase {
     void set_num_vertices(size_t vertices) {
         if (this->num_vertices_ == 0) {
             this->num_vertices_ = vertices;
-            printf("set |V| to %lu\n", vertices);
+            LOG_DEBUG() << FMA_FMT("set |V| to {}", vertices);
         } else {
             throw std::runtime_error("|V| can only be set before loading!\n");
         }
@@ -1003,13 +1004,13 @@ class OlapBase {
         prep_time -= get_time();
 
         this->num_edges_ = input_edges;
-        printf("|V| =  %lu, |E| = %lu\n", this->num_vertices_, this->num_edges_);
+        LOG_DEBUG() << FMA_FMT("|V| = {}, |E| = {}", this->num_vertices_, this->num_edges_);
         this->edge_list_ = (EdgeUnit<EdgeData> *)edge_array;
         this->edge_direction_policy_ = edge_direction_policy;
         Construct();
 
         prep_time += get_time();
-        printf("preprocessing used %.2lf seconds\n", prep_time);
+        LOG_DEBUG() << FMA_FMT("preprocessing used {} seconds", prep_time);
     }
 
     /**
@@ -1113,7 +1114,7 @@ class OlapBase {
 #else
             int error = munmap(thread_state[t_i], sizeof(ThreadState));
             if (error != 0) {
-                fprintf(stderr, "warning: potential memory leak!\n");
+                LOG_WARN() << "potential memory leak!";
             }
 #endif
         }
@@ -1248,7 +1249,7 @@ class OlapBase {
 #else
             int error = munmap(thread_state[t_i], sizeof(ThreadState));
             if (error != 0) {
-                fprintf(stderr, "warning: potential memory leak!\n");
+                LOG_WARN() << "potential memory leak!";
             }
 #endif
         }
