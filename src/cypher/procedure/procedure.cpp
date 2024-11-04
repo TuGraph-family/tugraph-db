@@ -579,7 +579,7 @@ void BuiltinProcedure::DbUpsertVertex(RTContext *ctx, const Record *record,
                 } else {
                     fd = item.second.scalar;
                 }
-                if (fd.IsNull()) {
+                if (fd.IsNull() && !iter->second.second.optional) {
                     success = false;
                     break;
                 }
@@ -910,7 +910,7 @@ void BuiltinProcedure::DbUpsertEdge(RTContext *ctx, const Record *record,
                     } else {
                         fd = item.second.scalar;
                     }
-                    if (fd.IsNull()) {
+                    if (fd.IsNull() && !iter->second.second.optional) {
                         success = false;
                         break;
                     }

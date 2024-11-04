@@ -76,7 +76,6 @@ class LMDBKvIterator final : public KvIterator {
      * exist.
      * @param [in,out] txn              The transaction.
      * @param [in,out] table            The table.
-     * @param          refresh_callback Callback function when iterator was refreshed.
      * @param          key              The key.
      * @param          closest          True to closest.
      */

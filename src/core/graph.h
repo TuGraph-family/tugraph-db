@@ -196,6 +196,7 @@ class Graph {
      *
      * \param [in,out]  txn     The transaction.
      * \param           src     Source of the edge.
+     * \param           lid     The label id.
      * \param           dst     Destination of the edge.
      * \param           prop    The edge property.
      * \param           constraints edge constraints
@@ -213,9 +214,7 @@ class Graph {
      * Adds an edge
      *
      * \param [in,out]  txn     The transaction.
-     * \param           src     Source of the edge.
-     * \param           tid     The Temporal id.
-     * \param           dst     Destination of the edge.
+     * \param           esid    Edge id without eid.
      * \param           prop    The edge property.
      * \param           constraints edge constraints
      *
@@ -269,12 +268,10 @@ class Graph {
     }
 
     /**
-     * Delete edge from src to dst with edge_id==eid
+     * Delete an edge
      *
      * \param [in,out]  txn The transaction.
-     * \param           src Source of the edge.
-     * \param           dst Destination of the edge.
-     * \param           eid Edge property.
+     * \param           uid The Edge unique id.
      *
      * \return  True if the edge is deleted successfully. False if the edge does not exist. Raises
      *          exception if other errors occur.
@@ -338,9 +335,7 @@ class Graph {
      * Sets edge property
      *
      * \param [in,out]  txn         The transaction.
-     * \param           src         Source for the.
-     * \param           dst         Destination for the.
-     * \param           eid         The old property.
+     * \param           uid         The Edge unique id.
      * \param           new_prop    The new property.
      *
      * \return  True if it succeeds, false if it fails.

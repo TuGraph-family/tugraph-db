@@ -524,7 +524,7 @@ void Schema::RefreshLayout() {
  *
  * \param           size_hint   (Optional) Hint of size of the record, used to
  * reduce memory realloc.
- * 
+ *
  * \return  A Value.
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {

@@ -73,10 +73,7 @@ class VectorIndex {
 
     virtual void Clear() = 0;
 
-    // build index
-    virtual void Build() = 0;
-
-    // serialize index
+        // serialize index
     virtual std::vector<uint8_t> Save() = 0;
 
     // load index form serialization
@@ -100,4 +97,5 @@ struct VectorIndexEntry {
     std::vector<int64_t> vids;
     std::vector<std::vector<float>> vectors;
 };
+
 }  // namespace lgraph

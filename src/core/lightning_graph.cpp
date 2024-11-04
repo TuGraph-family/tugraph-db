@@ -2222,8 +2222,6 @@ bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& l
                           label, field);
     VectorIndex* index = extractor->GetVectorIndex();
     uint64_t count = 0;
-    std::vector<std::vector<float>> floatvector;
-    std::vector<int64_t> vids;
     auto dim = index->GetVecDimension();
     auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
     for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
@@ -2885,7 +2883,7 @@ const DBConfig& LightningGraph::GetConfig() const { return config_; }
  * Backups the current DB to the path specified.
  *
  * \param path  Full pathname of the destination.
- * \param compact True to enable compaction
+ * \param compact  True to enable compaction
  *
  * \return  Transaction ID of the last committed transaction.
  */

@@ -118,8 +118,6 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 LOG_ERROR() << "Unknown index type: " << idx.index_type;
             }
             uint64_t count = 0;
-            std::vector<std::vector<float>> floatvector;
-            std::vector<int64_t> vids;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn);
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto prop = kv_iter->GetValue();
@@ -141,7 +139,7 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
             }
             if (vector_index->GetIndexType() != "hnsw") vector_index->Add(floatvector, vids);
             kv_iter.reset();
-            LOG_DEBUG() << "index count: " << count;
+            LOG_DEBUG() << "vector index count: " << count;
             schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
             LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
                                   idx.label, idx.field);

@@ -1418,7 +1418,7 @@ class CypherBaseVisitor : public LcypherVisitor {
             // result, here `_listcompr_placeholder` = "x"
             //
             // I try to add symbol in `visitOC_ListComprephension` function, a cypher todo
-            // exception is thrown during exection. Fix this problem makes a lot adjustment
+            // exception is thrown during execution. Fix this problem makes a lot adjustment
             // or refactor work, may break the whole semantic analysis robust.
             //
             // Also, the `_InClauseORDERBY()` condition is a WORKAROUND for that, `AddSymbol` cannot

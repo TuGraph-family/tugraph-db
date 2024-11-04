@@ -126,7 +126,7 @@ class LightningGraph {
      * \param   n_fields    Number of fields for this label.
      * \param   fds         The FieldDefs.
      * \param   is_vertex   True if this is vertex label, otherwise it is edge label.
-     * \param options Cast to VertexOptions when is_vertex is true, else cast to EdgeOptions.
+     * \param   options     Cast to VertexOptions when is_vertex is true, else cast to EdgeOptions.
 
      * \return  True if it succeeds, false if the label already exists. Throws exception on error.
      */
@@ -138,8 +138,6 @@ class LightningGraph {
      *
      * \param   label       The label name.
      * \param   fds         The FieldDefs.
-     * \param   is_vertex   True if this is vertex label, otherwise
-     *          it is edge label.
      * \param   is_vertex   True if this is vertex label, otherwise it is edge label.
      * \param   options     Cast to VertexOptions when is_vertex is true, else cast to EdgeOptions.
 
@@ -236,7 +234,6 @@ class LightningGraph {
     void OfflineCreateBatchIndex(const std::vector<IndexSpec>& indexes,
                                  size_t commit_batch_size = 1 << 20, bool is_vertex = true);
 
-
     /**
      * Is this index ready? When an index is added to a non-empty graph, it will require some time
      * to be built. This function returns the status of the index so user can choose to wait for
@@ -244,7 +241,7 @@ class LightningGraph {
      *
      * \param   label   The label.
      * \param   field   The field.
-     * \param is_vertxt True for vertex index, False for edge index.
+     * \param   is_vertxt True for vertex index, False for edge index.
      *
      * \return  True if it succeeds, false if it fails.
      */
@@ -257,7 +254,7 @@ class LightningGraph {
      *
      * \param   label   The label.
      * \param   field   The field.
-     * \param is_vertxt True for vertex index, False for edge index.
+     * \param   is_vertxt True for vertex index, False for edge index.
      *
      * \return  True if it succeeds, false if the index does not exist. Throws exception on error.
      */
