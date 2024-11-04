@@ -52,7 +52,7 @@ void IVFFlat::Add(const std::vector<std::vector<float>>& vectors,
     for (const auto& vec : vectors) {
         index_vectors.insert(index_vectors.end(), vec.begin(), vec.end());
     }
-    if (index_type_ == "ivf_flat") {
+    if (!index_->is_trained) {
         // train after build quantizer
         assert(!index_->is_trained);
         index_->train(num_vectors, index_vectors.data());
