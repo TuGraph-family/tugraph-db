@@ -106,8 +106,6 @@ class FieldExtractor {
         fulltext_indexed_ = rhs.fulltext_indexed_;
         vector_index_ = std::move(rhs.vector_index_);
         rhs.vector_index_ = nullptr;
-        vector_index_ = std::move(rhs.vector_index_);
-        rhs.vector_index_ = nullptr;
     }
 
     FieldExtractor& operator=(FieldExtractor&& rhs) noexcept {
@@ -130,7 +128,6 @@ class FieldExtractor {
         is_vfield_ = !field_data_helper::IsFixedLengthFieldType(d.type);
         vertex_index_ = nullptr;
         edge_index_ = nullptr;
-        vector_index_ = nullptr;
         vector_index_ = nullptr;
         null_bit_off_ = 0;
         if (is_vfield_) SetVLayoutInfo(d.optional ? 1 : 0, 1, 0);
