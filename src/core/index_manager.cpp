@@ -118,6 +118,8 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 LOG_ERROR() << "Unknown index type: " << idx.index_type;
             }
             uint64_t count = 0;
+            std::vector<std::vector<float>> floatvector;
+            std::vector<lgraph::VertexId> vids;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn);
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto prop = kv_iter->GetValue();

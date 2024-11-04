@@ -2222,6 +2222,8 @@ bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& l
                           label, field);
     VectorIndex* index = extractor->GetVectorIndex();
     uint64_t count = 0;
+    std::vector<std::vector<float>> floatvector;
+    std::vector<lgraph::VertexId> vids;
     auto dim = index->GetVecDimension();
     auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
     for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
