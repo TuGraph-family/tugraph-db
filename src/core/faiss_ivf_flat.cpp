@@ -31,7 +31,7 @@ IVFFlat::IVFFlat(const std::string& label, const std::string& name,
 IVFFlat::~IVFFlat() {
     LOG_INFO() << FMA_FMT("Destroy IVF_Flat instance, {}:{}", GetLabel(), GetName());
     IPquantizer_ = nullptr;
-    L2quantizer_ = nullptr;   
+    L2quantizer_ = nullptr;
     index_ = nullptr;
 }
 
@@ -65,7 +65,7 @@ void IVFFlat::Add(const std::vector<std::vector<float>>& vectors,
 
 void IVFFlat::Clear() {
     IPquantizer_ = nullptr;
-    L2quantizer_ = nullptr;   
+    L2quantizer_ = nullptr;
     index_ = nullptr;
     Build();
 }
