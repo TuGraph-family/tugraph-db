@@ -34,9 +34,13 @@ void OpGqlRemove::Remove(cypher::RTContext *ctx) {
         auto it = record->symbol_table->symbols.find(var);
         if (it == record->symbol_table->symbols.end()) CYPHER_TODO();
         auto &entry = record->values[it->second.id];
-        if (entry.type != Entry::NODE) CYPHER_TODO();
-        entry.node->vertex_->RemoveProperty(key);
-
+        if (entry.type == Entry::NODE) {
+            entry.node->vertex_->RemoveProperty(key);
+        } else if (entry.type == Entry::RELATIONSHIP) {
+            entry.relationship->edge_->RemoveProperty(key);
+        } else {
+            CYPHER_TODO();
+        }
         ctx->result_info_->statistics.properties_remove++;
     }
 }
@@ -68,11 +72,6 @@ void OpGqlRemove::ResultSummary(RTContext *ctx) {
         summary.append("remove ")
             .append(std::to_string(ctx->result_info_->statistics.properties_remove))
             .append(" properties.");
-        // ctx->result_info_->header.colums.emplace_back("<SUMMARY>");
-        /*auto header = ctx->result_->Header();
-        header.clear();
-        header.emplace_back(std::make_pair("<SUMMARY>", lgraph_api::LGraphType::STRING));
-        ctx->result_->ResetHeader(header);*/
         CYPHER_THROW_ASSERT(record);
         record->values.clear();
         record->AddConstant(Value(summary));
