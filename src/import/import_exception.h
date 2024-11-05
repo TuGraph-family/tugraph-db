@@ -66,9 +66,8 @@ class LineParserException : public std::exception {
 
  protected:
     virtual void Print(int indent) const {
-        LOG_INFO() << std::string(indent, ' ')
-                   << "Due to: " << err_ << "\n>Error line:\n\t" << line_
-                  << "\n>Binary format:\n\t" << _detail::BinaryLine(line_);
+        LOG_INFO() << std::string(indent, ' ') << "Due to: " << err_ << "\n>Error line:\n\t"
+                   << line_ << "\n>Binary format:\n\t" << _detail::BinaryLine(line_);
     }
 };
 

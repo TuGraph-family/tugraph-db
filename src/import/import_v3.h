@@ -27,8 +27,6 @@
 namespace lgraph {
 namespace import_v3 {
 
-
-
 class Importer {
  public:
     struct Config {
@@ -37,11 +35,11 @@ class Importer {
             if (cpu_core > 0) {
                 generate_sst_threads = cpu_core;
                 read_rocksdb_threads = cpu_core;
-                parse_file_threads = std::max((uint16_t)1, (uint16_t)(cpu_core/3));
-                parse_block_threads = std::max((uint16_t)1, (uint16_t)(cpu_core/3));
+                parse_file_threads = std::max((uint16_t)1, (uint16_t)(cpu_core / 3));
+                parse_block_threads = std::max((uint16_t)1, (uint16_t)(cpu_core / 3));
             }
         }
-        std::string config_file;        // the config file specifying both the scheam & files
+        std::string config_file;             // the config file specifying both the scheam & files
         std::string db_dir = "./lgraph_db";  // db data dir to use
         std::string user = "admin";
         std::string password = "73@TuGraph";
@@ -56,7 +54,7 @@ class Importer {
         uint16_t generate_sst_threads = 15;
         uint16_t read_rocksdb_threads = 15;
         size_t vid_num_per_reading = 10000;
-        size_t max_size_per_reading = 32*1024*1024;
+        size_t max_size_per_reading = 32 * 1024 * 1024;
         bool keep_vid_in_memory = true;
         bool compact = false;
         std::string delimiter = ",";

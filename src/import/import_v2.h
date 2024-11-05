@@ -116,9 +116,9 @@ class Importer {
         explicit cuckoohash_map_foreach_helper(const parent_t& it) : parent_t(it) {}
 
         template <class F>
-        void foreach(F fn){
-// TODO(jiazhenjiang): mutil-thread memory issues need to be fixed
-// #pragma omp parallel for schedule(dynamic)
+        void foreach (F fn) {
+            // TODO(jiazhenjiang): mutil-thread memory issues need to be fixed
+            // #pragma omp parallel for schedule(dynamic)
             for (decltype(parent_t::index_) index = 0; index < parent_t::buckets_->size();
                  ++index) {
                 for (decltype(parent_t::slot_) slot = 0; slot < Map::slot_per_bucket(); ++slot) {
@@ -135,7 +135,7 @@ class Importer {
     void cuckoohash_map_foreach(Map& map, F fn) {
         const auto& lt = map.lock_table();
         cuckoohash_map_foreach_helper<Map> it(lt.cbegin());
-        it.foreach(fn);
+        it.foreach (fn);
     }
 #else
     template <class Map, class F>

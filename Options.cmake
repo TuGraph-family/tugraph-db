@@ -2,7 +2,7 @@ set(LGRAPH_VERSION_MAJOR 4)
 set(LGRAPH_VERSION_MINOR 5)
 set(LGRAPH_VERSION_PATCH 0)
 
-# options
+#options
 option(ENABLE_WALL "Enable all compiler's warning messages." ON)
 if (ENABLE_WALL)
     message("Wall is enabled.")
@@ -88,13 +88,13 @@ if (WITH_TESTS)
     message("Build with tests.")
 endif (WITH_TESTS)
 
-# disable krb5
+#disable krb5
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOPENSSL_NO_KRB5=1")
 
-# remove prefix in macro __FILE__
+#remove prefix in macro __FILE__
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fmacro-prefix-map=${CMAKE_CURRENT_LIST_DIR}/=")
 
-# Detect build type, fallback to release and throw a warning if use didn't specify any
+#Detect build type, fallback to release and throw a warning if use didn't specify any
 if (NOT CMAKE_BUILD_TYPE)
     message(WARNING "Build type not set, falling back to RelWithDebInfo mode.
  To specify build type use:
@@ -105,17 +105,17 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 message("CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}")
 
-# coverage flags
+#coverage flags
 SET(CMAKE_CXX_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage -O3")
 SET(CMAKE_EXE_LINKER_FLAGS_COVERAGE "${CMAKE_EXE_LINKER_FLAGS} -lgcov -O3")
 MARK_AS_ADVANCED(
         CMAKE_CXX_FLAGS_COVERAGE
         CMAKE_EXE_LINKER_FLAGS_COVERAGE)
 
-# support PRId64
+#support PRId64
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__STDC_FORMAT_MACROS")
 
-# make sure cmake prefers static lib
+#make sure cmake prefers static lib
 IF (WIN32)
     SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
 ELSE (WIN32)
@@ -125,15 +125,15 @@ ENDIF (WIN32)
 ## ---------------------------
 ## check compiler options
 ## ---------------------------
-# check compiler version
+#check compiler version
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    # require at least gcc 4.8
+#require at least gcc 4.8
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
         message(FATAL_ERROR "GCC is too old, requires GCC 5.0 or above.")
     endif ()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # CMAKE_CXX_COMPILER_ID might be AppleClang, use "MATCHES" instead of "STREQUAL"
-    # require at least clang 3.3
+#CMAKE_CXX_COMPILER_ID might be AppleClang, use "MATCHES" instead of "STREQUAL"
+#require at least clang 3.3
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.3)
         message(FATAL_ERROR "Clang is too old, requires Clang 3.3 or above.")
     endif ()
@@ -142,11 +142,11 @@ else ()
     message(WARNING "You are using an unsupported compiler! Compilation has only been tested with Clang and GCC.")
 endif ()
 
-# check OpenMP
+#check OpenMP
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
-# compiling rocksdb needs c++17
-# check c++17
+#compiling rocksdb needs c++ 17
+#check c++ 17
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 if (COMPILER_SUPPORTS_CXX17)
@@ -157,8 +157,8 @@ endif ()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# GNU: static link libstdc++ and libgcc
-# Clang: static link libc++
+#GNU : static link libstdc++and libgcc
+#Clang : static link libc++
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     CHECK_CXX_COMPILER_FLAG("-static-libstdc++ -static-libgcc" COMPILER_SUPPORTS_STATIC_GCC)
     if (COMPILER_SUPPORTS_STATIC_GCC)

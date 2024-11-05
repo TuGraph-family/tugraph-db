@@ -60,8 +60,8 @@ enum KeyWord {
     HEADER,
     OPTIONAL_,  // OPTIONAL is a macro in windows SDK
     FORMAT,
-    ASC,        // TemporalFieldOrder::ASC
-    DESC        // TemporalFieldOrder::DESC
+    ASC,  // TemporalFieldOrder::ASC
+    DESC  // TemporalFieldOrder::DESC
 };
 
 class KeyWordFunc {
@@ -209,17 +209,18 @@ struct ColumnSpec {
     bool fulltext = false;
 
     inline bool CheckValid() const {
-        if (primary && !(index && idxType == IndexType::GlobalUniqueIndex)) THROW_CODE(InputError,
-            "primary {} should be index and unique", name);
-        if ((idxType == IndexType::GlobalUniqueIndex || idxType == IndexType::PairUniqueIndex)
-            && optional) THROW_CODE(InputError,
-            FMA_FMT("unique/primary index {} should not be optional", name));
-        if (type == FieldType ::BLOB && index) THROW_CODE(InputError,
-            FMA_FMT("BLOB field {} should not be indexed", name));
-        if (type != FieldType::STRING && fulltext) THROW_CODE(InputError,
-            FMA_FMT("fulltext index {} only supports STRING type", name));
-        if (type != FieldType::INT64 && temporal) THROW_CODE(InputError,
-            FMA_FMT("edge label [{}] temporal field [{}] should be INT64", name));
+        if (primary && !(index && idxType == IndexType::GlobalUniqueIndex))
+            THROW_CODE(InputError, "primary {} should be index and unique", name);
+        if ((idxType == IndexType::GlobalUniqueIndex || idxType == IndexType::PairUniqueIndex) &&
+            optional)
+            THROW_CODE(InputError, FMA_FMT("unique/primary index {} should not be optional", name));
+        if (type == FieldType ::BLOB && index)
+            THROW_CODE(InputError, FMA_FMT("BLOB field {} should not be indexed", name));
+        if (type != FieldType::STRING && fulltext)
+            THROW_CODE(InputError, FMA_FMT("fulltext index {} only supports STRING type", name));
+        if (type != FieldType::INT64 && temporal)
+            THROW_CODE(InputError,
+                       FMA_FMT("edge label [{}] temporal field [{}] should be INT64", name));
         return true;
     }
 
@@ -250,8 +251,8 @@ struct ColumnSpec {
     bool operator==(const ColumnSpec& rhs) const {
         // do not compare is_id/skip
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&
-               index == rhs.index && idxType == rhs.idxType &&
-               temporal == rhs.temporal && fulltext == rhs.fulltext;
+               index == rhs.index && idxType == rhs.idxType && temporal == rhs.temporal &&
+               fulltext == rhs.fulltext;
     }
 
     bool operator<(const ColumnSpec& rhs) const { return name < rhs.name; }
@@ -335,9 +336,7 @@ struct LabelDesc {
             FMA_FMT("field name [{}] not found in label [{}]", field_name, name));
     }
 
-    std::vector<ColumnSpec> GetColumnSpecs() const {
-        return columns;
-    }
+    std::vector<ColumnSpec> GetColumnSpecs() const { return columns; }
 
     ColumnSpec Find(std::string field_name) const {
         for (size_t i = 0; i < columns.size(); ++i) {
@@ -436,8 +435,8 @@ struct LabelDesc {
                 if (it->primary)
                     return true;
                 else
-                    THROW_CODE(InputError,
-                        "[{}] is not primary field of label [{}]", field_name, name);
+                    THROW_CODE(InputError, "[{}] is not primary field of label [{}]", field_name,
+                               name);
             }
         }
         THROW_CODE(InputError, "[{}] is not valid field name of label [{}]", field_name, name);
@@ -450,8 +449,8 @@ struct LabelDesc {
             it->CheckValid();
             if (it->primary && is_vertex) {
                 if (find_primary) {
-                    THROW_CODE(InputError,
-                        "vertex label [{}] should has no more than one primary.", name);
+                    THROW_CODE(InputError, "vertex label [{}] should has no more than one primary.",
+                               name);
                 }
                 find_primary = true;
             }
@@ -460,8 +459,8 @@ struct LabelDesc {
             THROW_CODE(InputError, "vertex label [{}] has no primary", name);
         }
         if (is_vertex && !edge_constraints.empty()) {
-            THROW_CODE(InputError,
-                "label [{}] type is vertex, but edge_constraints is not empty", name);
+            THROW_CODE(InputError, "label [{}] type is vertex, but edge_constraints is not empty",
+                       name);
         }
         return true;
     }
@@ -721,7 +720,7 @@ struct SchemaDesc {
                 // find, check if equal
                 if (!(x == ld)) {
                     THROW_CODE(InputError, "{} and {} not comparable in two schema", x.ToString(),
-                                             ld.ToString());
+                               ld.ToString());
                 }
             }
         }
@@ -793,42 +792,44 @@ class ImportConfParser {
             if (ld.is_vertex) {
                 if (!s.contains("primary") || !s.contains("properties")) {
                     THROW_CODE(InputError,
-                        R"(Label[{}]: Missing "primary" or "properties" definition)", ld.name);
+                               R"(Label[{}]: Missing "primary" or "properties" definition)",
+                               ld.name);
                 }
                 if (s.contains("temporal")) {
-                    THROW_CODE(InputError,
-                        R"(Label[{}]: "temporal" is not supported in Vertex)", ld.name);
+                    THROW_CODE(InputError, R"(Label[{}]: "temporal" is not supported in Vertex)",
+                               ld.name);
                 }
-                for (auto & p : s["properties"]) {
+                for (auto& p : s["properties"]) {
                     if (p.contains("pair_unique")) {
                         THROW_CODE(InputError,
-                            R"(Label[{}]: "pair_unique index" is not supported in Vertex)", ld.name);
+                                   R"(Label[{}]: "pair_unique index" is not supported in Vertex)",
+                                   ld.name);
                     }
                 }
             } else {
                 if (s.contains("primary")) {
-                    THROW_CODE(InputError,
-                        R"(Label[{}]: "primary" is not supported in Edge)", ld.name);
+                    THROW_CODE(InputError, R"(Label[{}]: "primary" is not supported in Edge)",
+                               ld.name);
                 }
                 if (s.contains("constraints")) {
                     if (!s["constraints"].is_array())
-                        THROW_CODE(InputError,
-                            R"(Label[{}]: "constraints" is not array)", ld.name);
+                        THROW_CODE(InputError, R"(Label[{}]: "constraints" is not array)", ld.name);
                     for (auto& p : s["constraints"]) {
                         if (!p.is_array() || p.size() != 2)
                             THROW_CODE(InputError,
-                                R"(Label[{}]: "constraints" element size should be 2)", ld.name);
+                                       R"(Label[{}]: "constraints" element size should be 2)",
+                                       ld.name);
                         ld.edge_constraints.emplace_back(p[0], p[1]);
                     }
                 }
                 if (s.contains("properties")) {
                     for (auto& p : s["properties"]) {
-                        if (p.contains("pair_unique") && p["pair_unique"]
-                            && p.contains("unique") && p["unique"]) {
+                        if (p.contains("pair_unique") && p["pair_unique"] && p.contains("unique") &&
+                            p["unique"]) {
                             THROW_CODE(InputError,
-                                "Label[{}]: pair_unique and unique configuration cannot"
-                                        " occur simultaneously)",
-                                        ld.name);
+                                       "Label[{}]: pair_unique and unique configuration cannot"
+                                       " occur simultaneously)",
+                                       ld.name);
                         }
                     }
                 }
@@ -840,14 +841,16 @@ class ImportConfParser {
                 for (auto& p : s["properties"]) {
                     ColumnSpec cs;
                     if (!p.contains("name") || !p.contains("type")) {
-                        THROW_CODE(InputError,
+                        THROW_CODE(
+                            InputError,
                             R"(Label[{}]: Missing "name" or "type" in "properties" definition)",
                             ld.name);
                     }
                     if (p["name"] == KeyWordFunc::GetStrFromKeyWord(KeyWord::SKIP) ||
                         p["name"] == KeyWordFunc::GetStrFromKeyWord(KeyWord::SRC_ID) ||
                         p["name"] == KeyWordFunc::GetStrFromKeyWord(KeyWord::DST_ID)) {
-                        THROW_CODE(InputError,
+                        THROW_CODE(
+                            InputError,
                             R"(Label[{}]: Property name cannot be "SKIP" or "SRC_ID" or "DST_ID")",
                             ld.name);
                     }
@@ -898,8 +901,8 @@ class ImportConfParser {
             }
             if (s.contains("detach_property")) {
                 if (!s["detach_property"].is_boolean()) {
-                    THROW_CODE(InputError,
-                        "Label[{}]: \"detach_property\" is not boolean", ld.name);
+                    THROW_CODE(InputError, "Label[{}]: \"detach_property\" is not boolean",
+                               ld.name);
                 }
                 ld.detach_property = s["detach_property"];
             }
@@ -921,8 +924,8 @@ class ImportConfParser {
         for (auto& item : conf["files"]) {
             if (!item.contains("format") || !item.contains("label") || !item.contains("columns")) {
                 THROW_CODE(InputError,
-                    R"(Missing "path" or "format" or "label" or "columns" in json {})",
-                            item.dump(4));
+                           R"(Missing "path" or "format" or "label" or "columns" in json {})",
+                           item.dump(4));
             }
             if (!item["columns"].is_array()) {
                 THROW_CODE(InputError, "\"columns\" is not array in json {}", item.dump(4));
@@ -934,8 +937,8 @@ class ImportConfParser {
                     THROW_CODE(InputError, R"(Missing "path" in json {})", item.dump(4));
                 const std::string& path = item["path"];
                 if (!fs::exists(path)) {
-                    THROW_CODE(InputError,
-                        "Path [{}] does not exist in json {}", path, item.dump(4));
+                    THROW_CODE(InputError, "Path [{}] does not exist in json {}", path,
+                               item.dump(4));
                 }
                 if (fs::is_directory(path)) {
                     for (const auto& entry : fs::directory_iterator(path)) {
@@ -962,8 +965,8 @@ class ImportConfParser {
                 cd.data_format = item["format"];
                 if (cd.data_format != "CSV" && cd.data_format != "JSON") {
                     THROW_CODE(InputError,
-                        "\"format\" value error : {}, should be CSV or JSON in json {}",
-                                cd.data_format, item.dump(4));
+                               "\"format\" value error : {}, should be CSV or JSON in json {}",
+                               cd.data_format, item.dump(4));
                 }
                 cd.label = item["label"];
                 if (item.contains("header")) {
@@ -972,8 +975,8 @@ class ImportConfParser {
                 cd.is_vertex_file = !(item.contains("SRC_ID") || item.contains("DST_ID"));
                 if (!cd.is_vertex_file) {
                     if (!item.contains("SRC_ID") || !item.contains("DST_ID")) {
-                        THROW_CODE(InputError,
-                            R"(Missing "SRC_ID" or "DST_ID" in json {})", item.dump(4));
+                        THROW_CODE(InputError, R"(Missing "SRC_ID" or "DST_ID" in json {})",
+                                   item.dump(4));
                     }
                     cd.edge_src.label = item["SRC_ID"];
                     cd.edge_dst.label = item["DST_ID"];
@@ -1027,9 +1030,9 @@ class ImportConfParser {
             std::string err;
             for (const auto& v : set) err.append(v + ",");
             THROW_CODE(InputError,
-                "All fields (expect optional) should be defined, "
-                        "[{}] not defined",
-                        err);
+                       "All fields (expect optional) should be defined, "
+                       "[{}] not defined",
+                       err);
         }
 
         // check edge SRC_ID and DST_ID valid

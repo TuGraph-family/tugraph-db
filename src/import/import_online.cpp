@@ -45,10 +45,14 @@ struct OnlineImportEdge {
     TemporalId tid;
     Value prop;
     bool is_out_edge;
-    OnlineImportEdge(VertexId vid1_, LabelId lid_, VertexId vid2_, TemporalId tid_,
-                     Value&& prop, bool is_out)
-        : vid1(vid1_), lid(lid_), vid2(vid2_), tid(tid_), prop(std::move(prop))
-          , is_out_edge(is_out) {}
+    OnlineImportEdge(VertexId vid1_, LabelId lid_, VertexId vid2_, TemporalId tid_, Value&& prop,
+                     bool is_out)
+        : vid1(vid1_),
+          lid(lid_),
+          vid2(vid2_),
+          tid(tid_),
+          prop(std::move(prop)),
+          is_out_edge(is_out) {}
 
     OnlineImportEdge(VertexId vid1_, LabelId lid_, VertexId vid2_, TemporalId tid_,
                      const Value& prop, bool is_out)
@@ -165,13 +169,11 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
 
     {
         auto schema = txn.GetSchema(label, false);
-        if (!schema)
-            THROW_CODE(InputError, "Edge Label [{}] does not exist.", label);
+        if (!schema) THROW_CODE(InputError, "Edge Label [{}] does not exist.", label);
         const auto& ec = schema->GetEdgeConstraintsLids();
         if (!ec.empty()) {
             graph::EdgeConstraintsChecker ecc(ec);
-            ecc.Check(txn.GetLabelId(true, src_label),
-                      txn.GetLabelId(true, dst_label));
+            ecc.Check(txn.GetLabelId(true, src_label), txn.GetLabelId(true, dst_label));
         }
     }
 
@@ -202,14 +204,14 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
 
     VertexIndex* src_index = txn.GetVertexIndex(src_label, fd.edge_src.id);
     if (!src_index || !src_index->IsReady()) {
-        THROW_CODE(InputError,
-            "Src {} field {} has no available index!", src_label, fd.edge_src.id);
+        THROW_CODE(InputError, "Src {} field {} has no available index!", src_label,
+                   fd.edge_src.id);
     }
 
     VertexIndex* dst_index = txn.GetVertexIndex(dst_label, fd.edge_dst.id);
     if (!dst_index || !dst_index->IsReady()) {
-        THROW_CODE(InputError,
-            "Dst {} field {} has no available index!", dst_label, fd.edge_dst.id);
+        THROW_CODE(InputError, "Dst {} field {} has no available index!", dst_label,
+                   fd.edge_dst.id);
     }
 
     // lookup index for src vid
@@ -304,10 +306,9 @@ std::string lgraph::import_v2::ImportOnline::ImportEdges(LightningGraph* db, Tra
                 continue;
             }
             std::lock_guard<std::mutex> l(edges_mtx);
-            edges.emplace_back(src_vid, static_cast<LabelId>(label_id), dst_vid,
-                               tid, prop, true);
-            edges.emplace_back(dst_vid, static_cast<LabelId>(label_id), src_vid,
-                               tid, std::move(prop), false);
+            edges.emplace_back(src_vid, static_cast<LabelId>(label_id), dst_vid, tid, prop, true);
+            edges.emplace_back(dst_vid, static_cast<LabelId>(label_id), src_vid, tid,
+                               std::move(prop), false);
         }
     };
     DoMultiThreadWork(n, prepare_records, config.n_threads);
@@ -349,8 +350,7 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineTextPackage(
     std::vector<CsvDesc> cds;
     LOG_INFO() << "desc: " << desc;
     cds = ImportConfParser::ParseFiles(nlohmann::json::parse(desc), false);
-    if (cds.size() != 1)
-        THROW_CODE(InputError, "config items number error:  {}", desc);
+    if (cds.size() != 1) THROW_CODE(InputError, "config items number error:  {}", desc);
     fd = cds[0];
     if (!fd.is_vertex_file) {
         auto txn = db->CreateReadTxn();
@@ -436,40 +436,38 @@ std::string lgraph::import_v2::ImportOnline::HandleOnlineSchema(std::string&& de
         bool ok = db.AddLabel(v.is_vertex, v.name, fds, *options);
         if (ok) {
             LOG_INFO() << FMA_FMT("Add {} label:{}, detach:{}", v.is_vertex ? "vertex" : "edge",
-                                 v.name, options->detach_property);
+                                  v.name, options->detach_property);
         } else {
-            THROW_CODE(InputError,
-                "{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge", v.name);
+            THROW_CODE(InputError, "{} label:{} already exists", v.is_vertex ? "Vertex" : "Edge",
+                       v.name);
         }
 
         // create index
         for (auto& spec : v.columns) {
             if (v.is_vertex && spec.index && !spec.primary) {
                 if (db.AddVertexIndex(v.name, spec.name, spec.idxType)) {
-                    LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]",
-                                         v.name, spec.name, static_cast<int>(spec.idxType));
+                    LOG_INFO() << FMA_FMT("Add vertex index [label:{}, field:{}, type:{}]", v.name,
+                                          spec.name, static_cast<int>(spec.idxType));
                 } else {
-                    THROW_CODE(InputError,
-                        "Vertex index [label:{}, field:{}] already exists",
-                                v.name, spec.name);
+                    THROW_CODE(InputError, "Vertex index [label:{}, field:{}] already exists",
+                               v.name, spec.name);
                 }
             } else if (!v.is_vertex && spec.index) {
                 if (db.AddEdgeIndex(v.name, spec.name, spec.idxType)) {
-                    LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
-                                         v.name, spec.name, static_cast<int>(spec.idxType));
+                    LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]", v.name,
+                                          spec.name, static_cast<int>(spec.idxType));
                 } else {
-                    THROW_CODE(InputError,
-                        "Edge index [label:{}, field:{}] already exists",
-                                v.name, spec.name);
+                    THROW_CODE(InputError, "Edge index [label:{}, field:{}] already exists", v.name,
+                               spec.name);
                 }
             }
             if (spec.fulltext) {
                 if (db.AddFullTextIndex(v.is_vertex, v.name, spec.name)) {
-                    LOG_INFO() << FMA_FMT("Add fulltext index [label:{}, field:{}] success",
-                                         v.name, spec.name);
+                    LOG_INFO() << FMA_FMT("Add fulltext index [label:{}, field:{}] success", v.name,
+                                          spec.name);
                 } else {
                     THROW_CODE(InputError, "Fulltext index [label:{}, field:{}] already exists",
-                                                     v.name, spec.name);
+                               v.name, spec.name);
                 }
             }
         }
