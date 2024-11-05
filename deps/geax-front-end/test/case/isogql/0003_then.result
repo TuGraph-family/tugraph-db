@@ -1,0 +1,492 @@
+MATCH p=(a:node1 where @id = 1)-[b]->(c)-[d:edge_n2_n3]->(e)
+return p
+
++--------------------------------------------------------------------+
+|                                                                  p |
++--------------------------------------------------------------------+
+| (1:node1)-[:edge_n1_n2|0]->(10:node2)-[:edge_n2_n3|0]->(100:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(10:node2)-[:edge_n2_n3|0]->(101:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(10:node2)-[:edge_n2_n3|0]->(102:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(11:node2)-[:edge_n2_n3|0]->(110:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(11:node2)-[:edge_n2_n3|0]->(111:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(11:node2)-[:edge_n2_n3|0]->(112:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(12:node2)-[:edge_n2_n3|0]->(120:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(12:node2)-[:edge_n2_n3|0]->(121:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(12:node2)-[:edge_n2_n3|0]->(122:node3) |
++--------------------------------------------------------------------+
+
+MATCH (a:node1 where @id = 1)-[b]->(c)
+RETURN c
+THEN
+MATCH (c)-[d:edge_n2_n3]->(e)
+RETURN id(c), id(e)
+
++-------+-------+
+| id(c) | id(e) |
++-------+-------+
+|    10 |   100 |
+|    10 |   101 |
+|    10 |   102 |
+|    11 |   110 |
+|    11 |   111 |
+|    11 |   112 |
+|    12 |   120 |
+|    12 |   121 |
+|    12 |   122 |
++-------+-------+
+
+MATCH (a:node1 where @id = 1)-[b]->(c)
+RETURN c
+THEN
+FILTER c.@id = 10
+RETURN c;
++------------+
+|          c |
++------------+
+| (10:node2) |
++------------+
+
+MATCH (a where @id=1)->(b)->(c) RETURN b,c then MATCH (c)->(d) RETURN b,c,d THEN FILTER b.vp_long>0 RETURN b,c,d;
+
+MATCH (a {@id:1})-[r1]->(b)-[r2]->(c)-[r3]->(d)-[r4]->(e)-[r5]->(f)-[r6]->(g) RETURN sum(g.@id) AS sm,avg(g.@id) AS av,f,g GROUP BY f.@id,g.@id THEN FILTER sm=av RETURN sm,av,f,g order by f;
+
+MATCH (a where @id = 1)-[]->(n)-[]->(m) return distinct n.@id as n_id, m.p_long as m_long
+then FILTER n_id > 10
+return distinct n_id;
++------+
+| n_id |
++------+
+|   11 |
+|   12 |
++------+
+
+MATCH (a where @id = 1)-[r1]->(n)-[r2]->(m) return distinct n.@id as n_id, m.p_long as m_long
+then FILTER n_id > 10
+return distinct n_id, m_long;
++------+--------+
+| n_id | m_long |
++------+--------+
+|   11 |    110 |
+|   11 |    111 |
+|   11 |    112 |
+|   12 |    120 |
+|   12 |    121 |
+|   12 |    122 |
++------+--------+
+
+MATCH (a where @id = 1)-[r1]->(n)-[r2]->(m) return distinct n.@id as n_id, m.p_long as m_long, r1.p_string as r1_string, r2.p_string as r2_string
+then FILTER n_id > 10
+return distinct n_id, m_long, r1_string, r2_string;
++------+--------+-----------+-----------+
+| n_id | m_long | r1_string | r2_string |
++------+--------+-----------+-----------+
+|   11 |    110 |     1->11 |   11->110 |
+|   11 |    111 |     1->11 |   11->111 |
+|   11 |    112 |     1->11 |   11->112 |
+|   12 |    120 |     1->12 |   12->120 |
+|   12 |    121 |     1->12 |   12->121 |
+|   12 |    122 |     1->12 |   12->122 |
++------+--------+-----------+-----------+
+
+MATCH (a where @id = 1)-[b]->(c) return c.@id as c_id, c.p_long as c_long, b.p_string as b_string
+then FILTER c_id > 10
+return distinct b_string;
++----------+
+| b_string |
++----------+
+|    1->11 |
+|    1->12 |
++----------+
+
+MATCH (a where @id = 1)-[b]->(c) return a.@id as a_id, a.p_string as a_string, c.@id as c_id, c.p_long as c_long, c.p_string as c_string, b.p_string as b_string
+then FILTER c_id > 10
+return distinct a_string, b_string;
++----------+----------+
+| a_string | b_string |
++----------+----------+
+|        1 |    1->11 |
+|        1 |    1->12 |
++----------+----------+
+
+match (n:node1 where @id = 1)-[]->(m)
+return sum(m.p_long) as sum_long, n.@id as id
+group by id
+then filter sum_long > 1
+return sum_long, id
+
++----------+----+
+| sum_long | id |
++----------+----+
+|       33 |  1 |
++----------+----+
+
+--error 7031
+match (n:node1 where @id = 1)-[]->(m)
+return m
+then
+match p = (n)-[]->(m)
+return n, m, p;
+
+--error 7031
+match (n:node1 where @id = 1)-[]->(m)
+return m
+then
+match p = (n)-[]->(m)
+return p;
+
+--error 7031
+match (n:node1 where @id = 1)-[]->(m)
+return m
+then
+match (n)-[]->(m)
+return m;
+
+--error 7031
+MATCH (n where @id=1)-[]->(m) RETURN m as a THEN MATCH (m)-[]->(b) RETURN b;
+
+--error 7031
+MATCH (a where @id=1)-[r]->(b) RETURN r then MATCH (b)->(c) RETURN r,b,c;
+
+--error 7031
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH ()-[]->(c) RETURN c;
+
+--error 7031
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH ()-[]->(c) RETURN b;
+
+--error 7031
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH ()-[]->(c) RETURN b,c;
+
+--error 7031
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH (c)-[]->(d) RETURN c,d;
+
+--error 7031
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH (c)-[]->(d) RETURN d;
+
+--error 7031
+MATCH (n where @id=1)-[]->(m) RETURN m THEN MATCH ()-[]->(m) RETURN m;
+
+--error 7031
+MATCH (n where @id=1)-[]->(m) RETURN m THEN MATCH (n)-[]->(m) RETURN m;
+
+--error 7031
+MATCH (n where @id=1)-[]->(m) RETURN m THEN MATCH (n)-[]->(m) RETURN m,n;
+
+MATCH (n where @id=1)-[]->(m) RETURN m as a THEN MATCH (a)-[]->(b) RETURN b;
++-------------+
+|           b |
++-------------+
+| (100:node3) |
+| (101:node3) |
+| (102:node3) |
+| (110:node3) |
+| (111:node3) |
+| (112:node3) |
+| (120:node3) |
+| (121:node3) |
+| (122:node3) |
++-------------+
+
+MATCH p=(a where @id=1)-[r]->(b) RETURN p,b then MATCH (b)->(c) RETURN p,b,c;
++---------------------------------------+------------+-------------+
+|                                     p |          b |           c |
++---------------------------------------+------------+-------------+
+| (1:node1)-[:edge_n1_n2|0]->(10:node2) | (10:node2) | (100:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(10:node2) | (10:node2) | (101:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(10:node2) | (10:node2) | (102:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(11:node2) | (11:node2) | (110:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(11:node2) | (11:node2) | (111:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(11:node2) | (11:node2) | (112:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(12:node2) | (12:node2) | (120:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(12:node2) | (12:node2) | (121:node3) |
+| (1:node1)-[:edge_n1_n2|0]->(12:node2) | (12:node2) | (122:node3) |
++---------------------------------------+------------+-------------+
+
+MATCH p=(a where @id=1)-[r]->(b) RETURN p as p1,b then MATCH p=(b)->(c) RETURN p,p1,b,c;
++-----------------------------------------+---------------------------------------+------------+-------------+
+|                                       p |                                    p1 |          b |           c |
++-----------------------------------------+---------------------------------------+------------+-------------+
+| (10:node2)-[:edge_n2_n3|0]->(100:node3) | (1:node1)-[:edge_n1_n2|0]->(10:node2) | (10:node2) | (100:node3) |
+| (10:node2)-[:edge_n2_n3|0]->(101:node3) | (1:node1)-[:edge_n1_n2|0]->(10:node2) | (10:node2) | (101:node3) |
+| (10:node2)-[:edge_n2_n3|0]->(102:node3) | (1:node1)-[:edge_n1_n2|0]->(10:node2) | (10:node2) | (102:node3) |
+| (11:node2)-[:edge_n2_n3|0]->(110:node3) | (1:node1)-[:edge_n1_n2|0]->(11:node2) | (11:node2) | (110:node3) |
+| (11:node2)-[:edge_n2_n3|0]->(111:node3) | (1:node1)-[:edge_n1_n2|0]->(11:node2) | (11:node2) | (111:node3) |
+| (11:node2)-[:edge_n2_n3|0]->(112:node3) | (1:node1)-[:edge_n1_n2|0]->(11:node2) | (11:node2) | (112:node3) |
+| (12:node2)-[:edge_n2_n3|0]->(120:node3) | (1:node1)-[:edge_n1_n2|0]->(12:node2) | (12:node2) | (120:node3) |
+| (12:node2)-[:edge_n2_n3|0]->(121:node3) | (1:node1)-[:edge_n1_n2|0]->(12:node2) | (12:node2) | (121:node3) |
+| (12:node2)-[:edge_n2_n3|0]->(122:node3) | (1:node1)-[:edge_n1_n2|0]->(12:node2) | (12:node2) | (122:node3) |
++-----------------------------------------+---------------------------------------+------------+-------------+
+
+MATCH (n where @id=1)-[]->(m) RETURN m THEN MATCH (m)-[]->(n) RETURN m,n;
++------------+-------------+
+|          m |           n |
++------------+-------------+
+| (10:node2) | (100:node3) |
+| (10:node2) | (101:node3) |
+| (10:node2) | (102:node3) |
+| (11:node2) | (110:node3) |
+| (11:node2) | (111:node3) |
+| (11:node2) | (112:node3) |
+| (12:node2) | (120:node3) |
+| (12:node2) | (121:node3) |
+| (12:node2) | (122:node3) |
++------------+-------------+
+
+MATCH (a where @id=1)-[]->(b) RETURN b,b.@id as id THEN MATCH (b)-[r]-(c) RETURN r,id;
++-----------------------------+----+
+|                           r | id |
++-----------------------------+----+
+| (10)-[:edge_n2_n3|0]->(100) | 10 |
+| (10)-[:edge_n2_n3|0]->(101) | 10 |
+| (10)-[:edge_n2_n3|0]->(102) | 10 |
+|   (10)<-[:edge_n1_n2|0]-(1) | 10 |
+| (11)-[:edge_n2_n3|0]->(110) | 11 |
+| (11)-[:edge_n2_n3|0]->(111) | 11 |
+| (11)-[:edge_n2_n3|0]->(112) | 11 |
+|   (11)<-[:edge_n1_n2|0]-(1) | 11 |
+| (12)-[:edge_n2_n3|0]->(120) | 12 |
+| (12)-[:edge_n2_n3|0]->(121) | 12 |
+| (12)-[:edge_n2_n3|0]->(122) | 12 |
+|   (12)<-[:edge_n1_n2|0]-(1) | 12 |
++-----------------------------+----+
+
+MATCH (a where @id=1)-[r1]-(b) return a,b then MATCH (b)-[r2]-(c) return a,b,c then MATCH (c)-[r3]-(d) return a,b,c,d;
++-----------+------------+-------------+------------+
+|         a |          b |           c |          d |
++-----------+------------+-------------+------------+
+| (1:node1) | (10:node2) | (100:node3) | (10:node2) |
+| (1:node1) | (10:node2) | (101:node3) | (10:node2) |
+| (1:node1) | (10:node2) | (102:node3) | (10:node2) |
+| (1:node1) | (10:node2) |   (1:node1) | (10:node2) |
+| (1:node1) | (10:node2) |   (1:node1) | (11:node2) |
+| (1:node1) | (10:node2) |   (1:node1) | (12:node2) |
+| (1:node1) | (11:node2) | (110:node3) | (11:node2) |
+| (1:node1) | (11:node2) | (111:node3) | (11:node2) |
+| (1:node1) | (11:node2) | (112:node3) | (11:node2) |
+| (1:node1) | (11:node2) |   (1:node1) | (10:node2) |
+| (1:node1) | (11:node2) |   (1:node1) | (11:node2) |
+| (1:node1) | (11:node2) |   (1:node1) | (12:node2) |
+| (1:node1) | (12:node2) | (120:node3) | (12:node2) |
+| (1:node1) | (12:node2) | (121:node3) | (12:node2) |
+| (1:node1) | (12:node2) | (122:node3) | (12:node2) |
+| (1:node1) | (12:node2) |   (1:node1) | (10:node2) |
+| (1:node1) | (12:node2) |   (1:node1) | (11:node2) |
+| (1:node1) | (12:node2) |   (1:node1) | (12:node2) |
++-----------+------------+-------------+------------+
+
+MATCH (a where @id=1)-[]->(b) RETURN a,b THEN MATCH (b)-(a) RETURN DISTINCT a,b;
++-----------+------------+
+|         a |          b |
++-----------+------------+
+| (1:node1) | (10:node2) |
+| (1:node1) | (11:node2) |
+| (1:node1) | (12:node2) |
++-----------+------------+
+
+MATCH (a where @id=1)-[r1]->(b) return a,b then MATCH (b)-[r2]->(c) return a,b,c then MATCH (c)-[r3]->(d) return a,b,c,d;
+
+--error 105
+MATCH (a where @id=1)-[r]->(b) RETURN r,b then MATCH (b)-[r]->(c) RETURN r,b,c;
+
+--error 105
+MATCH (a where @id=1)-[r]->(b) RETURN r then MATCH (r)-(c) RETURN r,c;
+
+--error 3005
+MATCH (a where @id=1)->(b)->(c) RETURN b.@id as id,c THEN MATCH (c)-[r]-(d) return b,c,d,id;
+
+MATCH (a where @id=1)-[]->(b) RETURN b THEN MATCH (b)-[]->(c) RETURN count(c);
++----------+
+| count(c) |
++----------+
+|        3 |
+|        3 |
+|        3 |
++----------+
+
+MATCH (a where @id=1)-[]->(b) RETURN b group by a THEN MATCH (b)-[]->(c) RETURN b, c;
++------------+-------------+
+|          b |           c |
++------------+-------------+
+| (10:node2) | (100:node3) |
+| (10:node2) | (101:node3) |
+| (10:node2) | (102:node3) |
++------------+-------------+
+
+MATCH (a where @id=1)-[]->(b) RETURN b group by a THEN MATCH (b)-[]->(c) RETURN count(c);
++----------+
+| count(c) |
++----------+
+|        3 |
++----------+
+
+--error 3014
+MATCH (n where @id=1)-[]->(m) RETURN m AS n;
+
+--error 3014
+MATCH (n where @id=1)-[]->(m) RETURN m AS n THEN MATCH (n)-[]->(b) RETURN n,b;
+
+MATCH (a where @id=1)->(b)->(c) RETURN c THEN MATCH p=(c)-()-() RETURN length(p);
++-----------+
+| length(p) |
++-----------+
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
+|         2 |
++-----------+
+
+MATCH (a where @id=1)->(b)->(c) RETURN c THEN MATCH p=(c)-[]-() RETURN length(p);
++-----------+
+| length(p) |
++-----------+
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
+|         1 |
++-----------+
+
+MATCH (a where @id=1)->(b)->(c) RETURN c THEN MATCH p=(c)-[]-{,1}(d) RETURN p,length(p);
++-----------------------------------------+-----------+
+|                                       p | length(p) |
++-----------------------------------------+-----------+
+|                             (100:node3) |         0 |
+| (100:node3)<-[:edge_n2_n3|0]-(10:node2) |         1 |
+|                             (101:node3) |         0 |
+| (101:node3)<-[:edge_n2_n3|0]-(10:node2) |         1 |
+|                             (102:node3) |         0 |
+| (102:node3)<-[:edge_n2_n3|0]-(10:node2) |         1 |
+|                             (110:node3) |         0 |
+| (110:node3)<-[:edge_n2_n3|0]-(11:node2) |         1 |
+|                             (111:node3) |         0 |
+| (111:node3)<-[:edge_n2_n3|0]-(11:node2) |         1 |
+|                             (112:node3) |         0 |
+| (112:node3)<-[:edge_n2_n3|0]-(11:node2) |         1 |
+|                             (120:node3) |         0 |
+| (120:node3)<-[:edge_n2_n3|0]-(12:node2) |         1 |
+|                             (121:node3) |         0 |
+| (121:node3)<-[:edge_n2_n3|0]-(12:node2) |         1 |
+|                             (122:node3) |         0 |
+| (122:node3)<-[:edge_n2_n3|0]-(12:node2) |         1 |
++-----------------------------------------+-----------+
+
+MATCH (a:node1 where @id=1)->(b)
+RETURN b.@id as b_id
+THEN
+MATCH (c:node2 where @id = b_id)->(d)
+RETURN c, d;
++------------+-------------+
+|          c |           d |
++------------+-------------+
+| (10:node2) | (100:node3) |
+| (10:node2) | (101:node3) |
+| (10:node2) | (102:node3) |
+| (11:node2) | (110:node3) |
+| (11:node2) | (111:node3) |
+| (11:node2) | (112:node3) |
+| (12:node2) | (120:node3) |
+| (12:node2) | (121:node3) |
+| (12:node2) | (122:node3) |
++------------+-------------+
+
+MATCH (a:node1 where @id=1)->(b)
+RETURN b.@id as b_id
+THEN
+MATCH (a:node2 where @id = b_id)->(b)
+RETURN a, b;
++------------+-------------+
+|          a |           b |
++------------+-------------+
+| (10:node2) | (100:node3) |
+| (10:node2) | (101:node3) |
+| (10:node2) | (102:node3) |
+| (11:node2) | (110:node3) |
+| (11:node2) | (111:node3) |
+| (11:node2) | (112:node3) |
+| (12:node2) | (120:node3) |
+| (12:node2) | (121:node3) |
+| (12:node2) | (122:node3) |
++------------+-------------+
+
+MATCH (a:node1 where a.@id=1)-[e1:edge_n1_n2 where e1.@timestamp >= 0 PER_NODE_LIMIT(100)]->(c:node2)
+RETURN c.p_long AS c_node_id, a.@id AS a_id
+THEN
+MATCH (a:node1|node2 WHERE a.@id = a_id)-[e2:edge_n1_n2 where e2.@timestamp >= 0 PER_NODE_LIMIT(100)]->(c:node2)
+RETURN DISTINCT a_id, c_node_id, c.p_long as c_c_node_id;
++------+-----------+-------------+
+| a_id | c_node_id | c_c_node_id |
++------+-----------+-------------+
+|    1 |        10 |          10 |
+|    1 |        10 |          11 |
+|    1 |        10 |          12 |
+|    1 |        11 |          10 |
+|    1 |        11 |          11 |
+|    1 |        11 |          12 |
+|    1 |        12 |          10 |
+|    1 |        12 |          11 |
+|    1 |        12 |          12 |
++------+-----------+-------------+
+
+MATCH (a:node1 where @id=1)->(b)
+RETURN b.@id as b_id
+THEN
+MATCH (c:node2 where @id = b_id and p_long > 10)->(d)
+RETURN c, c.p_long, d;
++------------+----------+-------------+
+|          c | c.p_long |           d |
++------------+----------+-------------+
+| (11:node2) |       11 | (110:node3) |
+| (11:node2) |       11 | (111:node3) |
+| (11:node2) |       11 | (112:node3) |
+| (12:node2) |       12 | (120:node3) |
+| (12:node2) |       12 | (121:node3) |
+| (12:node2) |       12 | (122:node3) |
++------------+----------+-------------+
+
+MATCH (a:node1 where @id=1)->(b)
+RETURN b.@id as b_id
+THEN
+MATCH (c:node2 where @id = b_id and p_long > 10 and p_string != "11")->(d)
+RETURN c, c.p_long, c.p_string, d;
++------------+----------+------------+-------------+
+|          c | c.p_long | c.p_string |           d |
++------------+----------+------------+-------------+
+| (12:node2) |       12 |         12 | (120:node3) |
+| (12:node2) |       12 |         12 | (121:node3) |
+| (12:node2) |       12 |         12 | (122:node3) |
++------------+----------+------------+-------------+

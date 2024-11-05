@@ -1,0 +1,379 @@
+def only_node: isogql = {
+    INSERT (n:node1{@id:80000100, p_long:521, p_double:13.14, p_string:"beijing"});
+    MATCH (n:node1 {@id:80000100}) RETURN n.@id, n.p_long, n.p_double, n.p_string;
+}
+
+def only_edge: isogql = {
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:80000200, @dst_id:80000300, @timestamp:0}]->();
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:80000200, @dst_id:80000300, @timestamp:1}]->();
+    match (n1:node1{@id:8000200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:80000300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+}
+
+def only_path: isogql = {
+    INSERT (n:node1{@id:8000013400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:800013500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000013400}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000013500}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000013400})-[e:edge_n1_n2]->(n2:node2{@id:800013500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string ;
+}
+
+def only_match: isogql = {
+    INSERT (n:node1{@id:80000400, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (n:node2{@id:80000500, p_long:521, p_double:13.14, p_string:"beijing"});
+    MATCH (n1:node1{@id:80000400}) MATCH (n2:node2{@id:8000500}) INSERT (n1)-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2);
+    match (n1:node1{@id:80000400})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:8000500}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+}
+
+def insert_ref_case: isogql = {
+    INSERT (n:node1{@id:8000100, p_long:521, p_double:13.14, p_string:"beijing"});
+    match (n:node1 {@id:8000100}) return n.@id, n.p_long, n.p_double, n.p_string;
+    INSERT (n:node1{@id:8000101, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000101}) return n.@id, n.p_long, n.p_double, n.p_string;
+    INSERT (a:node1{@id:8000102, p_long:521, p_double:13.14, p_string:"beijing"}), (b:node1{@id:8000103, p_long:520, p_double:2.33, p_string:"hangzhou"}), (c:node1{@id:8000104, p_long:666, p_double:3.1415, p_string:"shanghai"});
+    match (n:node1 where @id in (102, 103, 104)) return n.@id, n.p_long, n.p_double, n.p_string order by n.@id;
+    INSERT (n1:node1{@id:8000105, p_long:521, p_double:13.14, p_string:"beijing"}), (n2:node2{@id:8000106, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n3:node3{@id:8000107, p_long:666, p_double:3.1415, p_string:"shanghai"});
+    match (n:node1 {@id:8000105}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000106}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node3 {@id:8000107}) return n.@id, n.p_long, n.p_double, n.p_string;
+
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000200, @dst_id:8000300, @timestamp:0}]->();
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000200, @dst_id:8000300, @timestamp:1}]->();
+    match (n1:node1{@id:8000200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:8000300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000201, @dst_id:8000301, @timestamp:1}]-();
+    match (n1:node1{@id:8000201})-[e:edge_n1_n2]->(n2:node2{@id:8000301}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+    INSERT ()<-[a:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000202, @dst_id:8000302, @timestamp:2}]-(), ()<-[b:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000203, @dst_id:8000302, @timestamp:3}]-();
+    match (n1:node1 where @id in (202, 203))-[e:edge_n1_n2]->(n2:node2{@id:8000302}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string order by e.@src_id;
+    INSERT ()<-[a:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000204, @dst_id:8000304, @timestamp:4}]-(), ()<-[b:edge_n2_n3{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000205, @dst_id:8000305, @timestamp:5}]-();
+    match (n1:node1{@id:8000204})-[e:edge_n1_n2]->(n2:node2{@id:8000304}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+    match (n2:node2{@id:8000205})-[e:edge_n2_n3]->(n3:node3{@id:8000305}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+
+    INSERT (n:node1{@id:8000400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000400}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000500}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000400})-[e:edge_n1_n2]->(n2:node2{@id:8000500}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (n:node1{@id:8000401, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{@id:8000501, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000401}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000501}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000401})<-[e:edge_n2_n1]-(n2:node2{@id:8000501}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (n1:node1{@id:8000402, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000502, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000403, p_long:521, p_double:13.14, p_string:"beijing"})-[e2:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m2:node2{@id:8000503, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000402}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000502}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node1 {@id:8000403}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000503}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000402})-[e:edge_n1_n2]->(n2:node2{@id:8000502}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    match (n1:node1{@id:8000403})-[e:edge_n1_n2]->(n2:node2{@id:8000503}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (n1:node1{@id:8000404, p_long:521, p_double:13.14, p_string:"beijing"})<-[e1:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m1:node2{@id:8000504, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000405, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000505, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000404}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000504}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node1 {@id:8000405}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000505}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000404})<-[e:edge_n2_n1]-(n2:node2{@id:8000504}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    match (n1:node1{@id:8000405})<-[e:edge_n2_n1]-(n2:node2{@id:8000505}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (n1:node1{@id:80004180, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:80005180, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000418, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000518, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:80004180}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:80005180}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node1 {@id:8000418}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000518}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:80004180})-[e:edge_n1_n2]->(n2:node2{@id:80005180}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    match (n1:node1{@id:8000418})<-[e:edge_n2_n1]-(n2:node2{@id:8000518}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+}
+
+def insert_lack_ref_case: isogql = {
+    INSERT (:node1{@id:8000108, p_long:521, p_double:13.14, p_string:"beijing"});
+    match (n:node1 {@id:8000108}) return n.@id, n.p_long, n.p_double, n.p_string;
+    INSERT (:node1{@id:8000109, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000109}) return n.@id, n.p_long, n.p_double, n.p_string;
+    INSERT (:node1{@id:8000110, p_long:521, p_double:13.14, p_string:"beijing"}), (:node1{@id:8000111, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:8000112, p_long:666, p_double:3.1415, p_string:"shanghai"});
+    match (n:node1 where @id in (102, 103, 104)) return n.@id, n.p_long, n.p_double, n.p_string order by n.@id;
+    INSERT (:node1{@id:8000113, p_long:521, p_double:13.14, p_string:"beijing"}), (:node2{@id:8000114, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node3{@id:8000115, p_long:666, p_double:3.1415, p_string:"shanghai"});
+    match (n:node1 {@id:8000113}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000114}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node3 {@id:8000115}) return n.@id, n.p_long, n.p_double, n.p_string;
+
+    INSERT ()-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000206, @dst_id:8000306, @timestamp:6}]->();
+    match (n1:node1{@id:8000206})-[e:edge_n1_n2]->(n2:node2{@id:8000306}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+    INSERT ()<-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000207, @dst_id:8000307, @timestamp:7}]-();
+    match (n1:node1{@id:8000207})-[e:edge_n1_n2]->(n2:node2{@id:8000307}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+    INSERT ()<-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000208, @dst_id:8000308, @timestamp:8}]-(), ()<-[:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000209, @dst_id:8000308, @timestamp:9}]-();
+    match (n1:node1 where @id in (208, 209))-[e:edge_n1_n2]->(n2:node2{@id:8000308}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string order by e.@src_id;
+    INSERT ()<-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000210, @dst_id:8000310, @timestamp:10}]-(), ()<-[:edge_n2_n3{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000211, @dst_id:8000311, @timestamp:11}]-();
+    match (n1:node1{@id:8000210})-[e:edge_n1_n2]->(n2:node2{@id:8000310}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+    match (n2:node2{@id:8000211})-[e:edge_n2_n3]->(n3:node3{@id:8000311}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+
+    INSERT (:node1{@id:8000406, p_long:521, p_double:13.14, p_string:"beijing"})-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000506, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000406}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000506}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000406})-[e:edge_n1_n2]->(n2:node2{@id:8000506}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (:node1{@id:8000407, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000507, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000407}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000507}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000407})<-[e:edge_n2_n1]-(n2:node2{@id:8000507}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (:node1{@id:8000408, p_long:521, p_double:13.14, p_string:"beijing"})-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000508, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000409, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000509, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000408}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000508}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node1 {@id:8000409}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000509}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000408})-[e:edge_n1_n2]->(n2:node2{@id:8000508}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    match (n1:node1{@id:8000409})-[e:edge_n1_n2]->(n2:node2{@id:8000509}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (:node1{@id:8000410, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000510, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:8000411, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000511, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000410}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000510}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node1 {@id:8000411}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000511}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000410})<-[e:edge_n2_n1]-(n2:node2{@id:8000510}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    match (n1:node1{@id:8000411})<-[e:edge_n2_n1]-(n2:node2{@id:8000511}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+}
+
+def insert_part_of_the_lack_ref_case: isogql = {
+    INSERT (a:node1{@id:8000116, p_long:521, p_double:13.14, p_string:"beijing"}), (:node1{@id:8000117, p_long:520, p_double:2.33, p_string:"hangzhou"}), (c:node1{@id:8000118, p_long:666, p_double:3.1415, p_string:"shanghai"});
+    match (n:node1 where @id in (116, 117, 118)) return n.@id, n.p_long, n.p_double, n.p_string order by n.@id;
+    INSERT (n1:node1{@id:8000119, p_long:521, p_double:13.14, p_string:"beijing"}), (:node2{@id:8000120, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node3{@id:80001001, p_long:666, p_double:3.1415, p_string:"shanghai"});
+    match (n:node1 {@id:8000119}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000120}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node3 {@id:80001001}) return n.@id, n.p_long, n.p_double, n.p_string;
+
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000212, @dst_id:8000312, @timestamp:12}]-(), ()<-[:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000213, @dst_id:8000312, @timestamp:13}]-();
+    match (n1:node1 where @id in (212, 213))-[e:edge_n1_n2]->(n2:node2{@id:8000312}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string order by e.@src_id;
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000214, @dst_id:8000314, @timestamp:14}]->(), ()<-[:edge_n2_n3{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000215, @dst_id:8000315, @timestamp:15}]-();
+    match (n1:node1{@id:8000214})-[e:edge_n1_n2]->(n2:node2{@id:8000314}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+    match (n2:node2{@id:8000215})-[e:edge_n2_n3]->(n3:node3{@id:8000315}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+
+    INSERT (:node1{@id:8000412, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000512, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000412}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000512}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000412})-[e:edge_n1_n2]->(n2:node2{@id:8000512}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (:node1{@id:8000413, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000513, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000413}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000513}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000413})<-[e:edge_n2_n1]-(n2:node2{@id:8000513}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (:node1{@id:8000414, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000514, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000415, p_long:521, p_double:13.14, p_string:"beijing"})-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000515, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000414}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000514}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node1 {@id:8000415}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000515}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000414})-[e:edge_n1_n2]->(n2:node2{@id:8000514}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    match (n1:node1{@id:8000415})-[e:edge_n1_n2]->(n2:node2{@id:8000515}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    INSERT (:node1{@id:8000416, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000516, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000417, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{@id:8000517, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n:node1 {@id:8000416}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000516}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node1 {@id:8000417}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n:node2 {@id:8000517}) return n.@id, n.p_long, n.p_double, n.p_string;
+    match (n1:node1{@id:8000416})<-[e:edge_n2_n1]-(n2:node2{@id:8000516}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+    match (n1:node1{@id:8000417})<-[e:edge_n2_n1]-(n2:node2{@id:8000517}) return n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string;
+}
+
+def insert_lack_@id_case: isogql -> (7018) = {
+    INSERT (:node1{p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (a:node1{@id:8000122, p_long:521, p_double:13.14, p_string:"beijing"}), (:node1{p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT ()-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000216, @timestamp:6}]->();
+    INSERT ()-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @dst_id:8000317, @timestamp:6}]->();
+    INSERT ()-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000218, @dst_id:8000318}]->();
+    INSERT ()<-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @dst_id:8000319, @timestamp:19}]-(), ()<-[:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000220, @dst_id:8000320, @timestamp:20}]-();
+    INSERT ()<-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000221, @timestamp:21}]-(), ()<-[:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000222, @dst_id:8000322, @timestamp:22}]-();
+    INSERT ()<-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000223, @dst_id:8000323}]-(), ()<-[:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000224, @dst_id:8000324, @timestamp:24}]-();
+    INSERT (n:node1{p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000519, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000420, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000502, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000403, p_long:521, p_double:13.14, p_string:"beijing"})-[e2:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000421, p_long:521, p_double:13.14, p_string:"beijing"})<-[e1:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m1:node2{@id:8000521, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000422, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000423, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000523, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_lack_@id_case: isogql -> (7030) = {
+    INSERT (n{@id:8000123, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT ()-[e{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000232, @dst_id:8000332, @timestamp:0}]->();
+    INSERT ()<-[a{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000233, @dst_id:8000333, @timestamp:4}]-(), ()<-[b:edge_n2_n3{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000234, @dst_id:8000334, @timestamp:5}]-();
+    INSERT ()<-[a:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000235, @dst_id:8000335, @timestamp:4}]-(), ()<-[b{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000236, @dst_id:8000336, @timestamp:5}]-();
+    INSERT ()<-[a{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000237, @dst_id:8000337, @timestamp:4}]-(), ()<-[b{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000238, @dst_id:8000338, @timestamp:5}]-();
+    INSERT (n{@id:8000420, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000520, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000421, p_long:521, p_double:13.14, p_string:"beijing"})-[e{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000512, p_long:521, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000422, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m{@id:8000522, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n{@id:8000423, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000523, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000424, p_long:521, p_double:13.14, p_string:"beijing"})<-[e{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000524, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000425, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m{@id:8000525, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n{@id:8000426, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000526, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000427, p_long:521, p_double:13.14, p_string:"beijing"})-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000527, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000428, p_long:521, p_double:13.14, p_string:"beijing"})-[e{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000528, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000429, p_long:521, p_double:13.14, p_string:"beijing"})-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000529, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000430, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000530, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000431, p_long:521, p_double:13.14, p_string:"beijing"})-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2{@id:8000531, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000432, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000532, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000433, p_long:521, p_double:13.14, p_string:"beijing"})-[e2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000533, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1{@id:8000434, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000534, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000435, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{@id:8000535, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000436, p_long:521, p_double:13.14, p_string:"beijing"})<-[e{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000536, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000437, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{@id:8000537, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000438, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000538, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n:node1{@id:8000439, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2{@id:8000539, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:8000440, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:8000540, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n{@id:8000441, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{@id:8000541, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000442, p_long:521, p_double:13.14, p_string:"beijing"})-[e1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000542, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000443, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000543, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1{@id:8000444, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000544, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000445, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2{@id:8000545, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000446, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1{@id:8000546, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000447, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2{@id:8000547, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_primary_key_case: isogql -> (7016) = {
+    INSERT (:node1{@id:8000100, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (:node1{@id:8000124, p_long:521, p_double:13.14, p_string:"beijing"}), (:node1{@id:8000124, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:8000124, p_long:666, p_double:3.1415, p_string:"shanghai"});
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000200, @dst_id:8000300, @timestamp:0}]->();
+    INSERT ()<-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000225, @dst_id:8000325, @timestamp:25}]-(), ()<-[:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000225, @dst_id:8000325, @timestamp:25}]-();
+    INSERT (n:node1{@id:8000400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000401, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{@id:8000501, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000447, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000547, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000447, p_long:521, p_double:13.14, p_string:"beijing"})-[e2:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m2:node2{@id:8000547, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000448, p_long:521, p_double:13.14, p_string:"beijing"})<-[e1:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m1:node2{@id:8000548, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000448, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000548, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000449, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000549, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000449, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000549, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:80001005, p_long:521, p_double:13.14, p_string:"beijing"}), (:node1{@id:800010033, p_long:521, p_double:13.14, p_string:"beijing"}), ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:80001006, @dst_id:80001007, @timestamp:1}]->(), (n1:node1{@id:800010033, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:80001004, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_duplicate_ref: isogql -> (7020) = {
+    INSERT (n:node1{@id:8000116, p_long:521, p_double:13.14, p_string:"beijing"}), (n:node1{@id:8000117, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000226, @dst_id:8000326, @timestamp:26}]-(), ()<-[e:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000227, @dst_id:8000327, @timestamp:27}]-();
+    INSERT (n1:node1{@id:8000450, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000550, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n1:node1{@id:8000451, p_long:521, p_double:13.14, p_string:"beijing"})<-[e1:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m1:node2{@id:8000551, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_prop_not_exist_case: isogql -> (8020) = {
+    INSERT (n:node1{@id:8000125, p_long:521, p_double:13.14, p_string:"beijing", extra_prop:"none"});
+    INSERT (n:node1{@id:8000100, p_long:521, p_double:13.14, p_wrong:"beijing"});
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000228, @dst_id:8000328, @timestamp:28, extra_prop:"none"}]->();
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_wrong:"distance", @src_id:8000200, @dst_id:8000300, @timestamp:0}]->();
+    INSERT (n:node1{@id:8000452, p_long:521, p_double:13.14, p_string:"beijing", extra_prop:"none"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000552, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000453, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, extra_prop:"none"}]->(n2:node2{@id:8000553, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000454, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000554, p_long:520, p_double:2.33, p_string:"hangzhou", extra_prop:"none"});
+    INSERT (n:node1{@id:80004700, p_long:521, p_double:13.14, p_wrong:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:80005700, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:80004701, p_long:521, p_double:13.14, p_wrong:"beijing"}), (n1:node1{@id:80004702, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:80005702, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:80004703, p_long:521, p_double:13.14, p_string:"beijing"}), (n1:node1{@id:80004704, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_wrong:"distance", @timestamp:0}]->(n2:node2{@id:80005704, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_lack_of_prop_case: isogql -> (8019) = {
+    INSERT (n:node1{@id:8000126, p_double:13.14, p_string:"beijing"});
+    INSERT (n:node1{@id:8000100});
+    INSERT ()-[e:edge_n1_n2{p_long:521, p_double:13.14, @src_id:8000229, @dst_id:8000329, @timestamp:29}]->();
+    INSERT ()-[e:edge_n1_n2{@src_id:8000200, @dst_id:8000300, @timestamp:0}]->();
+    INSERT (n:node1{@id:8000455, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, @timestamp:0}]->(n2:node2{@id:8000555, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000456, p_long:521, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000556, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000457, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000557, p_long:520, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000458, p_long:521, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000558, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000459, p_long:521, p_double:13.14, p_string:"beijing"})-[e2:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m2:node2{@id:8000559, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000460, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, @timestamp:0}]->(m1:node2{@id:8000560, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000461, p_long:521, p_double:13.14, p_string:"beijing"})-[e2:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m2:node2{@id:8000561, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000462, p_long:521, p_double:13.14, p_string:"beijing"})<-[e1:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m1:node2{@id:8000562, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000463, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000563, p_long:520, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000464, p_long:521, p_double:13.14, p_string:"beijing"})<-[e1:edge_n2_n1{p_long:1000, p_double:12.34, @timestamp:1}]-(m1:node2{@id:8000564, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000465, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000565, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000466, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m1:node2{@id:8000566, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000467, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000567, p_long:520, p_string:"hangzhou"});
+    INSERT (n1:node1{@id:8000468, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, @timestamp:0}]->(m1:node2{@id:8000568, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n2:node1{@id:8000469, p_long:521, p_double:13.14, p_string:"beijing"})<-[e2:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(m2:node2{@id:8000569, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:80004701, p_long:521, p_double:13.14}), (n1:node1{@id:80004702, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:80005702, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:80004703, p_long:521, p_double:13.14, p_string:"beijing"}), (n1:node1{@id:80004704, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, @timestamp:0}]->(n2:node2{@id:80005704, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_illegal_label_case1: isogql -> (106) = {
+    INSERT (n:node1:node2{@id:8000127, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT ()-[e:edge_n1_n2:edge_n2_n3{p_long:521, p_double:13.14, p_string:"beijing", @src_id:8000230, @dst_id:8000330, @timestamp:30}]->();
+    INSERT (n:node1{@id:8000471, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2:edge_n2_n3{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000571, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1:node2{@id:8000470, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000570, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000472, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"", @timestamp:0}]->(n2:node2:node1{@id:8000572, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_illegal_label_case2: isogql -> (7029) = {
+    INSERT (n:node1|node2{@id:8000127, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT ()-[e:edge_n1_n2|edge_n2_n3{p_long:521, p_double:13.14, p_string:"beijing", @src_id:8000231, @dst_id:8000331, @timestamp:31}]->();
+    INSERT (n:node1{@id:8000474, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2|edge_n2_n3{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000574, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000475, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2|node1{@id:8000575, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1|node2{@id:8000473, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000573, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_illegal_prop_case: isogql -> (7018) = {
+    INSERT (n:node1{@id:8000128, p_long:521, p_double:13.14, p_string:"beijing", @node_type:"illegal"});
+    INSERT (n:node1{@id:8000129, p_long:521, p_double:13.14, p_string:"beijing", @src_id:80001000});
+    INSERT (n:node1{@id:8000130, p_long:521, p_double:13.14, p_string:"beijing", @dst_id:80001000});
+    INSERT (n:node1{@id:8000131, p_long:521, p_double:13.14, p_string:"beijing", @timestamp:0});
+    INSERT (n:node1{@id:8000132, p_long:521, p_double:13.14, p_string:"beijing", @edge_type:"illegal"});
+
+    INSERT ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:8000232, @dst_id:8000332, @timestamp:32, @edge_type:"illegal"}]->();
+    INSERT ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:8000233, @dst_id:8000333, @timestamp:33, @id:8000233}]->();
+    INSERT ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:8000234, @dst_id:8000334, @timestamp:34, @node_type:"illegal"}]->();
+
+    INSERT (n:node1{@id:8000476, p_long:521, p_double:13.14, p_string:"beijing", @node_type:"illegal"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000576, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000477, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000577, p_long:520, p_double:2.33, p_string:"hangzhou", @node_type:"illegal"});
+    INSERT (n:node1{@id:8000478, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @edge_type:"illegal"}]->(n2:node2{@id:8000578, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000479, p_long:521, p_double:13.14, p_string:"beijing", @src_id:8000400})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000579, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000480, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000580, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000400});
+    INSERT (n:node1{@id:8000481, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @id:8000400}]->(n2:node2{@id:8000581, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000400});
+    INSERT (n:node1{@id:8000482, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @node_type:"illegal"}]->(n2:node2{@id:8000582, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000400});
+}
+
+def insert_more_degress_case: isogql -> (7019) = {
+    INSERT (n:node1{@id:8000483, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000583, p_long:520, p_double:2.33, p_string:"hangzhou"})-[:edge_n2_n3{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000211, @dst_id:8000311, @timestamp:11}]->(n3:node3{@id:8000500, p_long:520, p_double:2.33, p_string:"xian"});
+}
+
+def insert_invalid_table_name1: isogql -> (8016) = {
+    INSERT (n:edge_n1_n2{@id:8000100, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT ()-[e:node1{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000200, @dst_id:8000300, @timestamp:0}]->();
+    INSERT (n:edge_n1_n2{@id:8000484, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000584, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000484, p_long:521, p_double:13.14, p_string:"beijing"})-[e:node1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:8000584, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000484, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:edge_n1_n2{@id:8000584, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_invalid_table_name2: isogql -> (8021) = {
+    INSERT (n:node2{@id:8000484, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node3{@id:8000584, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:8000485, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n1:node1{@id:8000585, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n2:node2{@id:8000486, p_long:521, p_double:13.14, p_string:"beijing"})-[e1:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m3:node3{@id:8000586, p_long:520, p_double:2.33, p_string:"hangzhou"}), (n1:node1{@id:8000487, p_long:521, p_double:13.14, p_string:"beijing"})-[e2:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(m2:node2{@id:8000588, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_chaos_case: isogql = {
+    INSERT (:node1{@id:8000881, p_long:521, p_double:13.14, p_string:"beijing"}), (:node1{@id:8000882, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:8000883, p_long:666, p_double:3.1415, p_string:"shanghai"}), ()<-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:8000884, @dst_id:8000885, @timestamp:2}]-(), ()<-[:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:8000886, @dst_id:8000887, @timestamp:3}]-(),(:node1{@id:8000888, p_long:521, p_double:13.14, p_string:"beijing"})-[:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(:node2{@id:8000889, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_table_not_exist_case: isogql -> (8000) = {
+    INSERT (:node_not_exist{@id:800013100, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (:node_not_exist{@id:800013101, p_long:521, p_double:13.14, p_string:"beijing"}), (:node1{@id:800013102, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (:node1{@id:800013103, p_long:521, p_double:13.14, p_string:"beijing"}), (:node_not_exist{@id:800013104, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (:node_not_exist{@id:800013103, p_long:521, p_double:13.14, p_string:"beijing"}), (:node_not_exist{@id:800013104, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (:node1{@id:800013105, p_long:521, p_double:13.14, p_string:"beijing"}), (:node_not_exist{@id:800013106, p_long:521, p_double:13.14, p_string:"beijing"}), (:node1{@id:800013107, p_long:521, p_double:13.14, p_string:"beijing"});
+
+    INSERT ()-[:edge_not_exist{p_long:13200, p_double:12.34, p_string:"distance", @src_id:800013200, @dst_id:8000300, @timestamp:0}]->();
+    INSERT ()-[:edge_not_exist{p_long:13201, p_double:12.34, p_string:"distance", @src_id:800013201, @dst_id:8000300, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:13202, p_double:12.34, p_string:"distance", @src_id:800013202, @dst_id:8000300, @timestamp:0}]->();
+    INSERT ()-[:edge_n1_n2{p_long:13203, p_double:12.34, p_string:"distance", @src_id:800013203, @dst_id:8000300, @timestamp:0}]->(), ()-[:edge_not_exist{p_long:13204, p_double:12.34, p_string:"distance", @src_id:800013204, @dst_id:8000300, @timestamp:0}]->();
+    INSERT ()-[:edge_not_exist{p_long:13205, p_double:12.34, p_string:"distance", @src_id:800013205, @dst_id:8000300, @timestamp:0}]->(), ()-[:edge_n1_n2{p_long:13206, p_double:12.34, p_string:"distance", @src_id:800013206, @dst_id:8000300, @timestamp:0}]->();
+    INSERT ()-[:edge_not_exist{p_long:13207, p_double:12.34, p_string:"distance", @src_id:800013207, @dst_id:8000300, @timestamp:0}]->(), ()-[:edge_not_exist{p_long:13208, p_double:12.34, p_string:"distance", @src_id:800013208, @dst_id:8000300, @timestamp:0}]->(), ()-[:edge_not_exist{p_long:13209, p_double:12.34, p_string:"distance", @src_id:800013209, @dst_id:8000300, @timestamp:0}]->();
+
+    INSERT (:node_not_exist{@id:800013300, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013301, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:800013302, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_not_exist{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013303, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:800013304, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node_not_exist{@id:800013305, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:800013306, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013307, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node_not_exist{@id:800013308, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013309, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:800013310, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013311, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:800013312, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_not_exist{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013313, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:800013314, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013315, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:800013316, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node_not_exist{@id:800013317, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:800013318, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_not_exist{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013319, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:800013320, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013321, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:800013322, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_not_exist{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013323, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:800013324, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_not_exist{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013325, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (:node1{@id:800013326, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_not_exist{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node2{@id:800013327, p_long:520, p_double:2.33, p_string:"hangzhou"}), (:node1{@id:800013328, p_long:521, p_double:13.14, p_string:"beijing"})<-[:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(:node_not_exist{@id:800013329, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}
+
+def insert_label_type_error: isogql -> (106) = {
+    INSERT (n:1234{@id:'800013330', p_long:521, p_double:13.14, p_string:"beijing"});
+}
+
+def insert_prop_type_error_tmp: isogql -> (105) = {
+    INSERT (n:node1{@id:-80001000, p_long:521.0, p_double:13.14, p_string:"beijing"});
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:-9223372036854775809, @dst_id:800014340, @timestamp:12.8}]-();
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:800013339, @dst_id:800014330, @timestamp:-1}]-();
+}
+
+def insert_prop_type_error: isogql -> (8017) = {
+    INSERT (n:node1{@id:'800013331', p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (n:node1{@id:800013332, p_long:'hello world', p_double:13.14, p_string:"beijing"});
+    INSERT (n:node1{@id:800013335, p_long:521, p_double:13.14, p_string:123});
+    INSERT (n:node1{@id:800013336, p_long:521.0, p_double:13.14, p_string:"beijing"});
+    INSERT (n:node1{@id:800013336, p_long:521.0, p_double:13.14, p_string:"beijing"});
+    INSERT (n:node1{@id:9223372036854775809, p_long:521.0, p_double:13.14, p_string:"beijing"});
+
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:800013337.0, @dst_id:800014337, @timestamp:1}]-();
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:800013338, @dst_id:800014338.0, @timestamp:1}]-();
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:800013340, @dst_id:800014340, @timestamp:12.8}]-();
+    INSERT ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:9223372036854775809, @dst_id:800014340, @timestamp:12.8}]-();
+
+    INSERT (n:node1{@id:800014341, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:45.67, @timestamp:0}]->(n2:node2{@id:800014342, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    INSERT (n:node1{@id:800013343, p_long:521, p_double:13.14, p_string:"beijing"}), ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:800014344, @dst_id:800014345, @timestamp:12.8}]-();
+}
+
+def insert_special_case_tmp: isogql -> (105) = {
+    INSERT (n:node1{@id:-800012346, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:-800012347, @dst_id:-800012348, @timestamp:0}]->();
+}
+
+def insert_special_case: isogql = {
+    INSERT (n:node1{@id:800013346, p_long:521, p_double:1314, p_string:"beijing"});
+    INSERT (n:node1{@id:9223372036854775807, p_long:521, p_double:13.14, p_string:"beijing"});
+}
+
+def insert_special_case1: isogql -> (105) = {
+    // INSERT (n:node1{@id:9223372036854775808, p_long:521, p_double:13.14, p_string:"beijing"});
+    INSERT (n:node1{@id:13349, p_long:-521, p_double:-13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:-1000, p_double:-12.34, p_string:"distance", @timestamp:-1504282000}]->(n2:node2{@id:-13350, p_long:520, p_double:2.33, p_string:"hangzhou"});
+}

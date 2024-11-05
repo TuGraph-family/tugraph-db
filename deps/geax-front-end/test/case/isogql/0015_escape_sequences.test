@@ -1,0 +1,81 @@
+def insert: gql = {
+    INSERT (:node1{@id:20001, p_long:1, p_double:1.1, p_string:"-\\-\'-\`-\t-\b-\n-\r-\f-\0-"});
+}
+
+def escape_gql: gql = {
+    SELECT n.p_string MATCH(n where @id = 20001);
+
+    SELECT "-\\-";
+    SELECT "-\'-";
+    SELECT "-\`-";
+    SELECT "-\t-";
+    SELECT "-\b-";
+    SELECT "-\n-";
+    SELECT "-\r-";
+    SELECT "-\f-";
+    SELECT "-\0-";
+    SELECT "-\\-\'-\`-\t-\b-\n-\r-\f-\0-\\\\";
+
+    SELECT "\asdf-\x-\56-\-\55-\U123AF-\u1235";
+
+    SELECT "GQL", "GQL\n", "\nGQL", "\nGQL\n";
+    SELECT "gql", "\\GQL", "GQL\\", "GQL\\", "\\GQL\\", "\\GQL", "\\GQL\',\s\\r-\\\\r";
+
+    SELECT '-\\-';
+    SELECT '-\"-';
+    SELECT '-\`-';
+    SELECT '-\t-';
+    SELECT '-\b-';
+    SELECT '-\n-';
+    SELECT '-\r-';
+    SELECT '-\f-';
+    SELECT '-\0-';
+    SELECT '-\\-\"-\`-\t-\b-\n-\r-\f-\0-\\\\';
+
+    SELECT '\asdf-\x-\56-\-\55-\U123AF-\u1235';
+
+    SELECT 'GQL', 'GQL\n', '\nGQL', '\nGQL\n';
+    SELECT 'gql', '\\GQL', 'GQL\\', 'GQL\\', '\\GQL\\', '\\GQL', '\\GQL\",\s\\r-\\\\r';
+}
+
+def escape_isogql_1: isogql = {
+    MATCH(n where @id = 20001) RETURN n.p_string;
+
+    // support escape characters
+    RETURN "-\\-";
+    RETURN "-\'-";
+    RETURN "-\`-";
+    RETURN "-\t-";
+    RETURN "-\b-";
+    RETURN "-\n-";
+    RETURN "-\r-";
+    RETURN "-\f-";
+    RETURN "-\0-";
+    RETURN "-\\-\'-\`-\t-\b-\n-\r-\f-\0-\\\\";
+
+    // not support escape characters
+    RETURN "\asdf-\x-\56-\-\55-\U123AF-\u1235";
+
+    RETURN "GQL", "GQL\n", "\nGQL", "\nGQL\n";
+    RETURN "gql", "\\GQL", "GQL\\", "GQL\\", "\\GQL\\", "\\GQL", "\\GQL\',\s\\r-\\\\r";
+
+    RETURN '-\\-';
+    RETURN '-\"-';
+    RETURN '-\`-';
+    RETURN '-\t-';
+    RETURN '-\b-';
+    RETURN '-\n-';
+    RETURN '-\r-';
+    RETURN '-\f-';
+    RETURN '-\0-';
+    RETURN '-\\-\"-\`-\t-\b-\n-\r-\f-\0-\\\\';
+
+    RETURN '\asdf-\x-\56-\-\55-\U123AF-\u1235';
+
+    RETURN 'GQL', 'GQL\n', '\nGQL', '\nGQL\n';
+    RETURN 'gql', '\\GQL', 'GQL\\', 'GQL\\', '\\GQL\\', '\\GQL', '\\GQL\",\s\\r-\\\\r';
+}
+
+def delete_data: gql = {
+    DELETE n MATCH (n:node1{@id:20001});
+}

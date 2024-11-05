@@ -1,0 +1,232 @@
+cmake_minimum_required(VERSION 3.13)
+project(tugraph-db-pro)
+
+include(Options.cmake)
+# generate version info
+include(GenerateVersionInfo.cmake)
+GenerateVersionInfo(${LGRAPH_VERSION_MAJOR} ${LGRAPH_VERSION_MINOR} ${LGRAPH_VERSION_PATCH}
+		${PROJECT_SOURCE_DIR}/src/common/version.h.in
+		${PROJECT_SOURCE_DIR}/src/common/version.h)
+
+find_package(GTest REQUIRED)
+find_package(spdlog REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+
+find_package(Threads REQUIRED)
+
+find_package(antlr4-runtime REQUIRED)
+include_directories( ${ANTLR4_INCLUDE_DIR} )
+
+set(Protobuf_USE_STATIC_LIBS ON)
+include(FindProtobuf)
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+
+include_directories(src)
+include_directories(deps/geax-front-end/include)
+
+add_library(bolt STATIC
+		src/bolt/connection.cpp
+		src/bolt/hydrator.cpp
+		src/bolt/pack.cpp
+		src/bolt/bolt_server.cpp
+)
+
+add_library(graphdb STATIC
+		src/graphdb/graph_db.cpp
+		src/graphdb/id_generator.cpp
+		src/graphdb/vertex_iterator.cpp
+		src/graphdb/edge_iterator.cpp
+		src/graphdb/graph_entity.cpp
+		src/graphdb/meta_info.cpp
+		src/graphdb/index.cpp
+)
+
+add_library(common STATIC
+		src/common/exceptions.cpp
+		src/common/value.cpp
+		src/common/result.cpp
+		src/common/temporal.cpp
+		src/common/flags.cpp
+		src/common/logger.cpp
+)
+
+add_library(cypher STATIC
+		src/cypher/parser/generated/LcypherLexer.cpp
+		src/cypher/parser/generated/LcypherParser.cpp
+		src/cypher/parser/generated/LcypherVisitor.cpp
+		src/cypher/parser/cypher_base_visitor_v2.cpp
+		src/cypher/parser/cypher_error_listener.cpp
+		src/cypher/parser/symbol_table.cpp
+		src/cypher/execution_plan/pattern_graph_maker.cpp
+		src/cypher/execution_plan/execution_plan_maker.cpp
+		src/cypher/execution_plan/execution_plan.cpp
+		src/cypher/graph/node.cpp
+		src/cypher/graph/relationship.cpp
+		src/cypher/graph/graph.cpp
+		src/cypher/execution_plan/ops/op_create.cpp
+		src/cypher/execution_plan/ops/op_merge.cpp
+		src/cypher/execution_plan/ops/op_set.cpp
+		src/cypher/execution_plan/ops/op_remove.cpp
+		src/cypher/execution_plan/ops/op_delete.cpp
+		src/cypher/execution_plan/ops/op_produce_results.cpp
+		src/cypher/execution_plan/ops/op_project.cpp
+		src/cypher/execution_plan/ops/op_node_scan.cpp
+		src/cypher/execution_plan/ops/op_expand_all.cpp
+		src/cypher/execution_plan/ops/op_cartesian_product.cpp
+		src/cypher/execution_plan/ops/op_filter.cpp
+		src/cypher/execution_plan/ops/op_inquery_call.cpp
+		src/cypher/execution_plan/ops/op_standalone_call.cpp
+		src/cypher/execution_plan/ops/op_argument.cpp
+		src/cypher/execution_plan/ops/op_apply.cpp
+		src/cypher/execution_plan/ops/op_limit.cpp
+		src/cypher/execution_plan/ops/op_skip.cpp
+		src/cypher/execution_plan/ops/op_aggregate.cpp
+		src/cypher/execution_plan/ops/op_optional.cpp
+		src/cypher/execution_plan/ops/op_unwind.cpp
+		src/cypher/execution_plan/ops/op_var_len_expand.cpp
+		src/cypher/execution_plan/ops/op_sort.cpp
+		src/cypher/execution_plan/ops/op_union.cpp
+        src/cypher/execution_plan/result_iterator.cpp
+		src/cypher/arithmetic/arithmetic_expression.cpp
+		src/cypher/arithmetic/ast_expr_evaluator.cpp
+		src/cypher/arithmetic/ast_agg_expr_detector.cpp
+		src/cypher/resultset/record.cpp
+		src/cypher/procedure/procedure.cpp
+)
+target_compile_definitions(cypher PUBLIC FOLLY_SANITIZE)
+
+add_library(deps STATIC
+		deps/geax-front-end/src/geax-front-end/isogql/GEAXErrorCode.cpp
+)
+
+add_library(transaction STATIC
+		src/transaction/transaction.cpp
+)
+target_compile_definitions(transaction PUBLIC FOLLY_SANITIZE)
+
+add_library(server STATIC
+		src/server/galaxy.cpp
+		src/server/bolt_handler.cpp
+)
+target_compile_definitions(server PUBLIC FOLLY_SANITIZE)
+
+add_library(proto STATIC
+		src/proto/meta.pb.cc
+)
+
+set(THIRD_STATIC_LIBS
+	rocksdb.a
+	spdlog.a
+	lz4.a
+	zstd.a
+	gflags.a
+	gtest.a
+	protobuf.a
+	date-tz.a
+	${PROJECT_SOURCE_DIR}/src/graphdb/ftindex/target/release/libftindex.a
+	antlr4-runtime.a
+)
+
+if (NOT ENABLE_ASAN)
+	set(THIRD_STATIC_LIBS ${THIRD_STATIC_LIBS} libjemalloc.a)
+endif ()
+
+add_executable(lgraph_server
+        src/server/server_main.cpp
+)
+target_link_libraries(lgraph_server PRIVATE
+		vsag
+		-Wl,--start-group
+		${THIRD_STATIC_LIBS}
+		bolt
+		graphdb
+		common
+		cypher
+		deps
+		transaction
+		server
+		proto
+		-static-libstdc++
+		-static-libgcc
+		pthread
+		dl
+		-Wl,--end-group
+)
+
+add_executable(test_case
+    test/main.cpp
+	test/test_graph_db.cpp
+	test/test_kv_engine.cpp
+	test/test_transaction.cpp
+	test/test_index.cpp
+	test/test_concurrency.cpp
+	test/test_ftindex.cpp
+	test/test_galaxy.cpp
+	test/test_value.cpp
+	test/test_vector_index.cpp
+	test/test_var_len.cpp
+	test/test_plan.cpp
+)
+target_compile_definitions(test_case PUBLIC FOLLY_SANITIZE)
+target_link_libraries(test_case PRIVATE
+		vsag
+		-Wl,--start-group
+		${THIRD_STATIC_LIBS}
+		bolt
+		graphdb
+		common
+		cypher
+		deps
+		transaction
+		server
+		proto
+		-static-libstdc++
+		-static-libgcc
+		pthread
+		dl
+		-Wl,--end-group
+)
+
+add_executable(lgraph_cli
+		src/toolkits/lgraph_cli.cpp
+		src/toolkits/linenoise/linenoise.c
+)
+
+target_link_libraries(lgraph_cli PRIVATE
+		-Wl,--start-group
+		bolt
+		common
+		gflags.a
+		date-tz.a
+		-static-libstdc++
+		-static-libgcc
+		pthread
+		-Wl,--end-group
+)
+
+add_custom_command(
+		TARGET lgraph_server PRE_BUILD
+		COMMAND cd ${PROJECT_SOURCE_DIR}/src/graphdb/ftindex && cargo build --release
+)
+add_custom_command(
+		TARGET test_case PRE_BUILD
+		COMMAND cd ${PROJECT_SOURCE_DIR}/src/graphdb/ftindex && cargo build --release
+)
+
+install(TARGETS lgraph_server lgraph_cli RUNTIME DESTINATION bin)
+install(FILES
+		/usr/local/lib64/libvsag.so
+		/usr/local/lib64/libmkl_intel_lp64.so
+		/usr/local/lib64/libmkl_sequential.so
+		/usr/local/lib64/libmkl_core.so
+		/usr/local/lib64/libmkl_def.so
+		/usr/local/lib64/libmkl_avx2.so
+		/usr/local/lib64/libmkl_mc3.so
+		/usr/local/lib64/libmkl_gf_lp64.so
+		/usr/local/lib64/libmkl_intel_thread.so
+		/usr/local/lib64/libiomp5.so
+		/lib64/libgfortran.so.5
+		/lib64/libgfortran.so.5.0.0
+		DESTINATION lib64/lgraph)
+

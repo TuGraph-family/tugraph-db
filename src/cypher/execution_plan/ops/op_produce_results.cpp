@@ -1,0 +1,40 @@
+﻿/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+//
+// Created by wt on 6/14/18.
+//
+
+#include "cypher/execution_plan/ops/op_produce_results.h"
+#include "cypher/execution_plan/runtime_context.h"
+
+namespace cypher {
+
+OpBase::OpResult ProduceResults::RealConsume(RTContext *ctx) {
+    if (state_ == Uninitialized) {
+        Initialize(ctx);
+        state_ = Consuming;
+    }
+    if (children.empty()) return OP_DEPLETED;
+    auto child = children[0];
+    auto res = child->Consume(ctx);
+    if (res != OP_OK) return res;
+    record = child->record;
+    while (record->values.size() > ctx->result_info_->header.colums.size()) {
+        record->values.pop_back();
+    }
+    return OP_OK;
+}
+
+}

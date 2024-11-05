@@ -1,0 +1,5 @@
+# Generated from CLion C/C++ Code Style settings
+---
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 4

@@ -1,0 +1,179 @@
+# 1 replace_single_node
+# 2 replace_multi_nodes
+# 3 replace_single_edge
+# 4 replace_multi_edges
+# 5 hybrid
+# 6 match_replace_base
+
+## replace_single_node
+REPLACE (:person);
+replace (:person{@id:10});
+replace (:person{@id:10, name:'limengyu', age:26});
+REPLACE (:person{@id:10, name:'limengyu', age:26});
+REPLACE (:person{@id:10, name:'limengyu', age:26, company:'alibaba'});
+REPLACE (p:person{@id:10, name:'limengyu', age:26, company:'alibaba'});
+
+## replace_multi_nodes
+```
+REPLACE
+    (:person1{@id:10, name:'limengyu', age:26, company:'alibaba'}),
+    (:person2{@id:11, name:'shensi', age:26, company:'ant'});
+```
+```
+REPLACE
+    (:person1{@id:10, name:'limengyu', age:26}),
+    (:person2{@id:11, name:'shensi', age:26, company:'ant'});
+```
+```
+replace
+    (:person1{@id:10, name:'limengyu', age:26}),
+    (:person2{@id:11, name:'shensi', age:26, company:'ant'});
+```
+```
+REPLACE
+    (:person1{@id:10, name:'limengyu', age:26}),
+    (:person2{@id:11, name:'shensi', age:26, company:'ant'}),
+    (:person3{@id:12, name:'none', age:0, company:''});
+```
+
+## replace_single_edge
+replace ()<-[:relation]-();
+replace ()<-[:relation{@timestamp:1563247769}]-();
+replace ()<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+REPLACE ()<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+REPLACE ()-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]->();
+REPLACE ()-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+REPLACE ()-[:relation{@timestamp:1563247769, @src_id:10, @dst_id:20}]->();
+REPLACE ()-[r:relation{@timestamp:1563247769, @src_id:10, @dst_id:20}]->();
+
+REPLACE (:person)<-[:relation]-(:company);
+REPLACE (:person{@id:10})-[:relation]->(:company{@id:20});
+replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+REPLACE (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+REPLACE (:person{@id:10})-[:relation{@timestamp:1563247769, salary:1000}]->(:company{@id:20});
+replace (:person{@id:10})-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+REPLACE (:person{@id:10})-[:relation{@timestamp:1563247769}]->(:company{@id:20});
+REPLACE (:person{@id:10})-[r:relation{@timestamp:1563247769}]->(:company{@id:20});
+
+## replace_multi_edges
+```
+replace
+    ()<-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-(),
+    ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+```
+```
+REPLACE
+    ()<-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-(),
+    ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+```
+```
+REPLACE
+    ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]->(),
+    ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+```
+```
+REPLACE
+    ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-(),
+    ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+```
+```
+REPLACE
+    ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-(),
+    ()<-[:relation2{@timestamp:1563247769, salary:1300, @src_id:15, @dst_id:25}]-(),
+    ()-[:relation3{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+```
+```
+replace
+    (:person{@id:10})<-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}),
+    (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+```
+```
+REPLACE
+    (:person{@id:10})<-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}),
+    (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+```
+```
+REPLACE
+    (:person{@id:10})-[:relation1{@timestamp:1563247769, salary:1000}]->(:person{@id:20}),
+    (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+```
+```
+REPLACE
+    (:person{@id:10})-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}),
+    (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+```
+```
+REPLACE
+    (:person{@id:10})-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}),
+    (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20}),
+    (:person{@id:10})<-[:relation2{@timestamp:1563248899}]-(:person{@id:20}),
+    (:person{@id:10})-[:relation2{@timestamp:1563248899}]->(:person{@id:20});
+```
+
+## hybrid
+replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company);
+replace ()<-[:relation{@timestamp:1563247769, salary:1000}]-(:company);
+replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-();
+replace (:person)<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:10});
+```
+REPLACE
+    ()<-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-(),
+    (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+```
+```
+REPLACE
+    (:person1{@id:10, name:'limengyu', age:26, company:'alibaba'}),
+    (:person2{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20}),
+    ()-[:relation3{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+```
+REPLACE (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-(:company{@id:20});
+replace (:person{@id:10})-[:relation{@timestamp:1563247769, salary:1000}]->(:company);
+
+## match_replace_base
+match (n) replace (:person{@id:10, name:'limengyu', age:26});
+match (n) replace (:person{@id:10, name:'limengyu', age:26}), (:person{@id:10, name:'limengyu', age:26});
+match (n) replace ()<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+match (n) replace ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]->(), ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+match (n) replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+match (n) replace (:person{@id:10})<-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}), (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+match (n) replace (:person1{@id:10, name:'limengyu', age:26, company:'alibaba'}), (:person2{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20}), ()-[:relation3{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+
+match (n), (m) replace (:person{@id:10, name:'limengyu', age:26});
+match (n), (m) replace (:person{@id:10, name:'limengyu', age:26}), (:person{@id:10, name:'limengyu', age:26});
+match (n), (m) replace ()<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+match (n), (m) replace ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]->(), ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+match (n), (m) replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+match (n), (m) replace (:person{@id:10})<-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}), (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+match (n), (m) replace (:person1{@id:10, name:'limengyu', age:26, company:'alibaba'}), (:person2{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20}), ()-[:relation3{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+
+match (n)-[r]->(m) replace (:person{@id:10, name:'limengyu', age:26});
+match (n)-[r]->(m) replace (:person{@id:10, name:'limengyu', age:26}), (:person{@id:10, name:'limengyu', age:26});
+match (n)-[r]->(m) replace ()<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+match (n)-[r]->(m) replace ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]->(), ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+match (n)-[r]->(m) replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+match (n)-[r]->(m) replace (:person{@id:10})<-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}), (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+match (n)-[r]->(m) replace (:person1{@id:10, name:'limengyu', age:26, company:'alibaba'}), (:person2{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20}), ()-[:relation3{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+
+match (n where @id=1) replace (:person{@id:10, name:'limengyu', age:26});
+match (n where @id=1) replace (:person{@id:10, name:'limengyu', age:26}), (:person{@id:10, name:'limengyu', age:26});
+match (n where @id=1) replace ()<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+match (n where @id=1) replace ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]->(), ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+match (n where @id=1) replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+match (n where @id=1) replace (:person{@id:10})<-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}), (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+match (n where @id=1) replace (:person1{@id:10, name:'limengyu', age:26, company:'alibaba'}), (:person2{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20}), ()-[:relation3{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+
+match (n:person where @id=1)-[r:relation{@timestamp:1000}]->(m:person) replace (:person{@id:10, name:'limengyu', age:26});
+match (n:person where @id=1)-[r:relation{@timestamp:1000}]->(m:person) replace (:person{@id:10, name:'limengyu', age:26}), (:person{@id:10, name:'limengyu', age:26});
+match (n:person where @id=1)-[r:relation{@timestamp:1000}]->(m:person) replace ()<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+match (n:person where @id=1)-[r:relation{@timestamp:1000}]->(m:person) replace ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]->(), ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+match (n:person where @id=1)-[r:relation{@timestamp:1000}]->(m:person) replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+match (n:person where @id=1)-[r:relation{@timestamp:1000}]->(m:person) replace (:person{@id:10})<-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}), (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+match (n:person where @id=1)-[r:relation{@timestamp:1000}]->(m:person) replace (:person1{@id:10, name:'limengyu', age:26, company:'alibaba'}), (:person2{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20}), ()-[:relation3{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+
+match (n:person where @id=1), (m:person where @id=2) replace (:person{@id:10, name:'limengyu', age:26});
+match (n:person where @id=1), (m:person where @id=2) replace (:person{@id:10, name:'limengyu', age:26}), (:person{@id:10, name:'limengyu', age:26});
+match (n:person where @id=1), (m:person where @id=2) replace ()<-[:relation{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]-();
+match (n:person where @id=1), (m:person where @id=2) replace ()-[:relation1{@timestamp:1563247769, salary:1000, @src_id:10, @dst_id:20}]->(), ()-[:relation2{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();
+match (n:person where @id=1), (m:person where @id=2) replace (:person{@id:10})<-[:relation{@timestamp:1563247769, salary:1000}]-(:company{@id:20});
+match (n:person where @id=1), (m:person where @id=2) replace (:person{@id:10})<-[:relation1{@timestamp:1563247769, salary:1000}]-(:person{@id:20}), (:person{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20});
+match (n:person where @id=1), (m:person where @id=2) replace (:person1{@id:10, name:'limengyu', age:26, company:'alibaba'}), (:person2{@id:10})-[:relation2{@timestamp:1563248899, salary:1500}]->(:person{@id:20}), ()-[:relation3{@timestamp:1563248899, salary:1500, @src_id:20, @dst_id:30}]->();

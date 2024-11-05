@@ -1,0 +1,3 @@
+src/common/version.h
+src/graphdb/ftindex/target
+test/bdd/features/steps/__pycache__

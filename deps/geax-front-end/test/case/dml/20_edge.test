@@ -1,0 +1,9 @@
+MATCH (a where @id = 1101)-[r1]->(b)-[r2]->(c) RETURN a, b, c;
+MATCH (a where @id = 1101)-[]->(b)-[]->(c) RETURN a, b, c;
+MATCH (a where @id = 1101)->(b)->(c) RETURN a, b, c;
+MATCH (a where @id = 1103)<-[r1]-(b)<-[r2]-(c) RETURN a, b, c;
+MATCH (a where @id = 1103)<-[]-(b)<-[]-(c) RETURN a, b, c;
+MATCH (a where @id = 1103)<-(b)<-(c) RETURN a, b, c;
+MATCH (a where @id = 1101)-[r1]-(b)-[r2]-(c) RETURN a, b, c;
+MATCH (a where @id = 1101)-[ ]-(b)-[]-(c) RETURN a, b, c;
+MATCH (a where @id = 1101)-(b)-(c) RETURN a, b, c;

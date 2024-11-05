@@ -1,0 +1,9 @@
+
+// Generated from src/cypher/grammar/Lcypher.g4 by ANTLR 4.13.2
+
+
+#include "LcypherVisitor.h"
+
+
+using namespace parser;
+

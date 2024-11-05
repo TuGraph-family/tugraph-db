@@ -1,0 +1,360 @@
+def only_node: isogql = {
+    REPLACE (n:node1{@id:7000100, p_long:521, p_double:13.14, p_string:"beijing"});
+    match (n:node1 {@id:7000100}) return n.@id, n.p_long, n.p_double, n.p_string;
+    MATCH (n:node1{@id:7000100}) DELETE n;
+    match (n:node1 {@id:7000100}) return n.@id, n.p_long, n.p_double, n.p_string;
+}
+
+def only_edge: isogql = {
+    REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014200, @dst_id:700014300, @timestamp:0}]->();
+    REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014200, @dst_id:700014300, @timestamp:1}]->();
+    match (n1:node1{@id:700014200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:700014300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+    MATCH ()-[e:edge_n1_n2{@src_id:700014200, @dst_id:700014300, @timestamp:0}]->() DELETE e;
+    MATCH ()-[e:edge_n1_n2{@src_id:700014200, @dst_id:700014300, @timestamp:1}]->() DELETE e;
+    match (n1:node1{@id:700014200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:700014300}) return e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string;
+}
+
+def only_single_path: isogql = {
+    REPLACE (n:node1{@id:700013400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700013500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500});
+    match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500}) delete n1;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500});
+
+    REPLACE (n:node1{@id:700013400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700013500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500});
+    match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500}) delete e;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string match (n1:node1{@id:700013400});
+    select n2.@id, n2.p_long, n2.p_double, n2.p_string match (n2:node2{@id:700013500});
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500});
+
+    REPLACE (n:node1{@id:700013400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700013500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500});
+    match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500}) delete n2;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500});
+
+    REPLACE (n:node1{@id:700013400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700013500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500});
+    match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500}) delete n1, e, n2;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string match (n1:node1{@id:700013400});
+    select n2.@id, n2.p_long, n2.p_double, n2.p_string match (n2:node2{@id:700013500});
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700013400})-[e:edge_n1_n2]->(n2:node2{@id:700013500});
+}
+
+def only_multi_path: isogql = {
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023501, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023502, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023503, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023504, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023505, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023506, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023507, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023508, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023509, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n1:node1{@id:700023400})-[e:edge_n1_n2]->(n2) delete n1;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700023400})-[e:edge_n1_n2]->(n2);
+
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023501, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023502, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023503, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023504, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023505, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023506, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023507, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023508, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023509, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n1:node1{@id:700023400})-[e:edge_n1_n2]->(n2) delete e;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string match (n1:node1{@id:700023400});
+    select n2.@id, n2.p_long, n2.p_double, n2.p_string match (n2:node2 where @id in [700023500,700023501,700023502,700023503,700023504,700023505,700023506,700023507,700023508,700023509]);
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700023400})-[e:edge_n1_n2]->(n2);
+
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023501, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023502, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023503, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023504, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023505, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023506, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023507, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023508, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023509, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n1:node1{@id:700023400})-[e:edge_n1_n2]->(n2) delete n2;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700023400})-[e:edge_n1_n2]->(n2);
+
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023501, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023502, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023503, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023504, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023505, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023506, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023507, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023508, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    REPLACE (n:node1{@id:700023400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700023509, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    match (n1:node1{@id:700023400})-[e:edge_n1_n2]->(n2) delete n1, e, n2;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string match (n1:node1{@id:700023400});
+    select n2.@id, n2.p_long, n2.p_double, n2.p_string match (n2:node2 where @id in (700023500,700023501,700023502,700023503,700023504,700023505,700023506,700023507,700023508,700023509));
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700023400})-[e:edge_n1_n2]->(n2);
+}
+
+def only_empty: isogql = {
+    match (n1:node1{@id:700043400})-[e:edge_n1_n2]->(n2) delete n1;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700043400})-[e:edge_n1_n2]->(n2);
+
+    match (n1:node1{@id:700043400})-[e:edge_n1_n2]->(n2) delete e;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700043400})-[e:edge_n1_n2]->(n2);
+
+    match (n1:node1{@id:700043400})-[e:edge_n1_n2]->(n2) delete n2;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700043400})-[e:edge_n1_n2]->(n2);
+
+    match (n1:node1{@id:700043400})-[e:edge_n1_n2]->(n2) delete n1, e, n2;
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700043400})-[e:edge_n1_n2]->(n2);
+}
+
+def label_case1: isogql -> (105) = {
+    MATCH (a:node1{@id:700014102}), (b:node1{@id:700014103}), (c:node1{@id:700014104}) DELETE a, b, c;
+    MATCH ()<-[a:edge_n1_n2{@src_id:700014202, @dst_id:700014302, @timestamp:2}]-(), ()<-[b:edge_n1_n2{@src_id:700014203, @dst_id:700014302, @timestamp:3}]-() DELETE a, b, c;
+}
+
+def label_case2: isogql = {
+    REPLACE (n:node1{@id:700014100, p_long:521, p_double:13.14, p_string:"beijing"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014100});
+    MATCH (n:node1{@id:700014100}) DELETE n;
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014100});
+    REPLACE (n:node1{@id:700014101, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014101});
+    MATCH (n:node1{@id:700014101}) DELETE n;
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014101});
+    REPLACE (a:node1{@id:700014102, p_long:521, p_double:13.14, p_string:"beijing"}), (b:node1{@id:700014103, p_long:520, p_double:2.33, p_string:"hangzhou"}), (c:node1{@id:700014104, p_long:666, p_double:3.1415, p_string:"shanghai"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 where @id in (14102, 14103, 14104)) order by n.@id;
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 where @id in (14102, 14103, 14104)) order by n.@id;
+    REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014200, @dst_id:700014300, @timestamp:0}]->();
+    REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014200, @dst_id:700014300, @timestamp:1}]->();
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1{@id:700014200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:700014300});
+    MATCH ()-[e:edge_n1_n2{@src_id:700014200, @dst_id:700014300, @timestamp:0}]->() DELETE e;
+    MATCH ()-[e:edge_n1_n2{@src_id:700014200, @dst_id:700014300, @timestamp:1}]->() DELETE e;
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1{@id:700014200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:700014300});
+    REPLACE ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014201, @dst_id:700014301, @timestamp:1}]-();
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1{@id:700014201})-[e:edge_n1_n2]->(n2:node2{@id:700014301});
+    MATCH ()<-[e:edge_n1_n2{@src_id:700014201, @dst_id:700014301, @timestamp:1}]-() DELETE e;
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1{@id:700014201})-[e:edge_n1_n2]->(n2:node2{@id:700014301});
+    REPLACE ()<-[a:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014202, @dst_id:700014302, @timestamp:2}]-(), ()<-[b:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:700014203, @dst_id:700014302, @timestamp:3}]-();
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1 where @id in (202, 203))-[e:edge_n1_n2]->(n2:node2{@id:700014302}) order by e.@src_id;
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1 where @id in (14202, 14203))-[e:edge_n1_n2]->(n2:node2{@id:700014302}) order by e.@src_id;
+    REPLACE (n:node1{@id:700014400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014500, p_long:520, p_double:2.33, p_string:"hangzhou"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014400});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node2 {@id:700014500});
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700014400})-[e:edge_n1_n2]->(n2:node2{@id:700014500});
+    MATCH (n:node1{@id:700014401})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:700014501}) DELETE n;
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014400});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node2 {@id:700014500});
+    select n1.@id, n1.p_long, n1.p_double, n1.p_string, e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string, n2.@id, n2.p_long, n2.p_double, n2.p_string match (n1:node1{@id:700014400})-[e:edge_n1_n2]->(n2:node2{@id:700014500});
+}
+
+def special_case1: isogql = {
+    REPLACE (n:node1{@id:70001413346, p_long:521, p_double:1314, p_string:"beijing"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:70001413346});
+    MATCH (n:node1{@id:70001413346}) DELETE n;
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:70001413346});
+    REPLACE (n:node1{@id:70009223372036854775806, p_long:521, p_double:13.14, p_string:"beijing"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:70009223372036854775806});
+    MATCH (n:node1{@id:70009223372036854775806}) DELETE n;
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:70009223372036854775806});
+    MATCH (n:node1{@id:7000149223372036854775808}) DELETE n;
+}
+
+def special_case2: isogql -> (105) = {
+    MATCH (n:node1{@id:-700014346}) DELETE n;
+    MATCH ()-[e:edge_n1_n2{@src_id:-700014347, @dst_id:-700014348, @timestamp:0}]->() DELETE e;
+    MATCH (n:node1{@id:70001413349, p_long:-521, p_double:-13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:-1000, p_double:-12.34, p_string:"distance", @timestamp:-1504282000}]->(n2:node2{@id:-700013350, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+}
+
+def lack_id_case1: isogql -> (7018) = {
+    MATCH (n:node1{p_long:521, p_double:13.14, p_string:"beijing"}) DELETE n;
+    MATCH ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014216, @timestamp:6}]->() DELETE e;
+    MATCH ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @dst_id:700014317, @timestamp:6}]->() DELETE e;
+    MATCH ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014218, @dst_id:700014318}]->() DELETE e;
+}
+
+def lack_id_case2: isogql -> (7031) = {
+    MATCH (n:node1{p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014519, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+}
+
+def lack_id_case2: isogql = {
+    MATCH (n:node1{@id:700014420, p_long:521, p_double:13.14, p_string:"beijing"})<-[e:edge_n2_n1{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:1}]-(n2:node2{p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+}
+
+def lack_table_case1: isogql -> (7030) = {
+    MATCH (n{@id:700014123}) DELETE n;
+    MATCH ()-[e{@src_id:700014232, @dst_id:700014332, @timestamp:0}]->() DELETE e;
+}
+
+def lack_table_case2: isogql -> (3005) = {
+    MATCH (n{@id:700014420})-[e:edge_n1_n2{@timestamp:0}]->(:node2{@id:700014520}) DELETE n;
+    MATCH (:node1{@id:700014421})-[e{@timestamp:0}]->(:node2{@id:700014512}) DELETE e;
+    MATCH (:node1{@id:700014422})-[e:edge_n1_n2{@timestamp:0}]->(m{@id:700014522}) DELETE e;
+}
+
+def primary_key_case: isogql = {
+    REPLACE (:node1{@id:700014100, p_long:521, p_double:13.14, p_string:"beijing"});
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014100});
+    MATCH (n:node1{@id:700014100}) DELETE n;
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014100});
+    MATCH (n:node1{@id:700014100}) DELETE n;
+    select n.@id, n.p_long, n.p_double, n.p_string match (n:node1 {@id:700014100});
+    REPLACE ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014200, @dst_id:700014300, @timestamp:0}]->();
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1{@id:700014200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:700014300});
+    MATCH ()-[e:edge_n1_n2{@src_id:700014200, @dst_id:700014300, @timestamp:0}]->() DELETE e;
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1{@id:700014200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:700014300});
+    MATCH ()-[e:edge_n1_n2{@src_id:700014200, @dst_id:700014300, @timestamp:0}]->() DELETE e;
+    select e.@src_id, e.@dst_id, e.@timestamp, e.p_long, e.p_double, e.p_string match (n1:node1{@id:700014200})-[e:edge_n1_n2 where @timestamp>=0 and @timestamp <=1]->(n2:node2{@id:700014300});
+}
+
+def illegal_prop_case1: isogql -> (106) = {
+    MATCH (n:node1:node2{@id:700014127, p_long:521, p_double:13.14, p_string:"beijing"}) DELETE n;
+    MATCH ()-[e:edge_n1_n2:edge_n2_n3{p_long:521, p_double:13.14, p_string:"beijing", @src_id:700014230, @dst_id:700014330, @timestamp:30}]->() DELETE n;
+    MATCH (n:node1:node2{@id:700014470, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014570, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:700014471, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2:edge_n2_n3{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014571, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:700014472, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"", @timestamp:0}]->(n2:node2:node1{@id:700014572, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+}
+
+def illegal_prop_case2: isogql -> (7018) = {
+    MATCH (n:node1{@id:700014128, p_long:521, p_double:13.14, p_string:"beijing", @node_type:"illegal"}) DELETE n;
+    MATCH (n:node1{@id:700014129, p_long:521, p_double:13.14, p_string:"beijing", @src_id:7000141000}) DELETE n;
+    MATCH (n:node1{@id:700014130, p_long:521, p_double:13.14, p_string:"beijing", @dst_id:7000141000}) DELETE n;
+    MATCH (n:node1{@id:700014131, p_long:521, p_double:13.14, p_string:"beijing", @timestamp:0}) DELETE n;
+    MATCH (n:node1{@id:700014132, p_long:521, p_double:13.14, p_string:"beijing", @edge_type:"illegal"}) DELETE n;
+    MATCH ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:700014232, @dst_id:700014332, @timestamp:32, @edge_type:"illegal"}]->() DELETE e;
+    MATCH ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:700014233, @dst_id:700014333, @timestamp:33, @id:700014233}]->() DELETE e;
+    MATCH ()-[e:edge_n1_n2{p_long:521, p_double:13.14, p_string:"beijing", @src_id:700014234, @dst_id:700014334, @timestamp:34, @node_type:"illegal"}]->() DELETE e;
+    MATCH (n:node1{@id:700014479, p_long:521, p_double:13.14, p_string:"beijing", @src_id:700014400})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014579, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:700014480, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014580, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:700014400}) DELETE n;
+    MATCH (n:node1{@id:700014481, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @id:700014400}]->(n2:node2{@id:700014581, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:700014400}) DELETE n;
+    MATCH (n:node1{@id:700014482, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @node_type:"illegal"}]->(n2:node2{@id:700014582, p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:700014400}) DELETE n;
+}
+
+def illegal_prop_case3: isogql -> (7029) = {
+    MATCH (n:node1|node2{@id:700014127, p_long:521, p_double:13.14, p_string:"beijing"}) DELETE n;
+    MATCH ()-[e:edge_n1_n2|edge_n2_n3{p_long:521, p_double:13.14, p_string:"beijing", @src_id:700014231, @dst_id:700014331, @timestamp:31}]->() DELETE e;
+}
+
+def illegal_prop_case4: isogql = {
+    MATCH (n:node1|node2{@id:700014473, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014573, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:700014474, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2|edge_n2_n3{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014574, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:700014475, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2|node1{@id:700014575, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+}
+
+def illegal_prop_case5: isogql -> (8000) = {
+    MATCH (n:node1{@id:700014476, p_long:521, p_double:13.14, p_string:"beijing", @node_type:"illegal"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014576, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:700014477, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014577, p_long:520, p_double:2.33, p_string:"hangzhou", @node_type:"illegal"}) DELETE n;
+    MATCH (n:node1{@id:700014478, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, @edge_type:"illegal"}]->(n2:node2{@id:700014578, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+}
+
+def invalid_table_name: isogql -> (8016) = {
+    MATCH (n:edge_n1_n2{@id:700014100, p_long:521, p_double:13.14, p_string:"beijing"}) DELETE n;
+}
+
+def invalid_table_name: isogql -> (3002) = {
+    MATCH ()-[e:node1{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014200, @dst_id:700014300, @timestamp:0}]->() DELETE e;
+    MATCH (n:node1{@id:700014484})-[e:node1{@timestamp:0}]->(n2:node2{@id:700014584}) DELETE e;
+    MATCH (n:edge_n1_n2{@id:700014484})-[e:edge_n1_n2{@timestamp:0}]->(n2:node2{@id:700014584}) DELETE n;
+    MATCH (n:node1{@id:700014484})-[e:edge_n1_n2{@timestamp:0}]->(n2:edge_n1_n2{@id:700014584}) DELETE n;
+    MATCH (n:node2{@id:700014484})-[e:edge_n1_n2{@timestamp:0}]->(n2:node3{@id:700014584}) DELETE n;
+    MATCH (n:node1{@id:700014485})<-[e:edge_n2_n1{@timestamp:1}]-(n1:node1{@id:700014585}) DELETE n;
+}
+
+def table_not_exist_case: isogql -> (8000) = {
+    MATCH (n:node_not_exist{@id:70001413100, p_long:521, p_double:13.14, p_string:"beijing"}) DELETE n;
+    MATCH ()-[e:edge_not_exist{p_long:14200, p_double:12.34, p_string:"distance", @src_id:70001413200, @dst_id:700014300, @timestamp:0}]->() DELETE e;
+    MATCH (n1:node_not_exist{@id:70001413300})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:70001413301}) DELETE n1;
+    MATCH (n1:node1{@id:70001413302})<-[e:edge_not_exist{@timestamp:1}]-(n2:node2{@id:70001413303}) DELETE n1;
+    MATCH (n1:node1{@id:70001413304})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node_not_exist{@id:70001413305}) DELETE n1;
+}
+
+def prop_type_error1: isogql -> (8017) = {
+    MATCH (n:node1{@id:'14331'}) DELETE n;
+    MATCH (n:node1{@id:'14331', p_long:521, p_double:13.14, p_string:"beijing"}) DELETE n;
+    MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:70001413337.0, @dst_id:70001414337, @timestamp:1}]-() DELETE e;
+    MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:70001413338, @dst_id:70001414338.0, @timestamp:1}]-() DELETE e;
+    MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:70001413340, @dst_id:70001414340, @timestamp:12.8}]-() DELETE e;
+    MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:7000149223372036854775809, @dst_id:70001414340, @timestamp:12.8}]-() DELETE e;
+}
+
+def prop_type_error2: isogql -> (105) = {
+    MATCH (n:node1{@id:-70001000, p_long:521.0, p_double:13.14, p_string:"beijing"}) DELETE n;
+    MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:-70009223372036854775809, @dst_id:70001414340, @timestamp:12.8}]-() DELETE e;
+    MATCH ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:70001413339, @dst_id:70001414330, @timestamp:-1}]-() DELETE e;
+}
+
+def prop_type_error2: isogql -> (106) = {
+    MATCH (n:1234{@id:'14330', p_long:521, p_double:13.14, p_string:"beijing"}) DELETE n;
+}
+
+def prop_type_error3: isogql -> (105) = {
+    MATCH (n:node1{@id:70001413332, p_long:'hello world', p_double:13.14, p_string:"beijing"}) DELETE n;
+    MATCH (n:node1{@id:70001413335, p_long:521, p_double:13.14, p_string:123}) DELETE n;
+    MATCH (n:node1{@id:70001413336, p_long:521.0, p_double:13.14, p_string:"beijing"}) DELETE n;
+    MATCH (n:node1{@id:7000149223372036854775809, p_long:521.0, p_double:13.14, p_string:"beijing"}) DELETE n;
+}
+
+def lack_label_case1: isogql -> (3005) = {
+    MATCH (:node1{@id:700014108}) DELETE node1;
+}
+
+def lack_label_case2: isogql -> (105) = {
+    MATCH ()-[:edge_n1_n2{@src_id:700014206, @dst_id:700014306, @timestamp:6}]->() DELETE edge_n1_n2;
+}
+
+def part_of_the_lack_label_case1: isogql -> (105) = {
+    MATCH (a:node1{@id:700014116}), (:node1{@id:700014117}), (c:node1{@id:700014118}) DELETE a;
+    MATCH ()<-[e:edge_n1_n2{@src_id:700014212, @dst_id:700014312, @timestamp:12}]-(), ()<-[:edge_n1_n2{@src_id:700014213, @dst_id:700014312, @timestamp:14}]-() DELETE e;
+}
+
+def part_of_the_lack_label_case2: isogql -> (3005) = {
+    MATCH (:node1{@id:700014412})-[e:edge_n1_n2{@timestamp:0}]->(:node2{@id:700014512}) DELETE e;
+}
+
+def part_of_the_lack_label_case3: isogql = {
+    MATCH (n:node1{@id:700014452, p_long:521, p_double:13.14, p_string:"beijing", extra_prop:"none"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014552, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:700014453, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0, extra_prop:"none"}]->(n2:node2{@id:700014553, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:700014454, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014554, p_long:520, p_double:2.33, p_string:"hangzhou", extra_prop:"none"}) DELETE n;
+    MATCH (n:node1{@id:7000144700, p_long:521, p_double:13.14, p_wrong:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:7000145700, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+}
+
+def prop_not_exist_case: isogql -> (105) = {
+    MATCH (n:node1{@id:700014125, p_long:521, p_double:13.14, p_string:"beijing", extra_prop:"none"}) DELETE n;
+    MATCH (n:node1{@id:700014100, p_long:521, p_double:13.14, p_wrong:"beijing"}) DELETE n;
+    MATCH ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014228, @dst_id:700014328, @timestamp:28, extra_prop:"none"}]->() DELETE e;
+    MATCH ()-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_wrong:"distance", @src_id:700014200, @dst_id:700014300, @timestamp:0}]->() DELETE e;
+}
+
+def more_degress: isogql -> (3005) = {
+    MATCH (n:node1{@id:700014483, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014583, p_long:520, p_double:2.33, p_string:"hangzhou"})-[:edge_n2_n3{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:700014211, @dst_id:700014311, @timestamp:11}]->(n3:node3{@id:700014500, p_long:520, p_double:2.33, p_string:"xian"}) DELETE n;
+}
+
+def chaos_case: isogql -> (105) = {
+    MATCH (a:node1{@id:700014881, p_long:521, p_double:13.14, p_string:"beijing"}), (b:node1{@id:700014882, p_long:520, p_double:2.33, p_string:"hangzhou"}), (c:node1{@id:700014883, p_long:666, p_double:3.1415, p_string:"shanghai"}), ()<-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @src_id:700014884, @dst_id:700014885, @timestamp:2}]-(), ()<-[e1:edge_n1_n2{p_long:520, p_double:2.33, p_string:"hangzhou", @src_id:700014886, @dst_id:700014887, @timestamp:3}]-(),(n1:node1{@id:700014888, p_long:521, p_double:13.14, p_string:"beijing"})-[e2:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014889, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE a, b;
+}
+
+def chaos_case: isogql -> (105) = {
+    MATCH (a:node1{@id:700014102}), (b:node1{@id:700014103}), (c:node1{@id:700014104}) DELETE a, b, c;
+    MATCH ()<-[a:edge_n1_n2{@src_id:700014202, @dst_id:700014302, @timestamp:2}]-(), ()<-[b:edge_n1_n2{@src_id:700014203, @dst_id:700014302, @timestamp:3}]-() DELETE a, b, c;
+    MATCH (:node1{@id:700014406})-[:edge_n1_n2{@timestamp:0}]->(:node2{@id:700014506}) DELETE node1;
+}
+
+def chaos_case: isogql = {
+    MATCH (n:node1{@id:700014401})<-[e:edge_n2_n1{@timestamp:1}]-(n2:node2{@id:700014501}) DELETE n;
+    MATCH (n:node1{@id:700014400, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:"distance", @timestamp:0}]->(n2:node2{@id:700014500, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+    MATCH (n:node1{@id:70001414341, p_long:521, p_double:13.14, p_string:"beijing"})-[e:edge_n1_n2{p_long:1000, p_double:12.34, p_string:45.67, @timestamp:0}]->(n2:node2{@id:70001414342, p_long:520, p_double:2.33, p_string:"hangzhou"}) DELETE n;
+}
+
+def where_clause: isogql -> (3005) = {
+    MATCH (n:node1{@id:70001}) WHERE e.salary = 0 DELETE n;
+}
+
+def orderby&limit_clause: isogql -> (4) = {
+    MATCH (c:company{@id:70001}) ORDER BY c.salary DESC LIMIT 10 DELETE c;
+    MATCH (c:company{@id:70001}) LIMIT 10 DELETE c;
+}
