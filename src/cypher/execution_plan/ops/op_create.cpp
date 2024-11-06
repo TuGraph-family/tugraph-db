@@ -36,7 +36,7 @@ void OpGqlCreate::ExtractProperties(RTContext *ctx, std::unordered_map<std::stri
     }
 }
 
-void OpGqlCreate::CreateVertex(RTContext *ctx, geax::frontend::Node* node) {
+void OpGqlCreate::CreateVertex(RTContext *ctx, geax::frontend::Node* node, bool update_visited) {
     //if (!node->filler()->label().has_value()) CYPHER_TODO();
     auto & variable = node->filler()->v().value();
     std::vector<std::string> labels;
@@ -55,7 +55,9 @@ void OpGqlCreate::CreateVertex(RTContext *ctx, geax::frontend::Node* node) {
          * e.g. MATCH (a:Film) CREATE (b)  */
         auto pattern_node = &pattern_graph_->GetNode(variable);
         if (pattern_node->Empty()) CYPHER_TODO();
-        pattern_node->Visited() = true;
+        if (update_visited) {
+            pattern_node->Visited() = true;
+        }
         pattern_node->vertex_ = v;
         // fill the record
         if (!summary_) {
@@ -108,14 +110,14 @@ void OpGqlCreate::CreateEdge(RTContext *ctx, geax::frontend::Node* start,
     }
 }
 
-void OpGqlCreate::CreateVE(RTContext *ctx) {
+void OpGqlCreate::CreateVE(RTContext *ctx, bool update_visited) {
     for (auto path : paths_) {
         auto start = path->head();
         if (!start->filler()->v().has_value()) CYPHER_TODO();
         auto& start_name = start->filler()->v().value();
         auto& lhs_node = pattern_graph_->GetNode(start_name);
         if (lhs_node.derivation_ == Node::CREATED && !lhs_node.Visited()) {
-            CreateVertex(ctx, start);
+            CreateVertex(ctx, start, update_visited);
         }
         const auto& tails = path->tails();
         for (auto& tail_tup : tails) {
@@ -124,7 +126,7 @@ void OpGqlCreate::CreateVE(RTContext *ctx) {
             auto& end_name = end->filler()->v().value();
             auto& rhs_node = pattern_graph_->GetNode(end_name);
             if (rhs_node.derivation_ == Node::CREATED && !rhs_node.Visited()) {
-                CreateVertex(ctx, end);
+                CreateVertex(ctx, end, update_visited);
             }
 
             auto edge = (geax::frontend::Edge*)std::get<0>(tail_tup);

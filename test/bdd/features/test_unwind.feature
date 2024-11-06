@@ -205,3 +205,10 @@ Feature: test unwind
       | (:City{name:'Zhongshan'}) |  'Zhongshan' |
       | (:Person{name:'Zhongshan'}) |  'Zhongshan' |
       | (:City{name:'Shanghai'}) |  'Shanghai' |
+    When executing query
+      """
+      UNWIND [{name: 'Alice', age: 30},{name: 'Bob', age: 25},{name: 'Charlie', age: 35}] AS user CREATE (u:User {name: user.name, age: user.age});
+      """
+    Then the result should be, in any order
+      | <SUMMARY>                            |
+      | 'created 3 vertices, created 0 edges.' |
