@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(tugraph-db-pro)
+project(tugraph-db)
 
 include(Options.cmake)
 # generate version info
