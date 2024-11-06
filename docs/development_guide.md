@@ -3,8 +3,12 @@
 ### 驱动连接
 tugraph-db兼容neo4j的通讯协议，因此可以使用neo4j各个语言的驱动连接tugraph-db的server。
 
+[bolt driver 使用例子](https://github.com/TuGraph-family/tugraph-db/tree/v5.x/demo/Bolt)
+
 ### 终端连接
-驱动是业务代码里面使用的，对于服务器上终端访问，可以使用cli客户端。
+驱动是业务代码里面使用的，对于服务器上终端访问，可以使用lgraph_cli客户端。
+
+[lgraph_cli 使用介绍](https://github.com/TuGraph-family/tugraph-db/blob/master/docs/zh-CN/source/7.client-tools/6.bolt-console-client.md)
 
 ### 查询语言
 语言为openCypher, tugraph-db实现了openCypher大部分常用的语法。
@@ -96,6 +100,9 @@ MATCH (a:Person {id:1})-[r:LIKE]->(b:Person {id:2}) REMOVE r.weight;
 ```
 MATCH (a:Person {id:1})-[r:LIKE]->(b:Person {id:2}) DELETE r;
 ```
+
+### 其他语法
+请参考openCypher语法，或者代码目录test/bdd/features中已经实现的一些语法case
 
 ## 向量索引
 ### 创建向量索引
