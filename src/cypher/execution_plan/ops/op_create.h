@@ -42,12 +42,12 @@ class OpGqlCreate : public OpBase {
         }
     }
 
-    void CreateVertex(RTContext *ctx, geax::frontend::Node* node);
+    void CreateVertex(RTContext *ctx, geax::frontend::Node* node, bool update_visited = true);
 
     void CreateEdge(RTContext *ctx, geax::frontend::Node* start,
                     geax::frontend::Edge* edge, geax::frontend::Node* end);
 
-    void CreateVE(RTContext *ctx);
+    void CreateVE(RTContext *ctx, bool update_visited = true);
 
     void ResultSummary(RTContext *ctx);
 
@@ -91,7 +91,24 @@ class OpGqlCreate : public OpBase {
             if (children.size() > 1) CYPHER_TODO();
             auto child = children[0];
             if (summary_) {
-                while (child->Consume(ctx) == OP_OK) CreateVE(ctx);
+                while (child->Consume(ctx) == OP_OK) {
+                    CreateVE(ctx, false);
+                }
+                for (auto path : paths_) {
+                    auto start = path->head();
+                    if (!start->filler()->v().has_value()) CYPHER_TODO();
+                    auto& start_name = start->filler()->v().value();
+                    auto& lhs_node = pattern_graph_->GetNode(start_name);
+                    lhs_node.Visited() = true;
+                    const auto& tails = path->tails();
+                    for (auto& tail_tup : tails) {
+                        auto end = std::get<1>(tail_tup);
+                        if (!end->filler()->v().has_value()) CYPHER_TODO();
+                        auto& end_name = end->filler()->v().value();
+                        auto& rhs_node = pattern_graph_->GetNode(end_name);
+                        rhs_node.Visited() = true;
+                    }
+                }
                 ResultSummary(ctx);
                 state = StreamDepleted;
                 return OP_OK;
