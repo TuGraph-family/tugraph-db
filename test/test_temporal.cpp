@@ -32,3 +32,13 @@ TEST(Date, dateFromString) {
 TEST(Date, dateFromStringException) {}
 
 TEST(Date, dateFromMap) {}
+
+TEST(Time, timeFromString) {
+    EXPECT_EQ(common::LocalTime("21:40:32.142").ToString(), "21:40:32.142000000");
+    EXPECT_EQ(common::LocalTime("214032.142").ToString(), "21:40:32.142000000");
+    EXPECT_EQ(common::LocalTime("21:40:32").ToString(), "21:40:32.000000000");
+    EXPECT_EQ(common::LocalTime("214032").ToString(), "21:40:32.000000000");
+    EXPECT_EQ(common::LocalTime("21:40").ToString(), "21:40:00.000000000");
+    EXPECT_EQ(common::LocalTime("2140").ToString(), "21:40:00.000000000");
+    EXPECT_EQ(common::LocalTime("22").ToString(), "22:00:00.000000000");
+}
