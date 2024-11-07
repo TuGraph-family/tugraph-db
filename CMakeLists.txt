@@ -46,9 +46,10 @@ add_library(common STATIC
 		src/common/exceptions.cpp
 		src/common/value.cpp
 		src/common/result.cpp
-		src/common/temporal.cpp
 		src/common/flags.cpp
 		src/common/logger.cpp
+		src/common/temporal/date.cpp
+		src/common/temporal/datetime.cpp
 )
 
 add_library(cypher STATIC
@@ -167,6 +168,7 @@ add_executable(test_case
 	test/test_vector_index.cpp
 	test/test_var_len.cpp
 	test/test_plan.cpp
+	test/test_temporal.cpp
 )
 target_compile_definitions(test_case PUBLIC FOLLY_SANITIZE)
 target_link_libraries(test_case PRIVATE

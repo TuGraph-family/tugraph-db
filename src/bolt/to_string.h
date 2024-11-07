@@ -15,12 +15,15 @@
 /*
 * written by botu.wzy
 */
+
+#pragma once
+
 #include <string>
 #include <nlohmann/json.hpp>
+
 #include "bolt/record.h"
 #include "bolt/graph.h"
-#include "common/temporal.h"
-#pragma once
+#include "common/temporal/temporal.h"
 
 namespace bolt {
 namespace detail {

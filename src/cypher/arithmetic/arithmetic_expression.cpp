@@ -534,9 +534,15 @@ Value BuiltinFunction::Date(RTContext *ctx, const Record &record,
         CYPHER_THROW_ASSERT(args.size() == 2);
         // date(string) Returns a Date by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (!r.IsString()) CYPHER_ARGUMENT_ERROR();
-        auto dt = common::Date(r.constant.AsString());
-        return Value(dt);
+        if (r.IsMap()) {
+            auto dt = common::Date(r.constant);
+            return Value(dt);
+        } else if (r.IsString()) {
+            auto dt = common::Date(r.constant.AsString());
+            return Value(dt);
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
     }
 }
 
