@@ -34,7 +34,7 @@ namespace _detail {
 // for schema alterations.
 
 class FieldExtractorV1 : public FieldExtractorBase {
-    friend class Schema;
+    friend class lgraph::Schema;
     // layout
     bool is_vfield_ = false;
     union {

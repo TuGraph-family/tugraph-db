@@ -1024,9 +1024,11 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
         new_schema.ModFields(to_mod);
         FMA_DBG_ASSERT(new_schema.GetNumFields() == curr_schema->GetNumFields());
         for (size_t i = 0; i < new_schema.GetNumFields(); i++) {
-            const _detail::FieldExtractorV1* dst_fe = Schema::GetFieldExtractorV1(new_schema.GetFieldExtractor(i));
+            const _detail::FieldExtractorV1* dst_fe =
+                Schema::GetFieldExtractorV1(new_schema.GetFieldExtractor(i));
             const std::string& fname = dst_fe->Name();
-            const _detail::FieldExtractorV1* src_fe = Schema::GetFieldExtractorV1(curr_schema->GetFieldExtractor(i));
+            const _detail::FieldExtractorV1* src_fe =
+                Schema::GetFieldExtractorV1(curr_schema->GetFieldExtractor(i));
             size_t src_fid = curr_schema->GetFieldId(fname);
             if (dst_fe->Type() == src_fe->Type()) {
                 direct_copy_dst_fids.push_back(i);

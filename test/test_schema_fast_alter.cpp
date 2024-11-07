@@ -118,8 +118,8 @@ TEST_F(TestSchemaFastAlter, CreateEmptyRecord) {
     // | FIX-DATA 2 + 4 + 4 + 4 = 14 bytes | V-DATA 8 bytes |
     UT_EXPECT_EQ(v.Size(), 44);
     for (size_t i = 0; i < s.GetNumFields(); i++) {
-        UT_EXPECT_EQ(s.GetFieldExtractorV2(i)->GetIsNull(v),
-                     s.GetFieldExtractorV2(i)->GetFieldSpec().optional);
+        UT_EXPECT_EQ(s.GetFieldExtractor(i)->GetIsNull(v),
+                     s.GetFieldExtractor(i)->GetFieldSpec().optional);
     }
     UT_EXPECT_EQ(s.GetFieldExtractorV2(0)->GetRecordCount(v), 4);
 }
@@ -184,11 +184,11 @@ TEST_F(TestSchemaFastAlter, DumpRecord) {
     // UT_LOG() << "record: " << schema.DumpRecord(record);
 
     UT_EXPECT_EQ(schema.GetFieldId("float"), 5);
-    UT_EXPECT_EQ(schema.GetFieldExtractorV2("name")->FieldToString(record), "peter");
-    UT_EXPECT_EQ(schema.GetFieldExtractorV2("uid")->FieldToString(record), "101");
-    UT_EXPECT_EQ(schema.GetFieldExtractorV2("weight")->FieldToString(record), "6.525e1");
-    UT_EXPECT_EQ(schema.GetFieldExtractorV2("age")->FieldToString(record), "49");
-    UT_EXPECT_EQ(schema.GetFieldExtractorV2("addr")->FieldToString(record), "fifth avenue");
-    UT_EXPECT_THROW_CODE(schema.GetFieldExtractorV2("hash"), FieldNotFound);
-    UT_EXPECT_THROW_CODE(schema.GetFieldExtractorV2(1024), FieldNotFound);
+    UT_EXPECT_EQ(schema.GetFieldExtractor("name")->FieldToString(record), "peter");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("uid")->FieldToString(record), "101");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("weight")->FieldToString(record), "6.525e1");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("age")->FieldToString(record), "49");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("addr")->FieldToString(record), "fifth avenue");
+    UT_EXPECT_THROW_CODE(schema.GetFieldExtractor("hash"), FieldNotFound);
+    UT_EXPECT_THROW_CODE(schema.GetFieldExtractor(1024), FieldNotFound);
 }
