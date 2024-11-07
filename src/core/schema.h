@@ -404,7 +404,7 @@ class Schema {
         if (_F_UNLIKELY(extractor->Type() == FieldType::BLOB)) {
             return GetFieldDataFromBlobField(extractor, record, get_blob);
         } else {
-            return GetFieldDataFromField(extractor,record);
+            return GetFieldDataFromField(extractor, record);
         }
     }
 
@@ -483,6 +483,9 @@ class Schema {
     void ParseAndSetBlob(Value& record, const DataT& data, const StoreBlobAndGetKeyFunc& store_blob,
                       _detail::FieldExtractorBase* extr) const {
         FMA_DBG_ASSERT(extr->Type() == FieldType::BLOB);
+        if (!fast_alter_schema) {
+            return GetFieldExtractorV1(extr)->ParseAndSetBlob(record, data, store_blob);
+        }
         bool is_null;
         Value v = extr->ParseBlob(data, is_null);
         extr->SetIsNull(record, is_null);

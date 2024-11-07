@@ -185,8 +185,9 @@ class FieldExtractorBase {
         if (size == sizeof(T)) {
             memcpy(&data, (char*)record.Data() + offset, sizeof(T));
         } else {
-            // For FieldExtractorV2, even with fixed-length data, there may be cases where the data length
-            // in the record does not match the defined length, requiring conversion.
+            // For FieldExtractorV2, even with fixed-length data, there may be cases
+            // where the data length in the record does not match the defined length,
+            // requiring conversion.
             ConvertData(&data, (char*)record.Data() + offset, size);
         }
     }

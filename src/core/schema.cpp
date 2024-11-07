@@ -447,6 +447,10 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractorBase* extra
 
 void Schema::ParseAndSet(Value& record, const FieldData& data,
                          _detail::FieldExtractorBase* extractor) const {
+    if (!fast_alter_schema) {
+        GetFieldExtractorV1(extractor)->ParseAndSet(record, data);
+        return;
+    }
     bool data_is_null = data.type == FieldType::NUL;
     extractor->SetIsNull(record, data_is_null);
     if (data_is_null) return;
@@ -729,7 +733,7 @@ void Schema::ParseAndSet(Value& record, const std::string& data,
 void Schema::_SetVariableLengthValue(Value& record, const Value& data,
                                      ::lgraph::_detail::FieldExtractorBase* extractor) const {
     _detail::FieldExtractorV2* extr = dynamic_cast<_detail::FieldExtractorV2*>(extractor);
-    FMA_DBG_ASSERT(extr->is_vfield_);
+    FMA_DBG_ASSERT(!extractor->IsFixedType());
     if (data.Size() > _detail::MAX_STRING_SIZE)
         throw DataSizeTooLargeException(extr->Name(), data.Size(), _detail::MAX_STRING_SIZE);
     size_t foff = extr->GetFieldOffset(record);
