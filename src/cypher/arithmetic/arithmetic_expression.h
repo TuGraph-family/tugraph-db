@@ -231,6 +231,8 @@ struct BuiltinFunction {
                           const std::vector<ArithExprNode> &args);
     static Value LocalDateTime(RTContext *ctx, const Record &record,
                       const std::vector<ArithExprNode> &args);
+    static Value LocalTime(RTContext *ctx, const Record &record,
+                           const std::vector<ArithExprNode> &args);
 
     static Value Range(RTContext *ctx, const Record &record,
                        const std::vector<ArithExprNode> &args);
@@ -431,6 +433,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("startnode", BuiltinFunction::StartNode);
         ae_registered_funcs.emplace("keys", BuiltinFunction::Keys);
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
+        ae_registered_funcs.emplace("localtime", BuiltinFunction::LocalTime);
         return ae_registered_funcs;
     }
 

@@ -562,6 +562,28 @@ Value BuiltinFunction::LocalDateTime(RTContext *ctx, const Record &record,
     }
 }
 
+Value BuiltinFunction::LocalTime(RTContext *ctx, const Record &record,
+                                     const std::vector<ArithExprNode> &args) {
+    if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
+    if (args.size() == 1) {
+        // localdatetime() Returns the current LocalDateTime.
+        return Value(common::LocalDateTime());
+    } else {
+        CYPHER_THROW_ASSERT(args.size() == 2);
+        // date(string) Returns a Date by parsing a string.
+        auto r = args[1].Evaluate(ctx, record);
+        if (r.IsMap()) {
+            auto dt = common::LocalTime(r.constant);
+            return Value(common::LocalDateTime());
+        } else if (r.IsString()) {
+            auto dt = common::LocalTime(r.constant.AsString());
+            return Value(common::LocalDateTime());
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
+    }
+}
+
 Value BuiltinFunction::Range(RTContext *ctx, const Record &record,
                              const std::vector<ArithExprNode> &args) {
     /* Arguments:
