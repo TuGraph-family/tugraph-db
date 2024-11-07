@@ -3,12 +3,15 @@ import DocSidebar from "@theme-original/DocSidebar";
 import type DocSidebarType from "@theme/DocSidebar";
 import type { WrapperProps } from "@docusaurus/types";
 import { useLocation, useHistory } from "react-router-dom";
-import Select from 'react-select';
 import { DocSearch } from "@docsearch/react";
 import Link from "@docusaurus/Link";
-import { EN_TRANSLATIONS, ZH_TRANSLATIONS } from "@site/src/constants";
+import { EN_DOC_OPTIONS, EN_TRANSLATIONS, ZH_DOC_OPTIONS, ZH_TRANSLATIONS } from "@site/src/constants";
+import { Cascader, Tooltip } from "antd";
+
 
 type Props = WrapperProps<typeof DocSidebarType>;
+
+
 
 export default function DocSidebarWrapper(props: Props): JSX.Element {
   const location = useLocation();
@@ -45,12 +48,12 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     ) {
       return { label: segments[versionIndex], value: segments[versionIndex] };
     }
-    return {label: "4.5.0", value: "4.5.0"};
+    return { label: "4.5.0", value: "4.5.0" };
   };
 
   const formatDocSearchVersion = (tag: string) => {
     return tag.replace(/docs-(\d+\.\d+\.\d+)|docs-latest_zh/g, (match, version) => {
-      
+
       if (['3.5.1', '3.5.0'].includes(version)) {
         return 'docs-3-6-0';
       }
@@ -67,8 +70,19 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     });
   };
 
-  const onVersionChange = (version) => {
-    const { value } = version;
+  const onVersionChange = (values) => {
+    const [type, version] = values
+    console.log('version', version, type)
+    if (type === 'TuGraph_Analytics') {
+      // TODO 调数据中心文档
+      return
+    }
+
+    if (type === 'TuGraph_Learn') {
+      // TODO 图学习引擎
+      return
+    }
+
     const lang = getCurrentLanguage();
     const prefix = "/tugraph-db";
     const basePath = `${prefix}/${lang}`;
@@ -82,7 +96,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       .join("/");
 
     // 构造新路径
-    const newPath = `${basePath}/${value}/${remainingPath}`;
+    const newPath = `${basePath}/${version}/${remainingPath}`;
     history.push(newPath);
   };
 
@@ -113,7 +127,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
         appId: "FHM90YCZ2Z",
       }
     }
-    
+
     return {
       apiKey: "829a7e48ddbd6916e159c003391543a0",
       indexName: "zhongyunwanio",
@@ -135,7 +149,23 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     return "Search docs";
   };
 
-  const versionOptions = versions.map((item) => ({ value: item, label: item }));
+  const getDescByLanguage = (lang: string) => {
+    if (lang === "zh") {
+      return '社区版';
+    }
+    return 'Community';
+  };
+
+
+  const getOptions = (lang: string) => {
+
+    if (lang === "zh") {
+      return ZH_DOC_OPTIONS;
+    }
+    return EN_DOC_OPTIONS;
+  };
+
+
 
   const customStyles = {
     control: (provided: React.CSSProperties) => ({
@@ -163,47 +193,66 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     });
   }, []);
 
+
   return (
     <div
+      className="docsearch-wrapper"
       style={{
         display: "flex",
         justifyContent: "center",
         flexDirection: "column"
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", marginBottom: '8px' }}>
-        <Select
-          defaultValue={getCurrentVersion()}
-          styles={customStyles}
-          options={versionOptions}
+
+      <div style={{ display: "flex", justifyContent: 'space-between', marginBottom: '8px' }}>
+        <Cascader
+          allowClear={false}
+          value={['TuGraph_DB', getCurrentVersion()?.label]}
+          options={getOptions(getCurrentLanguage())}
           onChange={onVersionChange}
-        />
-        <div style={{ margin: "10px 4px 0 8px" }}>
-          <DocSearch
-            {...{
-              ...getDocSearchKey,
-              searchParameters: {
-                facetFilters: [
-                  formatDocSearchVersion(
-                    `docusaurus_tag:docs-${getCurrentVersion()?.value}_${getCurrentLanguage()}-current`
-                  ),
-                ],
-              },
-              hitComponent: Hit,
-              transformItems: (items) => {
-                return items.map(item => {
-                  return {
-                    ...item,
-                    url: replaceVersionInLink('/tugraph-db' + item?.url?.split('/tugraph-db')[1] ?? '')
-                  };
-                });
-              },
-              navigator: navigator,
-              translations: getTranslationsByLanguage(getCurrentLanguage()),
-              placeholder: getPlaceholderByLanguage(getCurrentLanguage()),
-            }}
-          />
-        </div>
+        >
+          <div className="itemWrapper">
+            <div className="titleBlock">
+              <span className="titleText">TuGraph DB</span>
+              <div
+                className="downIcon"
+              />
+            </div>
+            <div className="contentArea">
+              <span className="engineDescription">{getDescByLanguage(getCurrentLanguage())}</span>
+              <span className="versionLabel">V{getCurrentVersion()?.label}</span>
+            </div>
+          </div>
+        </Cascader>
+
+        <Tooltip title={getPlaceholderByLanguage(getCurrentLanguage())}>
+          <div className="searchWrapper">
+            <DocSearch
+              {...{
+                ...getDocSearchKey,
+                searchParameters: {
+                  facetFilters: [
+                    formatDocSearchVersion(
+                      `docusaurus_tag:docs-${getCurrentVersion()?.value}_${getCurrentLanguage()}-current`
+                    ),
+                  ],
+                },
+                hitComponent: Hit,
+                transformItems: (items) => {
+                  return items.map(item => {
+                    return {
+                      ...item,
+                      url: replaceVersionInLink('/tugraph-db' + item?.url?.split('/tugraph-db')[1] ?? '')
+                    };
+                  });
+                },
+                navigator: navigator,
+                translations: getTranslationsByLanguage(getCurrentLanguage()),
+                placeholder: getPlaceholderByLanguage(getCurrentLanguage()),
+              }} />
+          </div>
+        </Tooltip>
+
       </div>
       <DocSidebar {...props} />
     </div>
