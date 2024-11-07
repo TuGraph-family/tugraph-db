@@ -35,8 +35,8 @@ export default function NotFoundContent({ className }: Props): JSX.Element {
   }, [pathname]);
 
   return (
-    <main className={clsx("container margin-vert--xl", className)}>
-      <div className="row">
+    <main className={clsx(" margin-vert--xl", className)}>
+      <div className="row" >
         <div className="col col--6 col--offset-3">
           <Heading as="h1" className="hero__title">
             {contentConfig.title}
