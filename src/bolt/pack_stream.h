@@ -88,6 +88,10 @@ class PackStream {
         packer_.Int64(m.seconds);
         packer_.Int64(m.nanoseconds);
     }
+    void PackLocalTime(const bolt::LocalTime& m) {
+        packer_.StructHeader('t', 2);
+        packer_.Int64(m.nanoseconds);
+    }
 
     void PackX(const std::any& x) {
         if (!x.has_value()) {
@@ -135,6 +139,8 @@ class PackStream {
             PackDate(std::any_cast<const bolt::Date&>(x));
         } else if (type == typeid(bolt::LocalDateTime)) {
             PackLocalDateTime(std::any_cast<const bolt::LocalDateTime&>(x));
+        } else if (type == typeid(bolt::LocalTime)) {
+            PackLocalTime(std::any_cast<const bolt::LocalTime&>(x));
         } else {
             LOG_FATAL("PackX meet unexpected type {}", type.name());
         }
