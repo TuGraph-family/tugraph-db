@@ -15,6 +15,7 @@
 #pragma once
 
 #include <any>
+#include <optional>
 #include <regex>
 #include <string>
 #include <unordered_map>
@@ -29,7 +30,10 @@ class Date {
     int64_t days_since_epoch_ = 0;
 
     void fromYearMonthDay(int year, unsigned month, unsigned day);
-    void fromYearWeekDow(int year, int week, int dow);
+    void fromYearWeekDow(int year, unsigned week, unsigned dow);
+    void fromYearWeekDow(const Date& base_date, std::optional<int> year,
+                         std::optional<unsigned> week,
+                         std::optional<unsigned> dow);
     void fromYearQuarterDoq(int year, int quarter, int doq);
     void fromYearDoy(int year, int doy);
 
@@ -50,7 +54,7 @@ class Date {
      * \param   params: a map containing the single key 'timezone', or a map
      *                  containing temporal values ('date', 'year', 'month',
      *                  'day', 'week', 'dayOfWeek', 'quarter',
-     * 'dayOfQuarter', 'ordinalDay') as components.
+     *                  'dayOfQuarter', 'ordinalDay') as components.
      */
     explicit Date(const Value& params);
     [[nodiscard]] int64_t GetStorage() const { return days_since_epoch_; }
