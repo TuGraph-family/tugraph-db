@@ -23,6 +23,16 @@ export default function HomeBreadcrumbItem(): JSX.Element {
     }
   };
 
+
+  const homeText = () => {
+    const lang =
+      pathname?.split("/")?.find((item) => ["zh", "en"].includes(item)) || "en";
+    if (lang === "en") {
+      return "Docs";
+    }
+    return "文档";
+  }
+
   return (
     <li className="breadcrumbs__item">
       <Link
@@ -35,7 +45,7 @@ export default function HomeBreadcrumbItem(): JSX.Element {
 
         href={homeHref()}>
         <div style={{ color: '#1a1b2572' }}>
-          文档
+          {homeText()}
         </div>
       </Link>
     </li>
