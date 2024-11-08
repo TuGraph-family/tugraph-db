@@ -74,7 +74,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     const [type, version] = values
     console.log('version', version, type)
     if (type === 'TuGraph_Analytics') {
-      window.location.href = 'https://liukaiming-alipay.github.io/tugraph-analytics/zh/introduction/';
+      window.location.href = `https://liukaiming-alipay.github.io/tugraph-analytics/${getCurrentLanguage()}/introduction/`;
       return
     }
 
