@@ -78,6 +78,10 @@ nlohmann::json ToJsonObj(const std::any& item) {
             ret[pair.first] = ToJsonObj(pair.second);
         }
         return ret;
+    } else if (item.type() == typeid(bolt::LocalTime)) {
+        const auto& time = std::any_cast<const bolt::LocalTime&>(item);
+        common::LocalTime d(time.nanoseconds);
+        return ToJsonObj(d.ToString());
     } else {
         auto err = std::string("Unsupported type: ") + item.type().name();
         LOG_ERROR(err);

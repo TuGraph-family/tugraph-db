@@ -136,6 +136,12 @@ std::string Value::Serialize() const {
             buffer.append((const char*)&microseconds, sizeof(microseconds));
             break;
         }
+        case ValueType::LOCALTIME: {
+            auto& v = std::any_cast<const common::LocalTime&>(data);
+            int64_t microseconds = v.GetStorage();
+            buffer.append((const char*)&microseconds, sizeof(microseconds));
+            break;
+        }
         default: {
             THROW_CODE(ValueException, "Unsupported data type for value serializing, type: " + ::ToString(type));
         }
@@ -251,6 +257,11 @@ void Value::Deserialize(const char* p, size_t size) {
             data = common::LocalDateTime(*(int64_t*)p);
             break;
         }
+        case ValueType::LOCALTIME: {
+            assert(size == sizeof(int64_t));
+            data = common::LocalTime(*(int64_t*)p);
+            break;
+        }
         default: {
             THROW_CODE(ValueException, "unexpected data type for Deserialize : " + ::ToString(type));
         }
@@ -269,6 +280,7 @@ std::string ToString(ValueType t) {
         case ValueType::MAP : return "MAP";
         case ValueType::DATE : return "DATE";
         case ValueType::LOCALDATETIME : return "LOCALDATETIME";
+        case ValueType::LOCALTIME : return "LOCALTIME";
         default: THROW_CODE(ValueException, "unexpected ValueType for Type ToString");
     }
 }
@@ -307,6 +319,9 @@ std::string Value::ToString(bool str_quotation_mark) const {
         case ValueType::LOCALDATETIME: {
             return std::any_cast<const common::LocalDateTime&>(data).ToString();
         }
+        case ValueType::LOCALTIME: {
+            return std::any_cast<const common::LocalTime&>(data).ToString();
+        }
         default: THROW_CODE(ValueException, "unexpected ValueType for Value ToString");
     }
 }
@@ -341,6 +356,9 @@ std::any Value::ToBolt() const {
         case ValueType::LOCALDATETIME: {
             auto s = std::any_cast<const common::LocalDateTime&>(data).GetStorage();
             return bolt::LocalDateTime{s / 1000000000, s % 1000000000};
+        }
+        case ValueType::LOCALTIME: {
+            return bolt::LocalTime{std::any_cast<const common::LocalTime&>(data).GetStorage()};
         }
         default: THROW_CODE(ValueException, "unexpected ValueType for Value ToString");
     }
@@ -386,6 +404,8 @@ bool Value::operator>(const Value& rhs) const {
                 return std::any_cast<const common::Date>(data) > std::any_cast<const common::Date&>(rhs.data);
             case ValueType::LOCALDATETIME:
                 return std::any_cast<const common::LocalDateTime>(data) > std::any_cast<const common::LocalDateTime&>(rhs.data);
+            case ValueType::LOCALTIME:
+                return std::any_cast<const common::LocalTime>(data) > std::any_cast<const common::LocalTime&>(rhs.data);
             default:
                 THROW_CODE(ValueException, "Unhandled data type");
         }
@@ -434,6 +454,8 @@ bool Value::operator>=(const Value& rhs) const {
                 return std::any_cast<const common::Date>(data) >= std::any_cast<const common::Date&>(rhs.data);
             case ValueType::LOCALDATETIME:
                 return std::any_cast<const common::LocalDateTime>(data) >= std::any_cast<const common::LocalDateTime&>(rhs.data);
+            case ValueType::LOCALTIME:
+                return std::any_cast<const common::LocalTime>(data) >= std::any_cast<const common::LocalTime&>(rhs.data);
             default:
                 THROW_CODE(ValueException, "Unhandled data type");
         }
@@ -495,6 +517,8 @@ bool Value::operator==(const Value& b) const {
             return std::any_cast<const common::Date>(this->data) == std::any_cast<const common::Date&>(b.data);
         case ValueType::LOCALDATETIME:
             return std::any_cast<const common::LocalDateTime>(this->data) == std::any_cast<const common::LocalDateTime&>(b.data);
+        case ValueType::LOCALTIME:
+            return std::any_cast<const common::LocalTime>(data) == std::any_cast<const common::LocalTime&>(b.data);
         case ValueType::Null: {
             return true;
         }

@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 #include "common/temporal/temporal.h"
+#include "common/value.h"
 
 TEST(Date, dateFromString) {
     EXPECT_EQ(common::Date("2015-07-21").ToString(), "2015-07-21");
@@ -33,7 +34,7 @@ TEST(Date, dateFromStringException) {}
 
 TEST(Date, dateFromMap) {}
 
-TEST(Time, timeFromString) {
+TEST(LocalTime, timeFromString) {
     EXPECT_EQ(common::LocalTime("21:40:32.142").ToString(), "21:40:32.142000000");
     EXPECT_EQ(common::LocalTime("214032.142").ToString(), "21:40:32.142000000");
     EXPECT_EQ(common::LocalTime("21:40:32").ToString(), "21:40:32.000000000");
@@ -41,4 +42,14 @@ TEST(Time, timeFromString) {
     EXPECT_EQ(common::LocalTime("21:40").ToString(), "21:40:00.000000000");
     EXPECT_EQ(common::LocalTime("2140").ToString(), "21:40:00.000000000");
     EXPECT_EQ(common::LocalTime("22").ToString(), "22:00:00.000000000");
+}
+
+TEST(LocalTime, timeFromMap) {
+    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                 {"second", Value::Integer(14)}, {"nanosecond", Value::Integer(789)},
+                                 {"millisecond", Value::Integer(123)}, {"microsecond", Value::Integer(456)}})).ToString(),
+              "12:31:14.123456789");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                            {"second", Value::Integer(14)}})).ToString(), "12:31:14.000000000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}})).ToString(), "12:00:00.000000000");
 }
