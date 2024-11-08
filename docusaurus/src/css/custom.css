@@ -82,41 +82,43 @@
   background: #ffffff;
   border-radius: 12px;
   padding: 14px 32px;
+  font-size: 14px !important;
 
   h1 {
-    font-size: 24px;
-    color: #1a1b25e0;
-    line-height: 32px;
-    font-weight: 600;
+    font-size: 24px !important;
+    color: #1a1b25e0 !important;
+    line-height: 32px !important;
+    font-weight: 600 !important;
   }
 
   h2 {
-    font-size: 24px;
-    color: #1a1b25e0;
-    line-height: 32px;
-    font-weight: 600;
-    margin-top: 28px;
+    font-size: 24px !important;
+    color: #1a1b25e0 !important;
+    line-height: 32px !important;
+    font-weight: 600 !important;
+    margin-top: 28px !important;
   }
 
   p {
-    font-size: 14px;
-    color: #1a1b25e0;
-    line-height: 22px;
+    font-size: 14px !important;
+    color: #1a1b25e0 !important;
+    line-height: 22px !important;
   }
 
   a {
-    font-size: 14px;
-    color: #1677ff;
+    font-size: 14px !important;
+    color: #1677ff !important;
   }
   .breadcrumbs__item:not(:last-child):after {
     content: "/";
     background: none;
+    margin: 0 0 0 5px !important;
   }
 
   .breadcrumbs__link {
-    background-color: transparent;
-    font-size: 12px;
-    color: #0a0a0ae1;
+    background-color: transparent !important;
+    font-size: 12px !important;
+    color: #0a0a0ae1 !important;
     line-height: 20px;
     padding: 0;
   }

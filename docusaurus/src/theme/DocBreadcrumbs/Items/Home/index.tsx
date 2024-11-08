@@ -32,8 +32,11 @@ export default function HomeBreadcrumbItem(): JSX.Element {
           description: 'The ARIA label for the home page in the breadcrumbs',
         })}
         className="breadcrumbs__link"
+
         href={homeHref()}>
-        文档
+        <span style={{ color: '#1a1b2572' }}>
+          文档
+        </span>
       </Link>
     </li>
   );
