@@ -53,7 +53,8 @@ enum class DateType {
     CALENDER_DATE = 0,
     WEEK_DATE = 1,
     QUATER_DATE = 2,
-    ORDINAL_DATE = 3
+    ORDINAL_DATE = 3,
+    TIMEZONE_DATE = 4,
 };
 
 const std::string DATE_TIMEZONE = "timezone";
@@ -114,7 +115,8 @@ void validateDateParams(
     // `year` must be specified, except for ordinal day
     if (params_map.count(DATE_YEAR) == 0 &&
         (params_map.count(DATE_ORDINAL) == 0 &&
-         params_map.count(DATE_DATE) == 0)) {
+         params_map.count(DATE_DATE) == 0 &&
+         params_map.count(DATE_TIMEZONE) == 0)) {
         THROW_CODE(InputError, "year must be specified");
     }
 
@@ -243,6 +245,37 @@ void Date::fromYearDoy(int year, int doy) {
     }
 }
 
+void Date::fromTimeZone(const std::string& timezone) {
+    date::zoned_time<std::chrono::system_clock::duration> current_time;
+    std::string current_time_zone;
+    try {
+        if (timezone[0] == '+' || timezone[0] == '-') {
+            // Handling timezone offset, e.g., "+01:00"
+            auto now = std::chrono::system_clock::now();
+            auto offset = date::make_time(
+                std::chrono::hours(std::stoi(timezone.substr(1, 2))) +
+                std::chrono::minutes(std::stoi(timezone.substr(4, 2))));
+            if (timezone[0] == '-') {
+                current_time = date::make_zoned(date::current_zone(),
+                                                now - offset.to_duration());
+            } else {
+                current_time = date::make_zoned(date::current_zone(),
+                                                now + offset.to_duration());
+            }
+        } else {
+            // Handling named timezone, e.g., "America/New_York"
+            current_time =
+                date::make_zoned(timezone, std::chrono::system_clock::now());
+        }
+        days_since_epoch_ =
+            std::chrono::duration_cast<date::days>(
+                current_time.get_local_time().time_since_epoch())
+                .count();
+    } catch (const std::exception& e) {
+        THROW_CODE(InputError, "Failed to parse timezone: {}", timezone);
+    }
+}
+
 Date::Date() {
     auto t = make_zoned(date::current_zone(), std::chrono::system_clock::now());
     days_since_epoch_ = std::chrono::duration_cast<date::days>(
@@ -328,6 +361,7 @@ Date::Date(const Value& params) {
     int doy = 1;
     unsigned month = 1, day = 1;
     int quarter = 1, doq = 1;
+    std::string timezone;
 
     std::optional<Date> base_date = std::nullopt;
     std::unordered_map<std::string, Value> params_map;
@@ -376,6 +410,10 @@ Date::Date(const Value& params) {
         if (params_map.count(DATE_DATE)) {
             base_date = params_map.at(DATE_DATE).AsDate();
         }
+        if (params_map.count(DATE_TIMEZONE)) {
+            timezone = params_map.at(DATE_TIMEZONE).AsString();
+            dt = DateType::TIMEZONE_DATE;
+        }
     } catch (const std::exception& e) {
         THROW_CODE(InputError, "Failed to parse {} into Date, exception: {}",
                    params.ToString(), e.what());
@@ -398,6 +436,9 @@ Date::Date(const Value& params) {
             break;
         case DateType::ORDINAL_DATE:
             fromYearDoy(year.value(), doy);
+            break;
+        case DateType::TIMEZONE_DATE:
+            fromTimeZone(timezone);
             break;
         default:
             THROW_CODE(InputError, "Failed to parse {} into Date",
