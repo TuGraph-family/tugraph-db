@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 #include "common/temporal/temporal.h"
+#include "common/value.h"
 
 TEST(Date, dateFromString) {
     EXPECT_EQ(common::Date("2015-07-21").ToString(), "2015-07-21");
@@ -31,7 +32,109 @@ TEST(Date, dateFromString) {
 
 TEST(Date, dateFromStringException) {}
 
-TEST(Date, dateFromMap) {}
+TEST(Date, dateFromMap) {
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1816)},
+                                  {"week", Value((int64_t)1)}}))
+                  .ToString(),
+              "1816-01-01");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1816)},
+                                  {"week", Value((int64_t)52)}}))
+                  .ToString(),
+              "1816-12-23");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1817)},
+                                  {"week", Value((int64_t)1)}}))
+                  .ToString(),
+              "1816-12-30");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1817)},
+                                  {"week", Value((int64_t)10)}}))
+                  .ToString(),
+              "1817-03-03");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1817)},
+                                  {"week", Value((int64_t)30)}}))
+                  .ToString(),
+              "1817-07-21");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1817)},
+                                  {"week", Value((int64_t)52)}}))
+                  .ToString(),
+              "1817-12-22");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1818)},
+                                  {"week", Value((int64_t)1)}}))
+                  .ToString(),
+              "1817-12-29");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1818)},
+                                  {"week", Value((int64_t)52)}}))
+                  .ToString(),
+              "1818-12-21");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1818)},
+                                  {"week", Value((int64_t)53)}}))
+                  .ToString(),
+              "1818-12-28");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1819)},
+                                  {"week", Value((int64_t)1)}}))
+                  .ToString(),
+              "1819-01-04");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1819)},
+                                  {"week", Value((int64_t)52)}}))
+                  .ToString(),
+              "1819-12-27");
+
+    EXPECT_EQ(common::Date(Value({{"dayOfWeek", Value((int64_t)2)},
+                                  {"year", Value((int64_t)1817)},
+                                  {"week", Value((int64_t)1)}}))
+                  .ToString(),
+              "1816-12-31");
+
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1984)},
+                                  {"month", Value((int64_t)10)},
+                                  {"day", Value((int64_t)11)}}))
+                  .ToString(),
+              "1984-10-11");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1984)},
+                                  {"month", Value((int64_t)10)}}))
+                  .ToString(),
+              "1984-10-01");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1984)},
+                                  {"week", Value((int64_t)10)},
+                                  {"dayOfWeek", Value((int64_t)3)}}))
+                  .ToString(),
+              "1984-03-07");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1984)},
+                                  {"week", Value((int64_t)10)}}))
+                  .ToString(),
+              "1984-03-05");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1984)}})).ToString(),
+              "1984-01-01");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1984)},
+                                  {"ordinalDay", Value((int64_t)202)}}))
+                  .ToString(),
+              "1984-07-20");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1984)},
+                                  {"quarter", Value((int64_t)3)},
+                                  {"dayOfQuarter", Value((int64_t)45)}}))
+                  .ToString(),
+              "1984-08-14");
+    EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1984)},
+                                  {"quarter", Value((int64_t)3)}}))
+                  .ToString(),
+              "1984-07-01");
+
+    EXPECT_EQ(common::Date(Value({{"date", Value(common::Date("1816-12-30"))},
+                                  {"week", Value((int64_t)2)},
+                                  {"dayOfWeek", Value((int64_t)3)}}))
+                  .ToString(),
+              "1817-01-08");
+
+    EXPECT_EQ(common::Date(Value({{"date", Value(common::Date("1816-12-31"))},
+                                  {"week", Value((int64_t)2)}}))
+                  .ToString(),
+              "1817-01-07");
+
+    EXPECT_EQ(common::Date(Value({{"date", Value(common::Date("1816-12-31"))},
+                                  {"year", Value((int64_t)1817)},
+                                  {"week", Value((int64_t)2)}}))
+                  .ToString(),
+              "1817-01-07");
+}
 
 TEST(Time, timeFromString) {
     EXPECT_EQ(common::LocalTime("21:40:32.142").ToString(), "21:40:32.142000000");
