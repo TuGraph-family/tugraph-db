@@ -106,9 +106,58 @@ const ZH_NOT_FOUND_CONFIG = {
   homeBtnText: "返回首页",
 };
 
+const versions = [
+  "4.5.0",
+  "4.3.2",
+  "4.3.1",
+  "4.3.0",
+  "4.2.0",
+  "4.1.0",
+  "4.0.1",
+  "4.0.0",
+  "3.6.0",
+  "3.5.1",
+  "3.5.0",
+];
+
+const EN_DOC_OPTIONS = [
+  {
+    label: "TuGraph DB Community",
+    value: "TuGraph_DB",
+    children: versions.map((item) => ({ value: item, label: item })),
+  },
+  {
+    label: "TuGraph Analytics Streaming Graph Computing Engine",
+    value: "TuGraph_Analytics",
+  },
+  {
+    label: "TuGraph Learn Graph Learning Engine",
+    value: "TuGraph_Learn",
+  },
+];
+
+const ZH_DOC_OPTIONS = [
+  {
+    label: "TuGraph DB 社区版",
+    value: "TuGraph_DB",
+    children: versions.map((item) => ({ value: item, label: item })),
+  },
+  {
+    label: "TuGraph Analytics 实时图计算引擎",
+    value: "TuGraph_Analytics",
+  },
+  {
+    label: "TuGraph Learn 图学习引擎",
+    value: "TuGraph_Learn",
+  },
+];
+
 export {
   EN_TRANSLATIONS,
   ZH_TRANSLATIONS,
   ZH_NOT_FOUND_CONFIG,
   EN_NOT_FOUND_CONFIG,
+  ZH_DOC_OPTIONS,
+  EN_DOC_OPTIONS,
+  versions,
 };

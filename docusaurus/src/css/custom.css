@@ -18,6 +18,10 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
+:root {
+  --doc-sidebar-width: 208px !important;
+}
+
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme="dark"] {
   --ifm-color-primary: #25c2a0;
@@ -35,9 +39,180 @@
 }
 
 #__docusaurus {
-  padding: 0 120px;
+  padding: 16px 120px 0;
+  background-image: linear-gradient(180deg, #d8e2ee 0%, #d8e2ee 100%);
+  cursor: pointer;
 }
 
-.sidebarViewport_node_modules-\@docusaurus-theme-classic-lib-theme-DocRoot-Layout-Sidebar-styles-module {
-  overflow-y: auto;
+/* Sidebar Style */
+.thin-scrollbar {
+  padding: 0 !important;
+}
+
+.menu__link--sublist-caret:after {
+  transform: rotate(180deg) !important;
+  background-size: 1rem 1rem;
+}
+
+.theme-doc-sidebar-container {
+  margin-right: 20px;
+  border: none !important;
+}
+
+.menu__link {
+  font-size: 14px !important;
+  color: #424e66 !important;
+}
+
+.menu__link--active {
+  background: #0e0b3b0d;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1b25e0;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.sidebarViewport_aRkj {
+  overflow-y: auto !important;
+}
+
+/* Docs container Style */
+.container {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px 32px;
+  font-size: 14px !important;
+
+  h1 {
+    font-size: 24px !important;
+    color: #1a1b25e0 !important;
+    line-height: 32px !important;
+    font-weight: 600 !important;
+  }
+
+  h2 {
+    font-size: 24px !important;
+    color: #1a1b25e0 !important;
+    line-height: 32px !important;
+    font-weight: 600 !important;
+    margin-top: 28px !important;
+  }
+
+  p,
+  th,
+  td,
+  li,
+  span {
+    font-size: 14px !important;
+    color: #1a1b25e0 !important;
+    line-height: 22px !important;
+  }
+
+  a {
+    font-size: 14px !important;
+    color: #1677ff !important;
+  }
+  .breadcrumbs__item:not(:last-child):after {
+    content: "/";
+    background: none;
+    margin: 0 0 0 5px !important;
+    font-size: 14px !important;
+  }
+
+  .breadcrumbs__link {
+    background-color: transparent !important;
+    font-size: 12px !important;
+    color: #0a0a0ae1 !important;
+    line-height: 20px;
+    padding: 0;
+  }
+}
+
+/* Cascader style */
+.itemWrapper {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.titleText {
+  color: #31333d;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.downIcon {
+  flex-shrink: 0;
+  margin-left: 8px;
+  border: 4px solid transparent;
+  border-color: transparent transparent #4e5969 #4e5969;
+  transform: translateY(-2px) rotate(-45deg);
+  border-radius: 2px;
+}
+
+.contentArea {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 5px;
+  margin-left: 2px;
+}
+
+#engineDescription {
+  color: #788495 !important;
+  font-size: 14px;
+}
+
+.versionLabel {
+  margin-left: 8px;
+  white-space: nowrap;
+  color: #788495;
+  font-size: 14px;
+}
+
+/* Search Style */
+.searchWrapper {
+  margin-top: 5px;
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.searchWrapper:hover {
+  background: #0e0b3b0d;
+}
+
+.DocSearch-Button {
+  align-items: flex-start !important;
+  background: transparent !important;
+  padding: 0 !important;
+  height: fit-content !important;
+}
+
+.DocSearch-Button:hover {
+  box-shadow: none !important;
+  border: transparent;
+}
+
+.DocSearch-Button-Placeholder,
+.DocSearch-Button-Keys {
+  display: none !important;
+}
+
+.DocSearch-Search-Icon {
+  width: 13px !important;
+  height: 12px !important;
 }
