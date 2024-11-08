@@ -34,9 +34,9 @@ export default function HomeBreadcrumbItem(): JSX.Element {
         className="breadcrumbs__link"
 
         href={homeHref()}>
-        <span style={{ color: '#1a1b2572' }}>
+        <div style={{ color: '#1a1b2572' }}>
           文档
-        </span>
+        </div>
       </Link>
     </li>
   );
