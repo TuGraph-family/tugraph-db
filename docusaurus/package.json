@@ -25,7 +25,6 @@
     "clsx": "^2.0.0",
     "fs-extra": "^11.2.0",
     "prism-react-renderer": "^2.3.0",
-    "rc-cascader": "^3.30.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-select": "^5.8.2"
