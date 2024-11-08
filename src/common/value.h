@@ -203,7 +203,7 @@ struct Value {
     [[nodiscard]] const common::LocalTime& AsLocalTime() const {
         if (LIKELY(type == ValueType::LOCALTIME))
             return std::any_cast<const common::LocalTime&>(data);
-        THROW_CODE(UnknownError, "AsLocalDateTime, but Value is not LocalTime");
+        THROW_CODE(UnknownError, "AsLocalTime, but Value is not LocalTime");
     }
 
     static Value Bool(bool b) { return Value(b); }

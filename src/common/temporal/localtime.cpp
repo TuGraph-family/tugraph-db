@@ -25,6 +25,12 @@ LocalTime::LocalTime() {
 }
 
 LocalTime::LocalTime(const Value& params) {
+    if (params.IsLocalTime()) {
+        date::local_time<std::chrono::nanoseconds> tp{std::chrono::nanoseconds(params.AsLocalTime().nanoseconds_since_epoch_)};
+        auto t = make_zoned(date::current_zone(), tp);
+        nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
+        return;
+    }
     std::unordered_map<std::string, Value> parse_params_map;
     for (const auto &kv : params.AsMap()) {
         auto s = kv.first;
@@ -34,42 +40,54 @@ LocalTime::LocalTime(const Value& params) {
     if (parse_params_map.empty()) {
         THROW_CODE(InvalidParameter, "At least one temporal unit must be specified.");
     }
-    std::vector<std::pair<std::string, bool>> has_value = {
-        {"hour", parse_params_map.count("hour")},
-        {"minute", parse_params_map.count("minute")},
-        {"second", parse_params_map.count("second")},
-        {"subsecond", parse_params_map.count("millisecond") || parse_params_map.count("microsecond") || parse_params_map.count("nanosecond")}
-    };
-    if (!has_value[0].second) {
-        THROW_CODE(InvalidParameter, "hour must be specified");
+    if (parse_params_map.count("timezone")) {
+        if (parse_params_map.size() > 1) {
+            THROW_CODE(InvalidParameter, "Cannot assign time zone if also assigning other fields.");
+        }
+        auto t = date::make_zoned(parse_params_map["timezone"].AsString(), std::chrono::system_clock::now());
+        nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
+        return;
     }
-    std::string firstNotAssigned;
-    for (const auto &value : has_value) {
-        if (!value.second) {
-            if (firstNotAssigned.empty()) {
-                firstNotAssigned = value.first;
+    int64_t hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0;
+    if (parse_params_map.count("time")) {
+        auto v = parse_params_map["time"].AsLocalTime().nanoseconds_since_epoch_;
+        nanosecond = v % 1000;
+        microsecond = v / 1000 % 1000;
+        millisecond = v / 1000000 % 1000;
+        second = v / 1000000000 % 60;
+        minute = v / 60000000000 % 60;
+        hour = v / 3600000000000;
+    } else {
+        std::vector<std::pair<std::string, bool>> has_value = {
+            {"hour", parse_params_map.count("hour")},
+            {"minute", parse_params_map.count("minute")},
+            {"second", parse_params_map.count("second")},
+            {"subsecond", parse_params_map.count("millisecond") || parse_params_map.count("microsecond") || parse_params_map.count("nanosecond")}
+        };
+        if (!has_value[0].second) {
+            THROW_CODE(InvalidParameter, "hour must be specified");
+        }
+        std::string firstNotAssigned;
+        for (const auto &value : has_value) {
+            if (!value.second) {
+                if (firstNotAssigned.empty()) {
+                    firstNotAssigned = value.first;
+                }
+            } else if (!firstNotAssigned.empty()) {
+                THROW_CODE(InvalidParameter, "{} cannot be specified without {}", value.first, firstNotAssigned);
             }
-        } else if (!firstNotAssigned.empty()) {
-            THROW_CODE(InvalidParameter, "{} cannot be specified without {}", value.first, firstNotAssigned);
         }
     }
-    auto milliseconds = parse_params_map["millisecond"],
-         microseconds = parse_params_map["microsecond"], nanoseconds = parse_params_map["nanosecond"];
-    if (!milliseconds.IsNull() && (milliseconds.AsInteger() < 0 || milliseconds.AsInteger() >= 1000)) {
-        THROW_CODE(InvalidParameter, "Invalid value for Millisecond: {}", milliseconds.AsInteger());
+    // hh-mm-ss exception
+    if (!parse_params_map["hour"].IsNull()) {
+        hour = parse_params_map["hour"].AsInteger();
     }
-    if (!microseconds.IsNull() && (microseconds.AsInteger() < 0 || microseconds.AsInteger() >= (!milliseconds.IsNull() ? 1000 : 1000000))) {
-        THROW_CODE(InvalidParameter, "Invalid value for Microsecond: {}", microseconds.AsInteger());
+    if (!parse_params_map["minute"].IsNull()) {
+        minute = parse_params_map["minute"].AsInteger();
     }
-    if (!nanoseconds.IsNull() && (nanoseconds.AsInteger() < 0 || nanoseconds.AsInteger() >= (!microseconds.IsNull() ? 1000 : !milliseconds.IsNull() ? 1000000 : 1000000000))) {
-        THROW_CODE(InvalidParameter, "Invalid value for Nanosecond: {}", nanoseconds.AsInteger());
+    if (!parse_params_map["second"].IsNull()) {
+        second = parse_params_map["second"].AsInteger();
     }
-    int64_t hour = parse_params_map["hour"].AsInteger(),
-            minute = parse_params_map["minute"].IsNull() ? 0 : parse_params_map["minute"].AsInteger(),
-            second = parse_params_map["second"].IsNull() ? 0 : parse_params_map["second"].AsInteger(),
-            millisecond = milliseconds.IsNull() ? 0 : milliseconds.AsInteger(),
-            microsecond = microseconds.IsNull() ? 0 : microseconds.AsInteger(),
-            nanosecond = nanoseconds.IsNull() ? 0 : nanoseconds.AsInteger();
     if (hour >= 24) {
         THROW_CODE(InputError, "Invalid value for HourOfDay (valid values 0 - 23): {}", hour);
     }
@@ -79,6 +97,33 @@ LocalTime::LocalTime(const Value& params) {
     if (second >= 60) {
         THROW_CODE(InputError, "Invalid value for SecondOfMinute (valid values 0 - 59): {}", second);
     }
+
+    // sub second exception
+    auto millisecondValue = parse_params_map["millisecond"],
+         microsecondValue = parse_params_map["microsecond"], nanosecondValue = parse_params_map["nanosecond"];
+    if (!millisecondValue.IsNull() && (millisecondValue.AsInteger() < 0 || millisecondValue.AsInteger() >= 1000)) {
+        THROW_CODE(InvalidParameter, "Invalid value for Millisecond: {}", millisecondValue.AsInteger());
+    }
+    if (!microsecondValue.IsNull() && (microsecondValue.AsInteger() < 0 || microsecondValue.AsInteger() >= (!millisecondValue.IsNull() ? 1000 : 1000000))) {
+        THROW_CODE(InvalidParameter, "Invalid value for Microsecond: {}", microsecondValue.AsInteger());
+    }
+    if (!nanosecondValue.IsNull() && (nanosecondValue.AsInteger() < 0 || nanosecondValue.AsInteger() >= (!microsecondValue.IsNull() ? 1000 : !millisecondValue.IsNull() ? 1000000 : 1000000000))) {
+        THROW_CODE(InvalidParameter, "Invalid value for Nanosecond: {}", nanosecondValue.AsInteger());
+    }
+    if (!millisecondValue.IsNull() || !microsecondValue.IsNull() || !nanosecondValue.IsNull()) {
+        millisecond = microsecond = nanosecond = 0;
+    }
+    if (!millisecondValue.IsNull()) {
+        millisecond = parse_params_map["millisecond"].AsInteger();
+    }
+    if (!microsecondValue.IsNull()) {
+        microsecond = parse_params_map["microsecond"].AsInteger();
+    }
+    if (!nanosecondValue.IsNull()) {
+        nanosecond = parse_params_map["nanosecond"].AsInteger();
+    }
+
+    // all time
     std::chrono::nanoseconds ns{hour * 60 * 60 * 1000000000 + minute * 60 * 1000000000 + second * 1000000000 +
                                 millisecond * 1000000 + microsecond * 1000 + nanosecond};
     date::local_time<std::chrono::nanoseconds> tp{ns};

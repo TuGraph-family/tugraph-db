@@ -41,7 +41,7 @@ TEST(LocalTime, timeFromString) {
     EXPECT_EQ(common::LocalTime("214032").ToString(), "21:40:32.000000000");
     EXPECT_EQ(common::LocalTime("21:40").ToString(), "21:40:00.000000000");
     EXPECT_EQ(common::LocalTime("2140").ToString(), "21:40:00.000000000");
-    EXPECT_EQ(common::LocalTime("22").ToString(), "22:00:00.000000000");
+    EXPECT_EQ(common::LocalTime("21").ToString(), "21:00:00.000000000");
 }
 
 TEST(LocalTime, timeFromMap) {
@@ -50,6 +50,35 @@ TEST(LocalTime, timeFromMap) {
                                  {"millisecond", Value::Integer(123)}, {"microsecond", Value::Integer(456)}})).ToString(),
               "12:31:14.123456789");
     EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                            {"second", Value::Integer(14)}, {"nanosecond", Value::Integer(645876123)}})).ToString(),
+              "12:31:14.645876123");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                            {"second", Value::Integer(14)}, {"microsecond", Value::Integer(645876)}})).ToString(),
+              "12:31:14.645876000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                            {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})).ToString(),
+              "12:31:14.645000000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
                                             {"second", Value::Integer(14)}})).ToString(), "12:31:14.000000000");
-    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}})).ToString(), "12:00:00.000000000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)}})).ToString(),
+              "12:31:00.000000000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}})).ToString(),
+              "12:00:00.000000000");
+    EXPECT_EQ(common::LocalTime(Value::LocalTime(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                                             {"second", Value::Integer(14)}, {"nanosecond", Value::Integer(645876123)}})))).ToString(),
+              "12:31:14.645876123");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"time", Value::LocalTime(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                                                       {"second", Value::Integer(14)}, {"nanosecond", Value::Integer(645876123)}})))}})).ToString(),
+              "12:31:14.645876123");
+    EXPECT_EQ(common::LocalTime(Value::Map({
+                                    {"time", Value::LocalTime(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                        {"second", Value::Integer(14)}, {"nanosecond", Value::Integer(645876123)}})))},
+                                    {"second", Value::Integer(42)}
+                                })).ToString(),
+              "12:31:42.645876123");
+    EXPECT_TRUE(common::LocalTime(Value::Map({{"hour", Value::Integer(10)}, {"minute", Value::Integer(35)}})) < common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                                                                                                                              {"second", Value::Integer(14)}, {"nanosecond", Value::Integer(645876123)}})));
+    EXPECT_TRUE(common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                              {"second", Value::Integer(14)}, {"nanosecond", Value::Integer(645876123)}})) == common::LocalTime(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                                                                                                                              {"second", Value::Integer(14)}, {"nanosecond", Value::Integer(645876123)}})));
 }
