@@ -219,7 +219,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
               />
             </div>
             <div className="contentArea">
-              <span className="engineDescription">{getDescByLanguage(getCurrentLanguage())}</span>
+              <span id="engineDescription">{getDescByLanguage(getCurrentLanguage())}</span>
               <span className="versionLabel">V{getCurrentVersion()?.label}</span>
             </div>
           </div>

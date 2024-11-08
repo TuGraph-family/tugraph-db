@@ -165,9 +165,8 @@
   margin-left: 2px;
 }
 
-.engineDescription {
-  white-space: nowrap;
-  color: #788495;
+#engineDescription {
+  color: #788495 !important;
   font-size: 14px;
 }
 
