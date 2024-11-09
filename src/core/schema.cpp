@@ -939,12 +939,15 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
         size_t num_fields = fields_.size();
         // version - [label] - count - null_array - offset_array
         size_t min_size = sizeof(VersionId) + (label_in_record_ ? sizeof(LabelId) : 0) +
-                          sizeof(FieldId) + (num_fields + 7) / 8 + num_fields * sizeof(DataOffset);
+                          sizeof(FieldId) + (num_fields + 7) / 8;
         // Fixed-value and Variable-value. Variable-value will store an offset at Fixed-value area
         // and assume the length of every variable value is 0;
         for (const auto& field : fields_) {
-            min_size +=
-                field->IsFixedType() ? field->TypeSize() : (sizeof(DataOffset) + sizeof(uint32_t));
+            min_size += sizeof(DataOffset);
+            if (!field->IsDeleted()) {
+                min_size += field->IsFixedType() ? field->TypeSize()
+                                                 : (sizeof(DataOffset) + sizeof(uint32_t));
+            }
         }
 
         v.Resize(min_size);
@@ -979,8 +982,9 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
 
         // field0 do not need to store its offset.
         for (size_t i = 1; i < num_fields; i++) {
-            data_offset +=
-                fields_[i - 1]->IsFixedType() ? fields_[i - 1]->TypeSize() : sizeof(DataOffset);
+            data_offset += fields_[i - 1]->IsDeleted()     ? 0
+                           : fields_[i - 1]->IsFixedType() ? fields_[i - 1]->TypeSize()
+                                                           : sizeof(DataOffset);
             ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
             offset_ptr += sizeof(DataOffset);
         }
@@ -994,6 +998,7 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
         // zero.
         for (const auto& field : fields_) {
             if (!field->IsFixedType()) {
+                if (field->IsDeleted()) continue;
                 DataOffset var_offset = 0;  // variable fields offset.
                 if (field->GetFieldId() == 0) {
                     var_offset = offset + num_fields * sizeof(DataOffset);
@@ -1274,10 +1279,18 @@ std::vector<FieldSpec> Schema::GetFieldSpecs() const {
     return schema;
 }
 
-std::map<std::string, FieldSpec> Schema::GetFieldSpecsAsMap() const {
+std::map<std::string, FieldSpec> Schema::GetAliveFieldSpecsAsMap() const {
     std::map<std::string, FieldSpec> ret;
     for (auto& kv : name_to_idx_) {
         ret.emplace_hint(ret.end(), std::make_pair(kv.first, fields_[kv.second]->GetFieldSpec()));
+    }
+    return ret;
+}
+
+std::map<std::string, FieldSpec> Schema::GetFieldSpecsAsMap() const {
+    std::map<std::string, FieldSpec> ret;
+    for (auto& field : fields_) {
+        ret.emplace_hint(ret.end(), std::make_pair(field->Name(), field->GetFieldSpec()));
     }
     return ret;
 }
