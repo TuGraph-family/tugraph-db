@@ -60,9 +60,15 @@ size_t FieldExtractorV2::GetDataSize(const Value& record) const {
         // The length is stored at the beginning of the variable-length field data area.
         return ::lgraph::_detail::UnalignedGet<DataOffset>(record.Data() + var_offset);
     } else {
-        return GetFieldOffset(record, GetFieldId() + 1) - GetFieldOffset(record, GetFieldId());
+        int id_offset = 1;
+        while (GetFieldOffset(record, GetFieldId() + id_offset) == 0) {
+            id_offset++;
+        }
+        return GetFieldOffset(record, GetFieldId() + id_offset) -
+               GetFieldOffset(record, GetFieldId());
     }
 }
+
 size_t FieldExtractorV2::GetFieldOffset(const Value& record, const FieldId id) const {
     const uint16_t count = GetRecordCount(record);
     if (0 == id) {

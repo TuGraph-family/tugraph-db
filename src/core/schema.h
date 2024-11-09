@@ -269,6 +269,7 @@ class Schema {
     std::vector<FieldSpec> GetFieldSpecs() const;
 
     std::map<std::string, FieldSpec> GetFieldSpecsAsMap() const;
+    std::map<std::string, FieldSpec> GetAliveFieldSpecsAsMap() const;
 
     size_t GetNumFields() const { return fields_.size(); }
     bool GetFastAlterSchema() const {return fast_alter_schema;}
