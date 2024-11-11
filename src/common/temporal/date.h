@@ -36,6 +36,7 @@ class Date {
                          std::optional<unsigned> dow);
     void fromYearQuarterDoq(int year, int quarter, int doq);
     void fromYearDoy(int year, int doy);
+    void fromTimeZone(const std::string& timezone);
 
    public:
     Date();
