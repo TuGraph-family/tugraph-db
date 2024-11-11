@@ -567,17 +567,19 @@ Value BuiltinFunction::LocalTime(RTContext *ctx, const Record &record,
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
     if (args.size() == 1) {
         // localdatetime() Returns the current LocalDateTime.
-        return Value(common::LocalDateTime());
+        return Value(common::LocalTime());
     } else {
         CYPHER_THROW_ASSERT(args.size() == 2);
         // date(string) Returns a Date by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (r.IsMap()) {
+        if (r.IsNull()) {
+            return {};
+        } else if (r.IsMap() || (r.IsConstant() && r.constant.IsLocalTime())) {
             auto dt = common::LocalTime(r.constant);
-            return Value(common::LocalDateTime());
+            return Value(dt);
         } else if (r.IsString()) {
             auto dt = common::LocalTime(r.constant.AsString());
-            return Value(common::LocalDateTime());
+            return Value(dt);
         } else {
             CYPHER_ARGUMENT_ERROR();
         }

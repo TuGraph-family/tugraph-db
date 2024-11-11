@@ -35,6 +35,7 @@ enum class ValueType : char {
     DATE,
     LOCALDATETIME,
     FLOAT, // for vector index
+    LOCALTIME,
 };
 
 struct Value {
@@ -130,6 +131,10 @@ struct Value {
         type = ValueType::LOCALDATETIME;
         data = d;
     }
+    explicit Value(const common::LocalTime& d) {
+        type = ValueType::LOCALTIME;
+        data = d;
+    }
 
     [[nodiscard]]
     bool AsBool() const {
@@ -195,6 +200,11 @@ struct Value {
             return std::any_cast<const common::LocalDateTime&>(data);
         THROW_CODE(UnknownError, "AsLocalDateTime, but Value is not LocalDateTime");
     }
+    [[nodiscard]] const common::LocalTime& AsLocalTime() const {
+        if (LIKELY(type == ValueType::LOCALTIME))
+            return std::any_cast<const common::LocalTime&>(data);
+        THROW_CODE(UnknownError, "AsLocalTime, but Value is not LocalTime");
+    }
 
     static Value Bool(bool b) { return Value(b); }
     static Value Integer(int64_t b) { return Value(b); }
@@ -209,6 +219,7 @@ struct Value {
     static Value Map(std::unordered_map<std::string, Value> b) { return Value(std::move(b)); }
     static Value Date(const class common::Date& b) { return Value(b); }
     static Value LocalDateTime(const class common::LocalDateTime& b) { return Value(b); }
+    static Value LocalTime(const class common::LocalTime& b) { return Value(b); }
 
     [[nodiscard]] bool IsNull() const {return type == ValueType::Null;}
     [[nodiscard]] bool IsBool() const {return type == ValueType::BOOL;}
@@ -228,6 +239,7 @@ struct Value {
     [[nodiscard]] bool IsMap() const {return type == ValueType::MAP;}
     [[nodiscard]] bool IsDate() const {return type == ValueType::DATE;}
     [[nodiscard]] bool IsLocalDateTime() const {return type == ValueType::LOCALDATETIME;}
+    [[nodiscard]] bool IsLocalTime() const {return type == ValueType::LOCALTIME;}
 
     [[nodiscard]] std::string ToString(bool str_quotation_mark = true) const;
     [[nodiscard]] std::any ToBolt() const;
