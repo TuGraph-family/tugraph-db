@@ -245,7 +245,7 @@ void Date::fromYearDoy(int year, int doy) {
     }
 }
 
-void Date::fromTimeZone(const std::string& timezone) {
+void Date::fromTimeZone(std::string timezone) {
     date::zoned_time<std::chrono::system_clock::duration> current_time;
     std::string current_time_zone;
     try {
@@ -264,6 +264,9 @@ void Date::fromTimeZone(const std::string& timezone) {
             }
         } else {
             // Handling named timezone, e.g., "America/New_York"
+            if (timezone == "z" || timezone == "Z") {
+                timezone = "UTC";
+            }
             current_time =
                 date::make_zoned(timezone, std::chrono::system_clock::now());
         }

@@ -44,8 +44,7 @@ LocalTime::LocalTime(const Value& params) {
         if (parse_params_map.size() > 1) {
             THROW_CODE(InvalidParameter, "Cannot assign time zone if also assigning other fields.");
         }
-        auto t = date::make_zoned(parse_params_map["timezone"].AsString(), std::chrono::system_clock::now());
-        nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
+        fromTimeZone(parse_params_map["timezone"].AsString());
         return;
     }
     int64_t hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0;
@@ -193,6 +192,37 @@ std::string LocalTime::ToString() const {
     date::local_time<std::chrono::nanoseconds> tp(
         (std::chrono::nanoseconds(nanoseconds_since_epoch_)));
     return date::format("%H:%M:%S", tp);
+}
+
+void LocalTime::fromTimeZone(std::string timezone) {
+    date::zoned_time<std::chrono::system_clock::duration> current_time;
+    std::string current_time_zone;
+    try {
+        if (timezone[0] == '+' || timezone[0] == '-') {
+            // Handling timezone offset, e.g., "+01:00"
+            auto now = std::chrono::system_clock::now();
+            auto offset = date::make_time(
+                std::chrono::hours(std::stoi(timezone.substr(1, 2))) +
+                std::chrono::minutes(std::stoi(timezone.substr(4, 2))));
+            if (timezone[0] == '-') {
+                current_time = date::make_zoned(date::current_zone(),
+                                                now - offset.to_duration());
+            } else {
+                current_time = date::make_zoned(date::current_zone(),
+                                                now + offset.to_duration());
+            }
+        } else {
+            // Handling named timezone, e.g., "America/New_York"
+            if (timezone == "z" || timezone == "Z") {
+                timezone = "UTC";
+            }
+            current_time =
+                date::make_zoned(timezone, std::chrono::system_clock::now());
+        }
+        nanoseconds_since_epoch_ = current_time.get_local_time().time_since_epoch().count();
+    } catch (const std::exception& e) {
+        THROW_CODE(InputError, "Failed to parse timezone: {}", timezone);
+    }
 }
 
 bool LocalTime::operator<(const LocalTime& rhs) const noexcept {
