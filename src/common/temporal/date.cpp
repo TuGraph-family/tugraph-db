@@ -19,35 +19,10 @@
 
 #include "common/exceptions.h"
 #include "common/temporal/date.h"
+#include "common/temporal/temporal_pattern.h"
 #include "common/value.h"
 
 namespace {
-
-// Regular expression pattern for parsing dates
-const std::string DATE_PATTERN =
-    "(?:([0-9]{4})(?:([0-9]{2})([0-9]{2})?|W([0-9]{2})([0-9])?|Q([0-9])([0-9]{"
-    "2})?|([0-9]{3}))|((?:[0-9]{4}|[+-][0-9]{1,9}))(?:-([0-9]{1,2})(?:-([0-9]{"
-    "1,2}))?|-?W([0-9]{1,2})(?:-([0-9]))?|-?Q([0-9])(?:-([0-9]{1,2}))?|-([0-9]{"
-    "3}))?)";
-
-constexpr int SHORT_YEAR = 1;
-constexpr int SHORT_MONTH = 2;
-constexpr int SHORT_DAY = 3;
-constexpr int SHORT_WEEK = 4;
-constexpr int SHORT_DOW = 5;
-constexpr int SHORT_QUARTER = 6;
-constexpr int SHORT_DOQ = 7;
-constexpr int SHORT_DOY = 8;
-constexpr int LONG_YEAR = 9;
-constexpr int LONG_MONTH = 10;
-constexpr int LONG_DAY = 11;
-constexpr int LONG_WEEK = 12;
-constexpr int LONG_DOW = 13;
-constexpr int LONG_QUARTER = 14;
-constexpr int LONG_DOQ = 15;
-constexpr int LONG_DOY = 16;
-
-const std::regex DATE_REGEX(DATE_PATTERN);
 
 enum class DateType {
     CALENDER_DATE = 0,
@@ -267,6 +242,7 @@ void Date::fromTimeZone(std::string timezone) {
             if (timezone == "z" || timezone == "Z") {
                 timezone = "UTC";
             }
+            std::replace(timezone.begin(), timezone.end(), ' ', '_');
             current_time =
                 date::make_zoned(timezone, std::chrono::system_clock::now());
         }
@@ -298,54 +274,54 @@ Date::Date(const std::string& str) {
     }
 
     try {
-        if (match[SHORT_YEAR].matched) {  // short format
-            year = std::stoi(match[SHORT_YEAR].str());
-            if (match[SHORT_MONTH].matched) {
-                month = std::stoi(match[SHORT_MONTH].str());
-                if (match[SHORT_DAY].matched) {
-                    day = std::stoi(match[SHORT_DAY].str());
+        if (match[DATE_SHORT_YEAR].matched) {  // short format
+            year = std::stoi(match[DATE_SHORT_YEAR].str());
+            if (match[DATE_SHORT_MONTH].matched) {
+                month = std::stoi(match[DATE_SHORT_MONTH].str());
+                if (match[DATE_SHORT_DAY].matched) {
+                    day = std::stoi(match[DATE_SHORT_DAY].str());
                 }
                 fromYearMonthDay(year, month, day);
-            } else if (match[SHORT_WEEK].matched) {
-                week = std::stoi(match[SHORT_WEEK].str());
-                if (match[SHORT_DOW].matched) {
-                    dow = std::stoi(match[SHORT_DOW].str());
+            } else if (match[DATE_SHORT_WEEK].matched) {
+                week = std::stoi(match[DATE_SHORT_WEEK].str());
+                if (match[DATE_SHORT_DOW].matched) {
+                    dow = std::stoi(match[DATE_SHORT_DOW].str());
                 }
                 fromYearWeekDow(year, week, dow);
-            } else if (match[SHORT_QUARTER].matched) {
-                quarter = std::stoi(match[SHORT_QUARTER].str());
-                if (match[SHORT_DOQ].matched) {
-                    doq = std::stoi(match[SHORT_DOQ].str());
+            } else if (match[DATE_SHORT_QUARTER].matched) {
+                quarter = std::stoi(match[DATE_SHORT_QUARTER].str());
+                if (match[DATE_SHORT_DOQ].matched) {
+                    doq = std::stoi(match[DATE_SHORT_DOQ].str());
                 }
                 fromYearQuarterDoq(year, quarter, doq);
-            } else if (match[SHORT_DOY].matched) {
-                int doy = std::stoi(match[SHORT_DOY].str());
+            } else if (match[DATE_SHORT_DOY].matched) {
+                int doy = std::stoi(match[DATE_SHORT_DOY].str());
                 fromYearDoy(year, doy);
             } else {
                 fromYearMonthDay(year, month, day);
             }
-        } else if (match[LONG_YEAR].matched) {  // long format
-            year = std::stoi(match[LONG_YEAR].str());
-            if (match[LONG_MONTH].matched) {
-                month = std::stoi(match[LONG_MONTH].str());
-                if (match[LONG_DAY].matched) {
-                    day = std::stoi(match[LONG_DAY].str());
+        } else if (match[DATE_LONG_YEAR].matched) {  // long format
+            year = std::stoi(match[DATE_LONG_YEAR].str());
+            if (match[DATE_LONG_MONTH].matched) {
+                month = std::stoi(match[DATE_LONG_MONTH].str());
+                if (match[DATE_LONG_DAY].matched) {
+                    day = std::stoi(match[DATE_LONG_DAY].str());
                 }
                 fromYearMonthDay(year, month, day);
-            } else if (match[LONG_WEEK].matched) {
-                week = std::stoi(match[LONG_WEEK].str());
-                if (match[LONG_DOW].matched) {
-                    dow = std::stoi(match[LONG_DOW].str());
+            } else if (match[DATE_LONG_WEEK].matched) {
+                week = std::stoi(match[DATE_LONG_WEEK].str());
+                if (match[DATE_LONG_DOW].matched) {
+                    dow = std::stoi(match[DATE_LONG_DOW].str());
                 }
                 fromYearWeekDow(year, week, dow);
-            } else if (match[LONG_QUARTER].matched) {
-                quarter = std::stoi(match[LONG_QUARTER].str());
-                if (match[LONG_DOQ].matched) {
-                    doq = std::stoi(match[LONG_DOQ].str());
+            } else if (match[DATE_LONG_QUARTER].matched) {
+                quarter = std::stoi(match[DATE_LONG_QUARTER].str());
+                if (match[DATE_LONG_DOQ].matched) {
+                    doq = std::stoi(match[DATE_LONG_DOQ].str());
                 }
                 fromYearQuarterDoq(year, quarter, doq);
-            } else if (match[LONG_DOY].matched) {
-                day = std::stoi(match[LONG_DOY].str());
+            } else if (match[DATE_LONG_DOY].matched) {
+                day = std::stoi(match[DATE_LONG_DOY].str());
                 fromYearDoy(year, day);
             } else {
                 fromYearMonthDay(year, month, day);

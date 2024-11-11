@@ -18,7 +18,6 @@
 #include <regex>
 #include <string>
 #include <unordered_map>
-#include "time_pattern.h"
 
 namespace common {
 class Time {

@@ -13,8 +13,10 @@
  */
 
 #include <date/tz.h>
-#include "common/temporal/localtime.h"
+
 #include "common/exceptions.h"
+#include "common/temporal/localtime.h"
+#include "common/temporal/temporal_pattern.h"
 #include "common/value.h"
 
 namespace common {
@@ -138,31 +140,31 @@ LocalTime::LocalTime(const std::string& str) {
     }
 
     try {
-        if (match[LONG_HOUR].matched) {  // long format
-            hour = std::stoi(match[LONG_HOUR].str());
-            if (match[LONG_MINUTE].matched) {
-                minute = std::stoi(match[LONG_MINUTE].str());
+        if (match[TIME_LONG_HOUR].matched) {  // long format
+            hour = std::stoi(match[TIME_LONG_HOUR].str());
+            if (match[TIME_LONG_MINUTE].matched) {
+                minute = std::stoi(match[TIME_LONG_MINUTE].str());
             }
-            if (match[LONG_SECOND].matched) {
-                second = std::stoi(match[LONG_SECOND].str());
+            if (match[TIME_LONG_SECOND].matched) {
+                second = std::stoi(match[TIME_LONG_SECOND].str());
             }
-            if (match[LONG_FRACTION].matched) {
-                auto tmp = match[LONG_FRACTION].str();
+            if (match[TIME_LONG_FRACTION].matched) {
+                auto tmp = match[TIME_LONG_FRACTION].str();
                 if (tmp.size() < 9) {
                     tmp.resize(9, '0');
                 }
                 nanoseconds = std::stoi(tmp);
             }
-        } else if (match[SHORT_HOUR].matched) {  // short format
-            hour = std::stoi(match[SHORT_HOUR].str());
-            if (match[SHORT_MINUTE].matched) {
-                minute = std::stoi(match[SHORT_MINUTE].str());
+        } else if (match[TIME_SHORT_HOUR].matched) {  // short format
+            hour = std::stoi(match[TIME_SHORT_HOUR].str());
+            if (match[TIME_SHORT_MINUTE].matched) {
+                minute = std::stoi(match[TIME_SHORT_MINUTE].str());
             }
-            if (match[SHORT_SECOND].matched) {
-                second = std::stoi(match[SHORT_SECOND].str());
+            if (match[TIME_SHORT_SECOND].matched) {
+                second = std::stoi(match[TIME_SHORT_SECOND].str());
             }
-            if (match[SHORT_FRACTION].matched) {
-                auto tmp = match[SHORT_FRACTION].str();
+            if (match[TIME_SHORT_FRACTION].matched) {
+                auto tmp = match[TIME_SHORT_FRACTION].str();
                 if (tmp.size() < 9) {
                     tmp.resize(9, '0');
                 }
@@ -216,6 +218,7 @@ void LocalTime::fromTimeZone(std::string timezone) {
             if (timezone == "z" || timezone == "Z") {
                 timezone = "UTC";
             }
+            std::replace(timezone.begin(), timezone.end(), ' ', '_');
             current_time =
                 date::make_zoned(timezone, std::chrono::system_clock::now());
         }
