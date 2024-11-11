@@ -36,6 +36,7 @@ class LocalTime {
         return nanoseconds_since_epoch_;
     }
     [[nodiscard]] std::string ToString() const;
+    void fromTimeZone(std::string timezone);
     bool operator<(const LocalTime& rhs) const noexcept;
     bool operator<=(const LocalTime& rhs) const noexcept;
     bool operator>(const LocalTime& rhs) const noexcept;
