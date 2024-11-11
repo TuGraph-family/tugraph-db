@@ -17,7 +17,6 @@
 #include <regex>
 #include <string>
 #include <unordered_map>
-#include "time_pattern.h"
 
 class Value;
 
