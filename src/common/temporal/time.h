@@ -19,18 +19,23 @@
 #include <string>
 #include <unordered_map>
 
+class Value;
+
 namespace common {
 class Time {
    private:
-    int64_t nanoseconds_since_epoch_ = 0;
+    int64_t nanoseconds_since_today_ = 0;
+    std::string timezone;
+    std::string time_offset;
 
    public:
     Time();
     explicit Time(const std::string& str);
+    explicit Time(const Value& params);
     explicit Time(int64_t nanoseconds)
-        : nanoseconds_since_epoch_(nanoseconds){};
+        : nanoseconds_since_today_(nanoseconds){};
     [[nodiscard]] int64_t GetStorage() const {
-        return nanoseconds_since_epoch_;
+        return nanoseconds_since_today_;
     }
     [[nodiscard]] std::string ToString() const;
     bool operator<(const Time& rhs) const noexcept;
