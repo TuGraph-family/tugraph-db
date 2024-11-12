@@ -23,14 +23,14 @@ namespace common {
 
 LocalTime::LocalTime() {
     auto t = make_zoned(date::current_zone(), std::chrono::system_clock::now());
-    nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
+    nanoseconds_since_today_ = t.get_local_time().time_since_epoch().count();
 }
 
 LocalTime::LocalTime(const Value& params) {
     if (params.IsLocalTime()) {
-        date::local_time<std::chrono::nanoseconds> tp{std::chrono::nanoseconds(params.AsLocalTime().nanoseconds_since_epoch_)};
+        date::local_time<std::chrono::nanoseconds> tp{std::chrono::nanoseconds(params.AsLocalTime().nanoseconds_since_today_)};
         auto t = make_zoned(date::current_zone(), tp);
-        nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
+        nanoseconds_since_today_ = t.get_local_time().time_since_epoch().count();
         return;
     }
     std::unordered_map<std::string, Value> parse_params_map;
@@ -51,7 +51,7 @@ LocalTime::LocalTime(const Value& params) {
     }
     int64_t hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0;
     if (parse_params_map.count("time")) {
-        auto v = parse_params_map["time"].AsLocalTime().nanoseconds_since_epoch_;
+        auto v = parse_params_map["time"].AsLocalTime().nanoseconds_since_today_;
         nanosecond = v % 1000;
         microsecond = v / 1000 % 1000;
         millisecond = v / 1000000 % 1000;
@@ -129,7 +129,7 @@ LocalTime::LocalTime(const Value& params) {
                                 millisecond * 1000000 + microsecond * 1000 + nanosecond};
     date::local_time<std::chrono::nanoseconds> tp{ns};
     auto t = make_zoned(date::current_zone(), tp);
-    nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
+    nanoseconds_since_today_ = t.get_local_time().time_since_epoch().count();
 }
 
 LocalTime::LocalTime(const std::string& str) {
@@ -183,7 +183,7 @@ LocalTime::LocalTime(const std::string& str) {
         std::chrono::nanoseconds ns{hour * 60 * 60 * 1000000000 + minute * 60 * 1000000000 + second * 1000000000 + nanoseconds};
         date::local_time<std::chrono::nanoseconds> tp{ns};
         auto t = make_zoned(date::current_zone(), tp);
-        nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
+        nanoseconds_since_today_ = t.get_local_time().time_since_epoch().count();
     } catch (const std::exception& e) {
         THROW_CODE(InputError, "Failed to parse {} into Date, exception: {}",
                    str, e.what());
@@ -192,7 +192,7 @@ LocalTime::LocalTime(const std::string& str) {
 
 std::string LocalTime::ToString() const {
     date::local_time<std::chrono::nanoseconds> tp(
-        (std::chrono::nanoseconds(nanoseconds_since_epoch_)));
+        (std::chrono::nanoseconds(nanoseconds_since_today_)));
     return date::format("%H:%M:%S", tp);
 }
 
@@ -222,34 +222,34 @@ void LocalTime::fromTimeZone(std::string timezone) {
             current_time =
                 date::make_zoned(timezone, std::chrono::system_clock::now());
         }
-        nanoseconds_since_epoch_ = current_time.get_local_time().time_since_epoch().count();
+        nanoseconds_since_today_ = current_time.get_local_time().time_since_epoch().count();
     } catch (const std::exception& e) {
         THROW_CODE(InputError, "Failed to parse timezone: {}", timezone);
     }
 }
 
 bool LocalTime::operator<(const LocalTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ < rhs.nanoseconds_since_epoch_;
+    return nanoseconds_since_today_ < rhs.nanoseconds_since_today_;
 }
 
 bool LocalTime::operator<=(const LocalTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ <= rhs.nanoseconds_since_epoch_;
+    return nanoseconds_since_today_ <= rhs.nanoseconds_since_today_;
 }
 
 bool LocalTime::operator>(const LocalTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ > rhs.nanoseconds_since_epoch_;
+    return nanoseconds_since_today_ > rhs.nanoseconds_since_today_;
 }
 
 bool LocalTime::operator>=(const LocalTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ >= rhs.nanoseconds_since_epoch_;
+    return nanoseconds_since_today_ >= rhs.nanoseconds_since_today_;
 }
 
 bool LocalTime::operator==(const LocalTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ == rhs.nanoseconds_since_epoch_;
+    return nanoseconds_since_today_ == rhs.nanoseconds_since_today_;
 }
 
 bool LocalTime::operator!=(const LocalTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ != rhs.nanoseconds_since_epoch_;
+    return nanoseconds_since_today_ != rhs.nanoseconds_since_today_;
 }
 
 }  // namespace common

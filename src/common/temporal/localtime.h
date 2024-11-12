@@ -23,16 +23,16 @@ class Value;
 namespace common {
 class LocalTime {
    private:
-    int64_t nanoseconds_since_epoch_ = 0;
+    int64_t nanoseconds_since_today_ = 0;
 
    public:
     LocalTime();
     explicit LocalTime(const std::string& str);
     explicit LocalTime(const Value& params);
     explicit LocalTime(int64_t nanoseconds)
-        : nanoseconds_since_epoch_(nanoseconds){};
+        : nanoseconds_since_today_(nanoseconds){};
     [[nodiscard]] int64_t GetStorage() const {
-        return nanoseconds_since_epoch_;
+        return nanoseconds_since_today_;
     }
     [[nodiscard]] std::string ToString() const;
     void fromTimeZone(std::string timezone);
