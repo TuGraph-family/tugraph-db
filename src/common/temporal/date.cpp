@@ -32,23 +32,6 @@ enum class DateType {
     TIMEZONE_DATE = 4,
 };
 
-const std::string DATE_TIMEZONE = "timezone";
-const std::string DATE_DATE = "date";
-const std::string DATE_YEAR = "year";
-const std::string DATE_MONTH = "month";
-const std::string DATE_DAY = "day";
-const std::string DATE_WEEK = "week";
-const std::string DATE_DOW = "dayofweek";
-const std::string DATE_QUARTER = "quarter";
-const std::string DATE_DOQ = "dayofquarter";
-const std::string DATE_ORDINAL = "ordinalday";
-
-constexpr size_t DATE_FIELD_CNT = 10;
-
-const std::vector<std::string> validDateFields{
-    DATE_TIMEZONE, DATE_DATE, DATE_YEAR,    DATE_MONTH, DATE_DAY,
-    DATE_WEEK,     DATE_DOW,  DATE_QUARTER, DATE_DOQ,   DATE_ORDINAL};
-
 void validateDateParams(
     const std::unordered_map<std::string, Value>& params_map) {
     const static std::unordered_map<
