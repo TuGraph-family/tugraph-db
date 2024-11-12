@@ -67,6 +67,7 @@ class ResetTimeZone;
 class ResetGraph;
 class ResetParam;
 class RemoveSingleProperty;
+class RemoveLabel;
 
 class BEqual;
 class BNotEqual;
@@ -236,6 +237,7 @@ class AstNodeVisitor {
     virtual std::any visit(ResetGraph* node) = 0;
     virtual std::any visit(ResetParam* node) = 0;
     virtual std::any visit(RemoveSingleProperty* node) = 0;
+    virtual std::any visit(RemoveLabel* node) = 0;
 
     //---------------------------------------------------------------------------------
     // exprs
@@ -455,6 +457,9 @@ class AstExprNodeVisitorImpl : public AstNodeVisitor {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(SetLabel*) override {
+        return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+    }
+    virtual std::any visit(RemoveLabel*) override {
         return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
     }
     virtual std::any visit(SetSingleProperty*) override {

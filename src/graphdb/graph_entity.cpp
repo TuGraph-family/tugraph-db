@@ -350,34 +350,30 @@ std::unordered_set<std::string> Vertex::GetLabels() {
     return ret;
 }
 
-void Vertex::AddLabel(const std::string &label) {
-    auto lid = txn_->db()->id_generator().GetOrCreateLid(label);
-    Lock();
-    auto labelIds = GetLabelIds();
-    if (labelIds.count(lid)) {
+void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
+    if (labels.empty()) {
         return;
     }
-    if (txn_->db()->busy_index().LabelBusy(lid)) {
+    std::unordered_set<uint32_t> add_lids, new_lids;
+    for (auto& label : labels) {
+        auto lid = txn_->db()->id_generator().GetOrCreateLid(label);
+        add_lids.insert(lid);
+    }
+    if (txn_->db()->busy_index().LabelBusy(add_lids)) {
         THROW_CODE(IndexBusy);
     }
-    labelIds.insert(lid);
-    std::string buffer;
-    for (auto l : labelIds) {
-        buffer.append((const char *)&l, sizeof(l));
+    Lock();
+    auto labelIds = GetLabelIds();
+    for (auto& lid : add_lids) {
+        if (labelIds.count(lid)) {
+            continue;
+        }
+        new_lids.insert(lid);
     }
-    auto s = txn_->dbtxn()->GetWriteBatch()->Put(
-        txn_->db()->graph_cf().graph_topology, GetIdView(), buffer);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    std::string key((const char *)&lid, sizeof(lid));
-    key.append(GetIdView());
-    s = txn_->dbtxn()->GetWriteBatch()->Put(
-        txn_->db()->graph_cf().vertex_label_vid, key, {});
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     // full text index
-    labelIds.erase(lid);
     for (const auto &[ft_name, ft] :
          txn_->db()->meta_info().GetVertexFullTextIndex()) {
-        if (!ft->MatchLabelIds({lid})) {
+        if (!ft->MatchLabelIds(new_lids)) {
             continue;
         }
         if (ft->MatchLabelIds(labelIds)) {
@@ -402,7 +398,7 @@ void Vertex::AddLabel(const std::string &label) {
     }
     // vector index
     for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
-        if (lid != vvi.lid()) {
+        if (!new_lids.count(vvi.lid())) {
             continue;
         }
         auto p_val = GetProperty(vvi.pid());
@@ -423,23 +419,8 @@ void Vertex::AddLabel(const std::string &label) {
         add.vectors = array;
         txn_->vector_updates().emplace_back(std::move(add));
     }
-}
 
-void Vertex::DeleteLabel(const std::string &label) {
-    auto optional = txn_->db()->id_generator().GetLid(label);
-    if (!optional.has_value()) {
-        return;
-    }
-    uint32_t lid = optional.value();
-    if (txn_->db()->busy_index().LabelBusy(lid)) {
-        THROW_CODE(IndexBusy);
-    }
-    Lock();
-    auto labelIds = GetLabelIds();
-    if (labelIds.count(lid) == 0) {
-        return;
-    }
-    labelIds.erase(optional.value());
+    labelIds.insert(new_lids.begin(), new_lids.end());
     std::string buffer;
     for (auto l : labelIds) {
         buffer.append((const char *)&l, sizeof(l));
@@ -447,15 +428,43 @@ void Vertex::DeleteLabel(const std::string &label) {
     auto s = txn_->dbtxn()->GetWriteBatch()->Put(
         txn_->db()->graph_cf().graph_topology, GetIdView(), buffer);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    std::string key((const char *)&lid, sizeof(lid));
-    key.append(GetIdView());
-    s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
-        txn_->db()->graph_cf().vertex_label_vid, key);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    for (auto& id : new_lids) {
+        std::string key((const char *)&id, sizeof(id));
+        key.append(GetIdView());
+        s = txn_->dbtxn()->GetWriteBatch()->Put(
+            txn_->db()->graph_cf().vertex_label_vid, key, {});
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
+}
+
+void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
+    std::unordered_set<uint32_t> lids, remove_lids;
+    for (auto& label : labels) {
+        auto optional = txn_->db()->id_generator().GetLid(label);
+        if (optional.has_value()) {
+            lids.insert(optional.value());
+        }
+    }
+    if (lids.empty()) {
+        return;
+    }
+    Lock();
+    auto labelIds = GetLabelIds();
+    for (auto id : lids) {
+        if (labelIds.count(id)) {
+            remove_lids.insert(id);
+        }
+    }
+    if (remove_lids.empty()) {
+        return;
+    }
+    if (txn_->db()->busy_index().LabelBusy(remove_lids)) {
+        THROW_CODE(IndexBusy);
+    }
     // full text index
     for (const auto &[ft_name, ft] :
          txn_->db()->meta_info().GetVertexFullTextIndex()) {
-        if (!ft->MatchLabelIds({lid})) {
+        if (!ft->MatchLabelIds(remove_lids)) {
             continue;
         }
         bool exist = false;
@@ -477,7 +486,7 @@ void Vertex::DeleteLabel(const std::string &label) {
     }
     // vector index
     for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
-        if (lid != vvi.lid()) {
+        if (remove_lids.count(vvi.lid())) {
             continue;
         }
         auto p_val = GetProperty(vvi.pid());
@@ -489,6 +498,23 @@ void Vertex::DeleteLabel(const std::string &label) {
         del.index_name = index_name;
         del.vid = id_;
         txn_->vector_updates().emplace_back(std::move(del));
+    }
+    for (auto id : remove_lids) {
+        labelIds.erase(id);
+    }
+    std::string buffer;
+    for (auto l : labelIds) {
+        buffer.append((const char *)&l, sizeof(l));
+    }
+    auto s = txn_->dbtxn()->GetWriteBatch()->Put(
+        txn_->db()->graph_cf().graph_topology, GetIdView(), buffer);
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    for (auto id : remove_lids) {
+        std::string key((const char *)&id, sizeof(id));
+        key.append(GetIdView());
+        s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
+            txn_->db()->graph_cf().vertex_label_vid, key);
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     }
 }
 

@@ -122,6 +122,7 @@ using StrArray = std::array<const char* const, N>;
     TYPE(SetAllProperties, kSetAllProperties, "SetAllProperties")                         \
     TYPE(UpdateProperties, kUpdateProperties, "UpdateProperties")                         \
     TYPE(SetLabel, kSetLabel, "SetLabel")                                                 \
+    TYPE(RemoveLabel, kRemoveLabel, "RemoveLabel")                                        \
     TYPE(SetSingleProperty, kSetSingleProperty, "SetSingleProperty")                      \
     TYPE(Not, kNot, "Not")                                                                \
     TYPE(Neg, kNeg, "Neg")                                                                \

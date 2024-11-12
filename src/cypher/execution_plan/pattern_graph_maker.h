@@ -69,6 +69,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ResetGraph* node) override;
     std::any visit(geax::frontend::ResetParam* node) override;
     std::any visit(geax::frontend::RemoveSingleProperty* node) override;
+    std::any visit(geax::frontend::RemoveLabel* node) override;
 
     //---------------------------------------------------------------------------------
     // exprs
