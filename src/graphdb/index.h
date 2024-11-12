@@ -120,7 +120,14 @@ struct BusyIndex {
         lids = std::move(_lids);
         pids = std::move(_pids);
     }
-    bool LabelBusy(uint32_t lid) const { return lids.count(lid); }
+    bool LabelBusy(const std::unordered_set<uint32_t>& _lids) const {
+        for (auto id : _lids) {
+            if (lids.count(id)) {
+                return true;
+            }
+        }
+        return false;
+    }
     bool Busy(const std::unordered_set<uint32_t>& _lids, uint32_t _pid) {
         return std::any_of(
                    lids.begin(), lids.end(),

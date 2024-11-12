@@ -371,7 +371,13 @@ std::any PatternGraphMaker::visit(geax::frontend::UpdateProperties* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any PatternGraphMaker::visit(geax::frontend::SetLabel* ) { NOT_SUPPORT(); }
+std::any PatternGraphMaker::visit(geax::frontend::SetLabel* ) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
+std::any PatternGraphMaker::visit(geax::frontend::RemoveLabel* ) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
 
 std::any PatternGraphMaker::visit(geax::frontend::SetSingleProperty* ) { NOT_SUPPORT(); }
 

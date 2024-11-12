@@ -53,8 +53,8 @@ class Vertex : Property {
 
     std::unordered_set<uint32_t> GetLabelIds();
     std::unordered_set<std::string> GetLabels();
-    void AddLabel(const std::string& label);
-    void DeleteLabel(const std::string& label);
+    void AddLabels(const std::unordered_set<std::string>& labels);
+    void DeleteLabels(const std::unordered_set<std::string>& labels);
     int Delete();
     std::unique_ptr<EdgeIterator> NewEdgeIterator(
         EdgeDirection direction, const std::unordered_set<std::string>& types,

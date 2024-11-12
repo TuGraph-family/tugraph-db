@@ -497,7 +497,6 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::SetLabel* node) override {
-        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->label());
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
@@ -760,6 +759,10 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
     }
 
     std::any visit(geax::frontend::RemoveSingleProperty* ) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
+    std::any visit(geax::frontend::RemoveLabel* ) override {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 

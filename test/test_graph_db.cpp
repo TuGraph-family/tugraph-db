@@ -590,8 +590,7 @@ TEST(GraphDB, addDeleteLabel) {
     auto txn = graphDB->BeginTransaction();
     std::unordered_set<std::string> v1_labels = {"label1","label2"};
     auto v1 = txn->CreateVertex(v1_labels,properties);
-    v1.AddLabel("label1");
-    v1.AddLabel("labelv1");
+    v1.AddLabels({"label1", "labelv1"});
     {
         std::unordered_set<std::string> labels = {"label1", "label2", "labelv1"};
         EXPECT_EQ(v1.GetLabels(), labels);
@@ -604,12 +603,12 @@ TEST(GraphDB, addDeleteLabel) {
         count++;
     }
     EXPECT_EQ(count, 1);
-    v1.DeleteLabel("labelv1");
+    v1.DeleteLabels({"labelv1"});
     {
         std::unordered_set<std::string> labels = {"label1", "label2"};
         EXPECT_EQ(v1.GetLabels(), labels);
     }
-    v1.DeleteLabel("label_no_exist");
+    v1.DeleteLabels({"label_no_exist"});
     {
         std::unordered_set<std::string> labels = {"label1", "label2"};
         EXPECT_EQ(v1.GetLabels(), labels);

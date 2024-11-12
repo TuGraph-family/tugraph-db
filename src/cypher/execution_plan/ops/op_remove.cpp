@@ -18,30 +18,45 @@
 
 #include "cypher/execution_plan/ops/op_remove.h"
 #include "geax-front-end/ast/clause/RemoveSingleProperty.h"
+#include "geax-front-end/ast/clause/RemoveLabel.h"
 #include "cypher/utils/geax_util.h"
 #include "cypher/execution_plan/runtime_context.h"
+#include "common/logger.h"
 
 namespace cypher {
 
 void OpGqlRemove::Remove(cypher::RTContext *ctx) {
-    for (auto &item : remove_items_) {
-        if (typeid(*item) != typeid(geax::frontend::RemoveSingleProperty))
-            CYPHER_TODO();
+    for (auto item : remove_items_) {
         geax::frontend::RemoveSingleProperty* props = nullptr;
-        checkedCast(item, props);
-        auto &var = props->v();
-        auto &key = props->property();
-        auto it = record->symbol_table->symbols.find(var);
-        if (it == record->symbol_table->symbols.end()) CYPHER_TODO();
-        auto &entry = record->values[it->second.id];
-        if (entry.type == Entry::NODE) {
-            entry.node->vertex_->RemoveProperty(key);
-        } else if (entry.type == Entry::RELATIONSHIP) {
-            entry.relationship->edge_->RemoveProperty(key);
+        props = dynamic_cast<geax::frontend::RemoveSingleProperty *>(item);
+        if (props) {
+            auto &var = props->v();
+            auto &key = props->property();
+            auto it = record->symbol_table->symbols.find(var);
+            if (it == record->symbol_table->symbols.end()) CYPHER_TODO();
+            auto &entry = record->values[it->second.id];
+            if (entry.type == Entry::NODE) {
+                entry.node->vertex_->RemoveProperty(key);
+            } else if (entry.type == Entry::RELATIONSHIP) {
+                entry.relationship->edge_->RemoveProperty(key);
+            } else {
+                CYPHER_TODO();
+            }
+            ctx->result_info_->statistics.properties_remove++;
         } else {
-            CYPHER_TODO();
+            geax::frontend::RemoveLabel* removeLabel = nullptr;
+            removeLabel = dynamic_cast<geax::frontend::RemoveLabel*>(item);
+            CYPHER_THROW_ASSERT(removeLabel);
+            auto& var = removeLabel->v();
+            auto& labels = removeLabel->labels();
+            auto it = record->symbol_table->symbols.find(var);
+            if (it == record->symbol_table->symbols.end()) CYPHER_TODO();
+            auto &entry = record->values[it->second.id];
+            if (!entry.IsNode()) {
+                THROW_CODE(CypherException, "remove label but not node");
+            }
+            entry.node->vertex_->DeleteLabels({labels.begin(), labels.end()});
         }
-        ctx->result_info_->statistics.properties_remove++;
     }
 }
 

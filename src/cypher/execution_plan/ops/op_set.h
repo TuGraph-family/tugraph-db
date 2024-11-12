@@ -31,6 +31,7 @@ class OpGqlSet : public OpBase {
         return it->second.id;
     }
 
+    void SetLabels(RTContext *ctx, geax::frontend::SetLabel* update);
     void SetVertex(RTContext *ctx, const std::string& variable,
                    geax::frontend::UpdateProperties* update);
     void SetEdge(RTContext *ctx, const std::string& variable,
@@ -47,7 +48,7 @@ class OpGqlSet : public OpBase {
     }
 
     OpResult Initialize(RTContext *ctx) override {
-        CYPHER_THROW_ASSERT(parent && children.size() < 2);
+        CYPHER_THROW_ASSERT(parent && children.size() == 1);
         summary_ = !parent->parent;
         for (auto child : children) {
             child->Initialize(ctx);
