@@ -18,6 +18,7 @@
 #include <any>
 #include <regex>
 #include <string>
+#include <unordered_set>
 
 namespace {
 
@@ -49,6 +50,21 @@ enum DATE_PATTERN_GROUP {
     DATE_LONG_DOQ,
     DATE_LONG_DOY,
 };
+
+const std::string DATE_TIMEZONE = "timezone";
+const std::string DATE_DATE = "date";
+const std::string DATE_YEAR = "year";
+const std::string DATE_MONTH = "month";
+const std::string DATE_DAY = "day";
+const std::string DATE_WEEK = "week";
+const std::string DATE_DOW = "dayofweek";
+const std::string DATE_QUARTER = "quarter";
+const std::string DATE_DOQ = "dayofquarter";
+const std::string DATE_ORDINAL = "ordinalday";
+
+const std::unordered_set<std::string> validDateFields{
+    DATE_TIMEZONE, DATE_DATE, DATE_YEAR,    DATE_MONTH, DATE_DAY,
+    DATE_WEEK,     DATE_DOW,  DATE_QUARTER, DATE_DOQ,   DATE_ORDINAL};
 
 const std::string OFFSET_PATTERN = "(Z|[+-]([0-9]{2})(?::?([0-9]{2}))?)";
 const std::string ZONENAME_PATTERN = "([a-zA-Z0-9~._ /+-]+)";
@@ -84,8 +100,10 @@ enum TIME_PATTERN_GROUP {
     TIME_ZONE_NAME
 };
 
-// Regular expression pattern for parsing local datetimes
+// Regular expression pattern for parsing local datetimes & datetimes
 const std::string DATETIME_PATTERN = DATE_PATTERN + "(T" + TIME_PATTERN + ")?";
+const std::string LOCALDATETIME_PATTERN =
+    DATE_PATTERN + "(T" + LOCALTIME_PATTERN + ")?";
 
 enum DATETIME_PATTERN_GROUP {
     DATETIME_SHORT_YEAR = 1,
@@ -123,6 +141,7 @@ enum DATETIME_PATTERN_GROUP {
 const std::regex DATE_REGEX(DATE_PATTERN);
 const std::regex LOCALTIME_REGEX(LOCALTIME_PATTERN);
 const std::regex TIME_REGEX(TIME_PATTERN);
+const std::regex LOCALDATETIME_REGEX(LOCALDATETIME_PATTERN);
 const std::regex DATETIME_REGEX(DATETIME_PATTERN);
 const std::regex OFFSET_REGEX(OFFSET_PATTERN);
 const std::regex ZONENAME_REGEX(ZONENAME_PATTERN);
