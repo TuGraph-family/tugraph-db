@@ -15,7 +15,11 @@
 #include <date/tz.h>
 
 #include "common/exceptions.h"
+#include "common/temporal/date.h"
 #include "common/temporal/datetime.h"
+#include "common/temporal/temporal_pattern.h"
+#include "common/temporal/localtime.h"
+#include "common/value.h"
 
 namespace common {
 
@@ -25,13 +29,50 @@ LocalDateTime::LocalDateTime() {
 }
 
 LocalDateTime::LocalDateTime(const std::string& str) {
-    std::istringstream in(str);
-    date::local_time<std::chrono::nanoseconds> tp;
-    in >> date::parse("%FT%T", tp);
-    if (in.fail()) {
-        THROW_CODE(InputError, "Failed to parse {} into LocalDateTime", str);
+    std::smatch match;
+    if (!std::regex_match(str, match, LOCALDATETIME_REGEX)) {
+        THROW_CODE(InputError, "Failed to parse {} into LocalDateTime");
     }
-    nanoseconds_since_epoch_ = tp.time_since_epoch().count();
+    auto pos = str.find('T');
+    int64_t days_since_epoch = 0;
+    int64_t nanoseconds_since_begin_of_day = 0;
+    if (pos == std::string::npos) {
+        days_since_epoch = Date(str).GetStorage();
+    } else {
+        days_since_epoch = Date(str.substr(0, pos)).GetStorage();
+        nanoseconds_since_begin_of_day =
+            LocalTime(str.substr(pos + 1)).GetStorage();
+    }
+
+    nanoseconds_since_epoch_ =
+        std::chrono::nanoseconds(date::days(days_since_epoch)).count() +
+        nanoseconds_since_begin_of_day;
+}
+
+LocalDateTime::LocalDateTime(const Value& params) {
+    std::unordered_map<std::string, Value> dateParams;
+    std::unordered_map<std::string, Value> timeParams;
+    for (const auto& [key, v] : params.AsMap()) {
+        auto s = key;
+        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+        if (validDateFields.count(s)) {
+            dateParams.emplace(s, v);
+        } else {
+            timeParams.emplace(s, v);
+        }
+    }
+
+    int64_t days_since_epoch = 0;
+    int64_t nanoseconds_since_begin_of_day = 0;
+    days_since_epoch = Date(Value(std::move(dateParams))).GetStorage();
+    if (!timeParams.empty()) {
+        nanoseconds_since_begin_of_day =
+            LocalTime(Value(std::move(timeParams))).GetStorage();
+    }
+
+    nanoseconds_since_epoch_ =
+        std::chrono::nanoseconds(date::days(days_since_epoch)).count() +
+        nanoseconds_since_begin_of_day;
 }
 
 std::string LocalDateTime::ToString() const {

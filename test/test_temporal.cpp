@@ -136,6 +136,394 @@ TEST(Date, dateFromMap) {
               "1817-01-07");
 }
 
+TEST(LocalDateTime, localDateTimeFromString) {
+    EXPECT_EQ(common::LocalDateTime("2015-07-21T21:40:32.142").ToString(),
+              "2015-07-21T21:40:32.142000000");
+    EXPECT_EQ(common::LocalDateTime("2015-W30-2T214032.142").ToString(),
+              "2015-07-21T21:40:32.142000000");
+    EXPECT_EQ(common::LocalDateTime("2015-202T21:40:32").ToString(),
+              "2015-07-21T21:40:32.000000000");
+    EXPECT_EQ(common::LocalDateTime("2015T214032").ToString(),
+              "2015-01-01T21:40:32.000000000");
+    EXPECT_EQ(common::LocalDateTime("20150721T21:40").ToString(),
+              "2015-07-21T21:40:00.000000000");
+    EXPECT_EQ(common::LocalDateTime("2015-W30T2140").ToString(),
+              "2015-07-20T21:40:00.000000000");
+    EXPECT_EQ(common::LocalDateTime("2015202T21").ToString(),
+              "2015-07-21T21:00:00.000000000");
+}
+
+TEST(LocalDateTime, localDateTimeFromMap) {
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1816)},
+                                                {"week", Value::Integer(1)}}))
+                  .ToString(),
+              "1816-01-01T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1816)},
+                                                {"week", Value::Integer(52)}}))
+                  .ToString(),
+              "1816-12-23T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1817)},
+                                                {"week", Value::Integer(1)}}))
+                  .ToString(),
+              "1816-12-30T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1817)},
+                                                {"week", Value::Integer(10)}}))
+                  .ToString(),
+              "1817-03-03T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1817)},
+                                                {"week", Value::Integer(30)}}))
+                  .ToString(),
+              "1817-07-21T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1817)},
+                                                {"week", Value::Integer(52)}}))
+                  .ToString(),
+              "1817-12-22T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1818)},
+                                                {"week", Value::Integer(1)}}))
+                  .ToString(),
+              "1817-12-29T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1818)},
+                                                {"week", Value::Integer(52)}}))
+                  .ToString(),
+              "1818-12-21T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1818)},
+                                                {"week", Value::Integer(53)}}))
+                  .ToString(),
+              "1818-12-28T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1819)},
+                                                {"week", Value::Integer(1)}}))
+                  .ToString(),
+              "1819-01-04T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1819)},
+                                                {"week", Value::Integer(52)}}))
+                  .ToString(),
+              "1819-12-27T00:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"dayOfWeek", Value::Integer(2)},
+                                          {"year", Value::Integer(1817)},
+                                          {"week", Value::Integer(1)}}))
+            .ToString(),
+        "1816-12-31T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value({{"date", Value(common::Date("1816-12-30"))},
+                         {"week", Value((int64_t)2)},
+                         {"dayOfWeek", Value((int64_t)3)}}))
+                  .ToString(),
+              "1817-01-08T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value({{"date", Value(common::Date("1816-12-31"))},
+                         {"week", Value((int64_t)2)}}))
+                  .ToString(),
+              "1817-01-07T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value({{"date", Value(common::Date("1816-12-31"))},
+                         {"year", Value((int64_t)1817)},
+                         {"week", Value((int64_t)2)}}))
+                  .ToString(),
+              "1817-01-07T00:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)}}))
+            .ToString(),
+        "1984-01-01T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"quarter", Value::Integer(3)},
+                              {"dayOfQuarter", Value::Integer(45)}}))
+                  .ToString(),
+              "1984-08-14T00:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"quarter", Value::Integer(3)},
+                                          {"dayOfQuarter", Value::Integer(45)},
+                                          {"hour", Value::Integer(12)}}))
+            .ToString(),
+        "1984-08-14T12:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"quarter", Value::Integer(3)},
+                                          {"dayOfQuarter", Value::Integer(45)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)}}))
+            .ToString(),
+        "1984-08-14T12:31:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"quarter", Value::Integer(3)},
+                                          {"dayOfQuarter", Value::Integer(45)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)},
+                                          {"second", Value::Integer(14)}}))
+            .ToString(),
+        "1984-08-14T12:31:14.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"quarter", Value::Integer(3)},
+                              {"dayOfQuarter", Value::Integer(45)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"millisecond", Value::Integer(645)}}))
+                  .ToString(),
+              "1984-08-14T12:31:14.645000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"quarter", Value::Integer(3)},
+                              {"dayOfQuarter", Value::Integer(45)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"microsecond", Value::Integer(645876)}}))
+                  .ToString(),
+              "1984-08-14T12:31:14.645876000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"quarter", Value::Integer(3)},
+                              {"dayOfQuarter", Value::Integer(45)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"nanosecond", Value::Integer(645876123)}}))
+                  .ToString(),
+              "1984-08-14T12:31:14.645876123");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"ordinalDay", Value::Integer(202)}}))
+            .ToString(),
+        "1984-07-20T00:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"ordinalDay", Value::Integer(202)},
+                                          {"hour", Value::Integer(12)}}))
+            .ToString(),
+        "1984-07-20T12:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"ordinalDay", Value::Integer(202)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)}}))
+            .ToString(),
+        "1984-07-20T12:31:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"ordinalDay", Value::Integer(202)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)},
+                                          {"second", Value::Integer(14)}}))
+            .ToString(),
+        "1984-07-20T12:31:14.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"ordinalDay", Value::Integer(202)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"millisecond", Value::Integer(645)}}))
+                  .ToString(),
+              "1984-07-20T12:31:14.645000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"ordinalDay", Value::Integer(202)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"microsecond", Value::Integer(645876)}}))
+                  .ToString(),
+              "1984-07-20T12:31:14.645876000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"ordinalDay", Value::Integer(202)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"nanosecond", Value::Integer(645876123)}}))
+                  .ToString(),
+              "1984-07-20T12:31:14.645876123");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"week", Value::Integer(10)},
+                                          {"dayOfWeek", Value::Integer(3)}}))
+            .ToString(),
+        "1984-03-07T00:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"week", Value::Integer(10)},
+                                          {"dayOfWeek", Value::Integer(3)},
+                                          {"hour", Value::Integer(12)}}))
+            .ToString(),
+        "1984-03-07T12:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"week", Value::Integer(10)},
+                                          {"dayOfWeek", Value::Integer(3)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)}}))
+            .ToString(),
+        "1984-03-07T12:31:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"week", Value::Integer(10)},
+                                          {"dayOfWeek", Value::Integer(3)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)},
+                                          {"second", Value::Integer(14)}}))
+            .ToString(),
+        "1984-03-07T12:31:14.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"week", Value::Integer(10)},
+                              {"dayOfWeek", Value::Integer(3)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"millisecond", Value::Integer(645)}}))
+                  .ToString(),
+              "1984-03-07T12:31:14.645000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"week", Value::Integer(10)},
+                              {"dayOfWeek", Value::Integer(3)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"microsecond", Value::Integer(645876)}}))
+                  .ToString(),
+              "1984-03-07T12:31:14.645876000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"week", Value::Integer(10)},
+                              {"dayOfWeek", Value::Integer(3)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"nanosecond", Value::Integer(645876123)}}))
+                  .ToString(),
+              "1984-03-07T12:31:14.645876123");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                                {"month", Value::Integer(10)},
+                                                {"day", Value::Integer(11)}}))
+                  .ToString(),
+              "1984-10-11T00:00:00.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                                {"month", Value::Integer(10)},
+                                                {"day", Value::Integer(11)},
+                                                {"hour", Value::Integer(12)}}))
+                  .ToString(),
+              "1984-10-11T12:00:00.000000000");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"month", Value::Integer(10)},
+                                          {"day", Value::Integer(11)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)}}))
+            .ToString(),
+        "1984-10-11T12:31:00.000000000");
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"month", Value::Integer(10)},
+                                          {"day", Value::Integer(11)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)},
+                                          {"second", Value::Integer(14)}}))
+            .ToString(),
+        "1984-10-11T12:31:14.000000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"month", Value::Integer(10)},
+                              {"day", Value::Integer(11)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"millisecond", Value::Integer(645)}}))
+                  .ToString(),
+              "1984-10-11T12:31:14.645000000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"month", Value::Integer(10)},
+                              {"day", Value::Integer(11)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"microsecond", Value::Integer(645876)}}))
+                  .ToString(),
+              "1984-10-11T12:31:14.645876000");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"month", Value::Integer(10)},
+                              {"day", Value::Integer(11)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"nanosecond", Value::Integer(645876123)}}))
+                  .ToString(),
+              "1984-10-11T12:31:14.645876123");
+
+    EXPECT_EQ(
+        common::LocalDateTime(Value::Map({{"year", Value::Integer(1984)},
+                                          {"month", Value::Integer(10)},
+                                          {"day", Value::Integer(11)},
+                                          {"hour", Value::Integer(12)},
+                                          {"minute", Value::Integer(31)},
+                                          {"second", Value::Integer(14)},
+                                          {"nanosecond", Value::Integer(3)}}))
+            .ToString(),
+        "1984-10-11T12:31:14.000000003");
+
+    EXPECT_EQ(common::LocalDateTime(
+                  Value::Map({{"year", Value::Integer(1984)},
+                              {"month", Value::Integer(10)},
+                              {"day", Value::Integer(11)},
+                              {"hour", Value::Integer(12)},
+                              {"minute", Value::Integer(31)},
+                              {"second", Value::Integer(14)},
+                              {"nanosecond", Value::Integer(789)},
+                              {"millisecond", Value::Integer(123)},
+                              {"microsecond", Value::Integer(456)}}))
+                  .ToString(),
+              "1984-10-11T12:31:14.123456789");
+}
+
 TEST(LocalTime, timeFromString) {
     EXPECT_EQ(common::LocalTime("21:40:32.142").ToString(), "21:40:32.142000000");
     EXPECT_EQ(common::LocalTime("214032.142").ToString(), "21:40:32.142000000");

@@ -556,9 +556,15 @@ Value BuiltinFunction::LocalDateTime(RTContext *ctx, const Record &record,
         CYPHER_THROW_ASSERT(args.size() == 2);
         // datetime(string) Returns a DateTime by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (!r.IsString()) CYPHER_ARGUMENT_ERROR();
-        auto dt = common::LocalDateTime(r.constant.AsString());
-        return Value(dt);
+        if (r.IsMap()) {
+            auto dt = common::LocalDateTime(r.constant);
+            return Value(dt);
+        } else if (r.IsString()) {
+            auto dt = common::LocalDateTime(r.constant.AsString());
+            return Value(dt);
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
     }
 }
 

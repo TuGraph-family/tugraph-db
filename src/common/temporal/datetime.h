@@ -22,9 +22,24 @@ class LocalDateTime {
 
    public:
     LocalDateTime();
+    /**
+     * Construct a Local DateTime object from a temporal value
+     *
+     * \param   str: a string representation of a temporal value
+     */
     explicit LocalDateTime(const std::string& str);
     explicit LocalDateTime(int64_t nanoseconds)
         : nanoseconds_since_epoch_(nanoseconds){};
+
+    /**
+     * Construct a Local DateTime object from a user supplied map
+     *
+     * \param params: a map containing the single key 'timezone', or a map
+     *                containing temporal values ('year', 'month', 'day',
+     *                'hour', 'minute', 'second',
+     *                'millisecond', 'microsecond', 'nanosecond') as components.
+     */
+    explicit LocalDateTime(const Value& params);
     [[nodiscard]] int64_t GetStorage() const {
         return nanoseconds_since_epoch_;
     }
