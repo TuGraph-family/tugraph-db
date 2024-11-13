@@ -57,7 +57,7 @@ LocalTime::LocalTime(const Value& params) {
         millisecond = v / 1000000 % 1000;
         second = v / 1000000000 % 60;
         minute = v / 60000000000 % 60;
-        hour = v / 3600000000000;
+        hour = v / 3600000000000 % 24;
     } else {
         std::vector<std::pair<std::string, bool>> has_value = {
             {"hour", parse_params_map.count("hour")},
