@@ -66,7 +66,7 @@ const std::unordered_set<std::string> validDateFields{
     DATE_TIMEZONE, DATE_DATE, DATE_YEAR,    DATE_MONTH, DATE_DAY,
     DATE_WEEK,     DATE_DOW,  DATE_QUARTER, DATE_DOQ,   DATE_ORDINAL};
 
-const std::string OFFSET_PATTERN = "(Z|[+-]([0-9]{2})(?::?([0-9]{2}))?)";
+const std::string OFFSET_PATTERN = "(Z|[+-]([0-9]{2})(?::?([0-9]{2}))?(?::?([0-9]{2}))?)";
 const std::string ZONENAME_PATTERN = "([a-zA-Z0-9~._ /+-]+)";
 
 // Regular expression pattern for parsing local times
@@ -82,7 +82,7 @@ const std::string TIME_PATTERN =
     "(?::([0-9]{1,2})(?:[\\.,]([0-9]{1,9}))?)?)?)|"
     "(?:([0-9]{2})(?:([0-9]{2})"
     "(?:([0-9]{2})(?:[\\.,]([0-9]{1,9}))?)?)?))"
-    "(?:(Z|[+-]([0-9]{2})(?::?([0-9]{2}))?))?"
+    "(?:(Z|[+-]([0-9]{2})(?::?([0-9]{2}))?(?::?([0-9]{2}))?))?"
     "(?:\\[([a-zA-Z0-9~._ /+-]+)])?";
 
 enum TIME_PATTERN_GROUP {
@@ -97,6 +97,7 @@ enum TIME_PATTERN_GROUP {
     TIME_ZONE,
     TIME_ZONE_HOUR,
     TIME_ZONE_MINUTE,
+    TIME_ZONE_SECOND,
     TIME_ZONE_NAME
 };
 

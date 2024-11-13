@@ -57,4 +57,12 @@ TEST(VarLenDB, db) {
         EXPECT_EQ(std::any_cast<common::Node>(path[2].data).properties["name"].AsString(), "Vanessa Redgrave");
     }
     txn->Commit();
+    txn = graphDB->BeginTransaction();
+    resultIterator = txn->Execute(&rtx, "return time({time:localtime()});");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetBoltRecord();
+        LOG_INFO(records.size());
+    }
+    txn->Commit();
 }

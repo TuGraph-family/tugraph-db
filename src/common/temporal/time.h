@@ -24,18 +24,17 @@ class Value;
 namespace common {
 class Time {
    private:
-    int64_t nanoseconds_since_today_ = 0;
-    std::string timezone;
-    std::string time_offset;
+    int64_t nanoseconds_since_today_with_of_ = 0;
+    int64_t tz_offset_seconds_ = 0;
 
    public:
     Time();
     explicit Time(const std::string& str);
     explicit Time(const Value& params);
-    explicit Time(int64_t nanoseconds)
-        : nanoseconds_since_today_(nanoseconds){};
-    [[nodiscard]] int64_t GetStorage() const {
-        return nanoseconds_since_today_;
+    explicit Time(int64_t nanoseconds, int64_t tz_offset_seconds_)
+        : nanoseconds_since_today_with_of_(nanoseconds), tz_offset_seconds_(tz_offset_seconds_){};
+    [[nodiscard]] std::tuple<int64_t, int64_t> GetStorage() const {
+        return {nanoseconds_since_today_with_of_, tz_offset_seconds_};
     }
     [[nodiscard]] std::string ToString() const;
     bool operator<(const Time& rhs) const noexcept;

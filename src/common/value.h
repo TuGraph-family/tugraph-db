@@ -36,6 +36,7 @@ enum class ValueType : char {
     LOCALDATETIME,
     FLOAT, // for vector index
     LOCALTIME,
+    TIME
 };
 
 struct Value {
@@ -135,6 +136,10 @@ struct Value {
         type = ValueType::LOCALTIME;
         data = d;
     }
+    explicit Value(const common::Time& d) {
+        type = ValueType::TIME;
+        data = d;
+    }
 
     [[nodiscard]]
     bool AsBool() const {
@@ -205,6 +210,11 @@ struct Value {
             return std::any_cast<const common::LocalTime&>(data);
         THROW_CODE(UnknownError, "AsLocalTime, but Value is not LocalTime");
     }
+    [[nodiscard]] const common::Time& AsTime() const {
+        if (LIKELY(type == ValueType::TIME))
+            return std::any_cast<const common::Time&>(data);
+        THROW_CODE(UnknownError, "AsTime, but Value is not Time");
+    }
 
     static Value Bool(bool b) { return Value(b); }
     static Value Integer(int64_t b) { return Value(b); }
@@ -220,6 +230,7 @@ struct Value {
     static Value Date(const class common::Date& b) { return Value(b); }
     static Value LocalDateTime(const class common::LocalDateTime& b) { return Value(b); }
     static Value LocalTime(const class common::LocalTime& b) { return Value(b); }
+    static Value Time(const class common::Time& b) { return Value(b); }
 
     [[nodiscard]] bool IsNull() const {return type == ValueType::Null;}
     [[nodiscard]] bool IsBool() const {return type == ValueType::BOOL;}
@@ -240,6 +251,7 @@ struct Value {
     [[nodiscard]] bool IsDate() const {return type == ValueType::DATE;}
     [[nodiscard]] bool IsLocalDateTime() const {return type == ValueType::LOCALDATETIME;}
     [[nodiscard]] bool IsLocalTime() const {return type == ValueType::LOCALTIME;}
+    [[nodiscard]] bool IsTime() const {return type == ValueType::TIME;}
 
     [[nodiscard]] std::string ToString(bool str_quotation_mark = true) const;
     [[nodiscard]] std::any ToBolt() const;
