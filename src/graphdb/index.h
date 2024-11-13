@@ -36,12 +36,14 @@ struct VertexPropertyIndex {
    public:
     VertexPropertyIndex(meta::VertexPropertyIndex  meta,
                         rocksdb::ColumnFamilyHandle* cf,
+                        uint32_t index_id,
                         uint32_t lid, uint32_t pid)
-        : meta_(std::move(meta)), cf_(cf), lid_(lid), pid_(pid) {}
+        : meta_(std::move(meta)), cf_(cf), index_id_(index_id), lid_(lid), pid_(pid) {}
     void AddIndex(txn::Transaction* txn, int64_t vid, rocksdb::Slice value);
     void UpdateIndex(txn::Transaction* txn, int64_t vid,
                      rocksdb::Slice new_value, const std::string* old_value);
     void DeleteIndex(txn::Transaction* txn, rocksdb::Slice value);
+    std::string IndexKey(const std::string& val);
     meta::VertexPropertyIndex& meta() {return meta_;}
     rocksdb::ColumnFamilyHandle* cf() {return cf_;}
     uint32_t lid() const {return lid_;}
@@ -49,6 +51,7 @@ struct VertexPropertyIndex {
    private:
     meta::VertexPropertyIndex meta_;
     rocksdb::ColumnFamilyHandle* cf_;
+    uint32_t index_id_;
     uint32_t lid_;
     uint32_t pid_;
 };

@@ -35,6 +35,7 @@ class IdGenerator {
     void Init(rocksdb::TransactionDB* db, GraphCF* graph_cf);
     int64_t GetNextVid();
     int64_t GetNextEid();
+    uint32_t GetNextIndexId();
     std::optional<uint32_t> GetLid(const std::string& name);
     std::optional<uint32_t> GetPid(const std::string& name);
     std::optional<uint32_t> GetTid(const std::string& name);
@@ -54,6 +55,7 @@ class IdGenerator {
     std::atomic<uint32_t> label_next_lid_;
     std::atomic<uint32_t> label_next_pid_;
     std::atomic<uint32_t> label_next_tid_;
+    std::atomic<uint32_t> index_next_id_;
     std::unordered_map<std::string, uint32_t> vertex_labels_name_to_id_;
     std::unordered_map<uint32_t, std::string> vertex_labels_id_to_name_;
     std::unordered_map<std::string, uint32_t> edge_types_name_to_id_;

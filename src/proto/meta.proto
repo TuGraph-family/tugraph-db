@@ -22,7 +22,7 @@ message VertexPropertyIndex {
     uint32 label_id    = 4;
     string property    = 5;
     uint32 property_id = 6;
-    string cf_name     = 7;
+    uint32 index_id    = 7;
 }
 
 message VertexFullTextIndex {

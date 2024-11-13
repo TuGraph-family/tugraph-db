@@ -200,20 +200,6 @@ class VertexPropertyIndex : public ::google::protobuf::Message /* @@protoc_inser
   ::std::string* release_property();
   void set_allocated_property(::std::string* property);
 
-  // string cf_name = 7;
-  void clear_cf_name();
-  static const int kCfNameFieldNumber = 7;
-  const ::std::string& cf_name() const;
-  void set_cf_name(const ::std::string& value);
-  #if LANG_CXX11
-  void set_cf_name(::std::string&& value);
-  #endif
-  void set_cf_name(const char* value);
-  void set_cf_name(const char* value, size_t size);
-  ::std::string* mutable_cf_name();
-  ::std::string* release_cf_name();
-  void set_allocated_cf_name(::std::string* cf_name);
-
   // bool is_unique = 2;
   void clear_is_unique();
   static const int kIsUniqueFieldNumber = 2;
@@ -232,6 +218,12 @@ class VertexPropertyIndex : public ::google::protobuf::Message /* @@protoc_inser
   ::google::protobuf::uint32 property_id() const;
   void set_property_id(::google::protobuf::uint32 value);
 
+  // uint32 index_id = 7;
+  void clear_index_id();
+  static const int kIndexIdFieldNumber = 7;
+  ::google::protobuf::uint32 index_id() const;
+  void set_index_id(::google::protobuf::uint32 value);
+
   // @@protoc_insertion_point(class_scope:meta.VertexPropertyIndex)
  private:
 
@@ -239,10 +231,10 @@ class VertexPropertyIndex : public ::google::protobuf::Message /* @@protoc_inser
   ::google::protobuf::internal::ArenaStringPtr name_;
   ::google::protobuf::internal::ArenaStringPtr label_;
   ::google::protobuf::internal::ArenaStringPtr property_;
-  ::google::protobuf::internal::ArenaStringPtr cf_name_;
   bool is_unique_;
   ::google::protobuf::uint32 label_id_;
   ::google::protobuf::uint32 property_id_;
+  ::google::protobuf::uint32 index_id_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
 };
@@ -974,57 +966,18 @@ inline void VertexPropertyIndex::set_property_id(::google::protobuf::uint32 valu
   // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.property_id)
 }
 
-// string cf_name = 7;
-inline void VertexPropertyIndex::clear_cf_name() {
-  cf_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+// uint32 index_id = 7;
+inline void VertexPropertyIndex::clear_index_id() {
+  index_id_ = 0u;
 }
-inline const ::std::string& VertexPropertyIndex::cf_name() const {
-  // @@protoc_insertion_point(field_get:meta.VertexPropertyIndex.cf_name)
-  return cf_name_.GetNoArena();
+inline ::google::protobuf::uint32 VertexPropertyIndex::index_id() const {
+  // @@protoc_insertion_point(field_get:meta.VertexPropertyIndex.index_id)
+  return index_id_;
 }
-inline void VertexPropertyIndex::set_cf_name(const ::std::string& value) {
+inline void VertexPropertyIndex::set_index_id(::google::protobuf::uint32 value) {
   
-  cf_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.cf_name)
-}
-#if LANG_CXX11
-inline void VertexPropertyIndex::set_cf_name(::std::string&& value) {
-  
-  cf_name_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:meta.VertexPropertyIndex.cf_name)
-}
-#endif
-inline void VertexPropertyIndex::set_cf_name(const char* value) {
-  GOOGLE_DCHECK(value != NULL);
-  
-  cf_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:meta.VertexPropertyIndex.cf_name)
-}
-inline void VertexPropertyIndex::set_cf_name(const char* value, size_t size) {
-  
-  cf_name_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:meta.VertexPropertyIndex.cf_name)
-}
-inline ::std::string* VertexPropertyIndex::mutable_cf_name() {
-  
-  // @@protoc_insertion_point(field_mutable:meta.VertexPropertyIndex.cf_name)
-  return cf_name_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* VertexPropertyIndex::release_cf_name() {
-  // @@protoc_insertion_point(field_release:meta.VertexPropertyIndex.cf_name)
-  
-  return cf_name_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void VertexPropertyIndex::set_allocated_cf_name(::std::string* cf_name) {
-  if (cf_name != NULL) {
-    
-  } else {
-    
-  }
-  cf_name_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), cf_name);
-  // @@protoc_insertion_point(field_set_allocated:meta.VertexPropertyIndex.cf_name)
+  index_id_ = value;
+  // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.index_id)
 }
 
 // -------------------------------------------------------------------
