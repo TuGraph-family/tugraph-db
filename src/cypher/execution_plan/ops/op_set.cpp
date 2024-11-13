@@ -17,6 +17,17 @@
 #include "common/logger.h"
 
 namespace cypher {
+
+void OpGqlSet::SetLabels(
+    cypher::RTContext* ctx, geax::frontend::SetLabel* update) {
+    auto idx = GetRecordIdx(update->v());
+    if (!record->values[idx].IsNode()) {
+        THROW_CODE(CypherException, "set labels, but not Node");
+    }
+    record->values[idx].node->vertex_->AddLabels(
+        {update->labels().begin(), update->labels().end()});
+}
+
 void OpGqlSet::SetVertex(RTContext *ctx, const std::string& variable,
                          geax::frontend::UpdateProperties* update) {
     auto idx = GetRecordIdx(variable);
@@ -79,19 +90,26 @@ void OpGqlSet::SetEdge(RTContext *ctx, const std::string& variable,
 
 void OpGqlSet::SetVE(RTContext *ctx) {
     for (auto & item : set_items_) {
-        if (typeid(*item) != typeid(geax::frontend::UpdateProperties))
-            CYPHER_TODO();
         geax::frontend::UpdateProperties* props = nullptr;
-        checkedCast(item, props);
-        auto& variable = props->v();
-        auto it = record->symbol_table->symbols.find(variable);
-        CYPHER_THROW_ASSERT(it != record->symbol_table->symbols.end());
-        if (it->second.type == SymbolNode::NODE) {
-            SetVertex(ctx, variable, props);
-        } else if (it->second.type == SymbolNode::RELATIONSHIP) {
-            SetEdge(ctx, variable, props);
+        props = dynamic_cast<geax::frontend::UpdateProperties *>(item);
+        if (props) {
+            auto& variable = props->v();
+            auto it = record->symbol_table->symbols.find(variable);
+            CYPHER_THROW_ASSERT(it != record->symbol_table->symbols.end());
+            if (it->second.type == SymbolNode::NODE) {
+                SetVertex(ctx, variable, props);
+            } else if (it->second.type == SymbolNode::RELATIONSHIP) {
+                SetEdge(ctx, variable, props);
+            } else {
+                CYPHER_TODO();
+            }
         } else {
-            CYPHER_TODO();
+            geax::frontend::SetLabel* labels = nullptr;
+            labels = dynamic_cast<geax::frontend::SetLabel *>(item);
+            if (!labels) {
+                CYPHER_TODO();
+            }
+            SetLabels(ctx, labels);
         }
     }
 }

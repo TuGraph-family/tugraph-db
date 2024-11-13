@@ -28,6 +28,6 @@ struct GraphCF {
     rocksdb::ColumnFamilyHandle* edge_type_eid = nullptr;
     rocksdb::ColumnFamilyHandle* name_id = nullptr;
     rocksdb::ColumnFamilyHandle* meta_info = nullptr;
-    std::unordered_map<std::string, rocksdb::ColumnFamilyHandle*> vertex_indexs;
+    rocksdb::ColumnFamilyHandle* index = nullptr;
 };
 }

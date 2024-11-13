@@ -60,5 +60,6 @@
 #include "geax-front-end/ast/clause/WhereClause.h"
 #include "geax-front-end/ast/clause/YieldField.h"
 #include "geax-front-end/ast/clause/RemoveSingleProperty.h"
+#include "geax-front-end/ast/clause/RemoveLabel.h"
 
 #endif  // GEAXFRONTEND_AST_CLAUSE_CLAUSENODEFWD_H_

@@ -119,7 +119,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexPropertyIndex, label_id_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexPropertyIndex, property_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexPropertyIndex, property_id_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexPropertyIndex, cf_name_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexPropertyIndex, index_id_),
   ~0u,  // no _has_bits_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexFullTextIndex, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -189,24 +189,24 @@ void protobuf_RegisterTypes(const ::std::string&) {
 void AddDescriptorsImpl() {
   InitDefaults();
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-      "\n\nmeta.proto\022\004meta\"\217\001\n\023VertexPropertyInd"
+      "\n\nmeta.proto\022\004meta\"\220\001\n\023VertexPropertyInd"
       "ex\022\014\n\004name\030\001 \001(\t\022\021\n\tis_unique\030\002 \001(\010\022\r\n\005l"
       "abel\030\003 \001(\t\022\020\n\010label_id\030\004 \001(\r\022\020\n\010property"
-      "\030\005 \001(\t\022\023\n\013property_id\030\006 \001(\r\022\017\n\007cf_name\030\007"
-      " \001(\t\"~\n\023VertexFullTextIndex\022\014\n\004name\030\001 \001("
-      "\t\022\014\n\004path\030\002 \001(\t\022\016\n\006labels\030\003 \003(\t\022\022\n\nprope"
-      "rties\030\004 \003(\t\022\021\n\tlabel_ids\030\005 \003(\r\022\024\n\014proper"
-      "ty_ids\030\006 \003(\r\"\330\001\n\021VertexVectorIndex\022\014\n\004na"
-      "me\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\020\n\010label_id\030\003 \001("
-      "\r\022\020\n\010property\030\004 \001(\t\022\023\n\013property_id\030\005 \001(\r"
-      "\022\024\n\014sharding_num\030\006 \001(\r\022\022\n\ndimensions\030\007 \001"
-      "(\r\022\025\n\rdistance_type\030\010 \001(\t\022\016\n\006hnsw_m\030\t \001("
-      "\r\022\034\n\024hnsw_ef_construction\030\n \001(\r\"7\n\017Graph"
-      "DBMetaInfo\022\022\n\ngraph_name\030\001 \001(\t\022\020\n\010graph_"
-      "id\030\002 \001(\rb\006proto3"
+      "\030\005 \001(\t\022\023\n\013property_id\030\006 \001(\r\022\020\n\010index_id\030"
+      "\007 \001(\r\"~\n\023VertexFullTextIndex\022\014\n\004name\030\001 \001"
+      "(\t\022\014\n\004path\030\002 \001(\t\022\016\n\006labels\030\003 \003(\t\022\022\n\nprop"
+      "erties\030\004 \003(\t\022\021\n\tlabel_ids\030\005 \003(\r\022\024\n\014prope"
+      "rty_ids\030\006 \003(\r\"\330\001\n\021VertexVectorIndex\022\014\n\004n"
+      "ame\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\020\n\010label_id\030\003 \001"
+      "(\r\022\020\n\010property\030\004 \001(\t\022\023\n\013property_id\030\005 \001("
+      "\r\022\024\n\014sharding_num\030\006 \001(\r\022\022\n\ndimensions\030\007 "
+      "\001(\r\022\025\n\rdistance_type\030\010 \001(\t\022\016\n\006hnsw_m\030\t \001"
+      "(\r\022\034\n\024hnsw_ef_construction\030\n \001(\r\"7\n\017Grap"
+      "hDBMetaInfo\022\022\n\ngraph_name\030\001 \001(\t\022\020\n\010graph"
+      "_id\030\002 \001(\rb\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 576);
+      descriptor, 577);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "meta.proto", &protobuf_RegisterTypes);
 }
@@ -235,7 +235,7 @@ const int VertexPropertyIndex::kLabelFieldNumber;
 const int VertexPropertyIndex::kLabelIdFieldNumber;
 const int VertexPropertyIndex::kPropertyFieldNumber;
 const int VertexPropertyIndex::kPropertyIdFieldNumber;
-const int VertexPropertyIndex::kCfNameFieldNumber;
+const int VertexPropertyIndex::kIndexIdFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 VertexPropertyIndex::VertexPropertyIndex()
@@ -261,13 +261,9 @@ VertexPropertyIndex::VertexPropertyIndex(const VertexPropertyIndex& from)
   if (from.property().size() > 0) {
     property_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.property_);
   }
-  cf_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.cf_name().size() > 0) {
-    cf_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.cf_name_);
-  }
   ::memcpy(&is_unique_, &from.is_unique_,
-    static_cast<size_t>(reinterpret_cast<char*>(&property_id_) -
-    reinterpret_cast<char*>(&is_unique_)) + sizeof(property_id_));
+    static_cast<size_t>(reinterpret_cast<char*>(&index_id_) -
+    reinterpret_cast<char*>(&is_unique_)) + sizeof(index_id_));
   // @@protoc_insertion_point(copy_constructor:meta.VertexPropertyIndex)
 }
 
@@ -275,10 +271,9 @@ void VertexPropertyIndex::SharedCtor() {
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   label_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   property_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  cf_name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&is_unique_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&property_id_) -
-      reinterpret_cast<char*>(&is_unique_)) + sizeof(property_id_));
+      reinterpret_cast<char*>(&index_id_) -
+      reinterpret_cast<char*>(&is_unique_)) + sizeof(index_id_));
 }
 
 VertexPropertyIndex::~VertexPropertyIndex() {
@@ -290,7 +285,6 @@ void VertexPropertyIndex::SharedDtor() {
   name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   label_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   property_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  cf_name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 void VertexPropertyIndex::SetCachedSize(int size) const {
@@ -316,10 +310,9 @@ void VertexPropertyIndex::Clear() {
   name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   label_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   property_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  cf_name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&is_unique_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&property_id_) -
-      reinterpret_cast<char*>(&is_unique_)) + sizeof(property_id_));
+      reinterpret_cast<char*>(&index_id_) -
+      reinterpret_cast<char*>(&is_unique_)) + sizeof(index_id_));
   _internal_metadata_.Clear();
 }
 
@@ -423,16 +416,14 @@ bool VertexPropertyIndex::MergePartialFromCodedStream(
         break;
       }
 
-      // string cf_name = 7;
+      // uint32 index_id = 7;
       case 7: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(58u /* 58 & 0xFF */)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_cf_name()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->cf_name().data(), static_cast<int>(this->cf_name().length()),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "meta.VertexPropertyIndex.cf_name"));
+            static_cast< ::google::protobuf::uint8>(56u /* 56 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &index_id_)));
         } else {
           goto handle_unusual;
         }
@@ -510,14 +501,9 @@ void VertexPropertyIndex::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt32(6, this->property_id(), output);
   }
 
-  // string cf_name = 7;
-  if (this->cf_name().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->cf_name().data(), static_cast<int>(this->cf_name().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "meta.VertexPropertyIndex.cf_name");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      7, this->cf_name(), output);
+  // uint32 index_id = 7;
+  if (this->index_id() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(7, this->index_id(), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -582,15 +568,9 @@ void VertexPropertyIndex::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(6, this->property_id(), target);
   }
 
-  // string cf_name = 7;
-  if (this->cf_name().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->cf_name().data(), static_cast<int>(this->cf_name().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "meta.VertexPropertyIndex.cf_name");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        7, this->cf_name(), target);
+  // uint32 index_id = 7;
+  if (this->index_id() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(7, this->index_id(), target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -631,13 +611,6 @@ size_t VertexPropertyIndex::ByteSizeLong() const {
         this->property());
   }
 
-  // string cf_name = 7;
-  if (this->cf_name().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->cf_name());
-  }
-
   // bool is_unique = 2;
   if (this->is_unique() != 0) {
     total_size += 1 + 1;
@@ -655,6 +628,13 @@ size_t VertexPropertyIndex::ByteSizeLong() const {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt32Size(
         this->property_id());
+  }
+
+  // uint32 index_id = 7;
+  if (this->index_id() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->index_id());
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
@@ -696,10 +676,6 @@ void VertexPropertyIndex::MergeFrom(const VertexPropertyIndex& from) {
 
     property_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.property_);
   }
-  if (from.cf_name().size() > 0) {
-
-    cf_name_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.cf_name_);
-  }
   if (from.is_unique() != 0) {
     set_is_unique(from.is_unique());
   }
@@ -708,6 +684,9 @@ void VertexPropertyIndex::MergeFrom(const VertexPropertyIndex& from) {
   }
   if (from.property_id() != 0) {
     set_property_id(from.property_id());
+  }
+  if (from.index_id() != 0) {
+    set_index_id(from.index_id());
   }
 }
 
@@ -741,11 +720,10 @@ void VertexPropertyIndex::InternalSwap(VertexPropertyIndex* other) {
     GetArenaNoVirtual());
   property_.Swap(&other->property_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
-  cf_name_.Swap(&other->cf_name_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-    GetArenaNoVirtual());
   swap(is_unique_, other->is_unique_);
   swap(label_id_, other->label_id_);
   swap(property_id_, other->property_id_);
+  swap(index_id_, other->index_id_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
 

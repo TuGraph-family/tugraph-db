@@ -436,22 +436,30 @@ std::any CypherBaseVisitorV2::visitOC_SetItem(LcypherParser::OC_SetItemContext *
         geax::frontend::VString *vstr = nullptr;
         checkedCast(name_expr, vstr);
         std::string variable = vstr->val();
-        auto update = ALLOC_GEAOBJECT(geax::frontend::UpdateProperties);
-        node->appendItem(update);
-        update->setV(std::move(variable));
-        if (ctx->children[2]->getText() == "=") {
-            update->setMode(geax::frontend::UpdateProperties::Mode::Assign);
-        } else if (ctx->children[2]->getText() == "+=") {
-            update->setMode(geax::frontend::UpdateProperties::Mode::Append);
-        } else {
-            NOT_SUPPORT_AND_THROW();
-        }
         if (ctx->oC_Expression()) {
-            //VisitGuard guard(VisitType::kSetVariable, visit_types_);
-            //VisitGuard guardLabel(VisitType::kSetLabel, visit_types_);
+            auto update = ALLOC_GEAOBJECT(geax::frontend::UpdateProperties);
+            node->appendItem(update);
+            update->setV(std::move(variable));
+            if (ctx->children[2]->getText() == "=") {
+                update->setMode(geax::frontend::UpdateProperties::Mode::Assign);
+            } else if (ctx->children[2]->getText() == "+=") {
+                update->setMode(geax::frontend::UpdateProperties::Mode::Append);
+            } else {
+                NOT_SUPPORT_AND_THROW();
+            }
             geax::frontend::Expr *expr = nullptr;
             checkedAnyCast(visit(ctx->oC_Expression()), expr);
             update->setVariable(expr);
+        } else if (ctx->oC_NodeLabels()) {
+            auto update = ALLOC_GEAOBJECT(geax::frontend::SetLabel);
+            update->setV(std::move(variable));
+            std::vector<std::string> labels;
+            checkedAnyCast(visit(ctx->oC_NodeLabels()), labels);
+            if (labels.empty()) {
+                NOT_SUPPORT_AND_THROW();
+            }
+            update->setLabels(std::move(labels));
+            node->appendItem(update);
         } else {
             THROW_CODE(InputError, "Variable `{}` not defined", vstr->val());
         }
@@ -512,6 +520,14 @@ std::any CypherBaseVisitorV2::visitOC_RemoveItem(LcypherParser::OC_RemoveItemCon
         node->appendItem(remove);
         remove->setV(std::move(variable));
         remove->setProperty(std::move(property));
+    } else if (ctx->oC_NodeLabels()) {
+        auto val = ctx->oC_Variable()->getText();
+        std::vector<std::string> labels;
+        checkedAnyCast(visit(ctx->oC_NodeLabels()), labels);
+        auto remove = ALLOC_GEAOBJECT(geax::frontend::RemoveLabel);
+        remove->setV(std::move(val));
+        remove->setLabels(std::move(labels));
+        node->appendItem(remove);
     } else {
         CYPHER_TODO();
     }

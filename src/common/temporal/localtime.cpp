@@ -24,7 +24,6 @@ namespace common {
 LocalTime::LocalTime() {
     auto t = make_zoned(date::current_zone(), std::chrono::system_clock::now());
     nanoseconds_since_today_ = t.get_local_time().time_since_epoch().count();
-    nanoseconds_since_today_ ++ ;
 }
 
 LocalTime::LocalTime(const Value& params) {

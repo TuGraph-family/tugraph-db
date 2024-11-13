@@ -1181,12 +1181,25 @@ std::any ExecutionPlanMaker::visit(geax::frontend::DeleteStatement* node) {
 
 std::any ExecutionPlanMaker::visit(geax::frontend::RemoveStatement* node) {
     auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
-    for (auto& item : node->items()) {
-        geax::frontend::RemoveSingleProperty* remove;
-        checkedCast(item, remove);
-        if (pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.find(remove->v()) ==
-            pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.end()) {
-            THROW_CODE(InputError, "Variable `{}` not defined", remove->v());
+    for (auto item : node->items()) {
+        if (typeid(*item) == typeid(geax::frontend::RemoveSingleProperty)) {
+            geax::frontend::RemoveSingleProperty* remove;
+            checkedCast(item, remove);
+            if (pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.find(
+                    remove->v()) == pattern_graphs_[cur_pattern_graph_]
+                                        .symbol_table.symbols.end()) {
+                THROW_CODE(InputError, "Variable `{}` not defined",
+                           remove->v());
+            }
+        } else if (typeid(*item) == typeid(geax::frontend::RemoveLabel)) {
+            geax::frontend::RemoveLabel* remove;
+            checkedCast(item, remove);
+            if (pattern_graphs_[cur_pattern_graph_].symbol_table.symbols.find(
+                    remove->v()) == pattern_graphs_[cur_pattern_graph_]
+                                        .symbol_table.symbols.end()) {
+                THROW_CODE(InputError, "Variable `{}` not defined",
+                           remove->v());
+            }
         }
     }
     auto op = new OpGqlRemove(node->items(), &pattern_graph);
@@ -1256,6 +1269,11 @@ std::any ExecutionPlanMaker::reportError() { return error_msg_; }
 std::any ExecutionPlanMaker::visit(geax::frontend::RemoveSingleProperty* ) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
+
+std::any ExecutionPlanMaker::visit(geax::frontend::RemoveLabel* ) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
 std::any ExecutionPlanMaker::visit(geax::frontend::ListComprehension* ) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }

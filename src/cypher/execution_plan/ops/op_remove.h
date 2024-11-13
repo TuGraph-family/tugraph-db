@@ -33,7 +33,7 @@ class OpGqlRemove : public OpBase {
     }
 
     OpResult Initialize(RTContext *ctx) override {
-        CYPHER_THROW_ASSERT(children.size() == 1);
+        CYPHER_THROW_ASSERT(parent && children.size() == 1);
         summary_ = !parent->parent;
         auto res = children[0]->Initialize(ctx);
         record = children[0]->record;
