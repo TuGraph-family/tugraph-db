@@ -28,6 +28,7 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
     uint32_t max_lid = 0;
     uint32_t max_tid = 0;
     uint32_t max_pid = 0;
+    uint32_t max_index_id = 0;
     {
         auto iter = db->NewIterator({}, graph_cf->graph_topology);
         iter->SeekToLast();
@@ -90,13 +91,22 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
             max_eid = eids.back();
         }
     }
-    LOG_INFO("max_vid:{}, max_eid:{}, max_lid:{}, max_pid:{}, max_tid:{}",
-                 max_vid, max_eid, max_lid, max_pid, max_tid);
+    {
+        auto iter = db->NewIterator({}, graph_cf->index);
+        iter->SeekToLast();
+        if (iter->Valid()) {
+            max_index_id = boost::endian::big_to_native((*(uint32_t *)iter->key().data_));
+        }
+        delete iter;
+    }
+    LOG_INFO("max_vid:{}, max_eid:{}, max_lid:{}, max_pid:{}, max_tid:{}, max_index_id:{}",
+                 max_vid, max_eid, max_lid, max_pid, max_tid, max_index_id);
     vertex_next_vid_ = max_vid + 1;
     edge_next_eid_ = max_eid + 1;
     label_next_lid_ = max_lid + 1;
     label_next_pid_ = max_pid + 1;
     label_next_tid_ = max_tid + 1;
+    index_next_id_ = max_index_id + 1;
 
     db_ = db;
     graph_cf_ = graph_cf;
@@ -108,6 +118,10 @@ int64_t IdGenerator::GetNextVid() {
 
 int64_t IdGenerator::GetNextEid() {
     return boost::endian::native_to_big(edge_next_eid_++);
+}
+
+uint32_t IdGenerator::GetNextIndexId() {
+    return boost::endian::native_to_big(index_next_id_++);
 }
 
 std::optional<uint32_t> IdGenerator::GetLid(const std::string &name) {

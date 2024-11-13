@@ -29,15 +29,6 @@ namespace graphdb {
 std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOptions& graph_options) {
     std::string rocksdb_path = path + "/data";
     std::filesystem::create_directories(rocksdb_path);
-    std::vector<std::string> all_cf;
-    if (fs::exists(rocksdb_path + "/LOCK")) {
-        rocksdb::Options options;
-        options.create_if_missing = true;
-        auto s =
-            rocksdb::DB::ListColumnFamilies(options, rocksdb_path, &all_cf);
-        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-        LOG_INFO("Column Families: {}", all_cf);
-    }
     rocksdb::Options options;
     options.create_if_missing = true;
     options.create_missing_column_families = true;
@@ -69,17 +60,12 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
                                              "vertex_label_vid",
                                              "edge_type_eid",
                                              "name_id",
-                                             "meta_info"};
+                                             "meta_info",
+                                             "index"};
     std::vector<rocksdb::ColumnFamilyDescriptor> cfs;
     cfs.reserve(built_in_cfs.size());
     for (const auto& name : built_in_cfs) {
         cfs.emplace_back(name, options);
-    }
-    for (const auto& name : all_cf) {
-        auto iter = std::find(built_in_cfs.begin(), built_in_cfs.end(), name);
-        if (iter == built_in_cfs.end()) {
-            cfs.emplace_back(name, options);
-        }
     }
     std::vector<rocksdb::ColumnFamilyHandle*> cf_handles;
     rocksdb::TransactionDBOptions txn_db_options;
@@ -97,10 +83,7 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     graph_db->graph_cf_.edge_type_eid = cf_handles[5];
     graph_db->graph_cf_.name_id = cf_handles[6];
     graph_db->graph_cf_.meta_info = cf_handles[7];
-    for (size_t i = 8; i < cf_handles.size(); i++) {
-        graph_db->graph_cf_.vertex_indexs[cf_handles[i]->GetName()] =
-            cf_handles[i];
-    }
+    graph_db->graph_cf_.index = cf_handles[8];
     graph_db->cf_handles_ = std::move(cf_handles);
     graph_db->options_ = graph_options;
     graph_db->service_threads_.emplace_back([&graph_db](){
@@ -166,12 +149,7 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
                    big_to_native(lid), big_to_native(pid));
     }
     busy_index_.Mark({pid}, {lid});
-    rocksdb::Options options;
-    std::string cf_name = fmt::format("{}_{}", big_to_native(lid),
-                                                  big_to_native(pid));
-    rocksdb::ColumnFamilyHandle* new_cf;
-    auto s = db_->CreateColumnFamily(options, cf_name, &new_cf);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    auto index_id = id_generator_.GetNextIndexId();
     rocksdb::ReadOptions ro;
     rocksdb::WriteOptions wo;
     std::unique_ptr<rocksdb::Iterator> iter(
@@ -185,24 +163,24 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
         std::string property_key = key.ToString();
         property_key.append((const char*)&pid, sizeof(pid));
         std::string property_val;
-        s = db_->Get(ro, graph_cf_.vertex_property, property_key,
+        auto s = db_->Get(ro, graph_cf_.vertex_property, property_key,
                      &property_val);
         if (s.IsNotFound()) {
             continue;
         } else if (!s.ok()) {
             THROW_CODE(StorageEngineError, s.ToString());
         }
-        std::string tmp;
-        s = db_->Get(ro, new_cf, property_val, &tmp);
+        std::string index_key, tmp;
+        index_key.append((const char*)(&index_id), sizeof(index_id));
+        index_key.append(property_val);
+        s = db_->Get(ro, graph_cf_.index, index_key, &tmp);
         if (s.ok()) {
-            db_->DropColumnFamily(new_cf);
-            db_->DestroyColumnFamilyHandle(new_cf);
             THROW_CODE(IndexValueAlreadyExist);
         } else if (!s.IsNotFound()) {
             THROW_CODE(StorageEngineError, s.ToString());
         }
         rocksdb::Slice vid = key;
-        s = db_->Put(wo, new_cf, property_val, vid);
+        s = db_->Put(wo, graph_cf_.index, index_key, vid);
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     }
 
@@ -217,15 +195,13 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
     meta_val.set_property(property);
     meta_val.set_label_id(big_to_native(lid));
     meta_val.set_property_id(big_to_native(pid));
-    meta_val.set_cf_name(cf_name);
-    s = db_->Put(wo, graph_cf_.meta_info, meta_key,
+    meta_val.set_index_id(big_to_native(index_id));
+    auto s = db_->Put(wo, graph_cf_.meta_info, meta_key,
                  meta_val.SerializeAsString());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    graph_cf_.vertex_indexs[cf_name] = new_cf;
-    cf_handles_.push_back(new_cf);
     LOG_INFO("Add vertex index: [lid:{}, pid:{}, is_unique:{}]",
                  big_to_native(lid), big_to_native(pid), true);
-    VertexPropertyIndex vpi(meta_val, new_cf, lid, pid);
+    VertexPropertyIndex vpi(meta_val, graph_cf_.index, index_id, lid, pid);
     auto ret = meta_info_.AddVertexPropertyIndex(std::move(vpi));
     assert(ret);
     busy_index_.Clear();
@@ -236,23 +212,13 @@ void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
         THROW_CODE(VertexUniqueIndexNotFound,
                    "No such vertex unique index [{}]", index_name);
     }
-    auto cf_name = meta_info_.GetVertexPropertyIndex(index_name)->meta().cf_name();
     meta_info_.DeleteVertexPropertyIndex(index_name);
-    auto cf = graph_cf_.vertex_indexs.at(cf_name);
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexPropertyIndex));
     meta_key.append(index_name);
     rocksdb::WriteOptions wo;
     auto s = db_->Delete(wo, graph_cf_.meta_info, meta_key);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    s = db_->DropColumnFamily(cf);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    s = db_->DestroyColumnFamilyHandle(cf);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    graph_cf_.vertex_indexs.erase(index_name);
-    auto iter = std::find(cf_handles_.begin(), cf_handles_.end(), cf);
-    assert(iter != cf_handles_.end());
-    cf_handles_.erase(iter);
     LOG_INFO("Delete vertex unique index: {}", index_name);
 }
 
