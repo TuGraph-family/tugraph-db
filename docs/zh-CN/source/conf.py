@@ -42,9 +42,7 @@ if read_the_docs_build:
     breathe_projects = {"cpp_procedure": "9.olap&procedure/1.procedure/build/xml"}
     breathe_default_project = "cpp_procedure"
 else:
-    print(platform.linux_distribution()[0].lower() + "-" * 70)
-    print(platform.linux_distribution()[1] + "-" * 70)
-    if platform.linux_distribution()[0].lower() == 'centos' and platform.linux_distribution()[1].startswith('7'):
+    if platform.linux_distribution()[0].lower().startswith('centos') and platform.linux_distribution()[1].startswith('7'):
         subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/centos7/liblgraph_python_api.so"))
         subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/centos7/liblgraph.so"))
         subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/centos7/libjvm.so"))
