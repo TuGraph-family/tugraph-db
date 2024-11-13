@@ -59,6 +59,12 @@ nlohmann::json ToJsonObj(const std::any& item) {
         const auto& date = std::any_cast<const bolt::Date&>(item);
         common::Date d(date.days);
         return ToJsonObj(d.ToString());
+    } else if (item.type() == typeid(bolt::DateTime)) {
+        const auto& dateTime = std::any_cast<const bolt::DateTime&>(item);
+        common::DateTime dt(
+            dateTime.seconds * 1000000000 + dateTime.nanoseconds,
+            dateTime.tz_offset_seconds);
+        return ToJsonObj(dt.ToString());
     } else if (item.type() == typeid(bolt::LocalDateTime)) {
         const auto& localDateTime = std::any_cast<const bolt::LocalDateTime&>(item);
         common::LocalDateTime dateTime(
@@ -71,7 +77,8 @@ nlohmann::json ToJsonObj(const std::any& item) {
             ret.push_back(ToJsonObj(v));
         }
         return ret;
-    } else if (item.type() == typeid(std::unordered_map<std::string, std::any>)) {
+    } else if (item.type() ==
+               typeid(std::unordered_map<std::string, std::any>)) {
         const auto& map = std::any_cast<const std::unordered_map<std::string, std::any>&>(item);
         nlohmann::json ret = nlohmann::json::object();
         for (auto& pair : map) {
@@ -82,7 +89,7 @@ nlohmann::json ToJsonObj(const std::any& item) {
         const auto& time = std::any_cast<const bolt::LocalTime&>(item);
         common::LocalTime d(time.nanoseconds);
         return ToJsonObj(d.ToString());
-    }  else if (item.type() == typeid(bolt::Time)) {
+    } else if (item.type() == typeid(bolt::Time)) {
         const auto& time = std::any_cast<const bolt::Time&>(item);
         common::Time d(time.nanoseconds, time.tz_offset_seconds);
         return ToJsonObj(d.ToString());

@@ -36,7 +36,8 @@ enum class ValueType : char {
     LOCALDATETIME,
     FLOAT, // for vector index
     LOCALTIME,
-    TIME
+    TIME,
+    DATETIME,
 };
 
 struct Value {
@@ -132,6 +133,10 @@ struct Value {
         type = ValueType::LOCALDATETIME;
         data = d;
     }
+    explicit Value(const common::DateTime& d) {
+        type = ValueType::DATETIME;
+        data = d;
+    }
     explicit Value(const common::LocalTime& d) {
         type = ValueType::LOCALTIME;
         data = d;
@@ -205,6 +210,11 @@ struct Value {
             return std::any_cast<const common::LocalDateTime&>(data);
         THROW_CODE(UnknownError, "AsLocalDateTime, but Value is not LocalDateTime");
     }
+    [[nodiscard]] const common::DateTime& AsDateTime() const {
+        if (LIKELY(type == ValueType::DATETIME))
+            return std::any_cast<const common::DateTime&>(data);
+        THROW_CODE(UnknownError, "AsDateTime, but Value is not DateTime");
+    }
     [[nodiscard]] const common::LocalTime& AsLocalTime() const {
         if (LIKELY(type == ValueType::LOCALTIME))
             return std::any_cast<const common::LocalTime&>(data);
@@ -229,6 +239,7 @@ struct Value {
     static Value Map(std::unordered_map<std::string, Value> b) { return Value(std::move(b)); }
     static Value Date(const class common::Date& b) { return Value(b); }
     static Value LocalDateTime(const class common::LocalDateTime& b) { return Value(b); }
+    static Value DateTime(const class common::DateTime& b) { return Value(b); };
     static Value LocalTime(const class common::LocalTime& b) { return Value(b); }
     static Value Time(const class common::Time& b) { return Value(b); }
 
@@ -250,6 +261,9 @@ struct Value {
     [[nodiscard]] bool IsMap() const {return type == ValueType::MAP;}
     [[nodiscard]] bool IsDate() const {return type == ValueType::DATE;}
     [[nodiscard]] bool IsLocalDateTime() const {return type == ValueType::LOCALDATETIME;}
+    [[nodiscard]] bool IsDateTime() const {
+        return type == ValueType::DATETIME;
+    }
     [[nodiscard]] bool IsLocalTime() const {return type == ValueType::LOCALTIME;}
     [[nodiscard]] bool IsTime() const {return type == ValueType::TIME;}
 
