@@ -95,7 +95,7 @@ class PackStream {
         packer_.Int64(m.tz_offset_seconds);
     }
     void PackLocalTime(const bolt::LocalTime& m) {
-        packer_.StructHeader('t', 2);
+        packer_.StructHeader('t', 1);
         packer_.Int64(m.nanoseconds);
     }
     void PackTime(const bolt::Time& m) {
