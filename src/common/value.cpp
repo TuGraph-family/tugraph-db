@@ -292,6 +292,8 @@ std::string ToString(ValueType t) {
         case ValueType::ARRAY : return "ARRAY";
         case ValueType::MAP : return "MAP";
         case ValueType::DATE : return "DATE";
+        case ValueType::DATETIME:
+            return "DATETIME";
         case ValueType::LOCALDATETIME : return "LOCALDATETIME";
         case ValueType::LOCALTIME : return "LOCALTIME";
         case ValueType::TIME : return "TIME";
@@ -329,6 +331,9 @@ std::string Value::ToString(bool str_quotation_mark) const {
         }
         case ValueType::DATE: {
             return std::any_cast<const common::Date&>(data).ToString();
+        }
+        case ValueType::DATETIME: {
+            return std::any_cast<const common::DateTime&>(data).ToString();
         }
         case ValueType::LOCALDATETIME: {
             return std::any_cast<const common::LocalDateTime&>(data).ToString();
@@ -369,6 +374,12 @@ std::any Value::ToBolt() const {
         }
         case ValueType::DATE: {
             return bolt::Date{std::any_cast<const common::Date&>(data).GetStorage()};
+        }
+        case ValueType::DATETIME: {
+            auto s = std::any_cast<const common::DateTime&>(data);
+            return bolt::DateTime{std::get<0>(s.GetStorage()) / 1000000000,
+                                  std::get<0>(s.GetStorage()) % 1000000000,
+                                  std::get<1>(s.GetStorage())};
         }
         case ValueType::LOCALDATETIME: {
             auto s = std::any_cast<const common::LocalDateTime&>(data).GetStorage();
@@ -423,6 +434,9 @@ bool Value::operator>(const Value& rhs) const {
                 return std::any_cast<const std::string&>(data) > std::any_cast<const std::string&>(rhs.data);
             case ValueType::DATE:
                 return std::any_cast<const common::Date>(data) > std::any_cast<const common::Date&>(rhs.data);
+            case ValueType::DATETIME:
+                return std::any_cast<const common::DateTime>(data) >
+                       std::any_cast<const common::DateTime&>(rhs.data);
             case ValueType::LOCALDATETIME:
                 return std::any_cast<const common::LocalDateTime>(data) > std::any_cast<const common::LocalDateTime&>(rhs.data);
             case ValueType::LOCALTIME:
@@ -475,6 +489,9 @@ bool Value::operator>=(const Value& rhs) const {
                 return std::any_cast<const std::string&>(data) >= std::any_cast<const std::string&>(rhs.data);
             case ValueType::DATE:
                 return std::any_cast<const common::Date>(data) >= std::any_cast<const common::Date&>(rhs.data);
+            case ValueType::DATETIME:
+                return std::any_cast<const common::DateTime>(data) >=
+                       std::any_cast<const common::DateTime&>(rhs.data);
             case ValueType::LOCALDATETIME:
                 return std::any_cast<const common::LocalDateTime>(data) >= std::any_cast<const common::LocalDateTime&>(rhs.data);
             case ValueType::LOCALTIME:
@@ -543,6 +560,9 @@ bool Value::operator==(const Value& b) const {
             return std::any_cast<const common::Date>(this->data) == std::any_cast<const common::Date&>(b.data);
         case ValueType::LOCALDATETIME:
             return std::any_cast<const common::LocalDateTime>(this->data) == std::any_cast<const common::LocalDateTime&>(b.data);
+        case ValueType::DATETIME:
+            return std::any_cast<const common::DateTime>(this->data) ==
+                   std::any_cast<const common::DateTime&>(b.data);
         case ValueType::LOCALTIME:
             return std::any_cast<const common::LocalTime>(data) == std::any_cast<const common::LocalTime&>(b.data);
         case ValueType::TIME:

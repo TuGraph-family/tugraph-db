@@ -568,6 +568,28 @@ Value BuiltinFunction::LocalDateTime(RTContext *ctx, const Record &record,
     }
 }
 
+Value BuiltinFunction::DateTime(RTContext *ctx, const Record &record,
+                                const std::vector<ArithExprNode> &args) {
+    if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
+    if (args.size() == 1) {
+        // datetime() Returns the current DateTime in current zonetime.
+        return Value(common::DateTime());
+    } else {
+        CYPHER_THROW_ASSERT(args.size() == 2);
+        // datetime(string) Returns a DateTime by parsing a string.
+        auto r = args[1].Evaluate(ctx, record);
+        if (r.IsMap()) {
+            auto dt = common::DateTime(r.constant);
+            return Value(dt);
+        } else if (r.IsString()) {
+            auto dt = common::DateTime(r.constant.AsString());
+            return Value(dt);
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
+    }
+}
+
 Value BuiltinFunction::LocalTime(RTContext *ctx, const Record &record,
                                      const std::vector<ArithExprNode> &args) {
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();

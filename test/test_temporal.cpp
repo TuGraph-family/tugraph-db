@@ -136,6 +136,25 @@ TEST(Date, dateFromMap) {
               "1817-01-07");
 }
 
+TEST(DateTime, dateTimeFromString) {
+    EXPECT_EQ(common::DateTime("2015-07-21T21:40:32.142+0100").ToString(),
+              "2015-07-21T21:40:32.142000000+01:00:00");
+    EXPECT_EQ(common::DateTime("2015-W30-2T214032.142Z").ToString(),
+              "2015-07-21T21:40:32.142000000Z");
+    EXPECT_EQ(common::DateTime("2015-202T21:40:32+01:00").ToString(),
+              "2015-07-21T21:40:32.000000000+01:00:00");
+    EXPECT_EQ(common::DateTime("2015T214032-0100").ToString(),
+              "2015-01-01T21:40:32.000000000-01:00:00");
+    EXPECT_EQ(common::DateTime("20150721T21:40-01:30").ToString(),
+              "2015-07-21T21:40:00.000000000-01:30:00");
+    EXPECT_EQ(common::DateTime("2015-W30T2140-00:00").ToString(),
+              "2015-07-20T21:40:00.000000000Z");
+    EXPECT_EQ(common::DateTime("2015-W30T2140-02").ToString(),
+              "2015-07-20T21:40:00.000000000-02:00:00");
+    EXPECT_EQ(common::DateTime("2015202T21+18:00").ToString(),
+              "2015-07-21T21:00:00.000000000+18:00:00");
+}
+
 TEST(LocalDateTime, localDateTimeFromString) {
     EXPECT_EQ(common::LocalDateTime("2015-07-21T21:40:32.142").ToString(),
               "2015-07-21T21:40:32.142000000");

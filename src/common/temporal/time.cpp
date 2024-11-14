@@ -270,7 +270,7 @@ std::string Time::ToString() const {
     if (tz_offset_seconds_ == 0) {
         return date::format("%H:%M:%S", tp) + "Z";
     } else {
-        char time_offset[20];
+        char time_offset[32];
         auto abs_second = std::abs(tz_offset_seconds_);
         sprintf(time_offset, "%c%02ld:%02ld:%02ld", tz_offset_seconds_ < 0 ? '-' : '+', abs_second / 60 / 60,
                 abs_second / 60 % 60, abs_second % 60);

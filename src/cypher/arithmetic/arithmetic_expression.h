@@ -231,6 +231,8 @@ struct BuiltinFunction {
                           const std::vector<ArithExprNode> &args);
     static Value LocalDateTime(RTContext *ctx, const Record &record,
                       const std::vector<ArithExprNode> &args);
+    static Value DateTime(RTContext *ctx, const Record &record,
+                          const std::vector<ArithExprNode> &args);
     static Value LocalTime(RTContext *ctx, const Record &record,
                            const std::vector<ArithExprNode> &args);
     static Value Time(RTContext *ctx, const Record &record,
@@ -426,6 +428,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("mask", BuiltinFunction::Mask);
         ae_registered_funcs.emplace("date", BuiltinFunction::Date);
         ae_registered_funcs.emplace("localdatetime", BuiltinFunction::LocalDateTime);
+        ae_registered_funcs.emplace("datetime", BuiltinFunction::DateTime);
         ae_registered_funcs.emplace("range", BuiltinFunction::Range);
         ae_registered_funcs.emplace("size", BuiltinFunction::Size);
         ae_registered_funcs.emplace("head", BuiltinFunction::Head);
