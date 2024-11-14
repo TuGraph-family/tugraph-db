@@ -20,42 +20,40 @@
 class Value;
 
 namespace common {
-class DateTime {
+class LocalDateTime {
    private:
     int64_t nanoseconds_since_epoch_ = 0;
-    int64_t tz_offset_seconds_ = 0;
 
    public:
-    DateTime();
+    LocalDateTime();
     /**
-     * Construct a DateTime object from a temporal value
+     * Construct a Local DateTime object from a temporal value
      *
      * \param   str: a string representation of a temporal value
      */
-    explicit DateTime(const std::string& str);
-    explicit DateTime(int64_t nanoseconds, int64_t offset_seconds = 0)
-        : nanoseconds_since_epoch_(nanoseconds),
-          tz_offset_seconds_(offset_seconds){};
+    explicit LocalDateTime(const std::string& str);
+    explicit LocalDateTime(int64_t nanoseconds)
+        : nanoseconds_since_epoch_(nanoseconds){};
 
     /**
-     * Construct a DateTime object from a user supplied map
+     * Construct a Local DateTime object from a user supplied map
      *
      * \param params: a map containing the single key 'timezone', or a map
      *                containing temporal values ('year', 'month', 'day',
      *                'hour', 'minute', 'second',
      *                'millisecond', 'microsecond', 'nanosecond') as components.
      */
-    explicit DateTime(const Value& params);
-    [[nodiscard]] std::tuple<int64_t, int64_t> GetStorage() const {
-        return {nanoseconds_since_epoch_, tz_offset_seconds_};
+    explicit LocalDateTime(const Value& params);
+    [[nodiscard]] int64_t GetStorage() const {
+        return nanoseconds_since_epoch_;
     }
     [[nodiscard]] std::string ToString() const;
-    bool operator<(const DateTime& rhs) const noexcept;
-    bool operator<=(const DateTime& rhs) const noexcept;
-    bool operator>(const DateTime& rhs) const noexcept;
-    bool operator>=(const DateTime& rhs) const noexcept;
-    bool operator==(const DateTime& rhs) const noexcept;
-    bool operator!=(const DateTime& rhs) const noexcept;
+    bool operator<(const LocalDateTime& rhs) const noexcept;
+    bool operator<=(const LocalDateTime& rhs) const noexcept;
+    bool operator>(const LocalDateTime& rhs) const noexcept;
+    bool operator>=(const LocalDateTime& rhs) const noexcept;
+    bool operator==(const LocalDateTime& rhs) const noexcept;
+    bool operator!=(const LocalDateTime& rhs) const noexcept;
 };
 
 }  // namespace common
