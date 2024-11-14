@@ -118,9 +118,12 @@ Time::Time(const std::string& str) {
 Time::Time(const Value& params) {
     std::string timezoneName = "UTC";
     if (params.IsLocalTime()) {
-        date::local_time<std::chrono::nanoseconds> tp{std::chrono::nanoseconds(params.AsLocalTime().GetStorage())};
-        auto t = make_zoned(timezoneName, tp);
-        nanoseconds_since_today_with_of_ = t.get_local_time().time_since_epoch().count();
+        nanoseconds_since_today_with_of_ = params.AsLocalTime().GetStorage();
+        return;
+    }
+    if (params.IsTime()) {
+        nanoseconds_since_today_with_of_ = std::get<0>(params.AsTime().GetStorage());
+        tz_offset_seconds_ = std::get<1>(params.AsTime().GetStorage());
         return;
     }
     std::unordered_map<std::string, Value> parse_params_map;
@@ -131,6 +134,42 @@ Time::Time(const Value& params) {
     }
     if (parse_params_map.empty()) {
         THROW_CODE(InvalidParameter, "At least one temporal unit must be specified.");
+    }
+    int64_t hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0;
+    if (parse_params_map.count("time")) {
+        int64_t v = 0;
+        if (parse_params_map["time"].IsLocalTime()) {
+            v = parse_params_map["time"].AsLocalTime().GetStorage();
+        } else if (parse_params_map["time"].IsTime()) {
+            v = std::get<0>(parse_params_map["time"].AsTime().GetStorage());
+            tz_offset_seconds_ = std::get<1>(parse_params_map["time"].AsTime().GetStorage());
+        }
+        nanosecond = v % 1000;
+        microsecond = v / 1000 % 1000;
+        millisecond = v / 1000000 % 1000;
+        second = v / 1000000000 % 60;
+        minute = v / 60000000000 % 60;
+        hour = v / 3600000000000 % 24;
+    } else {
+        std::vector<std::pair<std::string, bool>> has_value = {
+            {"hour", parse_params_map.count("hour")},
+            {"minute", parse_params_map.count("minute")},
+            {"second", parse_params_map.count("second")},
+            {"subsecond", parse_params_map.count("millisecond") || parse_params_map.count("microsecond") || parse_params_map.count("nanosecond")}
+        };
+        if (!has_value[0].second) {
+            THROW_CODE(InvalidParameter, "hour must be specified");
+        }
+        std::string firstNotAssigned;
+        for (const auto &value : has_value) {
+            if (!value.second) {
+                if (firstNotAssigned.empty()) {
+                    firstNotAssigned = value.first;
+                }
+            } else if (!firstNotAssigned.empty()) {
+                THROW_CODE(InvalidParameter, "{} cannot be specified without {}", value.first, firstNotAssigned);
+            }
+        }
     }
     if (parse_params_map.count("timezone")) {
         auto tmp = parse_params_map["timezone"].AsString();
@@ -164,42 +203,12 @@ Time::Time(const Value& params) {
             tz_offset_seconds_ = date::zoned_time(tmp).get_info().offset.count();
         }
         if (parse_params_map.size() == 1) {
-            nanoseconds_since_today_with_of_ = std::chrono::system_clock::now().time_since_epoch().count() 
-                                                  + tz_offset_seconds_ * 1000000000;
+            nanoseconds_since_today_with_of_ = std::chrono::system_clock::now().time_since_epoch().count()
+                                               + tz_offset_seconds_ * 1000000000;
             if (nanoseconds_since_today_with_of_ < 0) {
                 nanoseconds_since_today_with_of_ += 86400L * 1000000000;
             }
             return;
-        }
-    }
-    int64_t hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0;
-    if (parse_params_map.count("time")) {
-        auto v = parse_params_map["time"].AsLocalTime().GetStorage();
-        nanosecond = v % 1000;
-        microsecond = v / 1000 % 1000;
-        millisecond = v / 1000000 % 1000;
-        second = v / 1000000000 % 60;
-        minute = v / 60000000000 % 60;
-        hour = v / 3600000000000 % 24;
-    } else {
-        std::vector<std::pair<std::string, bool>> has_value = {
-            {"hour", parse_params_map.count("hour")},
-            {"minute", parse_params_map.count("minute")},
-            {"second", parse_params_map.count("second")},
-            {"subsecond", parse_params_map.count("millisecond") || parse_params_map.count("microsecond") || parse_params_map.count("nanosecond")}
-        };
-        if (!has_value[0].second) {
-            THROW_CODE(InvalidParameter, "hour must be specified");
-        }
-        std::string firstNotAssigned;
-        for (const auto &value : has_value) {
-            if (!value.second) {
-                if (firstNotAssigned.empty()) {
-                    firstNotAssigned = value.first;
-                }
-            } else if (!firstNotAssigned.empty()) {
-                THROW_CODE(InvalidParameter, "{} cannot be specified without {}", value.first, firstNotAssigned);
-            }
         }
     }
     // hh-mm-ss exception

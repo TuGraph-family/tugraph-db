@@ -580,7 +580,7 @@ Value BuiltinFunction::LocalTime(RTContext *ctx, const Record &record,
         auto r = args[1].Evaluate(ctx, record);
         if (r.IsNull()) {
             return {};
-        } else if (r.IsMap() || (r.IsConstant() && r.constant.IsLocalTime())) {
+        } else if (r.IsMap() || (r.IsConstant() && (r.constant.IsLocalTime() || r.constant.IsTime()))) {
             auto dt = common::LocalTime(r.constant);
             return Value(dt);
         } else if (r.IsString()) {
@@ -604,7 +604,7 @@ Value BuiltinFunction::Time(RTContext *ctx, const Record &record,
         auto r = args[1].Evaluate(ctx, record);
         if (r.IsNull()) {
             return {};
-        } else if (r.IsMap() || (r.IsConstant() && r.constant.IsLocalTime())) {
+        } else if (r.IsMap() || (r.IsConstant() && (r.constant.IsLocalTime() || r.constant.IsTime()))) {
             auto dt = common::Time(r.constant);
             return Value(dt);
         } else if (r.IsString()) {
