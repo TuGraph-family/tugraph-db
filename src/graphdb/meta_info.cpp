@@ -182,7 +182,8 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
             pids.insert(native_to_big(id));
         }
         auto v_ft_index = std::make_unique<VertexFullTextIndex>(
-            db, service, graph_cf, id_generator, meta, lids, pids, ft_commit_interval);
+            db, service, graph_cf, id_generator, meta,
+            native_to_big(meta.index_id()), lids, pids, ft_commit_interval);
         vertex_ft_indexes.emplace(meta.name(), std::move(v_ft_index));
     }
     prefix.clear();

@@ -94,6 +94,7 @@ Vertex Transaction::CreateVertex(
         }
         if (!add.fields.empty()) {
             ft_updates_.push_back(std::move(add));
+            ft->AddIndex(this, vid);
         }
     }
     // vector index
