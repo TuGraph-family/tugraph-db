@@ -128,8 +128,8 @@ const sidebars: SidebarsConfig = {
           },
           items: [
             "olap&procedure/procedure/traversal",
-            // 'olap&procedure/procedure/C++-procedure',
-            // 'olap&procedure/procedure/Python-procedure',
+            'olap&procedure/procedure/C++-procedure',
+            'olap&procedure/procedure/Python-procedure',
             "olap&procedure/procedure/Rust-procedure",
           ],
         },
