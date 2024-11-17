@@ -87,6 +87,10 @@ class FieldExtractorV1 : public FieldExtractorBase {
 
     ~FieldExtractorV1() override = default;
 
+    std::unique_ptr<FieldExtractorBase> Clone() const override {
+        return std::make_unique<FieldExtractorV1>(*this);
+    }
+
     // for test only
     explicit FieldExtractorV1(const FieldSpec& d) noexcept : FieldExtractorBase(d) {
         null_bit_off_ = 0;
