@@ -18,10 +18,9 @@
 #include <unordered_map>
 #include <vector>
 
+
 #include "fma-common/binary_buffer.h"
-#include "fma-common/binary_read_write_helper.h"
 #include "fma-common/string_formatter.h"
-#include "fma-common/text_parser.h"
 #include "fma-common/type_traits.h"
 
 #include "core/blob_manager.h"
@@ -99,7 +98,7 @@ class Schema {
     // Conditionally instantiate either FieldExtractorV2 or FieldExtractorV1 based on
     // whether fast_alter_schema is enabled or disabled.
 
-    std::vector<std::shared_ptr<_detail::FieldExtractorBase>> fields_;
+    std::vector<std::unique_ptr<_detail::FieldExtractorBase>> fields_;
     std::unordered_map<std::string, size_t> name_to_idx_;
 
     // these for fields only work for fast_alter_schema = false;
@@ -163,9 +162,9 @@ class Schema {
 
     explicit Schema(bool label_in_record) : label_in_record_(label_in_record) {}
 
-    Schema(const Schema& rhs) = default;
+    Schema(const Schema& rhs);
 
-    Schema& operator=(const Schema& rhs) = default;
+    Schema& operator=(const Schema& rhs);
 
     Schema(Schema&& rhs) = default;
 
@@ -231,8 +230,13 @@ class Schema {
     // mod fields, assuming fields are already de-duplicated
     void ModFields(const std::vector<FieldSpec>& mod_fields);
 
-    const std::vector<std::shared_ptr<_detail::FieldExtractorBase>>& GetFields() const {
-        return fields_;
+    const std::vector<_detail::FieldExtractorBase*> GetFields() const {
+        std::vector<_detail::FieldExtractorBase*> vec;
+        vec.reserve(fields_.size());
+        for (auto &field:fields_) {
+            vec.push_back(field.get());
+        }
+        return vec;
     }
 
     //-----------------------

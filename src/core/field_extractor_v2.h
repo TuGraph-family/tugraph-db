@@ -80,6 +80,10 @@ class FieldExtractorV2 : public FieldExtractorBase {
 
     ~FieldExtractorV2() override = default;
 
+    std::unique_ptr<FieldExtractorBase> Clone() const override {
+        return std::make_unique<FieldExtractorV2>(*this);
+    }
+
     // Get Field info. Check if it's null in record.
     bool GetIsNull(const Value& record) const override;
 

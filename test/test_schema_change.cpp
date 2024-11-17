@@ -45,14 +45,15 @@ static std::string RandomString(size_t n) {
     return str;
 }
 
-static void CreateSampleDB(const std::string& dir, bool detach_property) {
+static void CreateSampleDB(const std::string& dir, bool fast_alter_schema) {
     using namespace lgraph;
     lgraph::DBConfig conf;
     conf.dir = dir;
     lgraph::LightningGraph lg(conf);
     VertexOptions vo;
     vo.primary_field = "id";
-    vo.detach_property = detach_property;
+    vo.detach_property = false;
+    vo.fast_alter_schema = fast_alter_schema;
     UT_EXPECT_TRUE(lg.AddLabel(
         "person",
         std::vector<FieldSpec>(
@@ -65,7 +66,8 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     EdgeOptions options;
     options.temporal_field = "ts";
     options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
-    options.detach_property = detach_property;
+    options.detach_property = false;
+    options.fast_alter_schema = fast_alter_schema;
     UT_EXPECT_TRUE(lg.AddLabel("knows",
                                std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
                                                        FieldSpec("ts", FieldType::INT64, true)}),
@@ -95,14 +97,15 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     txn.Commit();
 }
 
-static void CreateLargeSampleDB(const std::string& dir, bool detach_property) {
+static void CreateLargeSampleDB(const std::string& dir, bool fast_alter_schema) {
     using namespace lgraph;
     lgraph::DBConfig conf;
     conf.dir = dir;
     lgraph::LightningGraph lg(conf);
     VertexOptions vo;
     vo.primary_field = "name";
-    vo.detach_property = detach_property;
+    vo.detach_property = false;
+    vo.fast_alter_schema = fast_alter_schema;
     UT_EXPECT_TRUE(
         lg.AddLabel("large",
                     std::vector<FieldSpec>({FieldSpec("name", FieldType::STRING, false),
@@ -122,7 +125,7 @@ static void CreateLargeSampleDB(const std::string& dir, bool detach_property) {
 
 class TestSchemaChange : public TuGraphTestWithParam<bool> {};
 
-INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false));
+INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false, true));
 
 TEST_P(TestSchemaChange, ModifyFields) {
     using namespace lgraph;
@@ -131,6 +134,8 @@ TEST_P(TestSchemaChange, ModifyFields) {
 
     UT_LOG() << "Test Schema::AddFields, DelFields and ModFields";
     Schema s1;
+    bool enable_fast_alter_schema = GetParam();
+    s1.SetFastAlterSchema(enable_fast_alter_schema);
     s1.SetSchema(
         true,
         std::vector<FieldSpec>(
@@ -143,8 +148,9 @@ TEST_P(TestSchemaChange, ModifyFields) {
     {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("id3", FieldType::INT32, false)}));
-        UT_EXPECT_TRUE(s2.GetFieldExtractor("id3")->GetFieldSpec() ==
-                       FieldSpec("id3", FieldType::INT32, false));
+        FieldSpec spec = s2.GetFieldExtractor("id3")->GetFieldSpec();
+        UT_EXPECT_TRUE(spec ==
+                        FieldSpec("id3", FieldType::INT32, false, enable_fast_alter_schema ? 6:0));
         auto fmap = s2.GetFieldSpecsAsMap();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
         fmap.erase("id3");
@@ -179,7 +185,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
         std::vector<std::string> to_del = {"blob", "name2"};
         s2.DelFields(to_del);
         UT_EXPECT_TRUE(!s2.HasBlob());
-        auto fmap = s2.GetFieldSpecsAsMap();
+        auto fmap = s2.GetAliveFieldSpecsAsMap();
         auto old_fields = fields;
         for (auto& f : to_del) old_fields.erase(f);
         UT_EXPECT_TRUE(fmap == old_fields);
@@ -193,9 +199,14 @@ TEST_P(TestSchemaChange, ModifyFields) {
                                       FieldSpec("blob", FieldType::STRING, false)};
         s2.ModFields(mod);
         UT_EXPECT_TRUE(!s2.HasBlob());
-        auto fmap = s2.GetFieldSpecsAsMap();
+        auto fmap = s2.GetAliveFieldSpecsAsMap();
         auto old_fields = fields;
-        for (auto& f : mod) old_fields[f.name] = f;
+        for (auto& f : mod) {
+            FieldId id = old_fields[f.name].id;
+            old_fields[f.name] = f;
+            old_fields[f.name].id = id;
+        }
+
         UT_EXPECT_TRUE(fmap == old_fields);
         UT_EXPECT_THROW_CODE(s2.ModFields(std::vector<FieldSpec>(
                             {FieldSpec("no_such_field", FieldType::BLOB, true)})),
@@ -206,7 +217,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
     }
 }
 
-TEST_P(TestSchemaChange, DelFields) {
+TEST_F(TestSchemaChange, DelFields) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
@@ -230,7 +241,7 @@ TEST_P(TestSchemaChange, DelFields) {
     DBConfig conf;
     conf.dir = dir;
     UT_LOG() << "Testing del field";
-    CreateSampleDB(dir, GetParam());
+    CreateSampleDB(dir, false);
     auto orig_v_schema = GetCurrSchema(dir, true);
     auto orig_e_schema = GetCurrSchema(dir, false);
     {
