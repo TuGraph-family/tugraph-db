@@ -233,7 +233,7 @@ class Schema {
     const std::vector<_detail::FieldExtractorBase*> GetFields() const {
         std::vector<_detail::FieldExtractorBase*> vec;
         vec.reserve(fields_.size());
-        for (auto &field:fields_) {
+        for (auto& field : fields_) {
             vec.push_back(field.get());
         }
         return vec;
@@ -394,7 +394,7 @@ class Schema {
         const Value& record, const FieldT& field_name_or_num,
         const GetBlobByKeyFunc& get_blob) const {
         _detail::FieldExtractorBase* extractor = TryGetFieldExtractor(field_name_or_num);
-        if (!extractor) return FieldData();
+        if (!extractor || extractor->IsDeleted()) return FieldData();
         if (fast_alter_schema) {
             if (dynamic_cast<_detail::FieldExtractorV2*>(extractor)->GetRecordCount(record) <
                 extractor->GetFieldId() + 1) {

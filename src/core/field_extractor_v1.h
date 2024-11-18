@@ -51,7 +51,7 @@ class FieldExtractorV1 : public FieldExtractorBase {
  public:
     FieldExtractorV1() : FieldExtractorBase() {}
 
-    FieldExtractorV1(const FieldExtractorV1& rhs) : FieldExtractorBase(rhs.GetFieldSpec()) {
+    FieldExtractorV1(const FieldExtractorV1& rhs) : FieldExtractorBase(rhs) {
         is_vfield_ = !rhs.IsFixedType();
         offset_ = rhs.offset_;
         nullable_array_off_ = rhs.nullable_array_off_;

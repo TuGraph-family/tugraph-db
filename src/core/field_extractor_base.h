@@ -58,6 +58,15 @@ class FieldExtractorBase {
         vector_index_ = nullptr;
     }
 
+    FieldExtractorBase(const FieldExtractorBase& rhs) {
+        def_ = rhs.GetFieldSpec();
+        is_vfield_ = rhs.is_vfield_;
+        fulltext_indexed_ = rhs.fulltext_indexed_;
+        vertex_index_.reset(rhs.vertex_index_ ? new VertexIndex(*rhs.vertex_index_) : nullptr);
+        edge_index_.reset(rhs.edge_index_ ? new EdgeIndex(*rhs.edge_index_) : nullptr);
+        vector_index_ = rhs.vector_index_;
+    }
+
     FieldExtractorBase(FieldExtractorBase&& rhs) noexcept {
         def_ = rhs.GetFieldSpec();
         is_vfield_ = rhs.is_vfield_;

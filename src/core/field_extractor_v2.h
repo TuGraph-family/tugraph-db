@@ -46,7 +46,7 @@ class FieldExtractorV2 : public FieldExtractorBase {
  public:
     FieldExtractorV2() : FieldExtractorBase() {}
 
-    FieldExtractorV2(const FieldExtractorV2& rhs) : FieldExtractorBase(rhs.GetFieldSpec()) {
+    FieldExtractorV2(const FieldExtractorV2& rhs) : FieldExtractorBase(rhs) {
         nullarray_offset_ = rhs.nullarray_offset_;
         count_offset_ = rhs.count_offset_;
     }
