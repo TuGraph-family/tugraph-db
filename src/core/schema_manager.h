@@ -216,10 +216,12 @@ class SchemaManager {
             temporal = dynamic_cast<const EdgeOptions&>(options).temporal_field;
             temporal_order = dynamic_cast<const EdgeOptions&>(options).temporal_field_order;
         }
+        ls->SetFastAlterSchema(options.fast_alter_schema);
         ls->SetSchema(is_vertex, n_fields, fields, primary, temporal, temporal_order,
                       edge_constraints);
         ls->SetLabel(label);
         ls->SetDetachProperty(options.detach_property);
+
         name_to_idx_.emplace_hint(it, label, ls->GetLabelId());
         // now write the modification to the kvstore
         using namespace fma_common;
