@@ -31,7 +31,7 @@ class Time {
     Time();
     explicit Time(const std::string& str);
     explicit Time(const Value& params);
-    explicit Time(int64_t nanoseconds, int64_t tz_offset_seconds_)
+    explicit Time(int64_t nanoseconds, int64_t tz_offset_seconds_ = 0)
         : nanoseconds_since_today_with_of_(nanoseconds), tz_offset_seconds_(tz_offset_seconds_){};
     [[nodiscard]] std::tuple<int64_t, int64_t> GetStorage() const {
         return {nanoseconds_since_today_with_of_, tz_offset_seconds_};

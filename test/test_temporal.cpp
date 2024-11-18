@@ -13,8 +13,14 @@
  */
 
 #include <gtest/gtest.h>
+#include <filesystem>
+#include "common/logger.h"
 #include "common/temporal/temporal.h"
 #include "common/value.h"
+#include "cypher/execution_plan/result_iterator.h"
+#include "graphdb/graph_db.h"
+using namespace graphdb;
+namespace fs = std::filesystem;
 
 TEST(Date, dateFromString) {
     EXPECT_EQ(common::Date("2015-07-21").ToString(), "2015-07-21");
@@ -809,4 +815,32 @@ TEST(Time, localdatetimeNestedMap) {
                                                     {"hour", Value::Integer(12)}, {"timezone", Value::String("+01:00")}})))},
                                        {"second", Value::Integer(42)}, {"timezone", Value::String("+05:00")}})).ToString(),
               "16:00:42.000000000+05:00:00");
+}
+
+static std::string testdb = "varlendb";
+
+TEST(Time, truncate) {
+    fs::remove_all(testdb);
+    auto graphDB = GraphDB::Open(testdb, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIterator = txn->Execute(&rtx, "WITH time({hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}) AS t\n"
+                 "RETURN\n"
+                 "  localtime.truncate('day', t) AS truncDay,\n"
+                 "  localtime.truncate('hour', t) AS truncHour,\n"
+                 "  localtime.truncate('minute', t, {millisecond: 1}) AS truncMinute,\n"
+                 "  localtime.truncate('second', t) AS truncSecond,\n"
+                 "  localtime.truncate('millisecond', t) AS truncMillisecond,\n"
+                 "  localtime.truncate('microsecond', t) AS truncMicrosecond");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsLocalTime().ToString(), "00:00:00.000000000");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsLocalTime().ToString(), "12:00:00.000000000");
+        EXPECT_EQ(std::any_cast<Value>(records[2].data).AsLocalTime().ToString(), "12:31:00.001000000");
+        EXPECT_EQ(std::any_cast<Value>(records[3].data).AsLocalTime().ToString(), "12:31:14.000000000");
+        EXPECT_EQ(std::any_cast<Value>(records[4].data).AsLocalTime().ToString(), "12:31:14.645000000");
+        EXPECT_EQ(std::any_cast<Value>(records[5].data).AsLocalTime().ToString(), "12:31:14.645876000");
+    }
+    txn->Commit();
 }

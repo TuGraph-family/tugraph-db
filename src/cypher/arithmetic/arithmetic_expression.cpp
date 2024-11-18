@@ -615,6 +615,63 @@ Value BuiltinFunction::LocalTime(RTContext *ctx, const Record &record,
     }
 }
 
+Value BuiltinFunction::LocalTimeTruncate(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() > 4) CYPHER_ARGUMENT_ERROR();
+    auto truncate_unit = args[1].Evaluate(ctx, record).constant.AsString();
+    auto r = args[2].Evaluate(ctx, record);
+    if (r.IsConstant() && (r.constant.IsLocalTime() || r.constant.IsTime()
+                           || r.constant.IsDateTime() || r.constant.IsLocalDateTime())) {
+        std::unordered_map<std::string, Value> um;
+        if (args.size() == 4) {
+            auto p = args[3].Evaluate(ctx, record);
+            for (const auto &kv : p.constant.AsMap()) {
+                um.emplace(kv);
+            }
+        }
+        auto truncate = [&truncate_unit] (int64_t nanosecond) {
+            if (truncate_unit == "day") {
+                return nanosecond / 86400000000000 * 86400000000000;
+            } else if (truncate_unit == "hour") {
+                return nanosecond / 3600000000000 * 3600000000000;
+            } else if (truncate_unit == "minute") {
+                return nanosecond / 60000000000 * 60000000000;
+            } else if (truncate_unit == "second") {
+                return nanosecond / 1000000000 * 1000000000;
+            } else if (truncate_unit == "millisecond") {
+                return nanosecond / 1000000 * 1000000;
+            } else if (truncate_unit == "microsecond") {
+                return nanosecond / 1000 * 1000;
+            } else {
+                THROW_CODE(InvalidParameter, "Unsupported unit: {}", truncate_unit);
+            }
+        };
+        switch (r.constant.type) {
+            case ValueType::LOCALTIME:
+                um.emplace("time", common::LocalTime(truncate(r.constant.AsLocalTime().GetStorage())));
+                return Value::LocalTime(common::LocalTime(Value::Map(um)));
+            case ValueType::TIME:
+                um.emplace("time", common::Time(truncate(std::get<0>(r.constant.AsTime().GetStorage()))));
+                return Value::LocalTime(common::LocalTime(Value::Map(um)));
+            case ValueType::DATETIME:
+                um.emplace("time", common::DateTime(truncate(std::get<0>(r.constant.AsDateTime().GetStorage()))));
+                return Value::LocalTime(common::LocalTime(Value::Map(um)));
+            case ValueType::LOCALDATETIME:
+                um.emplace("time", common::LocalDateTime(truncate(r.constant.AsLocalDateTime().GetStorage())));
+                return Value::LocalTime(common::LocalTime(Value::Map(um)));
+            default:
+                break;
+        }
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+    return {};
+}
+
+Value BuiltinFunction::TimeTruncate(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+    return {};
+}
+
 Value BuiltinFunction::Time(RTContext *ctx, const Record &record,
                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
