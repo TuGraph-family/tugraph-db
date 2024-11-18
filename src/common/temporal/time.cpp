@@ -126,6 +126,15 @@ Time::Time(const Value& params) {
         tz_offset_seconds_ = std::get<1>(params.AsTime().GetStorage());
         return;
     }
+    if (params.IsDateTime()) {
+        nanoseconds_since_today_with_of_ = std::get<0>(params.AsDateTime().GetStorage());
+        tz_offset_seconds_ = std::get<1>(params.AsDateTime().GetStorage());
+        return;
+    }
+    if (params.IsLocalDateTime()) {
+        nanoseconds_since_today_with_of_ = params.AsLocalDateTime().GetStorage();
+        return;
+    }
     std::unordered_map<std::string, Value> parse_params_map;
     for (const auto &kv : params.AsMap()) {
         auto s = kv.first;
@@ -135,14 +144,22 @@ Time::Time(const Value& params) {
     if (parse_params_map.empty()) {
         THROW_CODE(InvalidParameter, "At least one temporal unit must be specified.");
     }
-    int64_t hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0;
+    int64_t hour = 0, minute = 0, second = 0, millisecond = 0, microsecond = 0, nanosecond = 0, time_param_offset_second = 0;
+    bool has_time_param = false;
     if (parse_params_map.count("time")) {
         int64_t v = 0;
         if (parse_params_map["time"].IsLocalTime()) {
             v = parse_params_map["time"].AsLocalTime().GetStorage();
         } else if (parse_params_map["time"].IsTime()) {
+            has_time_param = true;
             v = std::get<0>(parse_params_map["time"].AsTime().GetStorage());
-            tz_offset_seconds_ = std::get<1>(parse_params_map["time"].AsTime().GetStorage());
+            tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsTime().GetStorage());
+        } else if (parse_params_map["time"].IsLocalDateTime()) {
+            v = parse_params_map["time"].AsLocalDateTime().GetStorage();
+        } else if (parse_params_map["time"].IsDateTime()) {
+            has_time_param = true;
+            v = std::get<0>(parse_params_map["time"].AsDateTime().GetStorage());
+            tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsDateTime().GetStorage());
         }
         nanosecond = v % 1000;
         microsecond = v / 1000 % 1000;
@@ -259,6 +276,9 @@ Time::Time(const Value& params) {
     // all time
     std::chrono::nanoseconds ns{hour * 60 * 60 * 1000000000 + minute * 60 * 1000000000 + second * 1000000000 +
                                 millisecond * 1000000 + microsecond * 1000 + nanosecond};
+    if (has_time_param) {
+        ns = std::chrono::nanoseconds(ns.count() - time_param_offset_second * 1000000000 + tz_offset_seconds_ * 1000000000);
+    }
     date::local_time<std::chrono::nanoseconds> tp{ns};
     auto t = make_zoned(timezoneName, tp);
     nanoseconds_since_today_with_of_ = t.get_local_time().time_since_epoch().count();

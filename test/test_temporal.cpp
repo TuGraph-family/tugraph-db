@@ -695,7 +695,7 @@ TEST(Time, localtimeNestedMap) {
                                                                                      {"second", Value::Integer(14)}, {"microsecond", Value::Integer(645876)},
                                                                                      {"timezone", Value::String("+01:00")}})))},
                                        {"timezone", Value::String("+05:00")}})).ToString(),
-              "12:31:14.645876000+05:00:00");
+              "16:31:14.645876000+05:00:00");
     EXPECT_EQ(common::Time(Value::Map({{"time", Value::Time(common::Time(Value::Map({{"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
                                                                                      {"second", Value::Integer(14)}, {"microsecond", Value::Integer(645876)},
                                                                                      {"timezone", Value::String("+01:00")}})))},
@@ -705,5 +705,108 @@ TEST(Time, localtimeNestedMap) {
                                                                                      {"second", Value::Integer(14)}, {"microsecond", Value::Integer(645876)},
                                                                                      {"timezone", Value::String("+01:00")}})))},
                                        {"second", Value::Integer(42)}, {"timezone", Value::String("+05:00")}})).ToString(),
-              "12:31:42.645876000+05:00:00");
+              "16:31:42.645876000+05:00:00");
+}
+
+TEST(Time, localdatetimeNestedMap) {
+    EXPECT_EQ(common::LocalTime(Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                    {"year", Value::Integer(1984)}, {"week", Value::Integer(10)},
+                                    {"dayOfWeek", Value::Integer(3)},
+                                    {"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                    {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})))).ToString(),
+              "12:31:14.645000000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"time", Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                    {"year", Value::Integer(1984)}, {"week", Value::Integer(10)},
+                                    {"dayOfWeek", Value::Integer(3)},
+                                    {"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                    {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})))}})).ToString(),
+              "12:31:14.645000000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"time", Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                    {"year", Value::Integer(1984)}, {"week", Value::Integer(10)},
+                                    {"dayOfWeek", Value::Integer(3)},
+                                    {"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                    {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})))},
+                                    {"second", Value::Integer(42)}})).ToString(),
+              "12:31:42.645000000");
+    EXPECT_EQ(common::LocalTime(Value::DateTime(common::DateTime(Value::Map({
+                                    {"year", Value::Integer(1984)}, {"month", Value::Integer(10)},
+                                    {"day", Value::Integer(11)},
+                                    {"hour", Value::Integer(12)}, {"timezone", Value::String("+01:00")}})))).ToString(),
+              "12:00:00.000000000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"time", Value::DateTime(common::DateTime(Value::Map({
+                                                         {"year", Value::Integer(1984)}, {"month", Value::Integer(10)},
+                                                         {"day", Value::Integer(11)},
+                                                         {"hour", Value::Integer(12)}, {"timezone", Value::String("+01:00")}})))}})).ToString(),
+              "12:00:00.000000000");
+    EXPECT_EQ(common::LocalTime(Value::Map({{"time", Value::DateTime(common::DateTime(Value::Map({
+                                                         {"year", Value::Integer(1984)}, {"month", Value::Integer(10)},
+                                                         {"day", Value::Integer(11)},
+                                                         {"hour", Value::Integer(12)}, {"timezone", Value::String("+01:00")}})))},
+                                            {"second", Value::Integer(42)}})).ToString(),
+              "12:00:42.000000000");
+
+    EXPECT_EQ(common::Time(Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                    {"year", Value::Integer(1984)}, {"week", Value::Integer(10)},
+                                    {"dayOfWeek", Value::Integer(3)},
+                                    {"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                    {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})))).ToString(),
+              "12:31:14.645000000Z");
+    EXPECT_EQ(common::Time(Value::Map({{"time", Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                                         {"year", Value::Integer(1984)}, {"week", Value::Integer(10)},
+                                                         {"dayOfWeek", Value::Integer(3)},
+                                                         {"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                                         {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})))}})).ToString(),
+              "12:31:14.645000000Z");
+    EXPECT_EQ(common::Time(Value::Map({{"time", Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                                         {"year", Value::Integer(1984)}, {"week", Value::Integer(10)},
+                                                         {"dayOfWeek", Value::Integer(3)},
+                                                         {"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                                         {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})))},
+                                            {"timezone", Value::String("+05:00")}})).ToString(),
+              "12:31:14.645000000+05:00:00");
+    EXPECT_EQ(common::Time(Value::Map({{"time", Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                                    {"year", Value::Integer(1984)}, {"week", Value::Integer(10)},
+                                                    {"dayOfWeek", Value::Integer(3)},
+                                                    {"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                                    {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})))},
+                                       {"second", Value::Integer(42)}})).ToString(),
+              "12:31:42.645000000Z");
+    EXPECT_EQ(common::Time(Value::Map({{"time", Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                                    {"year", Value::Integer(1984)}, {"week", Value::Integer(10)},
+                                                    {"dayOfWeek", Value::Integer(3)},
+                                                    {"hour", Value::Integer(12)}, {"minute", Value::Integer(31)},
+                                                    {"second", Value::Integer(14)}, {"millisecond", Value::Integer(645)}})))},
+                                       {"second", Value::Integer(42)}, {"timezone", Value::String("+05:00")}})).ToString(),
+              "12:31:42.645000000+05:00:00");
+    EXPECT_EQ(common::Time(Value::DateTime(common::DateTime(Value::Map({
+                                    {"year", Value::Integer(1984)}, {"month", Value::Integer(10)},
+                                    {"day", Value::Integer(11)},
+                                    {"hour", Value::Integer(12)},
+                               {"timezone", Value::String("Europe/Stockholm")}})))).ToString(),
+              "12:00:00.000000000+01:00:00");
+    EXPECT_EQ(common::Time(Value::Map({{"time", Value::DateTime(common::DateTime(Value::Map({
+                                                         {"year", Value::Integer(1984)}, {"month", Value::Integer(10)},
+                                                         {"day", Value::Integer(11)},
+                                                         {"hour", Value::Integer(12)},
+                                                    {"timezone", Value::String("Europe/Stockholm")}})))}})).ToString(),
+              "12:00:00.000000000+01:00:00");
+    EXPECT_EQ(common::Time(Value::Map({{"time", Value::DateTime(common::DateTime(Value::Map({
+                                                    {"year", Value::Integer(1984)}, {"month", Value::Integer(10)},
+                                                    {"day", Value::Integer(11)},
+                                                    {"hour", Value::Integer(12)},
+                                                    {"timezone", Value::String("Europe/Stockholm")}})))},
+                                       {"timezone", Value::String("+05:00")}})).ToString(),
+              "16:00:00.000000000+05:00:00");
+    EXPECT_EQ(common::Time(Value::Map({{"time", Value::DateTime(common::DateTime(Value::Map({
+                                                         {"year", Value::Integer(1984)}, {"month", Value::Integer(10)},
+                                                         {"day", Value::Integer(11)},
+                                                         {"hour", Value::Integer(12)}, {"timezone", Value::String("+01:00")}})))},
+                                            {"second", Value::Integer(42)}})).ToString(),
+              "12:00:42.000000000+01:00:00");
+    EXPECT_EQ(common::Time(Value::Map({{"time", Value::DateTime(common::DateTime(Value::Map({
+                                                    {"year", Value::Integer(1984)}, {"month", Value::Integer(10)},
+                                                    {"day", Value::Integer(11)},
+                                                    {"hour", Value::Integer(12)}, {"timezone", Value::String("+01:00")}})))},
+                                       {"second", Value::Integer(42)}, {"timezone", Value::String("+05:00")}})).ToString(),
+              "16:00:42.000000000+05:00:00");
 }

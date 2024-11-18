@@ -35,6 +35,14 @@ LocalTime::LocalTime(const Value& params) {
         nanoseconds_since_today_ = std::get<0>(params.AsTime().GetStorage());
         return;
     }
+    if (params.IsDateTime()) {
+        nanoseconds_since_today_ = std::get<0>(params.AsDateTime().GetStorage());
+        return;
+    }
+    if (params.IsLocalDateTime()) {
+        nanoseconds_since_today_ = params.AsLocalDateTime().GetStorage();
+        return;
+    }
     std::unordered_map<std::string, Value> parse_params_map;
     for (const auto &kv : params.AsMap()) {
         auto s = kv.first;
@@ -58,6 +66,10 @@ LocalTime::LocalTime(const Value& params) {
             v = parse_params_map["time"].AsLocalTime().GetStorage();
         } else if (parse_params_map["time"].IsTime()) {
             v = std::get<0>(parse_params_map["time"].AsTime().GetStorage());
+        } else if (parse_params_map["time"].IsLocalDateTime()) {
+            v = parse_params_map["time"].AsLocalDateTime().GetStorage();
+        } else if (parse_params_map["time"].IsDateTime()) {
+            v = std::get<0>(parse_params_map["time"].AsDateTime().GetStorage());
         }
         nanosecond = v % 1000;
         microsecond = v / 1000 % 1000;
