@@ -335,6 +335,16 @@ void SybilRankCore(OlapBase<Empty>& graph, ParallelVector<size_t>& trust_seeds,
  */
 size_t TriangleCore(OlapBase<Empty>& graph, ParallelVector<size_t>& num_triangle);
 
+ /** 
+ * @brief    Compute the Triangle Counting algorithm with Range Algorithm (KDD'21).
+ *
+ * @param[in]    graph           The graph to compute on.
+ * @param[in]    num_triangle    The ParallelVector to store the number of triangles of each vertex.
+ *
+ * @return   return the number of triangles of the whole graph.
+ */
+size_t RangeTriangleCore(OlapBase<Empty>& graph, ParallelVector<size_t>& num_triangle);
+
 /**
  * @brief    Compute the strongly connected components algorithm.
  *
