@@ -20,14 +20,19 @@
 #include <random>
 #include <stack>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
+#include <regex>
 #include "cypher/cypher_exception.h"
 #include "cypher/cypher_types.h"
+#include "cypher/procedure/utils.h"
 #include "cypher/parser/expression.h"
 #include "cypher/parser/clause.h"
 #include "cypher/parser/symbol_table.h"
-#include "cypher/procedure/utils.h"
 #include "cypher/arithmetic/arithmetic_expression.h"
+#include "cypher/filter/filter.h"
+#include "db/galaxy.h"
 
 #define CHECK_NODE(e)                                                                      \
     do {                                                                                   \
@@ -349,6 +354,12 @@ cypher::FieldData BuiltinFunction::Range(RTContext *ctx, const Record &record,
     auto start_i = start.constant.scalar.integer();
     auto end_i = end.constant.scalar.integer();
     cypher::FieldData ret = cypher::FieldData::Array(0);
+    if (step_i == 0) {
+        THROW_CODE(InvalidParameter, "range() arg 3 must not be zero");
+    }
+    if ((step_i > 0 && start_i >= end_i) || (step_i < 0 && start_i <= end_i)) {
+        return ret;
+    }
     for (auto i = start_i; i <= end_i; i += step_i) {
         ret.array->emplace_back(i);
     }
@@ -751,7 +762,7 @@ cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
     if (args.size() == 1) {
         // datetime() Returns the current DateTime.
-        return cypher::FieldData(::lgraph::FieldData(::lgraph::DateTime::Now()));
+        return cypher::FieldData(::lgraph::FieldData(::lgraph::DateTime::LocalNow()));
     } else {
         CYPHER_THROW_ASSERT(args.size() == 2);
         // datetime(string) Returns a DateTime by parsing a string.
@@ -1233,6 +1244,59 @@ cypher::FieldData BuiltinFunction::PolygonWKT(RTContext *ctx, const Record &reco
     }
 }
 
+cypher::FieldData BuiltinFunction::StartsWith(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto prefix = args[1].Evaluate(ctx, record);
+    std::string prefix_str = prefix.constant.scalar.AsString();
+    auto variable = args[2].Evaluate(ctx, record);
+    std::string variable_str = variable.constant.scalar.AsString();
+    bool ret = variable_str.compare(0, prefix_str.size(), prefix_str) == 0;
+    return cypher::FieldData(lgraph_api::FieldData(ret));
+}
+
+cypher::FieldData BuiltinFunction::EndsWith(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto postfix = args[1].Evaluate(ctx, record);
+    std::string postfix_str = postfix.constant.scalar.AsString();
+    auto variable = args[2].Evaluate(ctx, record);
+    std::string variable_str = variable.constant.scalar.AsString();
+    bool ret = variable_str.size() >= postfix_str.size() &&
+               variable_str.compare(variable_str.size() - postfix_str.size(),
+               postfix_str.size(), postfix_str) == 0;
+    return cypher::FieldData(lgraph_api::FieldData(ret));
+}
+
+cypher::FieldData BuiltinFunction::Contains(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto substr = args[1].Evaluate(ctx, record);
+    std::string substr_str = substr.constant.scalar.AsString();
+    auto variable = args[2].Evaluate(ctx, record);
+    std::string variable_str = variable.constant.scalar.AsString();
+    bool ret = variable_str.find(substr_str) != std::string::npos;
+    return cypher::FieldData(lgraph_api::FieldData(ret));
+}
+
+cypher::FieldData BuiltinFunction::Regexp(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto regexp = args[1].Evaluate(ctx, record);
+    std::string regexp_str = regexp.constant.scalar.AsString();
+    auto variable = args[2].Evaluate(ctx, record);
+    std::string variable_str = variable.constant.scalar.AsString();
+    if (variable_str.empty()) return cypher::FieldData(lgraph_api::FieldData(false));
+    bool ret = std::regex_match(variable_str, std::regex(regexp_str));
+    return cypher::FieldData(lgraph_api::FieldData(ret));
+}
+
+cypher::FieldData BuiltinFunction::Exists(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args) {
+    auto res = args[1].Evaluate(ctx, record);
+    return cypher::FieldData(lgraph_api::FieldData(!res.IsNull()));
+}
+
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,
                                        const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
@@ -1297,8 +1361,13 @@ cypher::FieldData BuiltinFunction::_ToList(RTContext *ctx, const Record &record,
     auto ret = cypher::FieldData::Array(0);
     for (auto &arg : args) {
         auto r = arg.Evaluate(ctx, record);
-        CYPHER_THROW_ASSERT(r.IsScalar());
-        ret.array->emplace_back(r.constant.scalar);
+        if (r.IsScalar()) {
+            ret.array->emplace_back(r.constant.scalar);
+        } else if (r.IsArray()) {
+            ret.array->emplace_back(*r.constant.array);
+        } else if (r.IsMap()) {
+            ret.array->emplace_back(*r.constant.map);
+        }
     }
     return ret;
 }
@@ -1341,7 +1410,11 @@ void ArithOperandNode::SetEntity(const std::string &alias, const SymbolTable &sy
     type = AR_OPERAND_VARIADIC;
     variadic.alias = alias;
     auto it = sym_tab.symbols.find(alias);
-    CYPHER_THROW_ASSERT(it != sym_tab.symbols.end());
+    if (it == sym_tab.symbols.end()) {
+        THROW_CODE(InputError,
+            "Variable `{}` not defined", alias);
+    }
+    // CYPHER_THROW_ASSERT(it != sym_tab.symbols.end());
     variadic.alias_idx = it->second.id;
 }
 
@@ -1366,6 +1439,21 @@ void ArithOperandNode::RealignAliasId(const SymbolTable &sym_tab) {
     auto it = sym_tab.symbols.find(variadic.alias);
     CYPHER_THROW_ASSERT(it != sym_tab.symbols.end());
     variadic.alias_idx = it->second.id;
+}
+
+cypher::FieldData GenerateCypherFieldData(const parser::Expression &expr) {
+    if (expr.type != parser::Expression::LIST && expr.type != parser::Expression::MAP) {
+        return cypher::FieldData(parser::MakeFieldData(expr));
+    }
+    if (expr.type == parser::Expression::LIST) {
+        std::vector<cypher::FieldData> list;
+        for (auto &e : expr.List()) list.emplace_back(GenerateCypherFieldData(e));
+        return cypher::FieldData(std::move(list));
+    } else {
+        std::unordered_map<std::string, cypher::FieldData> map;
+        for (auto &e : expr.Map()) map.emplace(e.first, GenerateCypherFieldData(e.second));
+        return cypher::FieldData(std::move(map));
+    }
 }
 
 void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sym_tab) {
@@ -1406,9 +1494,13 @@ void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sy
         {
             /* e.g. [1,3,5,7], [1,3,5.55,'seven'] */
             type = ArithOperandNode::AR_OPERAND_CONSTANT;
-            std::vector<lgraph::FieldData> list;
-            for (auto &e : expr.List()) list.emplace_back(parser::MakeFieldData(e));
-            constant = cypher::FieldData(std::move(list));
+            constant = GenerateCypherFieldData(expr);
+            break;
+        }
+    case parser::Expression::MAP:
+        {
+            type = ArithOperandNode::AR_OPERAND_CONSTANT;
+            constant = GenerateCypherFieldData(expr);
             break;
         }
     default:
@@ -1417,7 +1509,8 @@ void ArithOperandNode::Set(const parser::Expression &expr, const SymbolTable &sy
 }
 
 ArithExprNode::ArithExprNode(const parser::Expression &expr, const SymbolTable &sym_tab) {
-    Set(expr, sym_tab);
+    expression_ = expr;
+    Set(expression_, sym_tab);
 }
 
 void ArithExprNode::SetOperand(ArithOperandNode::ArithOperandType operand_type,
@@ -1553,10 +1646,13 @@ void ArithExprNode::Set(const parser::Expression &expr, const SymbolTable &sym_t
         {
             /* We treat:
              * [1, 2, 'three'] as operand
+             * [{a: "Christopher Nolan", b: "Dennis Quaid"}] as operand
              * [n.name, n.age] as op  */
             bool is_operand = true;
-            for (auto &e : expr.List())
+            for (auto &e : expr.List()) {
                 if (!e.IsLiteral()) is_operand = false;
+                if (e.type == parser::Expression::MAP) is_operand = true;
+            }
             if (!is_operand) {
                 type = AR_EXP_OP;
                 op.SetFunc(BuiltinFunction::INTL_TO_LIST);

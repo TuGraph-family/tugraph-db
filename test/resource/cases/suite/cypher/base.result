@@ -3,3 +3,40 @@ RETURN s,r,r.weight,d
 ORDER BY r.weight
 LIMIT 2;
 [{"d":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}},"r":{"dst":15,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 13:00:00","weight":19.11},"src":7,"temporal_id":0},"r.weight":19.11,"s":{"identity":15,"label":"City","properties":{"name":"Houston"}}},{"d":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}},"r":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 12:00:00","weight":19.93},"src":12,"temporal_id":0},"r.weight":19.93,"s":{"identity":14,"label":"City","properties":{"name":"London"}}}]
+with '123dfd\\fd45a\'bcd' as a return a;
+[{"a":"123dfd\\fd45a'bcd"}]
+with "123dfd\\fd\"45a'bcd" as a return a;
+[{"a":"123dfd\\fd\"45a'bcd"}]
+optional MATCH (n:City {name:'London'})-[r]->(m) RETURN n.name,r,m;
+[{"m":"__null__","n.name":null,"r":"__null__"}]
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) RETURN r;
+[{"r":{"dst":13,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 14:00:00","weight":20.62},"src":8,"temporal_id":0}}]
+MATCH (n:Person)<-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]-(m) RETURN r;
+[]
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) where r.weight > 20 RETURN r;
+[{"r":{"dst":13,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 14:00:00","weight":20.62},"src":8,"temporal_id":0}}]
+MATCH (n:Person)-[r:BORN_IN {reg_time:datetime('2023-05-01 14:00:00')}]->(m) where r.weight < 20 RETURN r;
+[]
+MATCH (n:Person)-[r:ACTED_IN {charactername:'Henri Ducard'}]->(m) RETURN r;
+[{"r":{"dst":17,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Henri Ducard"},"src":4,"temporal_id":0}}]
+MATCH (n:Person)<-[r:ACTED_IN {charactername:'Henri Ducard'}]-(m) RETURN r;
+[]
+MATCH (p:Person) RETURN p.name ORDER BY p.birthyear DESC LIMIT 5;
+[{"p.name":"Lindsay Lohan"},{"p.name":"Christopher Nolan"},{"p.name":"Jemma Redgrave"},{"p.name":"Natasha Richardson"},{"p.name":"Dennis Quaid"}]
+MATCH (p:Person) RETURN p ORDER BY p.birthyear DESC LIMIT 5;
+[{"p":{"identity":8,"label":"Person","properties":{"birthyear":1986,"name":"Lindsay Lohan"}}},{"p":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}}},{"p":{"identity":9,"label":"Person","properties":{"birthyear":1965,"name":"Jemma Redgrave"}}},{"p":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"p":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}}}]
+WITH [
+    {a: 'Camelot', b: 'Vanessa Redgrave'},
+    {a: "Batman Begins", b: "Liam Neeson"},
+    {a: "Batman Begins", b: "Christopher Nolan"}
+] AS pairs
+UNWIND pairs AS pair
+MATCH (n1:Film {title: pair.a})<-[r]-(n2:Person {name: pair.b})
+RETURN r;
+[{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0}},{"r":{"dst":17,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Henri Ducard"},"src":4,"temporal_id":0}},{"r":{"dst":17,"forward":false,"identity":0,"label":"DIRECTED","label_id":3,"src":12,"temporal_id":0}}]
+WITH 'Vanessa Redgrave' as names, 'Camelot' as films MATCH (n1:Film {title: films})<-[r]-(n2:Person {name: names}) RETURN r;
+[{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0}}]
+WITH {a: 'Camelot', b: 'Vanessa Redgrave'} as pair MATCH (n1:Film {title: pair.a})<-[r]-(n2:Person {name: pair.b}) RETURN r;
+[{"r":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0}}]
+create(n:Person {name:'😎'}) return n;
+[{"n":{"identity":21,"label":"Person","properties":{"birthyear":null,"name":"😎"}}}]

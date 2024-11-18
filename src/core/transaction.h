@@ -81,6 +81,7 @@ class Transaction {
     std::vector<IteratorBase*> iterators_;
     FullTextIndex* fulltext_index_;
     std::vector<FTIndexEntry> fulltext_buffers_;
+    std::vector<VectorIndexEntry> vector_buffers_;
     std::unordered_map<LabelId, int64_t> vertex_delta_count_;
     std::unordered_map<LabelId, int64_t> edge_delta_count_;
     std::set<LabelId> vertex_label_delete_;
@@ -869,13 +870,21 @@ class Transaction {
     std::vector<IndexSpec> ListVertexIndexes();
 
     std::vector<IndexSpec> ListEdgeIndexes();
+
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexes();
+
     // list index by label
     std::vector<IndexSpec> ListVertexIndexByLabel(const std::string& label);
 
     std::vector<IndexSpec> ListEdgeIndexByLabel(const std::string& label);
+
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexByLabel(const std::string& label);
+
     std::vector<std::tuple<bool, std::string, std::string>> ListFullTextIndexes();
 
     std::vector<std::tuple<bool, std::string, int64_t>> countDetail();
+
+    VectorIndex* GetVertexVectorIndex(const std::string& label, const std::string& field);
 
     /**
      * Check if index is ready.
@@ -931,8 +940,27 @@ class Transaction {
                                    const FieldData& key_start = FieldData(),
                                    const FieldData& key_end = FieldData());
 
+    EdgeIndexIterator GetEdgePairUniqueIndexIterator(
+        size_t label_id, size_t field_id, VertexId src_vid, VertexId dst_vid,
+        const FieldData& key_start, const FieldData& key_end);
+
     EdgeIndexIterator GetEdgeIndexIterator(const std::string& label, const std::string& field,
                                    const std::string& key_start, const std::string& key_end);
+
+    CompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
+                                   const std::vector<std::string>& fields,
+                                   const std::vector<FieldData>& key_start,
+                                   const std::vector<FieldData>& key_end);
+
+    CompositeIndexIterator GetVertexCompositeIndexIterator(const size_t& label,
+                                   const std::vector<size_t>& field_ids,
+                                   const std::vector<FieldData>& key_start,
+                                   const std::vector<FieldData>& key_end);
+
+    CompositeIndexIterator GetVertexCompositeIndexIterator(const std::string& label,
+                                   const std::vector<std::string>& fields,
+                                   const std::vector<std::string>& key_start,
+                                   const std::vector<std::string>& key_end);
 
 
     /**
@@ -1089,6 +1117,12 @@ class Transaction {
     VertexIndex* GetVertexIndex(size_t label, size_t field);
     EdgeIndex* GetEdgeIndex(const std::string& label, const std::string& field);
     EdgeIndex* GetEdgeIndex(size_t label, size_t field);
+
+    CompositeIndex* GetVertexCompositeIndex(const std::string& label,
+                                            const std::vector<std::string>& fields);
+
+    CompositeIndex* GetVertexCompositeIndex(const size_t& label,
+                                            const std::vector<size_t>& field_ids);
 
     void EnterTxn();
     void LeaveTxn();

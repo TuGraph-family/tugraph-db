@@ -18,8 +18,10 @@
 
 #include <iostream>
 #include <stack>
+#include <utility>
 #include "fma-common/utils.h"
 #include "parser/clause.h"
+#include "parser/expression.h"
 #include "cypher/graph/graph.h"
 
 namespace cypher {
@@ -132,17 +134,26 @@ NodeID PatternGraph::AddNode(const std::string &label, const std::string &alias,
 
 RelpID PatternGraph::AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,
                                      parser::LinkDirection direction, const std::string &alias,
-                                     Relationship::Derivation derivation) {
-    return AddRelationship(types, lhs, rhs, direction, alias, -1, -1, derivation);
+                                     Relationship::Derivation derivation,
+                                     parser::Expression properties,
+                                     std::vector<std::tuple<std::string, geax::frontend::Expr*>>
+                                     geax_properties) {
+    return AddRelationship(types, lhs, rhs, direction, alias, -1, -1,
+                           derivation, std::move(properties), std::move(geax_properties));
 }
 
 RelpID PatternGraph::AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,
                                      parser::LinkDirection direction, const std::string &alias,
                                      int min_hop, int max_hop,
-                                     Relationship::Derivation derivation) {
+                                     Relationship::Derivation derivation,
+                                     parser::Expression properties,
+                                     std::vector<std::tuple<std::string, geax::frontend::Expr*>>
+                                     geax_properties) {
     RelpID rid = _next_rid;
     _relationships.emplace_back(rid, types, lhs, rhs, direction, alias, min_hop, max_hop,
                                 derivation);
+    _relationships.back().SetProperties(std::move(properties));
+    _relationships.back().SetGeaxProperties(std::move(geax_properties));
     _relp_map.emplace(alias, rid);
     _next_rid++;
     auto r = GetNode(lhs).AddRelp(rid, true);
@@ -171,7 +182,14 @@ static void ExtractNodePattern(const parser::TUP_NODE_PATTERN &node_pattern, std
                 prop.value_alias = m.second.String();
             } else if (m.second.type == parser::Expression::VARIABLE) {
                 prop.type = Property::VARIABLE;
+                prop.hasMapFieldName = false;
                 prop.value_alias = m.second.String();
+            } else if (m.second.type == parser::Expression::PROPERTY) {
+                prop.type = Property::VARIABLE;  // {name.a}
+                prop.hasMapFieldName = true;
+                auto curExpr_prop = m.second.Property();
+                prop.value_alias = curExpr_prop.first.String();  // name
+                prop.map_field_name = curExpr_prop.second;  // a
             } else {
                 prop.type = Property::VALUE;
                 prop.value = MakeFieldData(m.second);
@@ -213,11 +231,13 @@ RelpID PatternGraph::BuildRelationship(const parser::TUP_RELATIONSHIP_PATTERN &r
     auto &relp_detail = std::get<1>(relp_pattern);
     auto &relp_types = std::get<1>(relp_detail);
     auto &range = std::get<2>(relp_detail);
+    auto &properties = std::get<3>(relp_detail);
     // convert vector to set
     std::set<std::string> r_types(relp_types.begin(), relp_types.end());
     auto &relp = GetRelationship(relp_var);
     if (!relp.Empty()) CYPHER_TODO();
-    return AddRelationship(r_types, lhs, rhs, direction, relp_var, range[0], range[1], derivation);
+    return AddRelationship(r_types, lhs, rhs, direction, relp_var,
+                           range[0], range[1], derivation, std::get<0>(properties));
 }
 
 std::string PatternGraph::DumpGraph() const {

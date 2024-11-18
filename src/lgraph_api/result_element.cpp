@@ -13,6 +13,7 @@
  */
 
 #include "lgraph_api/result_element.h"
+#include <memory>
 #include "lgraph/lgraph_result.h"
 #include "server/json_convert.h"
 #include "fma-common/string_formatter.h"
@@ -52,6 +53,9 @@ bolt::Node Node::ToBolt() {
 }
 
 nlohmann::json Relationship::ToJson() {
+    if (id == -1) {
+        return json("__null__");;
+    }
     json result;
     std::map<std::string, json> j_properties;
     result["identity"] = id;
@@ -72,11 +76,13 @@ nlohmann::json Relationship::ToJson() {
     return result;
 }
 
-// fix neo4j python driver
-bolt::RelNode Relationship::ToBoltUnbound(int64_t virtual_edge_id) {
+bolt::RelNode Relationship::ToBoltUnbound(int64_t* v_eid) {
     bolt::RelNode rel;
-    // rel.id = id;
-    rel.id = virtual_edge_id;
+    if (v_eid) {
+        rel.id = (*v_eid)++;
+    } else {
+        rel.id = id;
+    }
     rel.name = label;
     for (auto &pair : properties) {
         rel.props.emplace(pair.first, pair.second.ToBolt());
@@ -84,19 +90,13 @@ bolt::RelNode Relationship::ToBoltUnbound(int64_t virtual_edge_id) {
     return rel;
 }
 
-bolt::RelNode Relationship::ToBoltUnbound() {
-    bolt::RelNode rel;
-    rel.id = id;
-    rel.name = label;
-    for (auto &pair : properties) {
-        rel.props.emplace(pair.first, pair.second.ToBolt());
-    }
-    return rel;
-}
-
-bolt::Relationship Relationship::ToBolt() {
+bolt::Relationship Relationship::ToBolt(int64_t* v_eid) {
     bolt::Relationship rel;
-    rel.id = id;
+    if (v_eid) {
+        rel.id = (*v_eid)++;
+    } else {
+        rel.id = id;
+    }
     rel.startId = src;
     rel.endId = dst;
     rel.type = label;
@@ -108,64 +108,37 @@ bolt::Relationship Relationship::ToBolt() {
 
 PathElement::PathElement(const PathElement &value) {
     type_ = value.type_;
-    if (type_ == LGraphType::NODE) {
-        v.node = new lgraph_result::Node(*value.v.node);
-    } else {
-        v.repl = new Relationship(*value.v.repl);
-    }
+    v = value.v;
 }
 
 PathElement::PathElement(PathElement &&value) {
     type_ = value.type_;
-    if (type_ == LGraphType::NODE) {
-        v.node = value.v.node;
-        value.v.node = nullptr;
-    } else {
-        v.repl = value.v.repl;
-        value.v.repl = nullptr;
-    }
+    v = value.v;
 }
 
 PathElement &PathElement::operator=(const PathElement &value) {
     if (this == &value) return *this;
     type_ = value.type_;
-    if (type_ == LGraphType::NODE) {
-        delete v.node;
-        v.node = new Node(*value.v.node);
-    } else {
-        delete v.repl;
-        v.repl = new Relationship(*value.v.repl);
-    }
+    v = value.v;
     return *this;
 }
 
 PathElement &PathElement::operator=(PathElement &&value) {
     if (this == &value) return *this;
     type_ = value.type_;
-    if (type_ == LGraphType::NODE) {
-        v.node = value.v.node;
-        value.v.node = nullptr;
-    } else {
-        v.repl = value.v.repl;
-        value.v.repl = nullptr;
-    }
+    v = value.v;
     return *this;
 }
 
 nlohmann::json PathElement::ToJson() {
     if (type_ == LGraphType::NODE) {
-        return v.node->ToJson();
+        return std::get<std::shared_ptr<Node>>(v)->ToJson();
     } else {
-        return v.repl->ToJson();
+        return std::get<std::shared_ptr<Relationship>>(v)->ToJson();
     }
 }
 
 PathElement::~PathElement() {
-    if (type_ == LGraphType::NODE) {
-        delete v.node;
-    } else {
-        delete v.repl;
-    }
 }
 
 }  // namespace lgraph_result
@@ -369,7 +342,7 @@ json ResultElement::ToJson() {
     return result;
 }
 
-std::any ResultElement::ToBolt(bool python_driver) {
+std::any ResultElement::ToBolt(int64_t* v_eid) {
     if (LGraphTypeIsField(type_) || LGraphTypeIsAny(type_)) {
         return v.fieldData->ToBolt();
     } else if (type_ == LGraphType::LIST) {
@@ -421,26 +394,32 @@ std::any ResultElement::ToBolt(bool python_driver) {
         }
         return ret;*/
     } else if (type_ == LGraphType::NODE) {
-        return v.node->ToBolt();
+        if (v.node->id == -1) {
+            return {};
+        } else {
+            return v.node->ToBolt();
+        }
     } else if (type_ == LGraphType::RELATIONSHIP) {
-        return v.repl->ToBolt();
+        if (v.repl->id == -1) {
+            return {};
+        } else {
+            return v.repl->ToBolt(v_eid);
+        }
     } else if (type_ == LGraphType::PATH) {
         bolt::InternalPath path;
         for (size_t i = 0; i < v.path->size(); i++) {
             auto& p = (*v.path)[i];
             if (p.type_ == LGraphType::NODE) {
-                path.nodes.push_back(p.v.node->ToBolt());
+                path.nodes.push_back(std::get<std::shared_ptr<lgraph_result::Node>>(p.v)->ToBolt());
             } else {
-                if (!python_driver) {
-                    path.rels.push_back(p.v.repl->ToBoltUnbound());
-                } else {
-                    // The neo4j python client checks the uniqueness of the edge id.
-                    path.rels.push_back(p.v.repl->ToBoltUnbound(i));
-                }
+                // The neo4j python client checks the uniqueness of the edge id.
+                path.rels.push_back(std::get<std::shared_ptr<lgraph_result::Relationship>>(p.v)
+                                    ->ToBoltUnbound(v_eid));
             }
             if (i >= 1) {
                 if (i%2 == 1) {
-                    if (p.v.repl->src == path.nodes.back().id) {
+                    if (std::get<std::shared_ptr<lgraph_result::Relationship>>(p.v)->src
+                        == path.nodes.back().id) {
                         path.indices.push_back((int)path.rels.size());
                     } else {
                         path.indices.push_back(0-(int)path.rels.size());

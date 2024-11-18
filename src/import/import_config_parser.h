@@ -47,6 +47,7 @@ enum KeyWord {
     POINT,
     LINESTRING,
     POLYGON,
+    FLOAT_VECTOR,
     LABEL,  // VERTEX_LABEL or EDGE_LABEL
     VERTEX_LABEL,
     EDGE_LABEL,
@@ -80,6 +81,7 @@ class KeyWordFunc {
             {KeyWord::POINT, "POINT"},
             {KeyWord::LINESTRING, "LINESTRING"},
             {KeyWord::POLYGON, "POLYGON"},
+            {KeyWord::FLOAT_VECTOR, "FLOAT_VECTOR"},
             {KeyWord::LABEL, "LABEL"},
             {KeyWord::VERTEX_LABEL, "VERTEX_LABEL"},
             {KeyWord::EDGE_LABEL, "EDGE_LABEL"},
@@ -114,7 +116,7 @@ class KeyWordFunc {
             auto& k2s = KeyWordToStrMap();
             std::map<KeyWord, FieldType> ret;
             for (auto& kv : k2s) {
-                if (kv.first > KeyWord::BLOB) break;
+                if (kv.first > KeyWord::FLOAT_VECTOR) break;
                 FieldType type = FieldType::NUL;
                 if (!field_data_helper::TryGetFieldType(kv.second, type)) {
                     LOG_ERROR() << FMA_FMT("Keyword string [{}] is invalid type string", kv.second);
@@ -291,7 +293,7 @@ struct LabelDesc {
     std::vector<ColumnSpec> columns;
     EdgeConstraints edge_constraints;
     bool is_vertex;
-    bool detach_property{false};
+    bool detach_property{true};
     LabelDesc() {}
     std::string ToString() const {
         std::string prefix = is_vertex ? "vertex" : "edge";

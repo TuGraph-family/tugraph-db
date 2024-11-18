@@ -20,6 +20,7 @@
 #include <iostream>
 #include <utility>
 
+#include "arithmetic/arithmetic_expression.h"
 #include "parser/data_typedef.h"
 #include "execution_plan/runtime_context.h"
 #include "graph/graph.h"
@@ -65,7 +66,7 @@ static const std::unordered_map<std::string, lgraph::plugin::CodeType> ValidPlug
 
 static const int SPEC_MEMBER_SIZE = 3;
 
-typedef std::vector<parser::Expression> VEC_EXPR;
+typedef std::vector<Entry> VEC_EXPR;
 typedef std::vector<std::string> VEC_STR;
 // TODO(anyone) procedure context
 typedef std::function<void(RTContext *, const Record *, const VEC_EXPR &, const VEC_STR &,
@@ -148,6 +149,10 @@ class BuiltinProcedure {
     static void DbAddVertexIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                  const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbAddVertexCompositeIndex(RTContext *ctx, const Record *record,
+                                          const VEC_EXPR &args, const VEC_STR &yield_items,
+                                          std::vector<Record> *records);
+
     static void DbAddEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                const VEC_STR &yield_items, std::vector<Record> *records);
 
@@ -178,6 +183,10 @@ class BuiltinProcedure {
                               const VEC_STR &yield_items, std::vector<Record> *records);
     static void DbmsMetaRefreshCount(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                      const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbmsSecurityIsDefaultUserPassword(RTContext *ctx, const Record *record,
+                                                  const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                  std::vector<Record> *records);
 
     static void DbmsSecurityChangePassword(RTContext *ctx, const Record *record,
                                            const VEC_EXPR &args, const VEC_STR &yield_items,
@@ -350,10 +359,16 @@ class BuiltinProcedure {
     static void DbDeleteEdgeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                   const VEC_STR &yield_items, std::vector<Record> *records);
 
+    static void DbDeleteCompositeIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                              const VEC_STR &yield_items, std::vector<Record> *records);
+
     static void DbFlushDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbDropDB(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                         const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbDropAllVertex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                          const VEC_STR &yield_items, std::vector<Record> *records);
 
     static void DbTaskListTasks(RTContext *ctx, const Record *record, const VEC_EXPR &args,
@@ -396,6 +411,23 @@ class SpatialFunc {
  public:
     static void Distance(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                           const VEC_STR &yield_items, std::vector<Record> *records);
+};
+
+class VectorFunc {
+ public:
+    static void AddVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DeleteVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void ShowVertexVectorIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void VertexVectorKnnSearch(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                             const VEC_STR &yield_items, std::vector<Record> *records);
+    static void VertexVectorRangeSearch(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                       const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 struct Procedure {
@@ -506,7 +538,7 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("db.listLabelIndexes", BuiltinProcedure::DbListLabelIndexes,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
-                                  {"label_type", {1, lgraph_api::LGraphType::LIST}}},
+                                  {"label_type", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{
                   {"label", {0, lgraph_api::LGraphType::STRING}},
                   {"field", {1, lgraph_api::LGraphType::STRING}},
@@ -656,6 +688,12 @@ static std::vector<Procedure> global_procedures = {
                                   {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
+    Procedure("db.addVertexCompositeIndex", BuiltinProcedure::DbAddVertexCompositeIndex,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_names", {1, lgraph_api::LGraphType::LIST}},
+                                  {"unique", {2, lgraph_api::LGraphType::BOOLEAN}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
     Procedure("db.addEdgeIndex", BuiltinProcedure::DbAddEdgeIndex,
               Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}},
@@ -712,6 +750,12 @@ static std::vector<Procedure> global_procedures = {
     Procedure("dbms.meta.refreshCount", BuiltinProcedure::DbmsMetaRefreshCount,
               Procedure::SIG_SPEC{}, Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}},
               false, true),
+    Procedure("dbms.security.isDefaultUserPassword",
+              BuiltinProcedure::DbmsSecurityIsDefaultUserPassword,
+              Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"isDefaultUserPassword", {0, lgraph_api::LGraphType::BOOLEAN}}
+              }, true, false),
     Procedure("dbms.security.changePassword", BuiltinProcedure::DbmsSecurityChangePassword,
               Procedure::SIG_SPEC{
                   {"current_password", {0, lgraph_api::LGraphType::STRING}},
@@ -882,6 +926,58 @@ static std::vector<Procedure> global_procedures = {
                  {"Spatial2", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"distance", {0, lgraph_api::LGraphType::DOUBLE}}}),
 
+    Procedure("db.addVertexVectorIndex", VectorFunc::AddVertexVectorIndex,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"parameter", {2, lgraph_api::LGraphType::MAP}},
+              },
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.deleteVertexVectorIndex", VectorFunc::DeleteVertexVectorIndex,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+              },
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.showVertexVectorIndex", VectorFunc::ShowVertexVectorIndex, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"index_type", {2, lgraph_api::LGraphType::STRING}},
+                  {"dimension", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"distance_type", {4, lgraph_api::LGraphType::STRING}},
+                  {"hnsw.m", {5, lgraph_api::LGraphType::INTEGER}},
+                  {"hnsw.ef_construction", {6, lgraph_api::LGraphType::INTEGER}},
+                  {"elements_num", {7, lgraph_api::LGraphType::INTEGER}},
+                  {"memory_usage", {8, lgraph_api::LGraphType::INTEGER}},
+                  {"deleted_ids_num", {9, lgraph_api::LGraphType::INTEGER}},
+              }),
+
+    Procedure("db.vertexVectorKnnSearch", VectorFunc::VertexVectorKnnSearch,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"parameter", {3, lgraph_api::LGraphType::MAP}},
+              },
+              Procedure::SIG_SPEC{
+                  {"node", {0, lgraph_api::LGraphType::NODE}},
+                  {"distance", {1, lgraph_api::LGraphType::FLOAT}},
+              }),
+    Procedure("db.vertexVectorRangeSearch", VectorFunc::VertexVectorRangeSearch,
+              Procedure::SIG_SPEC{
+                  {"label_name", {0, lgraph_api::LGraphType::STRING}},
+                  {"field_name", {1, lgraph_api::LGraphType::STRING}},
+                  {"vec", {2, lgraph_api::LGraphType::LIST}},
+                  {"parameter", {3, lgraph_api::LGraphType::MAP}},
+              },
+              Procedure::SIG_SPEC{
+                  {"node", {0, lgraph_api::LGraphType::NODE}},
+                  {"distance", {1, lgraph_api::LGraphType::FLOAT}},
+              }),
+
     Procedure("dbms.security.listRoles", BuiltinProcedure::DbmsSecurityListRoles,
               Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{
@@ -1048,10 +1144,18 @@ static std::vector<Procedure> global_procedures = {
                                   {"field_name", {1, lgraph_api::LGraphType::STRING}}},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
+    Procedure("db.deleteCompositeIndex", BuiltinProcedure::DbDeleteCompositeIndex,
+              Procedure::SIG_SPEC{{"label_name", {0, lgraph_api::LGraphType::STRING}},
+                                  {"field_name", {1, lgraph_api::LGraphType::LIST}}},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
     Procedure("db.flushDB", BuiltinProcedure::DbFlushDB, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.dropDB", BuiltinProcedure::DbDropDB, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+
+    Procedure("db.dropAllVertex", BuiltinProcedure::DbDropAllVertex, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("dbms.task.listTasks", BuiltinProcedure::DbTaskListTasks, Procedure::SIG_SPEC{},

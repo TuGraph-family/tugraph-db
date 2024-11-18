@@ -19,11 +19,12 @@
 
 #include "parser/clause.h"
 #include "cypher/execution_plan/ops/op.h"
+#include "cypher/arithmetic/arithmetic_expression.h"
 
 namespace cypher {
 
 class Unwind : public OpBase {
-    std::vector<lgraph::FieldData> list_;  // List which the unwind operation is performed on.
+    std::vector<cypher::FieldData> list_;  // List which the unwind operation is performed on.
     ArithExprNode exp_;                    // Arithmetic expression (evaluated as an array).
     std::string resolved_name_;
     int rec_idx_ = 0;

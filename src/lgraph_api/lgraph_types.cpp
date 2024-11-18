@@ -42,8 +42,19 @@ std::any FieldData::ToBolt() const {
         return *data.buf;
     case FieldType::DATE:
         return bolt::Date{data.int32};
-    case FieldType::DATETIME:
-        return bolt::LocalTime({data.int64 * 1000});
+    case FieldType::DATETIME: {
+            int64_t sec = data.int64 / 1000000;
+            int64_t micro = data.int64 % 1000000;
+            return bolt::LocalDateTime{sec, micro*1000};
+        }
+    case FieldType::FLOAT_VECTOR: {
+            std::vector<std::any> ret;
+            ret.reserve(data.vp->size());
+            for (auto& d : *data.vp) {
+                ret.emplace_back((double)d);
+            }
+            return ret;
+        }
     default:
         throw std::runtime_error("ToBolt meet unsupported data type.");
     }

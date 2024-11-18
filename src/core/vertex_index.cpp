@@ -38,14 +38,11 @@ inline Value ReturnKeyEvenIfLong(Value&& v) { return std::move(v); }
 
 //  begin of VertexIndexValue
 
-VertexIndexValue::VertexIndexValue()
-    : v_(1) { *(uint8_t*)v_.Data() = 0; }
+VertexIndexValue::VertexIndexValue() : v_(1) { *(uint8_t*)v_.Data() = 0; }
 
-VertexIndexValue::VertexIndexValue(const Value& v)
-    : v_(v) {}
+VertexIndexValue::VertexIndexValue(const Value& v) : v_(v) {}
 
-VertexIndexValue::VertexIndexValue(Value&& v)
-    : v_(std::move(v)) {}
+VertexIndexValue::VertexIndexValue(Value&& v) : v_(std::move(v)) {}
 
 int VertexIndexValue::SearchVid(int64_t vid, bool& found) const {
     if (GetVidCount() == 0) {
@@ -138,15 +135,15 @@ Value VertexIndexValue::CreateKey(const Value& key) const {
 //  begin of VertexIndexIterator
 
 VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, Transaction* txn, KvTable& table,
-                                         const Value& key_start,
-                                         const Value& key_end, VertexId vid, IndexType type)
+                                         const Value& key_start, const Value& key_end, VertexId vid,
+                                         IndexType type)
     : IteratorBase(txn),
       index_(idx),
-      it_(table.GetClosestIterator(txn->GetTxn(),
-                                   type == IndexType::GlobalUniqueIndex ? key_start
-                                   : _detail::PatchKeyWithVid(key_start, vid))),
+      it_(table.GetClosestIterator(txn->GetTxn(), type == IndexType::GlobalUniqueIndex
+                                                      ? key_start
+                                                      : _detail::PatchKeyWithVid(key_start, vid))),
       key_end_(type == IndexType::GlobalUniqueIndex ? Value::MakeCopy(key_end)
-               : _detail::PatchKeyWithVid(key_end, -1)),
+                                                    : _detail::PatchKeyWithVid(key_end, -1)),
       iv_(),
       valid_(false),
       pos_(0),
@@ -161,15 +158,15 @@ VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, Transaction* txn, KvT
 }
 
 VertexIndexIterator::VertexIndexIterator(VertexIndex* idx, KvTransaction* txn, KvTable& table,
-                                         const Value& key_start,
-                                         const Value& key_end, VertexId vid, IndexType type)
+                                         const Value& key_start, const Value& key_end, VertexId vid,
+                                         IndexType type)
     : IteratorBase(nullptr),
       index_(idx),
-      it_(table.GetClosestIterator(
-          *txn, type ==  IndexType::GlobalUniqueIndex ? key_start :
-                                                     _detail::PatchKeyWithVid(key_start, vid))),
-      key_end_(type == IndexType::GlobalUniqueIndex ?
-                  Value::MakeCopy(key_end) : _detail::PatchKeyWithVid(key_end, -1)),
+      it_(table.GetClosestIterator(*txn, type == IndexType::GlobalUniqueIndex
+                                             ? key_start
+                                             : _detail::PatchKeyWithVid(key_start, vid))),
+      key_end_(type == IndexType::GlobalUniqueIndex ? Value::MakeCopy(key_end)
+                                                    : _detail::PatchKeyWithVid(key_end, -1)),
       iv_(),
       valid_(false),
       pos_(0),
@@ -199,8 +196,9 @@ VertexIndexIterator::VertexIndexIterator(VertexIndexIterator&& rhs)
 }
 
 bool VertexIndexIterator::KeyOutOfRange() {
-    if (key_end_.Empty() || (type_ != IndexType::GlobalUniqueIndex
-                             && key_end_.Size() == _detail::VID_SIZE)) return false;
+    if (key_end_.Empty() ||
+        (type_ != IndexType::GlobalUniqueIndex && key_end_.Size() == _detail::VID_SIZE))
+        return false;
     return it_->GetTable().CompareKey(it_->GetTxn(), it_->GetKey(), key_end_) > 0;
 }
 
@@ -272,6 +270,13 @@ bool VertexIndexIterator::Next() {
     return true;
 }
 
+bool VertexIndexIterator::Goto(lgraph::VertexId vid) {
+    if (!it_->GotoClosestKey(curr_key_)) return false;
+    if (KeyOutOfRange()) return false;
+    LoadContentFromIt();
+    return it_->IsValid() && vid == vid_;
+}
+
 Value VertexIndexIterator::GetKey() const {
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
@@ -307,8 +312,7 @@ void VertexIndexIterator::RefreshContentIfKvIteratorModified() {
             }
         case IndexType::NonuniqueIndex:
             {
-                if (!it_->GotoClosestKey(_detail::PatchKeyWithVid(curr_key_, vid_)))
-                    return;
+                if (!it_->GotoClosestKey(_detail::PatchKeyWithVid(curr_key_, vid_))) return;
                 if (KeyOutOfRange()) return;
                 // non-unique, need to find correct pos_
                 iv_ = VertexIndexValue(it_->GetValue());
@@ -329,8 +333,7 @@ void VertexIndexIterator::RefreshContentIfKvIteratorModified() {
 //  begin of VertexIndex
 
 VertexIndex::VertexIndex(std::shared_ptr<KvTable> table, FieldType key_type, IndexType type)
-    : table_(std::move(table)), key_type_(key_type),
-      ready_(false), disabled_(false), type_(type) {}
+    : table_(std::move(table)), key_type_(key_type), ready_(false), disabled_(false), type_(type) {}
 
 VertexIndex::VertexIndex(const VertexIndex& rhs)
     : table_(rhs.table_),
@@ -340,7 +343,8 @@ VertexIndex::VertexIndex(const VertexIndex& rhs)
       type_(rhs.type_) {}
 
 std::unique_ptr<KvTable> VertexIndex::OpenTable(KvTransaction& txn, KvStore& store,
-                                          const std::string& name, FieldType dt, IndexType type) {
+                                                const std::string& name, FieldType dt,
+                                                IndexType type) {
     ComparatorDesc desc;
     switch (type) {
     case IndexType::GlobalUniqueIndex:
@@ -364,15 +368,16 @@ std::unique_ptr<KvTable> VertexIndex::OpenTable(KvTransaction& txn, KvStore& sto
 
 void VertexIndex::_AppendVertexIndexEntry(KvTransaction& txn, const Value& k, VertexId vid) {
     FMA_DBG_ASSERT(type_ == IndexType::GlobalUniqueIndex);
-    Value key = CutKeyIfLong(k);
-    table_->AppendKv(txn, key, Value::ConstRef(vid));
+    if (k.Size() > GetMaxVertexIndexKeySize())
+        THROW_CODE(InputError, "Vertex unique index value [{}] is too long.", k.AsString());
+    table_->AppendKv(txn, Value::ConstRef(k), Value::ConstRef(vid));
 }
 
 void VertexIndex::_AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Value& k,
-                                      const std::vector<VertexId>& vids) {
+                                                   const std::vector<VertexId>& vids) {
     FMA_DBG_ASSERT(type_ == IndexType::NonuniqueIndex);
     FMA_DBG_ASSERT(!vids.empty());
-    Value key = CutKeyIfLong(k);
+    Value key = CutKeyIfLongOnlyForNonUniqueIndex(k);
     size_t vid_per_idv = _detail::NODE_SPLIT_THRESHOLD / _detail::VID_SIZE;
     for (size_t i = 0; i < vids.size(); i += vid_per_idv) {
         size_t end = i + vid_per_idv;
@@ -384,7 +389,7 @@ void VertexIndex::_AppendNonUniqueVertexIndexEntry(KvTransaction& txn, const Val
 }
 
 void VertexIndex::Dump(KvTransaction& txn,
-          const std::function<std::string(const char* p, size_t s)>& key_to_string) {
+                       const std::function<std::string(const char* p, size_t s)>& key_to_string) {
     auto it = table_->GetIterator(txn);
     for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
         const Value& k = it->GetKey();
@@ -415,7 +420,7 @@ void VertexIndex::Dump(KvTransaction& txn,
 }
 
 bool VertexIndex::Delete(KvTransaction& txn, const Value& k, int64_t vid) {
-    Value key = CutKeyIfLong(k);
+    Value key = type_ == IndexType::GlobalUniqueIndex ? k : CutKeyIfLongOnlyForNonUniqueIndex(k);
     VertexIndexIterator it = GetUnmanagedIterator(txn, key, key, vid);
     if (!it.IsValid() || it.KeyOutOfRange()) {
         // no such key_vid
@@ -454,23 +459,36 @@ bool VertexIndex::Delete(KvTransaction& txn, const Value& k, int64_t vid) {
     return false;
 }
 
-bool VertexIndex::Update(KvTransaction& txn, const Value& old_key,
-                         const Value& new_key, int64_t vid) {
+bool VertexIndex::Update(KvTransaction& txn, const Value& old_key, const Value& new_key,
+                         int64_t vid) {
     if (!Delete(txn, old_key, vid)) {
         return false;
     }
     return Add(txn, new_key, vid);
 }
 
+bool VertexIndex::UniqueIndexConflict(KvTransaction& txn, const Value& k) {
+    if (type_ != IndexType::GlobalUniqueIndex) {
+        THROW_CODE(InputError, "vertex UniqueIndexConflict only can be used in unique index.");
+    }
+    if (k.Size() > GetMaxVertexIndexKeySize()) {
+        return true;
+    }
+    Value v;
+    return table_->GetValue(txn, k, v);
+}
+
 bool VertexIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
-    Value key = CutKeyIfLong(k);
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
         {
-            return table_->AddKV(txn, key, Value::ConstRef(vid));
+            if (k.Size() > GetMaxVertexIndexKeySize())
+                THROW_CODE(InputError, "Vertex unique index value [{}] is too long.", k.AsString());
+            return table_->AddKV(txn, Value::ConstRef(k), Value::ConstRef(vid));
         }
     case IndexType::NonuniqueIndex:
         {
+            Value key = CutKeyIfLongOnlyForNonUniqueIndex(k);
             VertexIndexIterator it = GetUnmanagedIterator(txn, key, key, vid);
             if (!it.IsValid() || it.KeyOutOfRange()) {
                 if (!it.PrevKV() || !it.KeyEquals(key)) {
@@ -520,7 +538,7 @@ bool VertexIndex::Add(KvTransaction& txn, const Value& k, int64_t vid) {
     return false;
 }
 
-size_t VertexIndex::GetMaxEdgeIndexKeySize() {
+size_t VertexIndex::GetMaxVertexIndexKeySize() {
     size_t key_size = 0;
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
@@ -535,14 +553,15 @@ size_t VertexIndex::GetMaxEdgeIndexKeySize() {
         }
     case IndexType::PairUniqueIndex:
         {
-            THROW_CODE(InputError, "vertex index do not support pair-unique attributes");
+            THROW_CODE(InputError, "vertex index do not support pair-unique type");
         }
     }
     return key_size;
 }
 
-Value VertexIndex::CutKeyIfLong(const Value& k) {
-    size_t key_size = GetMaxEdgeIndexKeySize();
+Value VertexIndex::CutKeyIfLongOnlyForNonUniqueIndex(const lgraph::Value& k) {
+    if (type_ != IndexType::NonuniqueIndex) return Value::ConstRef(k);
+    size_t key_size = GetMaxVertexIndexKeySize();
     if (k.Size() < key_size) return Value::ConstRef(k);
     return Value(k.Data(), key_size);
 }

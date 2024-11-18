@@ -62,6 +62,7 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // core
     start_time = get_time();
     std::vector< std::tuple<size_t, size_t, double> > result_list;
+
     for (auto search_pair : search_list) {
         size_t count_common = CNCore(olapondb, search_pair);
         result_list.push_back(std::make_tuple(search_pair.first, search_pair.second, count_common));

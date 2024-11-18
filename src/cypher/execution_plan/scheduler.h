@@ -54,6 +54,8 @@ class Scheduler {
  private:
     void EvalCypher(RTContext *ctx, const std::string &script, ElapsedTime &elapsed);
 
+    void EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTime &elapsed);
+
     void EvalGql(RTContext *ctx, const std::string &script, ElapsedTime &elapsed);
 
     static bool DetermineCypherReadOnly(cypher::RTContext *ctx, const std::string &script,

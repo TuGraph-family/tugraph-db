@@ -16,6 +16,7 @@
 
 #include <vector>
 #include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/common/ObjectAllocator.h"
 #include "cypher/graph/graph.h"
 #include "cypher/execution_plan/ops/op.h"
 
@@ -23,8 +24,10 @@ namespace cypher {
 
 class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
  public:
-    explicit ExecutionPlanMaker(std::vector<PatternGraph>& pattern_graphs)
-        : pattern_graphs_(pattern_graphs) {}
+    ExecutionPlanMaker(std::vector<PatternGraph>& pattern_graphs,
+      geax::common::ObjectArenaAllocator& alloc)
+        : pattern_graphs_(pattern_graphs)
+        , objAlloc_(alloc) {}
     ~ExecutionPlanMaker() = default;
     geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, OpBase*& root);
     std::string ErrorMsg() { return error_msg_; }
@@ -36,14 +39,22 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::string error_msg_;
 
     std::vector<OpBase*> pattern_graph_root_;
+    std::vector<bool> should_connect_;
     std::vector<PatternGraph>& pattern_graphs_;
     size_t cur_pattern_graph_;
     size_t pattern_graph_size_;
 
+    // last_op_ is used to store the root node of the operators created during pre-order traversal
+    OpBase* last_op_ = nullptr;
+
     std::shared_ptr<Node> node_t_;
-    std::shared_ptr<Node> start_t_;
     std::shared_ptr<Relationship> relp_t_;
     OpFilter* op_filter_ = nullptr;
+    geax::common::ObjectArenaAllocator& objAlloc_;
+    std::vector<geax::frontend::BEqual*> equal_filter_;
+    std::vector<bool> has_filter_per_level_;
+    uint32_t filter_level_ = 0;
+    bool is_end_path_ = false;
 
  private:
     DISABLE_COPY(ExecutionPlanMaker);
@@ -92,6 +103,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ResetTimeZone* node) override;
     std::any visit(geax::frontend::ResetGraph* node) override;
     std::any visit(geax::frontend::ResetParam* node) override;
+    std::any visit(geax::frontend::RemoveSingleProperty* node) override;
 
     //---------------------------------------------------------------------------------
     // exprs
@@ -114,6 +126,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::BDiv* node) override;
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
+    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;
@@ -155,6 +168,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::VNone* node) override;
     std::any visit(geax::frontend::Ref* node) override;
     std::any visit(geax::frontend::Param* node) override;
+    std::any visit(geax::frontend::ListComprehension* node) override;
 
     // predicates
     std::any visit(geax::frontend::IsNull* node) override;
@@ -219,6 +233,8 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ShowProcessListStatement* node) override;
     std::any visit(geax::frontend::KillStatement* node) override;
     std::any visit(geax::frontend::ManagerStatement* node) override;
+    std::any visit(geax::frontend::UnwindStatement* node) override;
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override;
 
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;

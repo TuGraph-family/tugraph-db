@@ -161,15 +161,15 @@ void Importer::DoImportOffline() {
                                     v.name, spec.name);
                     }
                 } else if (v.is_vertex && spec.index && !spec.primary &&
-                           (spec.idxType == lgraph::IndexType::GlobalUniqueIndex ||
-                            spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
+                           spec.idxType != lgraph::IndexType::NonuniqueIndex) {
                     THROW_CODE(InputError,
                         "offline import does not support to create a unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
                                 v.name, spec.name);
                 } else if (!v.is_vertex && spec.index &&
-                           spec.idxType != lgraph::IndexType::GlobalUniqueIndex) {
+                           (spec.idxType == lgraph::IndexType::NonuniqueIndex ||
+                           spec.idxType == lgraph::IndexType::PairUniqueIndex)) {
                     if (db_->AddEdgeIndex(v.name, spec.name, spec.idxType)) {
                         if (!config_.import_online) {
                             LOG_INFO() << FMA_FMT("Add edge index [label:{}, field:{}, type:{}]",
@@ -186,7 +186,7 @@ void Importer::DoImportOffline() {
                 } else if (!v.is_vertex && spec.index &&
                            spec.idxType == lgraph::IndexType::GlobalUniqueIndex) {
                     THROW_CODE(InputError,
-                        "offline import does not support to create a unique "
+                        "offline import does not support to create an unique "
                                 "index [label:{}, field:{}]. You should create an index for "
                                 "an attribute column after the import is complete",
                                 v.name, spec.name);
@@ -1155,6 +1155,7 @@ void Importer::RocksdbToLmdb() {
             EdgeId out_last_eid = -1, in_last_eid = -1;
             size_t total_size = 0;
             VertexId pre_vid = InvalidVid;
+            EdgeUid last_uid(-1, -1, 0, -1, -1);
 
             auto throw_kvs_to_lmdb = [&lmdb_writer, &pending_tasks, this, &stage, i]
                 (std::vector<std::pair<Value, Value>> kvs,
@@ -1243,6 +1244,7 @@ void Importer::RocksdbToLmdb() {
                 in_last_dst = -1;
                 out_last_eid = -1;
                 in_last_eid = -1;
+                last_uid = {-1, -1, 0, -1, -1};
             };
 
             while (true) {
@@ -1318,18 +1320,15 @@ void Importer::RocksdbToLmdb() {
                                 uid.lid = labelId;
                                 uid.dst = vertexId;
                                 uid.tid = tid;
-                                if (edge_property.empty()) {
-                                    uid.eid = 0;
+                                if (last_uid.src == uid.src &&
+                                    last_uid.lid == uid.lid &&
+                                    last_uid.dst == uid.dst &&
+                                    last_uid.tid == uid.tid) {
+                                    uid.eid = last_uid.eid + 1;
                                 } else {
-                                    auto& last = edge_property.back();
-                                    if (std::get<1>(last).src == uid.src &&
-                                        std::get<1>(last).lid == uid.lid &&
-                                        std::get<1>(last).dst == uid.dst) {
-                                        uid.eid = std::get<1>(last).eid + 1;
-                                    } else {
-                                        uid.eid = 0;
-                                    }
+                                    uid.eid = 0;
                                 }
+                                last_uid = uid;
                                 edge_property.emplace_back(
                                     labelId, uid, Value::MakeCopy(val.data(), val.size()));
                                 outs.emplace_back(labelId, tid, vertexId, import_v2::DenseString());

@@ -173,13 +173,12 @@ class SchemaManager {
      * \exception   ::lgraph::SchemaException   Thrown when a Schema error condition occurs.
      *
      * \param [in,out]  txn         The transaction.
+     * \param           is_vertex   True if this is vertex label, otherwise it is edge label.
      * \param           label       The label.
      * \param           n_fields    The fields.
      * \param           fields      The fields in the labeled data.
-     * \param           primary_field The vertex primary property,
-     *                  must be set when is_vertex is true
-     * \param           edge_constraints The edge constraints, can
-     *                  be set when is_vertex is false
+     * \param           options     Cast to VertexOptions when is_vertex is true, else cast to
+     * EdgeOptions.
      *
      * \return  True if it succeeds, false if the label already exists. Throws exception on error.
      */
@@ -377,6 +376,16 @@ class SchemaManager {
         return indexes;
     }
 
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexes() const {
+        std::vector<CompositeIndexSpec> indexes;
+        for (auto& schema : schemas_) {
+            for (auto &spec : schema.GetCompositeIndexSpec()) {
+                indexes.push_back(spec);
+            }
+        }
+        return indexes;
+    }
+
     std::vector<IndexSpec> ListEdgeIndexes() const {
         std::vector<IndexSpec> indexes;
         for (auto& schema : schemas_) {
@@ -433,6 +442,14 @@ class SchemaManager {
             indexes.push_back(std::move(is));
         }
         return indexes;
+    }
+
+    std::vector<CompositeIndexSpec> ListVertexCompositeIndexByLabel(
+                                    const std::string &label) const {
+        const Schema* schema = GetSchema(label);
+        if (!schema)
+            THROW_CODE(InputError, "Label [{}] does not exist.", label);
+        return schema->GetCompositeIndexSpec();
     }
 
  private:

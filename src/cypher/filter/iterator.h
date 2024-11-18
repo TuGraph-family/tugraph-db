@@ -20,6 +20,7 @@
 #include "core/lightning_graph.h"
 #include "cypher/cypher_types.h"
 #include "cypher/cypher_exception.h"
+#include "cypher/graph/common.h"
 
 namespace lgraph {
 
@@ -178,6 +179,36 @@ class WeakIndexIterator {
                 iit->Next();
                 if (iit->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
                     _txn->GetVertexField(iit->GetVid(), _field_name) == _value) {
+                    _valid = true;
+                    break;
+                }
+            }
+            if (!_valid) {
+                if (_iit_idx < _iit.size() - 1) {
+                    _iit_idx++;
+                    _valid = true;
+                }
+            }
+        }
+        return _valid;
+    }
+
+    bool Goto(lgraph::VertexId vid) {
+        _valid = false;
+        if (_it) {
+            while (_it->IsValid()) {
+                _it->GotoClosestVertex(vid);
+                if (_it->IsValid() && (_label.empty() || _txn->GetVertexLabel(*_it) == _label) &&
+                    _txn->GetVertexField(*_it, _field_name) == _value) {
+                    _valid = true;
+                    break;
+                }
+            }
+        } else {
+            auto iit = _iit[_iit_idx];
+            while (iit->IsValid()) {
+                iit->Goto(vid);
+                if (iit->IsValid() && _txn->GetVertexField(iit->GetVid(), _field_name) == _value) {
                     _valid = true;
                     break;
                 }
@@ -373,6 +404,10 @@ class VIter {
             return (_vit && _vit->Goto(vid));
         case LABEL_VERTEX_ITER:
             return (_lvit && _lvit->Goto(vid));
+        case WEAK_INDEX_ITER:
+            return (_wit && _wit->Goto(vid));
+        case INDEX_ITER:
+            return (_iit && _iit->Goto(vid));
         default:
             CYPHER_TODO();
             return false;
@@ -636,17 +671,6 @@ class EIter {
 
     EIter() = default;
 
-    EIter(lgraph::Transaction *txn, IteratorType type, lgraph::VertexId vid) {
-        Initialize(txn, type, vid);
-    }
-
-    EIter(lgraph::Transaction *txn, IteratorType type, lgraph::VertexId vid,
-          const std::set<std::string> &relp_types) {
-        Initialize(txn, type, vid, relp_types);
-    }
-
-    EIter(lgraph::Transaction *txn, lgraph::EdgeUid &euid) { Initialize(txn, euid); }
-
     ~EIter() { FreeIter(); }
 
     void FreeIter() {
@@ -683,10 +707,12 @@ class EIter {
         _oeit = nullptr;
     }
 
-    void Initialize(lgraph::Transaction *txn, IteratorType type, lgraph::VertexId vid) {
+    void Initialize(lgraph::Transaction *txn, IteratorType type, lgraph::VertexId vid,
+                    const std::set<std::string> &relp_types, std::vector<cypher::Property> props) {
         FreeIter();
         _txn = txn;
         _type = type;
+        _properties = std::move(props);
         switch (_type) {
         case OUT_EDGE:
             _oeit = new lgraph::graph::OutEdgeIterator(_txn->GetOutEdgeIterator(vid));
@@ -706,18 +732,6 @@ class EIter {
                 }
                 break;
             }
-        default:
-            throw lgraph::CypherException("EIter constructor type error.");
-        }
-    }
-
-    void Initialize(lgraph::Transaction *txn, IteratorType type, lgraph::VertexId vid,
-                    const std::set<std::string> &relp_types) {
-        FreeIter();
-        _txn = txn;
-        _type = type;
-        if (relp_types.empty()) return Initialize(txn, type, vid);
-        switch (_type) {
         case TYPE_OUT_EDGE:
             _toeit = new TypeEdgeIterator<lgraph::graph::OutEdgeIterator>(
                 _txn, new lgraph::graph::OutEdgeIterator(_txn->GetOutEdgeIterator(vid)),
@@ -745,6 +759,9 @@ class EIter {
             }
         default:
             throw lgraph::CypherException("EIter constructor type error.");
+        }
+        if (IsValid() && !MatchPropertyFilter()) {
+            Next();
         }
     }
 
@@ -795,7 +812,36 @@ class EIter {
         }
     }
 
+    bool MatchPropertyFilter() {
+        if (_properties.empty()) {
+            return true;
+        }
+        auto fields = GetFields();
+        std::unordered_map<std::string, FieldData> map;
+        for (size_t i = 0; i < fields.size(); i++) {
+            map.emplace(fields[i].first, std::move(fields[i].second));
+        }
+        bool match = true;
+        for (auto &item : _properties) {
+            auto iter = map.find(item.field);
+            if (iter == map.end() || item.value != iter->second) {
+                match = false;
+                break;
+            }
+        }
+        return match;
+    }
+
     bool Next() {
+        while (InternalNext()) {
+            if (MatchPropertyFilter()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool InternalNext() {
         switch (_type) {
         case OUT_EDGE:
             return (_oeit && _oeit->Next());
@@ -1060,6 +1106,7 @@ class EIter {
     };
     lgraph::Transaction *_txn = nullptr;
     bool _is_out;  // for undirected edge
+    std::vector<cypher::Property> _properties;
 
     bool _CheckItPtr() const {
         switch (_type) {

@@ -29,9 +29,6 @@ using json = nlohmann::json;
  *        - "root_value": The value of the root vertex.
  *        - "root_label": The label of the root vertex.
  *        - "root_field": The field of the root vertex.
- *        - "vertex_label_filter": Filter vertex sets based on vertex labels
- *        - "edge_label_filter": Filter edge sets based on edge labels
- *        - "sssp_distance": Vertex field name to be written back into the database.
  *        - "output_file": Sssp distance to be written to the file.
  * @param response The output response in JSON format.
  *        The response will contain the following parameters:
@@ -51,11 +48,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // prepare
     start_time = get_time();
     std::string root_value = "0";
-    std::string root_label = "";
-    std::string root_field = "";
-    std::string vertex_label_filter = "";
-    std::string edge_label_filter = "";
-    std::string sssp_distance = "";
+    std::string root_label = "node";
+    std::string root_field = "id";
     std::string output_file = "";
     std::cout << "Input: " << request << std::endl;
     try {
@@ -63,9 +57,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         parse_from_json(root_value, "root_value", input);
         parse_from_json(root_label, "root_label", input);
         parse_from_json(root_field, "root_field", input);
-        parse_from_json(vertex_label_filter, "vertex_label_filter", input);
-        parse_from_json(edge_label_filter, "edge_label_filter", input);
-        parse_from_json(sssp_distance, "sssp_distance", input);
         parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
@@ -73,36 +64,10 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         return false;
     }
     auto txn = db.CreateReadTxn();
-    std::function<bool(VertexIterator &)> vertex_filter = nullptr;
-    std::function<bool(OutEdgeIterator &, double &)> edge_filter = edge_convert_default<double>;
 
-    if (!vertex_label_filter.empty()) {
-        vertex_filter = [&vertex_label_filter](VertexIterator& vit) {
-            return vit.GetLabel() == vertex_label_filter;
-        };
-    }
-
-    if (!edge_label_filter.empty()) {
-        auto edge_filter = [edge_label_filter](OutEdgeIterator& eit, double& edata) -> bool {
-            if (eit.GetLabel() == edge_label_filter) {
-                return edge_convert_default<double>(eit, edata);
-            }
-            return false;
-        };
-    }
-
-    if (root_label.empty() || root_field.empty()) {
-        if (root_label.empty() && root_field.empty()) {
-            root_label = "node";
-            root_field = "id";
-        } else {
-            THROW_CODE(InputError, "root_label or root_field is empty");
-        }
-    }
-
-    OlapOnDB<double> olapondb(db, txn, SNAPSHOT_PARALLEL, vertex_filter, edge_filter);
-    int64_t root_vid = txn.GetVertexIndexIterator(root_label, root_field,
-            root_value, root_value).GetVid();
+    OlapOnDB<double> olapondb(db, txn, SNAPSHOT_PARALLEL);
+    int64_t root_vid =
+        txn.GetVertexIndexIterator(root_label, root_field, root_value, root_value).GetVid();
     auto prepare_cost = get_time() - start_time;
 
     // core
@@ -114,12 +79,9 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // output
     start_time = get_time();
     if (output_file != "") {
-        olapondb.WriteToFile<double>(distance, output_file);
-    }
-    txn.Commit();
-
-    if (sssp_distance != "") {
-        olapondb.WriteToGraphDB<double>(distance, sssp_distance);
+        olapondb.WriteToFile<double>(distance, output_file, [&](size_t vid, double& vdata) -> bool {
+            return vdata != SSSP_INIT_VALUE;
+        });
     }
 
     auto all_vertices = olapondb.AllocVertexSubset();
@@ -139,14 +101,21 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
                        ? a
                        : b;
         });
-    printf("max distance is: distance[%ld]=%lf\n",
-            olapondb.OriginalVid(max_distance_vi), distance[max_distance_vi]);
+    printf("max distance is: distance[%ld]=%lf\n", olapondb.OriginalVid(max_distance_vi),
+           distance[max_distance_vi]);
     auto output_cost = get_time() - start_time;
 
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_distance_vi), false);
+    auto vit_label = vit.GetLabel();
+    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+    auto field_data = vit.GetField(primary_field);
     // return
     {
         json output;
         output["max_distance_vid"] = olapondb.OriginalVid(max_distance_vi);
+        output["max_distance_label"] = vit_label;
+        output["max_distance_primaryfield"] = primary_field;
+        output["max_distance_fielddata"] = field_data.ToString();
         output["max_distance_val"] = distance[max_distance_vi];
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
@@ -156,5 +125,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         output["total_cost"] = prepare_cost + core_cost + output_cost;
         response = output.dump();
     }
+    txn.Commit();
     return true;
 }

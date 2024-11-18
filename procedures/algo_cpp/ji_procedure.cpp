@@ -29,7 +29,8 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::string src_field = "id";
     std::string dst_label = "node";
     std::string dst_field = "id";
-    std::vector<std::pair<size_t, size_t>> search_list = {{0, 1}, {1, 972}, {101, 202}};
+    std::vector<std::pair<std::string, std::string>> search_list = {
+        {"0", "1"}, {"1", "972"}, {"101", "202"}};
     auto txn = db.CreateReadTxn();
     try {
         json input = json::parse(request);
@@ -40,19 +41,13 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         parse_from_json(search_list, "search_pairs", input);
         if (input["search_pairs"].is_array()) {
             search_list.clear();
-            for (auto &e : input["search_pairs"]) {
-                int64_t src_id = e[0];
-                int64_t dst_id = e[1];
-                lgraph_api::FieldData src_field_data(src_id);
-                lgraph_api::FieldData dst_field_data(dst_id);
-                size_t src = txn.GetVertexIndexIterator(src_label,
-                        src_field, src_field_data, src_field_data).GetVid();
-                size_t dst = txn.GetVertexIndexIterator(dst_label,
-                        dst_field, dst_field_data, dst_field_data).GetVid();
-                search_list.push_back(std::make_pair(src, dst));
+            for (auto& e : input["search_pairs"]) {
+                std::string src_string = static_cast<std::string>(e[0]);
+                std::string dst_string = static_cast<std::string>(e[1]);
+                search_list.push_back(std::make_pair(src_string, dst_string));
             }
         }
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
         return false;
@@ -63,12 +58,20 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
 
     // core
     start_time = get_time();
-    std::vector< std::tuple<size_t, size_t, double> > result_list;
+    std::vector<std::tuple<std::string, std::string, double>> result_list;
+
     for (auto search_pair : search_list) {
-        double score = JiCore(olapondb, search_pair);
-        std::cout << score <<std::endl;
-        result_list.push_back(std::make_tuple(search_pair.first, search_pair.second, score));
+        auto src_string = search_pair.first;
+        auto dst_string = search_pair.second;
+        auto src_vid =
+            txn.GetVertexIndexIterator(src_label, src_field, src_string, src_string).GetVid();
+        auto dst_vid =
+            txn.GetVertexIndexIterator(dst_label, dst_field, dst_string, dst_string).GetVid();
+        auto id_pair = std::make_pair(src_vid, dst_vid);
+        double score = JiCore(olapondb, id_pair);
+        result_list.push_back(std::make_tuple(src_string, dst_string, score));
     }
+
     auto core_cost = get_time() - start_time;
 
     // return

@@ -18,14 +18,20 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include "cypher/graph/common.h"
 #include "parser/data_typedef.h"
+#include "cypher/filter/iterator.h"
+#include "cypher/parser/expression.h"
+#include "geax-front-end/ast/expr/Expr.h"
 
 namespace cypher {
 
 class Relationship {
     RelpID id_ = -1;
     std::set<std::string> types_;
+    parser::Expression properties_;
+    std::vector<std::tuple<std::string, geax::frontend::Expr*>> geax_properties;
     NodeID lhs_ = -1;
     NodeID rhs_ = -1;
     std::string alias_;
@@ -61,6 +67,20 @@ class Relationship {
     RelpID ID() const;
 
     const std::set<std::string> &Types() const;
+
+    const parser::Expression& Properties() { return properties_; }
+
+    const std::vector<std::tuple<std::string, geax::frontend::Expr*>>& GeaxProperties() {
+        return geax_properties;
+    }
+
+    void SetProperties(parser::Expression props) {
+        properties_ = std::move(props);
+    }
+
+    void SetGeaxProperties(std::vector<std::tuple<std::string, geax::frontend::Expr*>> props) {
+        geax_properties = std::move(props);
+    }
 
     void SetTypes(const std::set<std::string> &types) { types_ = types; }
 

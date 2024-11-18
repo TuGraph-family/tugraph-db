@@ -127,15 +127,21 @@ class PatternGraph {
 
     RelpID AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,
                            parser::LinkDirection direction, const std::string &alias,
-                           Relationship::Derivation derivation);
+                           Relationship::Derivation derivation, parser::Expression properties,
+                           std::vector<std::tuple<std::string, geax::frontend::Expr*>>
+                           geax_properties = {});
 
     RelpID AddRelationship(const std::set<std::string> &types, NodeID lhs, NodeID rhs,
                            parser::LinkDirection direction, const std::string &alias, int min_hop,
-                           int max_hop, Relationship::Derivation derivation);
+                           int max_hop, Relationship::Derivation derivation,
+                           parser::Expression properties,
+                           std::vector<std::tuple<std::string, geax::frontend::Expr*>>
+                           geax_properties = {});
 
     RelpID AddRelationship(Relationship *relp) {
         return AddRelationship(relp->Types(), relp->Lhs(), relp->Rhs(), relp->direction_,
-                               relp->Alias(), relp->MinHop(), relp->MaxHop(), relp->derivation_);
+                               relp->Alias(), relp->MinHop(), relp->MaxHop(), relp->derivation_,
+                               relp->Properties(), relp->GeaxProperties());
     }
 
     NodeID BuildNode(const parser::TUP_NODE_PATTERN &node_pattern, Node::Derivation derivation);

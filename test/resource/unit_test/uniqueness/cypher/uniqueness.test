@@ -1,0 +1,17 @@
+MATCH (n1:Person {name:'Liam Neeson'})-->(n2)-->(n3)-->(n4) RETURN n4.title;
+MATCH (n1:Person {name:'Liam Neeson'})<--(n2)<--(n3)<--(n4) RETURN n4;
+MATCH (n1:Person {name:'Liam Neeson'})-[*3]->(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})-[*..]->(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})-[*2..3]->(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})-[:MARRIED*..]->(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})-[:MARRIED|ACTED_IN*..]->(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})-[:MARRIED|ACTED_IN*2..]->(n2) RETURN n2;
+MATCH (n1:Person {name:'Michael Redgrave'})-[*3]->(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})<-[*2]-(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})<-[*4]-(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})<-[*..]-(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})<-[*..]-(n2) RETURN DISTINCT n2;
+MATCH (n1:Person {name:'Liam Neeson'})<-[:MARRIED*..]-(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})<-[:MARRIED|HAS_CHILD*..]-(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})<-[:MARRIED|HAS_CHILD*2..4]-(n2) RETURN n2;
+MATCH (n1:Person {name:'Liam Neeson'})<-[:MARRIED|HAS_CHILD*2..4]-(n2) RETURN DISTINCT n2;

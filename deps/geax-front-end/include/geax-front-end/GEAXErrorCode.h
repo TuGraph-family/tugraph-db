@@ -25,6 +25,8 @@ enum class GEAXErrorCode : uint32_t {
     GEAX_SUCCEED                         = 0,
     GEAX_ERROR                           = 1,
     GEAX_OOPS                            = 4,
+    GEAX_OPTIMIZATION_PASS               = 5,
+    GEAX_OPTIMIZATION_NOT_PASS           = 6,
 
     GEAX_COMMON_INVALID_ARGUMENT         = 30002,
     GEAX_COMMON_NULLPTR                  = 30003,

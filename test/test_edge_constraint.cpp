@@ -60,17 +60,36 @@ TEST_F(TestEdgeConstraint, lgraph_api) {
     auto v2 = txn.AddVertex("v2", {"id"}, {"2"});
     auto v3 = txn.AddVertex("v3", {"id"}, {"3"});
     txn.AddEdge(v1, v2, "v1_v2", {"weight"}, {"1"});
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v1, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v3, v1, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v2, v1, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
     txn.Commit();
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v1, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v3, v1, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v2, v1, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        Transaction tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
     UT_EXPECT_TRUE(db.DeleteVertexLabel("v1"));
-    txn = db.CreateWriteTxn();
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
-    UT_EXPECT_THROW_MSG(txn.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
-    txn.Abort();
+    {
+        auto tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v2, v3, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
+    {
+        auto tmp = db.CreateWriteTxn();
+        UT_EXPECT_THROW_MSG(tmp.AddEdge(v3, v2, "v1_v2", {"weight"}, {"1"}), err_msg);
+    }
     UT_EXPECT_TRUE(db.AddVertexLabel("v1",
                                      {{"id", FieldType::STRING, false}},
                                      lgraph::VertexOptions("id")));
@@ -97,6 +116,7 @@ static void eval_scripts(cypher::RTContext *ctx, const std::vector<std::string> 
         parser.addErrorListener(&CypherErrorListener::INSTANCE);
         CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
         cypher::ExecutionPlan execution_plan;
+        execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
         execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
         execution_plan.Validate(ctx);
         execution_plan.DumpGraph();
@@ -118,13 +138,13 @@ TEST_F(TestEdgeConstraint, cypher) {
         lgraph::_detail::DEFAULT_ADMIN_NAME,
         "default");
 
-    eval_scripts(&db, {"CALL db.createVertexLabel('v1', 'id', 'id', STRING, false)"});
-    eval_scripts(&db, {"CALL db.createVertexLabel('v2', 'id', 'id', STRING, false)"});
-    eval_scripts(&db, {"CALL db.createVertexLabel('v3', 'id', 'id', STRING, false)"});
+    eval_scripts(&db, {"CALL db.createVertexLabel('v1', 'id', 'id', 'STRING', false)"});
+    eval_scripts(&db, {"CALL db.createVertexLabel('v2', 'id', 'id', 'STRING', false)"});
+    eval_scripts(&db, {"CALL db.createVertexLabel('v3', 'id', 'id', 'STRING', false)"});
     UT_EXPECT_THROW_MSG(
-        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v4", "v2"]]', 'weight', FLOAT, false))"}),
+        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v4", "v2"]]', 'weight', 'FLOAT', false))"}),
         "No such vertex label");
-    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v1", "v2"]]', 'weight', FLOAT, false))"});
+    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v1_v2', '[["v1", "v2"]]', 'weight', 'FLOAT', false))"});
     eval_scripts(&db, {"CREATE (:v1 {id:'1'}), (:v2 {id:'2'}), (:v3 {id:'3'})"});
     eval_scripts(&db, {"MATCH (a:v1 {id:'1'}),(b:v2 {id:'2'}) CREATE (a)-[:v1_v2{weight:1}]->(b)"});
     std::string constraints_err_msg = "Does not meet the edge constraints";
@@ -143,9 +163,9 @@ TEST_F(TestEdgeConstraint, cypher) {
 
     // test exception
     UT_EXPECT_THROW_MSG(
-        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v4", "v2"],["v4", "v2"]]', 'weight', FLOAT, false))"}),
+        eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v4", "v2"],["v4", "v2"]]', 'weight', 'FLOAT', false))"}),
         "Duplicate constraints");
-    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v2", "v3"]]', 'weight', FLOAT, false))"});
+    eval_scripts(&db, {R"(CALL db.createEdgeLabel('v2_v3', '[["v2", "v3"]]', 'weight', 'FLOAT', false))"});
     UT_EXPECT_THROW_MSG(
         eval_scripts(&db, {R"(CALL db.addEdgeConstraints('v2_v3', '[["v2", "v3"]]'))"}),
         "already exist");

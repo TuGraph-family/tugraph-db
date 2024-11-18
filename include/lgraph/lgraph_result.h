@@ -36,6 +36,15 @@ namespace lgraph_api {
 
 struct ResultElement;
 
+namespace lgraph_result {
+struct Node;
+struct Relationship;
+}
+
+typedef std::unordered_map<size_t, std::shared_ptr<lgraph_result::Node>> NODEMAP;
+typedef std::unordered_map<EdgeUid, std::shared_ptr<lgraph_result::Relationship>,
+        EdgeUid::Hash> RELPMAP;
+
 /**
  * @brief   You only initialize the class by Result instance. Record provide some insert method
  *          to insert data to the record. eg. Insert, InsertVertexByID, InsertEdgeByID.
@@ -155,7 +164,9 @@ class Record {
      * @param  txn      Trasaction
      */
     void Insert(const std::string &fname, const traversal::Path &path,
-                lgraph_api::Transaction* txn);
+                lgraph_api::Transaction* txn,
+                NODEMAP& node_map,
+                RELPMAP& relp_map);
 #endif
 
     /**
@@ -194,6 +205,8 @@ class Result {
     std::vector<Record> result;
     std::vector<std::pair<std::string, LGraphType>> header;
     int64_t row_count_;
+    bool is_python_driver_ = false;
+    int64_t v_eid_ = 0;  // virtual edge id
 
  public:
     Result();
@@ -293,7 +306,14 @@ class Result {
     void ClearRecords();
 
     std::vector<std::string> BoltHeader();
-    std::vector<std::vector<std::any>> BoltRecords(bool python_driver);
+    std::vector<std::vector<std::any>> BoltRecords();
+    /**
+     * @brief Mark that the result is returned to python driver.
+     *  Python driver is special, use the virtual edge id instead of the real edge id
+     */
+    void MarkPythonDriver(bool is_python_driver) {
+        is_python_driver_ = is_python_driver;
+    }
 
  private:
     /**

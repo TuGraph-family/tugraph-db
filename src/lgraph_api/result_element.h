@@ -16,6 +16,8 @@
 
 #include <map>
 #include <any>
+#include <memory>
+#include <variant>
 #include "tools/json.hpp"
 #include "lgraph/lgraph_types.h"
 #include "bolt/graph.h"
@@ -43,9 +45,8 @@ struct Relationship {
     bool forward;
     std::map<std::string, lgraph_api::FieldData> properties;
     nlohmann::json ToJson();
-    bolt::Relationship ToBolt();
-    bolt::RelNode ToBoltUnbound();
-    bolt::RelNode ToBoltUnbound(int64_t virtual_edge_id);
+    bolt::Relationship ToBolt(int64_t* v_eid);
+    bolt::RelNode ToBoltUnbound(int64_t* v_eid);
 };
 
 // WARNING: [PathElement] just include node and relationship
@@ -53,17 +54,22 @@ struct Relationship {
 //          a new member.
 struct PathElement {
     lgraph_api::LGraphType type_;
-    union {
-        Node *node;
-        Relationship *repl;
-    } v;
+    std::variant<std::shared_ptr<Node>, std::shared_ptr<Relationship>> v;
     explicit PathElement(const Node &node) {
         type_ = lgraph_api::LGraphType::NODE;
-        v.node = new Node(node);
+        v = std::make_shared<Node>(node);
+    }
+    explicit PathElement(std::shared_ptr<Node> &&node) {
+        type_ = lgraph_api::LGraphType::NODE;
+        v = node;
     }
     explicit PathElement(const Relationship &repl) {
         type_ = lgraph_api::LGraphType::RELATIONSHIP;
-        v.repl = new Relationship(repl);
+        v = std::make_shared<Relationship>(repl);
+    }
+    explicit PathElement(std::shared_ptr<Relationship> &&repl) {
+        type_ = lgraph_api::LGraphType::RELATIONSHIP;
+        v = repl;
     }
     PathElement(const PathElement &);
     PathElement(PathElement &&);
@@ -122,6 +128,17 @@ struct ResultElement {
         v.path = new lgraph_result::Path(data);
     }
 
+    explicit ResultElement(lgraph_result::Path &&data) {
+        type_ = LGraphType::PATH;
+        v.path = new lgraph_result::Path(data);
+    }
+
+    explicit ResultElement(lgraph_result::Path* &&data) {
+        type_ = LGraphType::PATH;
+        v.path = data;
+        data = nullptr;
+    }
+
     ResultElement(const ResultElement &);
     ResultElement(const ResultElement &&);
     inline ResultElement &operator=(const ResultElement &);
@@ -132,7 +149,7 @@ struct ResultElement {
 
     nlohmann::json ToJson();
     std::string ToString();
-    std::any ToBolt(bool python_driver);
+    std::any ToBolt(int64_t* v_eid);
 };
 
 }  // namespace lgraph_api

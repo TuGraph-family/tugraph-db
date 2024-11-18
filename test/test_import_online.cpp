@@ -1781,10 +1781,28 @@ John Williams,"Goodbye, Mr. Chips"
         RpcClient client("0.0.0.0:46464", lgraph::_detail::DEFAULT_ADMIN_NAME,
                   lgraph::_detail::DEFAULT_ADMIN_PASS);
         std::string str;
+        {
+            bool ret = client.CallCypher(str, "MATCH (n) RETURN n");
+            UT_EXPECT_TRUE(ret);
+            web::json::value json_val = web::json::value::parse(str);
+            UT_EXPECT_EQ(json_val.as_array().size(), 20);
+        }
+        {
+            bool ret = client.CallCypher(str, "MATCH (n)-[r]->(m) RETURN r");
+            UT_EXPECT_TRUE(ret);
+            web::json::value json_val = web::json::value::parse(str);
+            UT_EXPECT_EQ(json_val.as_array().size(), 20);
+        }
+        {
+            bool ret = client.CallCypher(str, "MATCH (n)<-[r]-(m) RETURN r");
+            UT_EXPECT_TRUE(ret);
+            web::json::value json_val = web::json::value::parse(str);
+            UT_EXPECT_EQ(json_val.as_array().size(), 20);
+        }
+
         bool ret = client.CallCypher(str, "MATCH (n:Person) RETURN Count(n)");
         UT_EXPECT_TRUE(ret);
         web::json::value json_val = web::json::value::parse(str);
-        LOG_INFO() << "MATCH (n:Person) RETURN Count(n) " << str;
         UT_EXPECT_EQ(json_val[0]["Count(n)"], 11);
     }
 }

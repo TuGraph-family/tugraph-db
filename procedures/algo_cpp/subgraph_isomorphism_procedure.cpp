@@ -27,7 +27,13 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     std::cout << "Input: " << request << std::endl;
     try {
         json input = json::parse(request);
-        parse_from_json(query, "query", input);
+        for (auto &query_item : input["query"]) {
+            std::unordered_set<size_t> q;
+            for (auto &inner : query_item) {
+                q.insert(inner.get<int>());
+            }
+            query.push_back(q);
+        }
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;

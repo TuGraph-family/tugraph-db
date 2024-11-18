@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@
 #include "core/edge_index.h"
 #include "core/schema.h"
 #include "import/import_config_parser.h"
+#include "core/vector_index.h"
 
 namespace lgraph {
 
@@ -48,13 +49,51 @@ void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& re
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
+        if (fe.Type() != FieldType::FLOAT_VECTOR) {
+            VertexIndex* index = fe.GetVertexIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
+                THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record));
+            }
+        }
+    }
+}
+
+void Schema::DeleteVertexCompositeIndex(lgraph::KvTransaction& txn,
+                                        lgraph::VertexId vid,
+                                        const lgraph::Value& record) {
+    for (const auto &kv : composite_index_map) {
+        std::vector<std::string> ids;
+        boost::split(ids, kv.first,
+                     boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
+        std::vector<std::string> fields;
+        bool is_add_index = true;
+        std::vector<Value> keys;
+        for (int i = 0; i < (int)ids.size(); i++) {
+            if (fields_[std::stoi(ids[i])].GetIsNull(record)) {
+                is_add_index = false;
+                break;
+            }
+            keys.emplace_back(fields_[std::stoi(ids[i])].GetConstRef(record));
+        }
+        if (!is_add_index) continue;
+        auto composite_index = kv.second;
+        if (!composite_index->Delete(txn,
+                                  composite_index_helper::GenerateCompositeIndexKey(keys), vid)) {
+            std::vector<std::string> field_names;
+            std::vector<std::string> field_values;
+            for (int i = 0; i < (int)ids.size(); i++) {
+                field_names.push_back(fields_[std::stoi(ids[i])].Name());
+                field_values.push_back(fields_[std::stoi(ids[i])].FieldToString(record));
+            }
+            THROW_CODE(InputError,
+                       "Failed to index vertex [{}] with field value {}:{}: "
+                       "index value already exists.",
+                       vid, "[" + boost::join(field_names, ",") + "]",
+                       "[" + boost::join(field_values, ",") + "]");
         }
     }
 }
@@ -117,16 +156,98 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
-        VertexIndex* index = fe.GetVertexIndex();
-        FMA_ASSERT(index);
-        // update field index
-        if (!index->Add(txn, fe.GetConstRef(record), vid)) {
-            THROW_CODE(InputError,
+        if (fe.Type() != FieldType::FLOAT_VECTOR) {
+            VertexIndex* index = fe.GetVertexIndex();
+            FMA_ASSERT(index);
+            // update field index
+            if (!index->Add(txn, fe.GetConstRef(record), vid)) {
+                THROW_CODE(InputError,
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record));
+            }
         }
         created.push_back(idx);
     }
+}
+
+void Schema::AddVertexToCompositeIndex(lgraph::KvTransaction& txn, lgraph::VertexId vid,
+                                       const lgraph::Value& record,
+                                       std::vector<std::string>& created) {
+    created.reserve(composite_index_map.size());
+    for (const auto &kv : composite_index_map) {
+        std::vector<std::string> ids;
+        boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
+        std::vector<std::string> fields;
+        bool is_add_index = true;
+        std::vector<Value> keys;
+        for (int i = 0; i < (int)ids.size(); i++) {
+            if (fields_[std::stoi(ids[i])].GetIsNull(record)) {
+                is_add_index = false;
+                break;
+            }
+            keys.emplace_back(fields_[std::stoi(ids[i])].GetConstRef(record));
+        }
+        if (!is_add_index) continue;
+        auto composite_index = kv.second;
+        if (!composite_index->Add(txn,
+             composite_index_helper::GenerateCompositeIndexKey(keys), vid)) {
+            std::vector<std::string> field_names;
+            std::vector<std::string> field_values;
+            for (int i = 0; i < (int)ids.size(); i++) {
+                field_names.push_back(fields_[std::stoi(ids[i])].Name());
+                field_values.push_back(fields_[std::stoi(ids[i])].FieldToString(record));
+            }
+            THROW_CODE(InputError,
+                       "Failed to index vertex [{}] with field value {}:{}: "
+                       "index value already exists.",
+                       vid, "[" + boost::join(field_names, ",") + "]",
+                       "[" + boost::join(field_values, ",") + "]");
+        }
+        created.push_back(kv.first);
+    }
+}
+
+std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
+    const std::vector<size_t>& fields) {
+    std::vector<std::vector<std::string>> result;
+    std::unordered_set<std::string> visited;
+    for (const auto &expected_id : fields) {
+        for (const auto &kv : composite_index_map) {
+            std::vector<std::string> field_ids;
+            boost::split(field_ids, kv.first,
+                         boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
+            bool flag = false;
+            for (const auto &id : field_ids) {
+                if ((int)expected_id == std::stoi(id)) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag && !visited.count(kv.first)) {
+                std::vector<std::string> field_names;
+                for (const auto &id : field_ids) {
+                    field_names.push_back(fields_[std::stoi(id)].Name());
+                }
+                result.push_back(field_names);
+                visited.insert(kv.first);
+            }
+        }
+    }
+    return result;
+}
+
+bool Schema::VertexUniqueIndexConflict(KvTransaction& txn, const Value& record) {
+    for (auto& idx : indexed_fields_) {
+        auto& fe = fields_[idx];
+        VertexIndex* index = fe.GetVertexIndex();
+        FMA_ASSERT(index);
+        if (!index->IsUnique()) continue;
+        if (fe.GetIsNull(record)) continue;
+        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Schema::DeleteEdgeIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record) {
@@ -175,6 +296,34 @@ void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value
                 fe.Name(), fe.FieldToString(record));
         }
         created.push_back(idx);
+    }
+}
+
+void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+    for (auto& idx : vector_index_fields_) {
+        auto& fe = fields_[idx];
+        if (fe.GetIsNull(record)) continue;
+        VectorIndex* index = fe.GetVectorIndex();
+        auto dim = index->GetVecDimension();
+        std::vector<std::vector<float>> floatvector;
+        std::vector<int64_t> vids;
+        floatvector.push_back(fe.GetConstRef(record).AsType<std::vector<float>>());
+        vids.push_back(vid);
+        if (floatvector.back().size() != (size_t)dim) {
+            THROW_CODE(InputError,
+                       "vector index dimension mismatch, vector size:{}, dim:{}",
+                       floatvector.back().size(), dim);
+        }
+        index->Add(floatvector, vids);
+    }
+}
+
+void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& record) {
+    for (auto& idx : vector_index_fields_) {
+        auto& fe = fields_[idx];
+        if (fe.GetIsNull(record)) continue;
+        VectorIndex* index = fe.GetVectorIndex();
+        index->Remove({vid});
     }
 }
 
@@ -275,6 +424,10 @@ FieldData Schema::GetFieldDataFromField(const _detail::FieldExtractor* extractor
                 THROW_CODE(InputError, "invalid srid!\n");
         }
     }
+    case FieldType::FLOAT_VECTOR:
+    {
+        return FieldData((extractor->GetConstRef(record)).AsType<std::vector<float>>());
+    }
     case FieldType::NUL:
         LOG_ERROR() << "FieldType NUL";
     }
@@ -367,9 +520,10 @@ void Schema::RefreshLayout() {
 /**
  * Creates an empty record
  *
- * \param [in,out]  v           Value to store the result.
  * \param           size_hint   (Optional) Hint of size of the record, used to
  * reduce memory realloc.
+ *
+ * \return  A Value.
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);
@@ -379,7 +533,7 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
     // first data is the LabelId
     if (label_in_record_) {
         ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
-        // nullbable bits
+        // nullable bits
         memset(v.Data() + sizeof(LabelId), 0xFF, (n_nullable_ + 7) / 8);
     } else {
         // nullbable bits
@@ -408,8 +562,13 @@ void Schema::AddDetachedVertexProperty(KvTransaction& txn, VertexId vid, const V
 }
 
 Value Schema::GetDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
-    return property_table_->GetValue(
-        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid));
+    Value ret;
+    bool found = property_table_->GetValue(
+        txn, graph::KeyPacker::CreateVertexPropertyTableKey(vid), ret);
+    if (!found) {
+        THROW_CODE(InternalError, "Get: vid {} is not found in the detached property table.", vid);
+    }
+    return ret;
 }
 
 void Schema::SetDetachedVertexProperty(KvTransaction& txn, VertexId vid, const Value& property) {
@@ -430,8 +589,13 @@ void Schema::DeleteDetachedVertexProperty(KvTransaction& txn, VertexId vid) {
 }
 
 Value Schema::GetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid) {
-    return property_table_->GetValue(
-        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid));
+    Value ret;
+    bool found = property_table_->GetValue(
+        txn, graph::KeyPacker::CreateEdgePropertyTableKey(eid), ret);
+    if (!found) {
+        THROW_CODE(InternalError, "Get: euid {} is not found in the detached property table.", eid);
+    }
+    return ret;
 }
 
 void Schema::SetDetachedEdgeProperty(KvTransaction& txn, const EdgeUid& eid,
@@ -543,6 +707,10 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
         UnVertexIndex(id);
         UnEdgeIndex(id);
     }
+    auto composite_index_key = GetRelationalCompositeIndexKey(del_ids);
+    for (const auto &k : composite_index_key) {
+        UnVertexCompositeIndex(k);
+    }
     del_ids.push_back(fields_.size());
     size_t put_pos = del_ids.front();
     for (size_t i = 0; i < del_ids.size() - 1; i++) {
@@ -574,6 +742,7 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
 
 // mod fields, assuming fields are already de-duplicated
 void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
+    std::vector<size_t> mod_ids;
     for (auto& f : mod_fields) {
         auto it = name_to_idx_.find(f.name);
         if (_F_UNLIKELY(it == name_to_idx_.end())) throw FieldNotFoundException(f.name);
@@ -582,6 +751,11 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         UnEdgeIndex(fid);
         auto& extractor = fields_[fid];
         extractor = _detail::FieldExtractor(f);
+        mod_ids.push_back(fid);
+    }
+    auto composite_index_key = GetRelationalCompositeIndexKey(mod_ids);
+    for (const auto &k : composite_index_key) {
+        UnVertexCompositeIndex(k);
     }
     RefreshLayout();
 }
@@ -632,6 +806,20 @@ const _detail::FieldExtractor* Schema::TryGetFieldExtractor(const std::string& f
     auto it = name_to_idx_.find(field_name);
     if (_F_UNLIKELY(it == name_to_idx_.end())) return nullptr;
     return &fields_[it->second];
+}
+
+std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
+    std::vector<CompositeIndexSpec> compositeIndexSpecList;
+    for (const auto &kv : composite_index_map) {
+        std::vector<std::string> ids;
+        boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
+        std::vector<std::string> fields;
+        for (int i = 0; i < (int)ids.size(); i++) {
+            fields.emplace_back(this->fields_[std::stoi(ids[i])].Name());
+        }
+        compositeIndexSpecList.push_back({label_, fields, kv.second->type_});
+    }
+    return compositeIndexSpecList;
 }
 
 size_t Schema::GetFieldId(const std::string& name) const {

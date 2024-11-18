@@ -406,6 +406,10 @@ private:
     std::any visitTerminal(antlr4::tree::TerminalNode *node) override;
     std::any visitChildren(antlr4::tree::ParseTree *node) override;
 
+    // remove function
+    std::any visitRemoveStatement(parser::GqlParser::RemoveStatementContext *ctx) override;
+    std::any visitRemovePropertyItem(parser::GqlParser::RemovePropertyItemContext *ctx) override;
+
     // helper functions
     GEAXErrorCode visitBinaryExpr(antlr4::ParserRuleContext *lhs, antlr4::ParserRuleContext *rhs,
                                   BinaryOp *expr);

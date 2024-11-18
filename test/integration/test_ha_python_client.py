@@ -245,8 +245,9 @@ class TestHAPythonClient:
         self.client.logout()
         os.system(f"cd ha2 && ./lgraph_server --host {self.host} --port 27073 --enable_rpc "
                   f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
-                  f"--rpc_port 29093 --directory ./db --log_dir "
-                  f"./log  --ha_conf {self.host}:29092,{self.host}:29093,{self.host}:29094 -c lgraph_ha.json -d start")
+                  f"--rpc_port 29093 --enable_plugin 1 --directory ./db --log_dir "
+                  f"./log --enable_plugin 1 --ha_conf {self.host}:29092,{self.host}:29093,"
+                  f"{self.host}:29094 -c lgraph_ha.json -d start")
         time.sleep(13)
         self.client = start_ha_client(self.host, "29092")
         time.sleep(7)
@@ -273,8 +274,9 @@ class TestHAPythonClient:
         self.client.logout()
         os.system(f"cd ha1 && ./lgraph_server --host {self.host} --port 27072 --enable_rpc "
                   f"true --enable_ha true --ha_node_offline_ms 5000 --ha_node_remove_ms 10000 "
-                  f"--rpc_port 29092 --directory ./db --log_dir "
-                  f"./log  --ha_conf {self.host}:29092,{self.host}:29093,{self.host}:29094 -c lgraph_ha.json -d start")
+                  f"--rpc_port 29092 --enable_plugin 1 --directory ./db --log_dir "
+                  f"./log --enable_plugin 1 --ha_conf {self.host}:29092,{self.host}:29093,"
+                  f"{self.host}:29094 -c lgraph_ha.json -d start")
         time.sleep(13)
         self.client = start_ha_client(self.host, "29093")
         time.sleep(7)

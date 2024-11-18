@@ -57,12 +57,7 @@ class OpSet : public OpBase {
     }
 
     void ExtractProperties(RTContext *ctx, const parser::Expression &p,
-                           std::vector<lgraph::FieldData> &values) {
-        ArithExprNode ae(p, *record->symbol_table);
-        auto val = ae.Evaluate(ctx, *record);
-        if (!val.IsScalar()) CYPHER_TODO();
-        values.emplace_back(val.constant.scalar);
-    }
+                           std::vector<lgraph::FieldData> &values);
 
     void SetVertex(RTContext *ctx,
                    const parser::Expression::EXPR_TYPE_PROPERTY &property_expression,

@@ -89,7 +89,7 @@ class NodeIndexSeek : public OpBase {
             it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, node_->Label(),
                             field_, value, value);
         } else {
-            // Weak index iterator
+            // Weak index iterator]
             it_->Initialize(ctx->txn_->GetTxn().get(), node_->Label(), field_, value);
         }
         consuming_ = false;
@@ -104,9 +104,7 @@ class NodeIndexSeek : public OpBase {
          * */
         node_->SetVid(-1);
 
-        if (HandOff() == OP_OK) {
-            return OP_OK;
-        }
+        if (HandOff() == OP_OK) return OP_OK;
         while ((size_t)value_rec_idx_ < target_values_.size() - 1) {
             value_rec_idx_++;
             auto value = target_values_[value_rec_idx_];

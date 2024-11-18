@@ -135,7 +135,7 @@ RETURN e.timestamp;
 MATCH (acc:Account {id: 1}) WITH acc
 OPTIONAL MATCH (acc)-[:repay]->(loan:Loan)-[:deposit]->(acc)
 DELETE acc, loan;
-[{"<SUMMARY>":"deleted 6 vertices, deleted 141 edges."}]
+[{"<SUMMARY>":"deleted 2 vertices, deleted 55 edges."}]
 # check
 MATCH (acc:Account {id: 1}) RETURN acc;
 []

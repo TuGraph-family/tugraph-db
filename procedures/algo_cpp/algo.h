@@ -20,6 +20,8 @@
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 
+const double SSSP_INIT_VALUE = 2e10;
+
 /**
  * @brief    Compute the shortest path length between any two vertices in the graph.
  *
@@ -156,8 +158,8 @@ size_t LocateCycleCore(OlapBase<Empty>& graph, size_t k);
  *
  * \return    The value of modularity.
  */
-double LPACore(OlapBase<Empty>& graph, ParallelVector<size_t>& label,
-        int num_iterations, bool sync_flag);
+double LPACore(OlapBase<Empty>& graph, ParallelVector<size_t>& label, int num_iterations,
+               bool sync_flag);
 
 /**
  * @brief    Compute the Maximal Independent Set Algorithm.
@@ -272,7 +274,8 @@ size_t KTrussCore(OlapBase<Empty>& graph, size_t value_k,
  * @param[in]        graph              The graph to compute on.
  * @param[in,out]    label              The ParallelVector to store label information.
  * @param[in]        active_threshold   Threshold of active_vertices in original graph.
- * @param[in]        is_sync            if to run louvain in sync mode. 0 means async mode, non-zero value means sync mode.
+ * @param[in]        is_sync            if to run louvain in sync mode. 0 means async mode, non-zero
+ *                                      value means sync mode.
  *
  * @return   return the modularity of graph.
  */

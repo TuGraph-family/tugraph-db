@@ -26,13 +26,19 @@
  * ‘EOF’ was not declared in this scope.
  * For the former (include/butil) uses macro EOF, which is undefined in antlr4.  */
 #include "./graph_factory.h"
+
+#include "geax-front-end/ast/AstNode.h"
+#include "geax-front-end/ast/AstDumper.h"
 #include "antlr4-runtime/antlr4-runtime.h"
 
-#include "cypher/execution_plan/execution_plan.h"
+#include "cypher/execution_plan/execution_plan_v2.h"
 
 #include "cypher/parser/generated/LcypherLexer.h"
 #include "cypher/parser/generated/LcypherParser.h"
-#include "cypher/parser/cypher_base_visitor.h"
+#include "cypher/parser/cypher_base_visitor_v2.h"
+#include "cypher/rewriter/GenAnonymousAliasRewriter.h"
+#include "cypher/rewriter/MultiPathPatternRewriter.h"
+#include "cypher/rewriter/PushDownFilterAstRewriter.h"
 
 using namespace parser;
 using namespace antlr4;
@@ -54,12 +60,38 @@ void eval_query_check(cypher::RTContext *ctx, const std::string &query,
     LcypherLexer lexer(&input);
     CommonTokenStream tokens(&lexer);
     LcypherParser parser(&tokens);
-    CypherBaseVisitor visitor(ctx, parser.oC_Cypher());
-    cypher::ExecutionPlan execution_plan;
+    geax::common::ObjectArenaAllocator objAlloc_;
+    CypherBaseVisitorV2 visitor(objAlloc_, parser.oC_Cypher(), ctx);
+    geax::frontend::AstNode *node = visitor.result();
+    // rewrite ast
+    cypher::GenAnonymousAliasRewriter gen_anonymous_alias_rewriter;
+    node->accept(gen_anonymous_alias_rewriter);
+    cypher::MultiPathPatternRewriter multi_path_pattern_rewriter(objAlloc_);
+    node->accept(multi_path_pattern_rewriter);
+    cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx);
+    node->accept(push_down_filter_ast_writer);
 
     double t0, t1, t2;
     t0 = fma_common::GetTime();
-    execution_plan.Build(visitor.GetQuery(), visitor.CommandType(), ctx);
+
+    geax::frontend::AstDumper dumper;
+    auto ret = dumper.handle(node);
+    if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
+        UT_LOG() << "dumper.handle(node) gql: " << query;
+        UT_LOG() << "dumper.handle(node) ret: " << ToString(ret);
+        UT_LOG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
+        return;
+    } else {
+        UT_DBG() << "--- dumper.handle(node) dump ---";
+        UT_DBG() << dumper.dump();
+    }
+    cypher::ExecutionPlanV2 execution_plan;
+    execution_plan.PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
+    ret = execution_plan.Build(node, ctx);
+    if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
+        UT_LOG() << "build execution_plan_v2 failed: " << execution_plan.ErrorMsg();
+        return;
+    }
     execution_plan.DumpGraph();
     std::string res_plan = execution_plan.DumpPlan(0, false);
 
@@ -74,6 +106,7 @@ void eval_query_check(cypher::RTContext *ctx, const std::string &query,
     UT_EXPECT_EQ(ctx->result_->Size(), expect_res);
     UT_EXPECT_EQ(res_plan, expect_plan);
 }
+
 int test_cypher_plan(const nlohmann::json &conf) {
     std::string dataset;
     std::string expect_plan;
@@ -86,8 +119,7 @@ int test_cypher_plan(const nlohmann::json &conf) {
             lgraph::Galaxy::Config gconf;
             gconf.dir = "./testdb";
             lgraph::Galaxy galaxy(gconf, true, nullptr);
-            cypher::RTContext db(nullptr, &galaxy,
-                                 lgraph::_detail::DEFAULT_ADMIN_NAME, "default");
+            cypher::RTContext db(nullptr, &galaxy, lgraph::_detail::DEFAULT_ADMIN_NAME, "default");
             db.param_tab_ = g_param_tab;
             for (auto &test_cases : el["querys"].items()) {
                 for (auto &c : test_cases.value()) {
@@ -106,7 +138,7 @@ TEST_F(TestCypherPlan, CypherPlan) {
     std::string validate_file = "../../test/cypher_plan_validate.json";
     int verbose = 1;
     int argc = _ut_argc;
-    char** argv = _ut_argv;
+    char **argv = _ut_argv;
     fma_common::Configuration config;
     config.Add(verbose, "v", true).Comment("Verbose: 0-WARNING, 1-INFO, 2-DEBUG");
     config.ExitAfterHelp();

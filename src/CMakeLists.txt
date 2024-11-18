@@ -14,14 +14,14 @@ include(BuildClients.cmake)
 include(BuildCythonExtension.cmake)
 include(BuildBoltLib.cmake)
 
-install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_client_cpp_rpc lgraph_client_cpp_rest lgraph_client_python lgraph_db_python
+install(TARGETS lgraph lgraph_python_api lgraph_server lgraph_db_python
         RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib64)
+        LIBRARY DESTINATION lib64/lgraph)
 install(DIRECTORY
         ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
         DESTINATION share/lgraph)
 install(DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/../deps/tugraph-db-browser
+        ${CMAKE_CURRENT_LIST_DIR}/restful/server/browser-resource
         DESTINATION share/lgraph)
 # install procedure demos
 install(DIRECTORY
@@ -32,18 +32,32 @@ install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/scan_graph.py
         DESTINATION share/lgraph/resource/procedure_demo/)
 install(DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/python/FMA_shell
-        DESTINATION share/)
-# install python restful client
-install(DIRECTORY
-        ${CMAKE_CURRENT_LIST_DIR}/client/python/TuGraphClient
-        DESTINATION share/)
+        DESTINATION share/lgraph/browser-resource/procedure_demo/)
+install(FILES
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v1_scan_graph.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/v2_pagerank.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/scan_graph.py
+        DESTINATION share/lgraph/browser-resource/procedure_demo/)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/python/lgraph_task_runner.py
         DESTINATION bin)
 install(FILES
         ${CMAKE_CURRENT_LIST_DIR}/../release/local/etc/lgraph.json
         DESTINATION etc)
+install(FILES
+        /usr/local/lib64/libvsag.so
+        /usr/local/lib64/libmkl_intel_lp64.so
+        /usr/local/lib64/libmkl_sequential.so
+        /usr/local/lib64/libmkl_core.so
+        /usr/local/lib64/libmkl_def.so
+        /usr/local/lib64/libmkl_avx2.so
+        /usr/local/lib64/libmkl_mc3.so
+        /usr/local/lib64/libmkl_gf_lp64.so
+        /usr/local/lib64/libmkl_intel_thread.so
+        /usr/local/lib64/libiomp5.so
+        /lib64/libgfortran.so.5
+        /lib64/libgfortran.so.5.0.0
+        DESTINATION lib64/lgraph)
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../include
         DESTINATION ./)
 
@@ -61,13 +75,13 @@ add_custom_command(TARGET lgraph_server
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
-        ${CMAKE_CURRENT_LIST_DIR}/restful/server/resource
+        ${CMAKE_CURRENT_LIST_DIR}/restful/server/browser-resource
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource)
-add_custom_command(TARGET lgraph_server
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/)
+#add_custom_command(TARGET lgraph_server
+#        POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy_directory
+#        ${CMAKE_CURRENT_LIST_DIR}/../procedures/demo/
+#        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/resource/procedure_demo/)
 add_custom_command(TARGET lgraph_server
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink

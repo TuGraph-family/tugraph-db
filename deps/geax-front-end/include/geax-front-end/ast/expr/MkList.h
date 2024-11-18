@@ -18,6 +18,7 @@
 #ifndef GEAXFRONTEND_AST_EXPR_MKLIST_H_
 #define GEAXFRONTEND_AST_EXPR_MKLIST_H_
 
+#include <vector>
 #include "geax-front-end/ast/expr/Expr.h"
 
 namespace geax {

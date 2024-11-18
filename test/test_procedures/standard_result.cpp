@@ -42,7 +42,9 @@ extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::stri
     using Vertex = lgraph_api::traversal::Vertex;
     using Edge = lgraph_api::traversal::Edge;
     lgraph_api::traversal::Path p(Vertex(vit.GetId()));
-    p.Append(Edge(0, 1, 1, 1, 1, true));
+    lgraph_api::NODEMAP node_map;
+    lgraph_api::RELPMAP relp_map;
+    p.Append(Edge(0, 0, 0, 2, 0, true));
     for (auto vit = txn.GetVertexIterator(); vit.IsValid(); vit.Next()) {
         auto it = vit.GetInEdgeIterator();
         if (it.IsValid()) vid1 = vit.GetId();
@@ -68,7 +70,7 @@ extern "C" LGAPI bool Process(GraphDB &db, const std::string &request, std::stri
         record->Insert("in_edge", vit1.GetInEdgeIterator());
         vit1.Goto(vid2);
         record->Insert("out_edge", vit1.GetOutEdgeIterator());
-        record->Insert("path", p, &txn);
+        record->Insert("path", p, &txn, node_map, relp_map);
         for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) out_num_edges += 1;
         edge_num_map["out_num_edges"] = FieldData(out_num_edges);
         for (auto eit = vit.GetInEdgeIterator(); eit.IsValid(); eit.Next()) in_num_edges += 1;

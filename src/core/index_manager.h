@@ -63,6 +63,7 @@ struct CompositeIndexEntry {
     CompositeIndexEntry() {}
     CompositeIndexEntry(CompositeIndexEntry&& rhs)
         : label(std::move(rhs.label)),
+          n(rhs.n),
           field_names(std::move(rhs.field_names)),
           field_types(std::move(rhs.field_types)),
           table_name(std::move(rhs.table_name)),
@@ -90,13 +91,40 @@ struct CompositeIndexEntry {
     template <typename StreamT>
     size_t Deserialize(StreamT& buf) {
         size_t res = BinaryRead(buf, label) + BinaryRead(buf, n);
-        for (auto &f : field_names) {
+        for (int i = 0; i < n; ++i) {
+            std::string f;
             res += BinaryRead(buf, f);
+            field_names.push_back(f);
         }
-        for (auto &f : field_types) {
+        for (int i = 0; i < n; ++i) {
+            FieldType f;
             res += BinaryRead(buf, f);
+            field_types.push_back(f);
         }
         return res + BinaryRead(buf, table_name) + BinaryRead(buf, index_type);
+    }
+};
+
+struct VectorIndexEntry {
+    std::string label;
+    std::string field;
+    std::string index_type;
+    int dimension;
+    std::string distance_type;
+    int hnsw_m;
+    int hnsw_ef_construction;
+    template <typename StreamT>
+    size_t Serialize(StreamT& buf) const {
+        return BinaryWrite(buf, label) + BinaryWrite(buf, field) + BinaryWrite(buf, index_type) +
+               BinaryWrite(buf, dimension) + BinaryWrite(buf, distance_type) +
+               BinaryWrite(buf, hnsw_m) + BinaryWrite(buf, hnsw_ef_construction);
+    }
+
+    template <typename StreamT>
+    size_t Deserialize(StreamT& buf) {
+        return BinaryRead(buf, label) + BinaryRead(buf, field) + BinaryRead(buf, index_type) +
+               BinaryRead(buf, dimension) + BinaryRead(buf, distance_type) +
+               BinaryRead(buf, hnsw_m) + BinaryRead(buf, hnsw_ef_construction);
     }
 };
 
@@ -113,40 +141,34 @@ manager to get the information on data fields.
 class IndexManager {
  private:
     static std::string GetVertexIndexTableName(const std::string& label, const std::string& field) {
-        return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
                _detail::VERTEX_INDEX;
     }
 
     static std::string GetVertexCompositeIndexTableName(const std::string& label,
                                                         const std::vector<std::string>& fields) {
-        std::string res = label + _detail::NAME_SEPERATOR;
+        std::string res = label + _detail::NAME_SEPARATOR;
         for (auto &s : fields) {
-            res += s + _detail::NAME_SEPERATOR;
+            res += s + _detail::NAME_SEPARATOR;
         }
-        return res + _detail::VERTEX_INDEX;
+        return res + _detail::COMPOSITE_INDEX;
     }
 
     static std::string GetEdgeIndexTableName(const std::string& label, const std::string& field) {
-        return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
                _detail::EDGE_INDEX;
     }
 
     static std::string GetFullTextIndexTableName(bool is_vertex, const std::string& label,
                                                  const std::string& field) {
-        return label + _detail::NAME_SEPERATOR + field + _detail::NAME_SEPERATOR +
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
                (is_vertex ? _detail::VERTEX_FULLTEXT_INDEX : _detail::EDGE_FULLTEXT_INDEX);
     }
 
-    static void GetLabelAndFieldFromTableName(const std::string& table_name, std::string& label,
-                                              std::string& field) {
-        size_t sep_len = strlen(_detail::NAME_SEPERATOR);
-        size_t pos = table_name.find(_detail::NAME_SEPERATOR);
-        FMA_ASSERT(pos != table_name.npos);
-        label = table_name.substr(0, pos);
-        pos += sep_len;
-        size_t next_pos = table_name.find(_detail::NAME_SEPERATOR, pos);
-        FMA_ASSERT(next_pos != table_name.npos);
-        field = table_name.substr(pos, next_pos - pos);
+    static std::string GetVertexVectorIndexTableName(const std::string& label,
+                                                     const std::string& field) {
+        return label + _detail::NAME_SEPARATOR + field + _detail::NAME_SEPARATOR +
+               _detail::VERTEX_VECTOR_INDEX;
     }
 
     static _detail::IndexEntry LoadIndex(const Value& v) {
@@ -154,6 +176,15 @@ class IndexManager {
         _detail::IndexEntry idx;
         size_t r = fma_common::BinaryRead(buf, idx);
         if (r != v.Size()) THROW_CODE(InternalError, "Failed to load index meta info from buffer");
+        return idx;
+    }
+
+    static _detail::CompositeIndexEntry LoadCompositeIndex(const Value& v) {
+        fma_common::BinaryBuffer buf(v.Data(), v.Size());
+        _detail::CompositeIndexEntry idx;
+        size_t r = fma_common::BinaryRead(buf, idx);
+        if (r != v.Size()) THROW_CODE(InternalError, "Failed to load composite "
+                                      "index meta info from buffer");
         return idx;
     }
 
@@ -167,6 +198,21 @@ class IndexManager {
         fma_common::BinaryBuffer buf;
         fma_common::BinaryWrite(buf, idx);
         v.Copy(Value(buf.GetBuf(), buf.GetSize()));
+    }
+
+    static void StoreVectorIndex(const _detail::VectorIndexEntry& idx, Value& v) {
+        fma_common::BinaryBuffer buf;
+        fma_common::BinaryWrite(buf, idx);
+        v.Copy(Value(buf.GetBuf(), buf.GetSize()));
+    }
+
+    static _detail::VectorIndexEntry LoadVectorIndex(const Value& v) {
+        fma_common::BinaryBuffer buf(v.Data(), v.Size());
+        _detail::VectorIndexEntry idx;
+        size_t r = fma_common::BinaryRead(buf, idx);
+        if (r != v.Size()) THROW_CODE(InternalError,
+                                      "Failed to load vector index meta info from buffer");
+        return idx;
     }
 
     LightningGraph* db_;
@@ -213,7 +259,13 @@ class IndexManager {
                                  const std::vector<std::string>& fields,
                                  const std::vector<FieldType>& types,
                                  CompositeIndexType type,
-                                 std::unique_ptr<CompositeIndex>& index);
+                                 std::shared_ptr<CompositeIndex>& index);
+
+    bool AddVectorIndex(KvTransaction& txn, const std::string& label,
+                        const std::string& field, const std::string& index_type,
+                        int vec_dimension, const std::string& distance_type,
+                        std::vector<int>& index_spec,
+                        std::unique_ptr<VectorIndex>& vector_index);
 
     bool AddEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field,
                       FieldType dt, IndexType type, std::unique_ptr<EdgeIndex>& index);
@@ -225,36 +277,72 @@ class IndexManager {
 
     bool DeleteEdgeIndex(KvTransaction& txn, const std::string& label, const std::string& field);
 
+    bool DeleteVertexCompositeIndex(KvTransaction& txn, const std::string& label,
+                                    const std::vector<std::string>& fields);
+
+    bool DeleteVectorIndex(KvTransaction& txn, const std::string& label,
+                           const std::string& field);
+
     bool DeleteFullTextIndex(KvTransaction& txn, bool is_vertex, const std::string& label,
                              const std::string& field);
 
+    std::vector<VectorIndexSpec> ListVectorIndex(KvTransaction& txn);
+
     // vertex index
-    std::vector<IndexSpec> ListAllIndexes(KvTransaction& txn) {
+    std::tuple<std::vector<IndexSpec>, std::vector<CompositeIndexSpec>,
+        std::vector<VectorIndexSpec>> ListAllIndexes(
+        KvTransaction& txn) {
         std::vector<IndexSpec> indexes;
-        IndexSpec is;
+        std::vector<CompositeIndexSpec> compositeIndexes;
+        std::vector<VectorIndexSpec> vectorIndexes;
         size_t v_index_len = strlen(_detail::VERTEX_INDEX);
         size_t e_index_len = strlen(_detail::EDGE_INDEX);
+        size_t c_index_len = strlen(_detail::COMPOSITE_INDEX);
+        size_t ve_index_len = strlen(_detail::VERTEX_VECTOR_INDEX);
         auto it = index_list_table_->GetIterator(txn);
         for (it->GotoFirstKey(); it->IsValid(); it->Next()) {
             std::string index_name = it->GetKey().AsString();
             if (index_name.size() > v_index_len &&
                 index_name.substr(index_name.size() - v_index_len) == _detail::VERTEX_INDEX) {
                 _detail::IndexEntry ent = LoadIndex(it->GetValue());
+                IndexSpec is;
                 is.label = ent.label;
                 is.field = ent.field;
                 is.type = ent.type;
                 indexes.emplace_back(std::move(is));
-            }
-            if (index_name.size() > e_index_len &&
+            } else if (index_name.size() > e_index_len &&
                 index_name.substr(index_name.size() - e_index_len) == _detail::EDGE_INDEX) {
                 _detail::IndexEntry ent = LoadIndex(it->GetValue());
+                IndexSpec is;
                 is.label = ent.label;
                 is.field = ent.field;
                 is.type = ent.type;
                 indexes.emplace_back(std::move(is));
+            } else if (index_name.size() > ve_index_len &&
+                       index_name.substr(index_name.size() - ve_index_len)
+                           == _detail::VERTEX_VECTOR_INDEX) {
+                _detail::VectorIndexEntry ent = LoadVectorIndex(it->GetValue());
+                VectorIndexSpec vis;
+                vis.label = ent.label;
+                vis.field = ent.field;
+                vis.distance_type = ent.distance_type;
+                vis.dimension = ent.dimension;
+                vis.hnsw_ef_construction = ent.hnsw_ef_construction;
+                vis.hnsw_m = ent.hnsw_m;
+                vis.index_type = ent.index_type;
+                vectorIndexes.emplace_back(vis);
+            } else if (index_name.size() > c_index_len &&
+                       index_name.substr(index_name.size() - c_index_len) ==
+                       _detail::COMPOSITE_INDEX) {
+                _detail::CompositeIndexEntry idx = LoadCompositeIndex(it->GetValue());
+                CompositeIndexSpec cis;
+                cis.label = idx.label;
+                cis.fields = idx.field_names;
+                cis.type = idx.index_type;
+                compositeIndexes.emplace_back(std::move(cis));
             }
         }
-        return indexes;
+        return {std::move(indexes), std::move(compositeIndexes), std::move(vectorIndexes)};
     }
 };
 }  // namespace lgraph

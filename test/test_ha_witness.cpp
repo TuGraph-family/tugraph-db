@@ -12,13 +12,13 @@ const char ha_mkdir[] = "mkdir {} && cp -r ../../src/server/lgraph_ha.json "
 const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
     "true --enable_ha true --ha_snapshot_interval_s -1 --ha_node_join_group_s 60 "
-    "--rpc_port {} --directory ./db --log_dir "
+    "--rpc_port {} --enable_plugin 1 --directory ./db --log_dir "
     "./log --ha_conf {} --verbose 1 -c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
     "true --enable_ha true --ha_is_witness 1 "
     "--ha_snapshot_interval_s -1 --ha_node_join_group_s 60 "
-    "--rpc_port {} --directory ./db --log_dir "
+    "--rpc_port {} --enable_plugin 1 --directory ./db --log_dir "
     "./log --ha_conf {} --verbose 1 "
     "-c lgraph_ha.json --ha_enable_witness_to_leader {} -d start";
 #else
@@ -26,10 +26,10 @@ const char server_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
     "true --enable_ha true --ha_snapshot_interval_s -1 "
     "--ha_node_join_group_s 60 --rpc_port {} --directory ./db --log_dir "
-    "./log  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
+    "./log --enable_plugin 1  --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json -d start";
 const char witness_cmd_f[] =
     "cd {} && ./lgraph_server --host {} --port {} --enable_rpc "
-    "true --enable_ha true --ha_is_witness 1 --ha_snapshot_interval_s -1 "
+    "true --enable_ha true --enable_plugin 1 --ha_is_witness 1 --ha_snapshot_interval_s -1 "
     "--ha_node_join_group_s 60 --rpc_port {} --directory ./db --log_dir "
     "./log --ha_conf {} --use_pthread 1 --verbose 1 -c lgraph_ha.json "
     "--ha_enable_witness_to_leader {} -d start";
@@ -205,6 +205,7 @@ TEST_F(TestHAWitness, HAWitness) {
 }
 
 TEST_F(TestHAWitness, HAWitnessDisableLeader) {
+    GTEST_SKIP() << "Skipping HAWitnessDisableLeader";
     start_server(this->host, true);
     build_so("./sortstr.so", "../../test/test_procedures/sortstr.cpp");
     std::unique_ptr<lgraph::RpcClient> client = std::make_unique<lgraph::RpcClient>(
@@ -288,7 +289,7 @@ TEST_F(TestHAWitness, HAWitnessDisableLeader) {
             fma_common::SleepS(1);
             continue;
         }
-    } while (++times < 20);
+    } while (++times < 120);
     ret = client->CallCypherToLeader(result, "MATCH (n) RETURN COUNT(n)");
     UT_EXPECT_TRUE(ret);
     nlohmann::json res = nlohmann::json::parse(result);

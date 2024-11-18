@@ -16,7 +16,10 @@
 
 #pragma once
 
+#include <exception>
 #include "lgraph/lgraph.h"
+#include "lgraph/lgraph_txn.h"
+#include "lgraph/lgraph_utils.h"
 #include "lgraph/olap_base.h"
 #include "fma-common/fma_stream.h"
 
@@ -477,7 +480,6 @@ class OlapOnDB : public OlapBase<EdgeData> {
         auto task_ctx = GetThreadContext();
         auto worker = Worker::SharedWorker();
 
-
         // Read from TuGraph
         if ((flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
             this->out_index_.Resize(this->num_vertices_ + 1, (size_t)0);
@@ -489,9 +491,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
                         num_threads = omp_get_num_threads();
                     }
                 };
+                num_threads = std::min(16, num_threads);
 
                 std::vector<size_t> out_edges_partition_offset(num_threads + 1, 0);
-#pragma omp parallel
+#pragma omp parallel num_threads(num_threads)
                 {
                     ParallelVector<size_t> local_out_index(this->num_vertices_);
                     ParallelVector<AdjUnit<EdgeData>> local_out_edges(MAX_NUM_EDGES);
@@ -512,6 +515,9 @@ class OlapOnDB : public OlapBase<EdgeData> {
                     for (size_t vi = partition_begin; vi < partition_end; vi++) {
                         if (vi % 64 == 0 && ShouldKillThisTask(task_ctx)) break;
                         vit.Goto(vi);
+                        if (!vit.IsValid() || vit.GetNumOutEdges() == 0) {
+                            continue;
+                        }
                         for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) {
                             size_t dst = eit.GetDst();
                             EdgeData edata;
@@ -959,7 +965,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
     /**
      * @brief Generate a graph with LightningGraph. For V1/V2 Procedures
      */
-    OlapOnDB(GraphDB* db, Transaction &txn, size_t flags = 0,
+    OlapOnDB(GraphDB *db, Transaction &txn, size_t flags = 0,
              std::function<bool(VertexIterator &)> vertex_filter = nullptr,
              std::function<bool(OutEdgeIterator &, EdgeData &)> out_edge_filter = nullptr)
         : db_(db),
@@ -979,7 +985,7 @@ class OlapOnDB : public OlapBase<EdgeData> {
         }
         Init(txn.GetNumVertices());
 
-        if (flags_ & SNAPSHOT_IDMAPPING) {
+        /*if (flags_ & SNAPSHOT_IDMAPPING) {
             Construct();
         } else {
             if ((out_edge_filter == nullptr) && (flags_ & SNAPSHOT_PARALLEL) && txn_.IsReadOnly()) {
@@ -987,7 +993,8 @@ class OlapOnDB : public OlapBase<EdgeData> {
             } else {
                 ConstructWithVid();
             }
-        }
+        }*/
+        Construct();
     }
 
     /**
@@ -1487,13 +1494,56 @@ class OlapOnDB : public OlapBase<EdgeData> {
      *
      */
     template <typename VertexData>
-    void WriteToFile(ParallelVector<VertexData> &vertex_data, const std::string &output_file) {
+    void WriteToFile(ParallelVector<VertexData> &vertex_data, const std::string &output_file,
+                     std::function<bool(size_t vid, VertexData &vdata)> output_filter = nullptr) {
         fma_common::OutputFmaStream fout;
         fout.Open(output_file, 64 << 20);
         for (size_t i = 0; i < this->num_vertices_; ++i) {
+            if (output_filter != nullptr && !output_filter(i, vertex_data[i])) {
+                continue;
+            }
             std::string line =
                 fma_common::StringFormatter::Format("{} {}\n", OriginalVid(i), vertex_data[i]);
             fout.Write(line.c_str(), line.size());
+        }
+    }
+
+    /**
+     * @brief    Write vertex data(include label、primary_field、field_data) to a file.
+     *
+     * @param    detail_output  always true
+     * @param    vertex_data    The parallel vector storing the vertex data.
+     * @param    output_file    The path to the output file.
+     *
+     */
+    template <typename VertexData>
+    void WriteToFile(bool detail_output, ParallelVector<VertexData> &vertex_data,
+                     const std::string &output_file,
+                     std::function<bool(size_t vid, VertexData &vdata)> output_filter = nullptr) {
+        if (!detail_output) {
+            THROW_CODE(InputError, "Just support deatail output!");
+        }
+        fma_common::OutputFmaStream fout;
+        fout.Open(output_file, 64 << 20);
+        for (size_t i = 0; i < this->num_vertices_; ++i) {
+            if (output_filter != nullptr && !output_filter(i, vertex_data[i])) {
+                continue;
+            }
+            auto vit = txn_.GetVertexIterator();
+            vit.Goto(OriginalVid(i));
+            if (vit.IsValid()) {
+                auto vit_label = vit.GetLabel();
+                auto primary_field = txn_.GetVertexPrimaryField(vit_label);
+                auto field_data = vit.GetField(primary_field);
+                json curJson;
+                curJson["vid"] = OriginalVid(i);
+                curJson["label"] = vit_label;
+                curJson["primary_field"] = primary_field;
+                curJson["field_data"] = field_data.ToString();
+                curJson["result"] = vertex_data[i];
+                auto content = curJson.dump() + "\n";
+                fout.Write(content.c_str(), content.size());
+            }
         }
     }
 

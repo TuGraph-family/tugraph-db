@@ -42,7 +42,7 @@ void CheckFieldTypeSizeNameIsFixed(::lgraph::FieldType ft, const std::string& na
 
 TEST_F(TestFieldDataHelper, FieldTypeSize) {
     UT_LOG() << "Testing FieldTypeSize, FieldTypeName and IsFixedLengthFieldType";
-    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::SPATIAL; ft++) {
+    for (int ft = (int)FieldType::NUL; ft <= (int)FieldType::FLOAT_VECTOR; ft++) {
         FieldType parsed;
         UT_EXPECT_TRUE(TryGetFieldType(FieldTypeName((FieldType)ft), parsed));
         UT_EXPECT_EQ((int)parsed, ft);
@@ -67,6 +67,7 @@ TEST_F(TestFieldDataHelper, FieldTypeSize) {
     CheckFieldTypeSizeNameIsFixed(FieldType::LINESTRING, "LINESTRING", 0, false);
     CheckFieldTypeSizeNameIsFixed(FieldType::POLYGON, "POLYGON", 0, false);
     CheckFieldTypeSizeNameIsFixed(FieldType::SPATIAL, "SPATIAL", 0, false);
+    CheckFieldTypeSizeNameIsFixed(FieldType::FLOAT_VECTOR, "FLOAT_VECTOR", 0, false);
 }
 
 TEST_F(TestFieldDataHelper, FieldTypeStorageType) {
@@ -229,6 +230,19 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
                             "000000000004000000000000000400000000000000840000000000000F03F",
                             "0102000020231C00000300000000000000000000000000000000000000000"
                             "000000000004000000000000000400000000000000840000000000000F03F");
+    // testing float vector data;
+    std::vector<float> vec1 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1.111111,2.111111,3.111111,4.111111,5.111111", vec1);
+    std::vector<float> vec2 = {1111111, 2111111, 3111111, 4111111, 5111111};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1111111,2111111,3111111,4111111,5111111", vec2);
+    std::vector<float> vector1 = {0.111111, 0.222222, 0.333333, 0.444444};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "0.111111,0.222222,0.333333,0.444444", vector1);
+    std::vector<float> vector2 = {111.1111, 222.2222, 333.3333, 444.4444};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "111.1111,222.2222,333.3333,444.4444", vector2);
+    std::vector<float> vector3 = {111111.0, 222222.0, 333333.0};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "111111.0,222222.0,333333.0", vector3);
+    std::vector<float> vector4 = {1111, 2222, 3333, 4444};
+    _CHECK_PARSE_STRING_SUCC(FLOAT_VECTOR, "1111.000,2222.000,3333.000,4444.000", vector4);
 
 #define _CHECK_PARSE_STRING_FAIL(FT, s)                                    \
     do {                                                                   \
@@ -250,6 +264,62 @@ TEST_F(TestFieldDataHelper, ParseStringIntoStorageType) {
     _CHECK_PARSE_STRING_FAIL(LINESTRING, "0.23124325");
     _CHECK_PARSE_STRING_FAIL(POLYGON, "asdjasncioo");
     _CHECK_PARSE_STRING_FAIL(SPATIAL, "123@.adsas--=");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "ABCDEFG");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "12345");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "12345,,12345");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "123abcde");
+    _CHECK_PARSE_STRING_FAIL(FLOAT_VECTOR, "12345,12345,");
+}
+
+TEST_F(TestFieldDataHelper, ParseStringIntoFieldData) {
+    UT_LOG() << "Testing ParseStringIntoFieldData";
+
+#define _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FT, s, v)                                 \
+    do {                                                                                 \
+        FieldData fd;                                                                    \
+        size_t size = ParseStringIntoFieldData<FieldType::FT>(s, s + std::strlen(s), fd);\
+        UT_EXPECT_EQ(size, strlen(s));                                                   \
+    } while (0)
+
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(BOOL, "true", true);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(BOOL, "false", false);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(BOOL, "1", true);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(BOOL, "0", false);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(BOOL, "-192", true);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(INT8, "-122", -122);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(INT8, "127", 127);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(INT16, "-32764", -32764);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(INT16, "32764", 32764);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(INT32, "-4658756", -4658756);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(INT32, "4658756", 4658756);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(INT64, "-1000000000000", -1000000000000L);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(INT64, "1000000000000", 1000000000000L);
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(DATE, "2019-09-01", Date("2019-09-01"));
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(DATETIME, "2019-09-01 09:58:45",
+                             DateTime("2019-09-01 09:58:45"));
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(STRING, "str", "str");
+
+    // do not support spatial now!
+
+    // testing float vector data;
+    std::vector<float> vec8 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "\"1.111111,2.111111,3.111111,4.111111,5.111111\"", vec8);
+    std::vector<float> vec9 = {1111111, 2111111, 3111111, 4111111, 5111111};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "\"1111111,2111111,3111111,4111111,5111111\"", vec9);
+    std::vector<float> vec10 = {1111, 2111, 3111, 4111, 5111};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "\"1111.000,2111.000,3111.000,4111.000,5111.000\"", vec10);
+    std::vector<float> vector1 = {0.111111, 0.222222, 0.333333, 0.444444};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "\"0.111111,0.222222,0.333333,0.444444\"", vector1);
+    std::vector<float> vector2 = {111.1111, 222.2222, 333.3333, 444.4444};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "\"111.1111,222.2222,333.3333,444.4444\"", vector2);
+    std::vector<float> vector3 = {111111.0, 222222.0, 333333.0};
+    _CHECK_PARSE_STRING_TO_FIELD_DATA_SUCC(FLOAT_VECTOR,
+                             "\"111111.0,222222.0,333333.0\"", vector3);
 }
 
 TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
@@ -312,6 +382,10 @@ TEST_F(TestFieldDataHelper, FieldDataTypeConvert) {
     _TEST_FD_CONVERT(STRING, EWKB, SPATIAL,
                      ::lgraph_api::Spatial<::lgraph_api::Wgs84>(EWKB).AsEWKB(),
                      true);
+
+    // no need to test float vector data
+    // because nothing can be converted to/from float vector
+
     // string can only be converted from string
     _TEST_FD_CONVERT(INT8, 127, STRING, "", false);
     _TEST_FD_CONVERT(INT64, 127, STRING, "", false);
@@ -415,6 +489,28 @@ TEST_F(TestFieldDataHelper, TryFieldDataToValueOfFieldType) {
         UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd2, FieldType::SPATIAL, v2), true);
         UT_EXPECT_EQ(v2.AsType<std::string>(), SpatialCartesian(EWKB2).AsEWKB());
     }
+
+    // testing float vector
+    {
+        std::vector<std::vector<float>> test_vector = {
+            {1.111111, 2.111111, 3.111111, 4.111111, 5.111111},
+            {1111111, 2111111, 3111111, 4111111, 5111111},
+            {0.111111, 0.222222, 0.3333333},
+            {111.1111, 222.2222, 333.3333},
+            {111111.0, 222222.0, 333333.0},
+            {1111, 2222, 3333}
+        };
+        for (size_t i = 0; i < test_vector.size(); i++) {
+            FieldData fd = FieldData(test_vector[i]);
+            Value v;
+            UT_EXPECT_EQ(TryFieldDataToValueOfFieldType(fd, FieldType::FLOAT_VECTOR, v), true);
+            std::vector<float> vec = {};
+            for (size_t i = 0; i < v.AsType<std::vector<float>>().size(); i++) {
+                vec.push_back(v.AsType<std::vector<float>>().at(i));
+            }
+            UT_EXPECT_EQ(test_vector.at(i), vec);
+        }
+    }
 }
 
 TEST_F(TestFieldDataHelper, FieldDataToValueOfFieldType) {
@@ -475,6 +571,26 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
                            "000000000000000004000000000000000400000000000000840000000000000F03F",
                            "0102000020231C00000300000000000000000000000000000000000000000"
                            "000000000004000000000000000400000000000000840000000000000F03F");
+    // testing float vector data
+    {
+        std::vector<float> vec1 = {1.111, 2.111, 3.111, 4.111, 5.111};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR,
+                               "1.111000,2.111000,3.111000,4.111000,5.111000", vec1);
+        std::vector<float> vec2 = {1111, 2111, 3111, 4111, 5111};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR,
+                               "1111.000,2111.000,3111.000,4111.000,5111.000", vec2);
+        std::vector<float> vec3 = {1111111, 2222222, 3333333};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR,
+                               "1111111,2222222,3333333", vec3);
+        std::vector<float> vec5 = {1.111111, 2.111111, 3.111111, 4.111111, 5.111111};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "1.111111,2.111111,3.111111,4.111111,5.111111", vec5);
+        std::vector<float> vector1 = {0.111111, 0.222222, 0.333333, 0.444444};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "0.111111,0.222222,0.333333,0.444444", vector1);
+        std::vector<float> vector2 = {111.1111, 222.2222, 333.3333, 444.4444};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "111.1111,222.2222,333.3333,444.4444", vector2);
+        std::vector<float> vector3 = {111111.0, 222222.0, 333333.0};
+        _TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "111111.0,222222.0,333333.0", vector3);
+    }
 
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BLOB, "abc", "abc"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(BOOL, "tr", 1));
@@ -493,6 +609,14 @@ TEST_F(TestFieldDataHelper, ParseStringToValueOfFieldType) {
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(LINESTRING, "21qwe234.asd", "342341123asdq"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(POLYGON, "213234qweasda", "34.342as341123"));
     UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(SPATIAL, "213234qwe#@asda", "34.342as3@#41123"));
+    // testing float vector data
+    {
+        std::vector<float> vec7 = {1.111, 2.111, 3.111, 4.111, 5.111};
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "213234qwe#@asda", vec7));
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "111,222,", vec7));
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, "2,1,,323", vec7));
+        UT_EXPECT_ANY_THROW(_TEST_PARSE_TO_V_OF_FT(FLOAT_VECTOR, ",2,1,3", vec7));
+    }
 }
 
 TEST_F(TestFieldDataHelper, ValueCompare) {
@@ -563,4 +687,5 @@ TEST_F(TestFieldDataHelper, ValueCompare) {
         UT_EXPECT_EQ(ValueCompare<FieldType::SPATIAL>
         (va.Data(), va.Size(), vd.Data(), vd.Size()), 0);
     }
+    // no need to test float vector
 }

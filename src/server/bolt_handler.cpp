@@ -24,6 +24,48 @@ using namespace lgraph_api;
 namespace bolt {
 extern boost::asio::io_service workers;
 
+geax::frontend::Expr* ConvertParameters(geax::common::ObjectArenaAllocator &obj_alloc_,
+                                        std::any data) {
+    geax::frontend::Expr* ret;
+    if (data.type() == typeid(std::string)) {
+        ret = obj_alloc_.allocate<geax::frontend::VString>();
+        auto& str = std::any_cast<std::string&>(data);
+        ((geax::frontend::VString*)ret)->setVal(std::move(str));
+    } else if (data.type() == typeid(int64_t)) {
+        ret = obj_alloc_.allocate<geax::frontend::VInt>();
+        ((geax::frontend::VInt*)ret)->setVal(std::any_cast<int64_t>(data));
+    } else if (data.type() == typeid(double)) {
+        ret = obj_alloc_.allocate<geax::frontend::VDouble>();
+        ((geax::frontend::VDouble*)ret)->setVal(std::any_cast<double>(data));
+    } else if (data.type() == typeid(bool)) {
+        ret = obj_alloc_.allocate<geax::frontend::VBool>();
+        ((geax::frontend::VBool*)ret)->setVal(std::any_cast<bool>(data));
+    } else if (data.type() == typeid(void)) {
+        ret = obj_alloc_.allocate<geax::frontend::VNull>();
+    } else if (data.type() == typeid(std::unordered_map<std::string, std::any>)) {
+        ret = obj_alloc_.allocate<geax::frontend::MkMap>();
+        auto& map =  std::any_cast<std::unordered_map<std::string, std::any>&>(data);
+        for (auto& pair : map) {
+            auto key = obj_alloc_.allocate<geax::frontend::VString>();
+            std::string key_val = pair.first;
+            key->setVal(std::move(key_val));
+            ((geax::frontend::MkMap*)ret)->appendElem(key, ConvertParameters(
+                                                               obj_alloc_, std::move(pair.second)));
+        }
+    } else if (data.type() == typeid(std::vector<std::any>)) {
+        ret = obj_alloc_.allocate<geax::frontend::MkList>();
+        auto& list =  std::any_cast<std::vector<std::any>&>(data);
+        for (auto& item : list) {
+            ((geax::frontend::MkList*)ret)->appendElem(ConvertParameters(
+                obj_alloc_, std::move(item)));
+        }
+    } else {
+        THROW_CODE(InputError,
+                   "Unexpected cypher parameter type : {}", data.type().name());
+    }
+    return ret;
+}
+
 parser::Expression ConvertParameters(std::any data) {
     parser::Expression ret;
     if (data.type() == typeid(std::string)) {
@@ -153,22 +195,32 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     auto& cypher = std::any_cast<const std::string&>(fields[0]);
                     auto& extra = std::any_cast<
                         const std::unordered_map<std::string, std::any>&>(fields[2]);
+                    std::string graph;
                     auto db_iter = extra.find("db");
-                    if (db_iter == extra.end()) {
-                        THROW_CODE(InputError,
-                            "Missing 'db' item in the 'extra' info of 'Run' msg");
+                    if (db_iter != extra.end()) {
+                        graph = std::any_cast<const std::string&>(db_iter->second);
                     }
-                    auto& graph = std::any_cast<const std::string&>(db_iter->second);
                     auto& field1 = std::any_cast<
                         std::unordered_map<std::string, std::any>&>(fields[1]);
                     auto sm = BoltServer::Instance().StateMachine();
-                    cypher::RTContext ctx(sm, sm->GetGalaxy(), session->user, graph);
+                    cypher::RTContext ctx(sm, sm->GetGalaxy(), session->user, graph,
+                                          sm->IsCypherV2());
                     ctx.SetBoltConnection(conn.get());
-                    ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
-                        std::string, parser::Expression>>();
+                    if (ctx.is_cypher_v2_) {
+                        ctx.bolt_parameters_v2_ = std::make_shared<std::unordered_map<
+                            std::string, geax::frontend::Expr*>>();
+                    } else {
+                        ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
+                            std::string, parser::Expression>>();
+                    }
                     for (auto& pair : field1) {
-                        ctx.bolt_parameters_->emplace("$" + pair.first,
-                                                      ConvertParameters(std::move(pair.second)));
+                        if (ctx.is_cypher_v2_) {
+                            ctx.bolt_parameters_v2_->emplace("$" + pair.first,
+                                ConvertParameters(ctx.obj_alloc_, std::move(pair.second)));
+                        } else {
+                            ctx.bolt_parameters_->emplace("$" + pair.first,
+                                ConvertParameters(std::move(pair.second)));
+                        }
                     }
                     session->streaming_msg.reset();
                     cypher::ElapsedTime elapsed;
@@ -203,11 +255,23 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             return;
         }
         auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[0]);
+        if (!val.count("principal") || !val.count("credentials")) {
+            LOG_ERROR() << "Hello msg fields error, "
+                           "'principal' or 'credentials' are missing.";
+            bolt::PackStream ps;
+            ps.AppendFailure({{"code", "error"},
+                              {"message", "Hello msg fields error, "
+                               "'principal' or 'credentials' are missing."}});
+            conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
+            return;
+        }
         auto& principal = std::any_cast<const std::string&>(val.at("principal"));
         auto& credentials = std::any_cast<const std::string&>(val.at("credentials"));
         auto galaxy = BoltServer::Instance().StateMachine()->GetGalaxy();
         if (!galaxy->ValidateUser(principal, credentials)) {
-            LOG_ERROR() << "Bolt authentication failed";
+            LOG_ERROR() << FMA_FMT(
+                "Bolt authentication failed, user:{}, password:{}", principal, credentials);
             bolt::PackStream ps;
             ps.AppendFailure({{"code", "error"},
                               {"message", "Authentication failed"}});
@@ -226,11 +290,15 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                 session->python_driver = true;
             }
         }
+        if (principal == lgraph::_detail::DEFAULT_ADMIN_NAME &&
+            credentials == lgraph::_detail::DEFAULT_ADMIN_PASS) {
+            session->using_default_user_password = true;
+        }
         session->state = SessionState::READY;
         session->user = principal;
+        conn.SetContext(session);
         session->fsm_thread = std::thread(BoltFSM, conn.shared_from_this());
         session->fsm_thread.detach();
-        conn.SetContext(std::move(session));
         bolt::PackStream ps;
         ps.AppendSuccess(meta);
         conn.Respond(std::move(ps.MutableBuffer()));

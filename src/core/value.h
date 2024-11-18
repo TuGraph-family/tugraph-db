@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -108,6 +108,16 @@ template <>
 struct TypeCast<lgraph_api::Spatial<lgraph_api::Cartesian>> {
     static lgraph_api::Spatial<lgraph_api::Cartesian> AsType(void* p, size_t s) {
         return lgraph_api::Spatial<lgraph_api::Cartesian>(std::string((char*)p, s));
+    }
+};
+
+template <>
+struct TypeCast<std::vector<float>> {
+    static std::vector<float> AsType(void* p, size_t s) {
+        size_t num_floats = s / sizeof(float);
+        std::vector<float> floatvector(num_floats);
+        std::memcpy(floatvector.data(), p, s);
+        return floatvector;
     }
 };
 }  // namespace _detail
@@ -389,6 +399,11 @@ class Value {
         memcpy(data_, s.data(), s.size());
     }
 
+    void Copy(const std::vector<float>& vec) {
+        Resize(vec.size() * sizeof(float));
+        memcpy(data_, vec.data(), vec.size() * sizeof(float));
+    }
+
     /**
      * Make a copy of the memory referred to by rhs. The new memory block is owned
      * by *this.
@@ -507,6 +522,8 @@ class Value {
      */
     std::string AsString() const { return AsType<std::string>(); }
 
+    std::vector<float> AsFloatVector() const { return AsType<std::vector<float>>(); }
+
     /**
      * Create a Value that is a const reference to the object t
      *
@@ -548,6 +565,17 @@ class Value {
      * \return  A Value.
      */
     static Value ConstRef(char* const& s) { return Value(s, std::strlen(s)); }
+
+    /**
+     * Create a Value that is a const reference to a float vector
+     *
+     * \param   s   The float vector
+     *
+     * \return  A Value.
+     */
+    static Value ConstRef(const std::vector<float>& s) {
+        return Value(s.data(), s.size() * sizeof(float));
+    }
 
     /**
      * Create a Value that is a const reference to a string literal

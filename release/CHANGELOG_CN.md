@@ -1,5 +1,86 @@
 # TuGraph 更新日志
 
+# 4.5.0 (2024-09-05)
+
+**重大变更:**
+
+1. cypher & gql ast统一完成，查询引擎全面升级。(#597)(#604)(#644)(#651)
+2. browser前端架构升级，支持图分析。(#658)
+
+**优化和错误修复:**
+1. cypher支持解析emoji符号。(#657)
+2. lgraph_cli输出执行计划格式优化。(#648)
+3. 优化可变长路径查询性能。(#622)
+4. 支持使用pair unique索引upsert边。(#636)
+5. cypher查询点边时支持map类型参数。(#603)
+
+**接口更变:**
+1. list plugin返回结果增加code type。(#642)
+2. 丰富algo procedure返回结果内容，支持输出到文件。(#634)(#637)(#641)(#643)
+3. 支持使用DataX导入TuGraph。(#629)
+
+
+# 4.3.2 (2024-07-25)
+
+**重大变更:**
+
+1. browser前端架构优化，并设置为默认前端。(#608)
+2. 初步支持向量数据类型。(#475)
+
+**优化和错误修复:**
+
+1. 修复边属性条件过滤不生效。(#559)
+2. 优化RPM包产出物的大小，去掉一些不再用的文件。(#556)
+3. cypher语句性能优化。(#570)(#575)
+4. 修复cypher order by报错。(#585)
+5. bolt客户端支持不强制设置graph名字。(#589)
+6. 文档修复。(#563)(#567)(#574)(#569)
+7. cypher & gql ast统一。(#561)(#581)(#577)
+
+**接口更变:**
+
+1. 内置最短路径存储过程支持多个边条件过滤。(#560)
+
+# 4.3.1 (2024-06-13)
+
+**重大变更:**
+
+1. 支持非唯一组合索引
+2. cypher支持GQL ASTNode解析链路
+3. 支持通过websocket进行Bolt数据传输
+
+**优化和错误修复:**
+
+1. 修复内置存储过程algo.native.extract
+2. 其他错误修复
+
+**接口更变:**
+
+1. lgraph_server启动时默认不打开增删procedure的功能，需配置enable_procedure为true才可增删procedure
+2. java client新增callCypher接口可返回header信息
+
+# 4.3.0 (2024-05-21)
+
+**重大变更:**
+
+1. DB-GPT中实现TuGraph上的知识图谱构建与检索: https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.6
+2. DB-GPT支持TuGraph：https://github.com/eosphoros-ai/DB-GPT/releases/tag/v0.5.5
+3. 属性分离模式下的schema变更优化，支持快速变更
+4. 支持组合索引
+
+**优化和错误修复:**
+
+1. 新增内置存储过程：upsertVertexByJson、upsertEdgeByJson、createVertexLabelByJson、createEdgeLabelByJson、dropAllVertex
+2. 支持自定义HA模式下snapshot开始时间
+3. 新增地理类型数据相关内置函数
+4. 新增开发者说明文档
+5. 其他错误修复
+
+**接口更变:**
+
+1. 数据导入时默认为属性分离模式
+2. 启动参数新增`ha_first_snapshot_start_time`
+
 # 4.2.0 (2024-04-11)
 
 **重大变更:**

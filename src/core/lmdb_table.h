@@ -81,6 +81,8 @@ class LMDBKvTable final : public KvTable {
      */
     Value GetValue(KvTransaction& txn, const Value& key, bool for_update = false) override;
 
+    bool GetValue(KvTransaction& txn, const Value& key, Value& val) override;
+
     /**
      * Gets number of k-v pairs in the table.
      *

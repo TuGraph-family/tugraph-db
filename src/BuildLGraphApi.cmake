@@ -48,6 +48,8 @@ set(LGRAPH_CORE_SRC
         core/thread_id.cpp
         core/transaction.cpp
         core/vertex_index.cpp
+        core/vector_index.cpp
+        core/vsag_hnsw.cpp
         core/wal.cpp
         core/lmdb/mdb.c
         core/lmdb/midl.c
@@ -75,7 +77,8 @@ set(LGRAPH_API_SRC
         lgraph_api/lgraph_vertex_iterator.cpp
         lgraph_api/lgraph_result.cpp
         lgraph_api/lgraph_exceptions.cpp
-        lgraph_api/result_element.cpp)
+        lgraph_api/result_element.cpp
+        lgraph_api/lgraph_vertex_composite_index_iterator.cpp)
 
 set(TARGET_LGRAPH lgraph)
 
@@ -104,6 +107,9 @@ target_include_directories(${TARGET_LGRAPH} PUBLIC
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(${TARGET_LGRAPH} PUBLIC
+            vsag
+            /opt/OpenBLAS/lib/libopenblas.a
+            libfaiss_avx2.a
             libgomp.a
             -static-libstdc++
             -static-libgcc
@@ -122,6 +128,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
+                vsag
+                /opt/OpenBLAS/lib/libopenblas.a
+                libfaiss_avx2.a
                 ${Boost_LIBRARIES}
                 omp
                 pthread
@@ -130,6 +139,9 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 ${JAVA_JVM_LIBRARY})
     else ()
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
+                vsag
+                /opt/OpenBLAS/lib/libopenblas.a
+                libfaiss_avx2.a
                 rt
                 omp
                 pthread

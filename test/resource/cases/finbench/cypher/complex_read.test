@@ -47,13 +47,17 @@ CALL algo.shortestPath(
     dst,
     {
         direction: 'PointingRight',
-        relationshipQuery:'transfer',
-        edgeFilter: {
-            timestamp: {
-                smaller_than: 90,
-                greater_than: 50
+        relationshipQuery: [
+            {
+                label:'transfer',
+                property_filter: {
+                    timestamp: {
+                        smaller_than: 90,
+                        greater_than: 50
+                    }
+                }
             }
-        }
+        ]
     }
 )
 YIELD nodeCount

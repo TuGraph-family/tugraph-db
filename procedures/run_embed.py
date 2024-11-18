@@ -2,7 +2,7 @@ from lgraph_db_python import *
 import json
 
 # --- add python plugin ---
-import wcc as python_plugin
+import wcc_procedure as python_plugin
 
 # --- add python plugin ---
 

@@ -1,0 +1,6 @@
+MATCH (n:Person)-[:BORN_IN]->(:City {name:'London'}) RETURN n.name UNION MATCH (n:Person)-[:ACTED_IN]->(:Film {title:'The Parent Trap'}) RETURN n.name;
+[{"n.name":"Vanessa Redgrave"},{"n.name":"Natasha Richardson"},{"n.name":"Christopher Nolan"},{"n.name":"Natasha Richardson"},{"n.name":"Dennis Quaid"},{"n.name":"Lindsay Lohan"}]
+MATCH (n:Person) RETURN n.name AS name UNION MATCH (m:Film) RETURN m.title AS name;
+[{"name":"Christopher Nolan"},{"name":"Corin Redgrave"},{"name":"Dennis Quaid"},{"name":"Jemma Redgrave"},{"name":"John Williams"},{"name":"Liam Neeson"},{"name":"Lindsay Lohan"},{"name":"Michael Redgrave"},{"name":"Natasha Richardson"},{"name":"Rachel Kempson"},{"name":"Richard Harris"},{"name":"Roy Redgrave"},{"name":"Vanessa Redgrave"},{"name":"Batman Begins"},{"name":"Camelot"},{"name":"Goodbye, Mr. Chips"},{"name":"Harry Potter and the Sorcerer's Stone"},{"name":"The Parent Trap"}]
+MATCH (n:Person)-[:BORN_IN]->(:City {name:'London'}) RETURN n.name UNION MATCH (n:Person)-[:ACTED_IN]->(:Film {title:'The Parent Trap'}) RETURN n.age;
+[CypherException] CypherException: All sub queries in an UNION must have the same column names.

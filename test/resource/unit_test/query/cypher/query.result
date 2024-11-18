@@ -1,0 +1,110 @@
+MATCH (n:Person {name:'Vanessa Redgrave'})-[:ACTED_IN]->(m) RETURN n,m.title;
+[{"m.title":"Camelot","n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
+MATCH (:Person {name:'Vanessa Redgrave'})-[:ACTED_IN]->(movie) return movie.title;
+[{"movie.title":"Camelot"}]
+MATCH (a:Person {name:'Vanessa Redgrave'})-[relatedTo]-(b) RETURN b,relatedTo;
+[{"b":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"relatedTo":{"dst":5,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":2,"temporal_id":0}},{"b":{"identity":14,"label":"City","properties":{"name":"London"}},"relatedTo":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 10:00:00","weight":20.21},"src":2,"temporal_id":0}},{"b":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"relatedTo":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0}},{"b":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"relatedTo":{"dst":2,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":0,"temporal_id":0}},{"b":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"relatedTo":{"dst":2,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":1,"temporal_id":0}}]
+MATCH (a:Person {name:'Vanessa Redgrave'})-[:HAS_CHILD]-(b) RETURN b.name;
+[{"b.name":"Natasha Richardson"},{"b.name":"Rachel Kempson"},{"b.name":"Michael Redgrave"}]
+MATCH (m:Film {title:'Batman Begins'})<-[:DIRECTED]-(directors) RETURN directors.name;
+[{"directors.name":"Christopher Nolan"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[]-(neighbors) RETURN neighbors;
+[{"neighbors":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"neighbors":{"identity":14,"label":"City","properties":{"name":"London"}}},{"neighbors":{"identity":20,"label":"Film","properties":{"title":"Camelot"}}},{"neighbors":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"neighbors":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}}}]
+MATCH (n:Person {name:'Lindsay Lohan'})-[:ACTED_IN]->(m)<-[:ACTED_IN]-(coActors) RETURN coActors.name;
+[{"coActors.name":"Natasha Richardson"},{"coActors.name":"Dennis Quaid"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[]->()<-[]-(m) RETURN m;
+[{"m":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}},{"m":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"m":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}}},{"m":{"identity":6,"label":"Person","properties":{"birthyear":1930,"name":"Richard Harris"}}}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[]->()<-[]-(m) RETURN DISTINCT m;
+[{"m":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}},{"m":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"m":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}}},{"m":{"identity":6,"label":"Person","properties":{"birthyear":1930,"name":"Richard Harris"}}}]
+MATCH (na)-[]->(nb)-[]->(nc) RETURN na,nb,nc;
+[{"na":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nb":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nc":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"na":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nb":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nc":{"identity":14,"label":"City","properties":{"name":"London"}}},{"na":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nb":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nc":{"identity":20,"label":"Film","properties":{"title":"Camelot"}}},{"na":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nb":{"identity":3,"label":"Person","properties":{"birthyear":1939,"name":"Corin Redgrave"}},"nc":{"identity":9,"label":"Person","properties":{"birthyear":1965,"name":"Jemma Redgrave"}}},{"na":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}},{"na":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":3,"label":"Person","properties":{"birthyear":1939,"name":"Corin Redgrave"}}},{"na":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"na":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}}},{"na":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nb":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nc":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"na":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nb":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nc":{"identity":14,"label":"City","properties":{"name":"London"}}},{"na":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nb":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nc":{"identity":20,"label":"Film","properties":{"title":"Camelot"}}},{"na":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nb":{"identity":3,"label":"Person","properties":{"birthyear":1939,"name":"Corin Redgrave"}},"nc":{"identity":9,"label":"Person","properties":{"birthyear":1965,"name":"Jemma Redgrave"}}},{"na":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nb":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nc":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}},{"na":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nb":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nc":{"identity":3,"label":"Person","properties":{"birthyear":1939,"name":"Corin Redgrave"}}},{"na":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nb":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"nc":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}}},{"na":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nb":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nc":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}},{"na":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nb":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nc":{"identity":14,"label":"City","properties":{"name":"London"}}},{"na":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nb":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nc":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}}},{"na":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"nb":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nc":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}},{"na":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"nb":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nc":{"identity":14,"label":"City","properties":{"name":"London"}}},{"na":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"nb":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nc":{"identity":19,"label":"Film","properties":{"title":"The Parent Trap"}}},{"na":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nb":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"nc":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"na":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nb":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"nc":{"identity":17,"label":"Film","properties":{"title":"Batman Begins"}}},{"na":{"identity":10,"label":"Person","properties":{"birthyear":1873,"name":"Roy Redgrave"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}},{"na":{"identity":10,"label":"Person","properties":{"birthyear":1873,"name":"Roy Redgrave"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":3,"label":"Person","properties":{"birthyear":1939,"name":"Corin Redgrave"}}},{"na":{"identity":10,"label":"Person","properties":{"birthyear":1873,"name":"Roy Redgrave"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"na":{"identity":10,"label":"Person","properties":{"birthyear":1873,"name":"Roy Redgrave"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":16,"label":"Film","properties":{"title":"Goodbye, Mr. Chips"}}}]
+MATCH (na:Person)-[:HAS_CHILD]->(nb)-[:MARRIED]->(nc) RETURN na,nb,nc;
+[{"na":{"identity":10,"label":"Person","properties":{"birthyear":1873,"name":"Roy Redgrave"}},"nb":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"nc":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"na":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}},"nb":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"nc":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}}}]
+MATCH (m:Film {title:'Camelot'})<-[r:ACTED_IN]-(n) RETURN n.name,r.charactername;
+[{"n.name":"Vanessa Redgrave","r.charactername":"Guenevere"},{"n.name":"Richard Harris","r.charactername":"King Arthur"}]
+MATCH (n)-[relatedTo]->(vanessa:Person {name:'Vanessa Redgrave'}) RETURN n,relatedTo;
+[{"n":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}},"relatedTo":{"dst":2,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":0,"temporal_id":0}},{"n":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}},"relatedTo":{"dst":2,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":1,"temporal_id":0}}]
+MATCH (n)<-[relatedTo]-(vanessa:Person {name:'Vanessa Redgrave'}) RETURN n,relatedTo;
+[{"n":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}},"relatedTo":{"dst":5,"forward":false,"identity":0,"label":"HAS_CHILD","label_id":0,"src":2,"temporal_id":0}},{"n":{"identity":14,"label":"City","properties":{"name":"London"}},"relatedTo":{"dst":14,"forward":false,"identity":0,"label":"BORN_IN","label_id":2,"properties":{"reg_time":"2023-05-01 10:00:00","weight":20.21},"src":2,"temporal_id":0}},{"n":{"identity":20,"label":"Film","properties":{"title":"Camelot"}},"relatedTo":{"dst":20,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Guenevere"},"src":2,"temporal_id":0}}]
+MATCH (a:Person {name:'Vanessa Redgrave'})-[]->(b:Person) RETURN b.name;
+[{"b.name":"Natasha Richardson"}]
+MATCH (a:Person {name:'Vanessa Redgrave'})-[]-(b:Person) RETURN b.name;
+[{"b.name":"Natasha Richardson"},{"b.name":"Rachel Kempson"},{"b.name":"Michael Redgrave"}]
+MATCH (a:Person {name:'Vanessa Redgrave'})-[]-(b) WHERE b:Person RETURN b.name;
+[{"b.name":"Natasha Richardson"},{"b.name":"Rachel Kempson"},{"b.name":"Michael Redgrave"}]
+MATCH (a:Person {name:'Vanessa Redgrave'})-[]-(b) WHERE b:Person AND b.birthyear >= 1910 RETURN b.name;
+[{"b.name":"Natasha Richardson"},{"b.name":"Rachel Kempson"}]
+MATCH (a:Person {name:'Vanessa Redgrave'})-[]-(b) WHERE b:Person OR b:City RETURN b.name;
+[{"b.name":"Natasha Richardson"},{"b.name":"London"},{"b.name":"Rachel Kempson"},{"b.name":"Michael Redgrave"}]
+MATCH (n:Person {name:'Lindsay Lohan'})-[:ACTED_IN]->(m)<-[:ACTED_IN]-(coActors)-[:BORN_IN]->(city) RETURN coActors.name,city.name;
+[{"city.name":"London","coActors.name":"Natasha Richardson"},{"city.name":"Houston","coActors.name":"Dennis Quaid"}]
+MATCH (a)-->(b)-->(c)<--(d) USING JOIN ON c WHERE a.uid > 1 AND d.uid > 2 AND b.uid < 3 AND c.uid < 4 RETURN d;
+[]
+MATCH (a)-->(b)-->(c)<--(d) WHERE a.uid > 1 AND d.uid > 2 AND b.uid < 3 AND c.uid < 4 RETURN d;
+[]
+MATCH (a)-->(b)-->(c)<--(d) WHERE a.uid > d.uid AND b.uid < c.uid RETURN d;
+[]
+MATCH (a)-->(b)-->(c)<--(d) WHERE a.uid > d.uid AND b.uid < c.uid AND a.uid > b.uid RETURN d;
+[]
+MATCH (n:Person)-[b:BORN_IN]->(m) WHERE b.weight < 20.18 RETURN m;
+[{"m":{"identity":14,"label":"City","properties":{"name":"London"}}},{"m":{"identity":15,"label":"City","properties":{"name":"Houston"}}}]
+MATCH (n:Person)-[b:BORN_IN]->(m) WHERE b.weight < 20.18 AND m.name <> 'Houston' RETURN m;
+[{"m":{"identity":14,"label":"City","properties":{"name":"London"}}}]
+MATCH (n:Person)-[a:ACTED_IN]->(m) WHERE n.name = a.title RETURN n;
+[]
+MATCH (n:Person)-[a:ACTED_IN]->(m) WHERE a.role = "Iron Man" RETURN n;
+[]
+MATCH (n:Person)-[a:ACTED_IN]->(m) WHERE n.name = "Vanessa Redgrave" RETURN n;
+[{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
+MATCH (n:Person)-[a:ACTED_IN]->(m) WHERE m.title = "Camelot" RETURN n;
+[{"n":{"identity":6,"label":"Person","properties":{"birthyear":1930,"name":"Richard Harris"}}},{"n":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
+MATCH (n:Person)-[a:ACTED_IN]->(m) WHERE n.name = a.title AND m.title = "Camelot" RETURN n;
+[]
+MATCH (n:Person)-[a:ACTED_IN]->(m) WHERE n.name =  "Vanessa Redgrave" AND m.title = a.title RETURN n;
+[]
+MATCH (n:Person)-[b:BORN_IN]->(m) WHERE b.weight < 19.2 OR b.weight > 20.6 RETURN m;
+[{"m":{"identity":15,"label":"City","properties":{"name":"Houston"}}},{"m":{"identity":13,"label":"City","properties":{"name":"New York"}}}]
+MATCH (n:Person)-[b:BORN_IN]->(m) WHERE (b.weight + b.weight) < 38.4 OR b.weight > 20.6 RETURN m;
+[{"m":{"identity":15,"label":"City","properties":{"name":"Houston"}}},{"m":{"identity":13,"label":"City","properties":{"name":"New York"}}}]
+MATCH (a)-[e]->(b) WHERE a.name='Liam Neeson' and b.title<>'' and (e.charactername='Henri Ducard' or e.relation = '') RETURN a,e,b;
+[{"a":{"identity":4,"label":"Person","properties":{"birthyear":1952,"name":"Liam Neeson"}},"b":{"identity":17,"label":"Film","properties":{"title":"Batman Begins"}},"e":{"dst":17,"forward":false,"identity":0,"label":"ACTED_IN","label_id":5,"properties":{"charactername":"Henri Ducard"},"src":4,"temporal_id":0}}]
+MATCH (a) WHERE a.name IN ['Dennis Quaid', 'Christopher Nolan'] WITH a MATCH (b) WHERE b.name IN ['London'] RETURN a, b;
+[{"a":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}},"b":{"identity":14,"label":"City","properties":{"name":"London"}}},{"a":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}},"b":{"identity":14,"label":"City","properties":{"name":"London"}}}]
+MATCH (a) WHERE a.name IN ['Dennis Quaid', 'Christopher Nolan'] WITH a MATCH (b) WHERE b.name IN ['London', 'Beijing', 'Houston'] RETURN a, b;
+[{"a":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}},"b":{"identity":14,"label":"City","properties":{"name":"London"}}},{"a":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}},"b":{"identity":15,"label":"City","properties":{"name":"Houston"}}},{"a":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}},"b":{"identity":14,"label":"City","properties":{"name":"London"}}},{"a":{"identity":7,"label":"Person","properties":{"birthyear":1954,"name":"Dennis Quaid"}},"b":{"identity":15,"label":"City","properties":{"name":"Houston"}}}]
+MATCH (n:Person) WHERE n.name = 'Vanessa Redgrave' OR NOT n.name <> 'Dennis Quaid' RETURN n.name;
+[{"n.name":"Dennis Quaid"},{"n.name":"Vanessa Redgrave"}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[:BORN_IN|ACTED_IN]->(m) RETURN m;
+[{"m":{"identity":14,"label":"City","properties":{"name":"London"}}},{"m":{"identity":20,"label":"Film","properties":{"title":"Camelot"}}}]
+MATCH (n:Person {name:'Michael Redgrave'})<-[:MARRIED|HAS_CHILD]-(m) RETURN m;
+[{"m":{"identity":10,"label":"Person","properties":{"birthyear":1873,"name":"Roy Redgrave"}}},{"m":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}}]
+MATCH (n:Person {name:'Vanessa Redgrave'})-[:BORN_IN|HAS_CHILD]-(m) RETURN m;
+[{"m":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}},{"m":{"identity":14,"label":"City","properties":{"name":"London"}}},{"m":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"m":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}}}]
+MATCH (n:Person {name:'Vanessa Redgrave'})--(m:Person) WHERE m.birthyear > n.birthyear RETURN m;
+[{"m":{"identity":5,"label":"Person","properties":{"birthyear":1963,"name":"Natasha Richardson"}}}]
+MATCH (n:Person {name:'Vanessa Redgrave'})--(m:Person) WHERE n.birthyear > m.birthyear RETURN m;
+[{"m":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"m":{"identity":1,"label":"Person","properties":{"birthyear":1908,"name":"Michael Redgrave"}}}]
+MATCH (n:Person {name:'Natasha Richardson'})-[:HAS_CHILD]->(m) RETURN m;
+[]
+MATCH (n:Person {name:'Natasha Richardson'})<-[:HAS_CHILD]-(m) RETURN m;
+[{"m":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
+MATCH (n:Person {name:'Natasha Richardson'})-[:HAS_CHILD]-(m) RETURN m;
+[{"m":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}}]
+match (a)-->(b)-->(c)<--(d) where not ((not (a.birthyear>d.birthyear and b.birthyear<c.birthyear)) and (not a.birthyear>b.birthyear)) return d;
+[{"d":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"d":{"identity":0,"label":"Person","properties":{"birthyear":1910,"name":"Rachel Kempson"}}},{"d":{"identity":11,"label":"Person","properties":{"birthyear":1932,"name":"John Williams"}}},{"d":{"identity":2,"label":"Person","properties":{"birthyear":1937,"name":"Vanessa Redgrave"}}},{"d":{"identity":12,"label":"Person","properties":{"birthyear":1970,"name":"Christopher Nolan"}}}]
+MATCH (n:Person{name:'Vanessa Redgrave'}),(m:Person{name: 'Michael Redgrave'}) WHERE n.birthyear > 1960 and m.birthyear < 2000 RETURN n.name LIMIT 1;
+[]
+MATCH (n:Person) RETURN count(n);
+[{"count(n)":13}]
+MATCH (n:Person) WHERE n.birthyear > 1900 AND n.birthyear < 2000 RETURN count(n);
+[{"count(n)":12}]
+MATCH (n:Person) RETURN n.birthyear, count(n);
+[{"count(n)":1,"n.birthyear":1873},{"count(n)":1,"n.birthyear":1908},{"count(n)":1,"n.birthyear":1910},{"count(n)":1,"n.birthyear":1930},{"count(n)":1,"n.birthyear":1932},{"count(n)":1,"n.birthyear":1937},{"count(n)":1,"n.birthyear":1939},{"count(n)":1,"n.birthyear":1952},{"count(n)":1,"n.birthyear":1954},{"count(n)":1,"n.birthyear":1963},{"count(n)":1,"n.birthyear":1965},{"count(n)":1,"n.birthyear":1970},{"count(n)":1,"n.birthyear":1986}]
+MATCH (f:Film)<-[:ACTED_IN]-(p:Person)-[:BORN_IN]->(c:City) RETURN c.name, count(f) AS sum ORDER BY sum DESC;
+[{"c.name":"London","sum":2},{"c.name":"New York","sum":1},{"c.name":"Houston","sum":1}]
+MATCH p=(n1)-[r1]->(n2)-[r2]->(m:Person) return count(p);
+[{"count(p)":16}]
+MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City),p2=(n3)-[r3]->(m2:Film) return count(p1);
+[{"count(p1)":44}]
+MATCH p1=(n1)-[r1]->(n2)-[r2]->(m1:City) with count(p1) as cp match p1=(n1)-[r1]->(m1:Film) return count(p1);
+[{"count(p1)":11}]

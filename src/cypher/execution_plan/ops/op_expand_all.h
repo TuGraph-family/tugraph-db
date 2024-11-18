@@ -30,6 +30,40 @@ class ExpandAll : public OpBase {
 
     void _InitializeEdgeIter(RTContext *ctx) {
         auto &types = relp_->Types();
+        std::vector<Property> props;
+        auto& properties = relp_->Properties();
+        if (properties.type == parser::Expression::MAP) {
+            SymbolTable dummy_st;
+            Record dummy_rd;
+            for (auto &m : properties.Map()) {
+                Property prop;
+                prop.field = m.first;
+                prop.type = Property::VALUE;
+                ArithExprNode ae(m.second, dummy_st);
+                auto value = ae.Evaluate(ctx, dummy_rd);
+                if (!value.IsScalar()) {
+                    CYPHER_TODO();
+                }
+                prop.value = std::move(value.constant.scalar);
+                props.emplace_back(std::move(prop));
+            }
+        }
+        auto geax_properties = relp_->GeaxProperties();
+        for (auto& kv : geax_properties) {
+            LOG_INFO() << std::get<1>(kv);
+            SymbolTable dummy_st;
+            Record dummy_rd;
+            Property prop;
+            prop.field = std::get<0>(kv);
+            prop.type = Property::VALUE;
+            ArithExprNode ae(std::get<1>(kv), dummy_st);
+            auto value = ae.Evaluate(ctx, dummy_rd);
+            if (!value.IsScalar()) {
+                CYPHER_TODO();
+            }
+            prop.value = std::move(value.constant.scalar);
+            props.emplace_back(std::move(prop));
+        }
         auto iter_type = lgraph::EIter::NA;
         switch (expand_direction_) {
         case ExpandTowards::FORWARD:
@@ -42,7 +76,8 @@ class ExpandAll : public OpBase {
             iter_type = types.empty() ? lgraph::EIter::BI_EDGE : lgraph::EIter::BI_TYPE_EDGE;
             break;
         }
-        eit_->Initialize(ctx->txn_->GetTxn().get(), iter_type, start_->PullVid(), types);
+        eit_->Initialize(ctx->txn_->GetTxn().get(), iter_type,
+                         start_->PullVid(), types, std::move(props));
     }
 
     bool _CheckToSkipEdgeFilter(RTContext *ctx) const {
@@ -203,7 +238,7 @@ class ExpandAll : public OpBase {
          * */
         /* reset modifies */
         eit_->FreeIter();
-        neighbor_->PushVid(-1);
+        if (!expand_into_) neighbor_->PushVid(-1);
         pattern_graph_->VisitedEdges().Erase(*eit_);
         state_ = ExpandAllUninitialized;
         return OP_OK;

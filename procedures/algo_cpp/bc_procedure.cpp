@@ -26,9 +26,11 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     // prepare
     start_time = get_time();
     size_t samples = 10;
+    std::string output_file = "";
     try {
         json input = json::parse(request);
         parse_from_json(samples, "samples", input);
+        parse_from_json(output_file, "output_file", input);
     } catch (std::exception& e) {
         response = "json parse error: " + std::string(e.what());
         std::cout << response << std::endl;
@@ -44,16 +46,25 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     score.Fill(0.0);
     size_t max_score_vi = BCCore(olapondb, samples, score);
     auto core_cost = get_time() - start_time;
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_score_vi), false);
+    auto vit_label = vit.GetLabel();
+    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+    auto field_data = vit.GetField(primary_field);
 
     // output
     start_time = get_time();
-    // TODO(any): write score back to graph
+    if (output_file != "") {
+        olapondb.WriteToFile(score, output_file);
+    }
     auto output_cost = get_time() - start_time;
 
     // return
     {
         json output;
         output["max_score_vid"] = olapondb.OriginalVid(max_score_vi);
+        output["max_score_label"] = vit_label;
+        output["max_score_primaryfield"] = primary_field;
+        output["max_score_fielddata"] = field_data.ToString();
         output["max_score"] = score[max_score_vi];
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();

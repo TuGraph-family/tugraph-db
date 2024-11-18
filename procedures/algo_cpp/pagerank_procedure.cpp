@@ -101,7 +101,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     if (output_file != "") {
         olapondb.WriteToFile<double>(pr, output_file);
     }
-    txn.Commit();
 
     if (pr_value != "") {
         olapondb.WriteToGraphDB<double>(pr, pr_value);
@@ -110,10 +109,18 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     printf("max rank value is pr[%ld] = %lf\n", olapondb.OriginalVid(max_pr_vi), pr[max_pr_vi]);
     auto output_cost = get_time() - start_time;
 
+
+    auto vit = txn.GetVertexIterator(olapondb.OriginalVid(max_pr_vi), false);
+    auto vit_label = vit.GetLabel();
+    auto primary_field = txn.GetVertexPrimaryField(vit_label);
+    auto field_data = vit.GetField(primary_field);
     // return
     {
         json output;
         output["max_pr_id"] = olapondb.OriginalVid(max_pr_vi);
+        output["max_pr_label"] = vit_label;
+        output["max_pr_primaryfield"] = primary_field;
+        output["max_pr_fielddata"] = field_data.ToString();
         output["max_pr_val"] = pr[max_pr_vi];
         output["num_vertices"] = olapondb.NumVertices();
         output["num_edges"] = olapondb.NumEdges();
@@ -123,5 +130,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         output["total_cost"] = prepare_cost + core_cost + output_cost;
         response = output.dump();
     }
+    txn.Commit();
     return true;
 }

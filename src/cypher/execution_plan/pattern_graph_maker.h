@@ -19,11 +19,13 @@
 #include "cypher/graph/graph.h"
 
 namespace cypher {
+// TODO(lingsu): rename in the future
 class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
  public:
     explicit PatternGraphMaker(std::vector<PatternGraph>& pattern_graphs)
         : pattern_graphs_(pattern_graphs) {}
-    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode);
+
+    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* astNode, RTContext* ctx);
     std::string ErrorMsg() { return error_msg_; }
 
  private:
@@ -64,6 +66,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ResetTimeZone* node) override;
     std::any visit(geax::frontend::ResetGraph* node) override;
     std::any visit(geax::frontend::ResetParam* node) override;
+    std::any visit(geax::frontend::RemoveSingleProperty* node) override;
 
     //---------------------------------------------------------------------------------
     // exprs
@@ -86,6 +89,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::BDiv* node) override;
     std::any visit(geax::frontend::BMul* node) override;
     std::any visit(geax::frontend::BMod* node) override;
+    std::any visit(geax::frontend::BSquare* node) override;
     std::any visit(geax::frontend::BAnd* node) override;
     std::any visit(geax::frontend::BOr* node) override;
     std::any visit(geax::frontend::BXor* node) override;
@@ -127,6 +131,7 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::VNone* node) override;
     std::any visit(geax::frontend::Ref* node) override;
     std::any visit(geax::frontend::Param* node) override;
+    std::any visit(geax::frontend::ListComprehension* node) override;
 
     // predicates
     std::any visit(geax::frontend::IsNull* node) override;
@@ -191,17 +196,26 @@ class PatternGraphMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::ShowProcessListStatement* node) override;
     std::any visit(geax::frontend::KillStatement* node) override;
     std::any visit(geax::frontend::ManagerStatement* node) override;
+    std::any visit(geax::frontend::UnwindStatement* node) override;
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override;
 
     std::any visit(geax::frontend::DummyNode* node) override;
     std::any reportError() override;
 
  private:
+    void AddSymbol(const std::string& symbol_alias, cypher::SymbolNode::Type type,
+                   cypher::SymbolNode::Scope scope);
+    void AddNode(Node* node);
+    void AddRelationship(Relationship* rel);
     std::vector<PatternGraph>& pattern_graphs_;
+    std::vector<bool> pattern_graph_in_union_;
     std::vector<size_t> symbols_idx_;
     size_t cur_pattern_graph_;
     std::unordered_set<geax::frontend::AstNodeType> cur_types_;
     bool read_only_ = true;
     std::string error_msg_;
+    std::string curr_procedure_name_;
+    RTContext* ctx_;
 
     std::shared_ptr<Node> node_t_;
     std::shared_ptr<Node> start_t_;

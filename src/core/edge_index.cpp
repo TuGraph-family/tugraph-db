@@ -261,9 +261,9 @@ bool EdgeIndexIterator::PrevKV() {
     return true;
 }
 
-bool EdgeIndexIterator::KeyEquals(Value& key, VertexId src, VertexId dst) {
-    // ust need to deal with NonuniqueIndex，because a key has a set of values in
-    // this kind index, and other types are guaranteed by lmdb
+bool EdgeIndexIterator::KeyEquals(Value& key) {
+    // just need to deal with NonuniqueIndex，because a key has a set of values in
+    // this index type, and other types are guaranteed by lmdb
     if (type_ == IndexType::NonuniqueIndex) {
         auto key_euid = it_->GetKey();
         if (key_euid.Size() - _detail::EUID_SIZE != key.Size()) {
@@ -375,6 +375,7 @@ VertexId EdgeIndexIterator::GetPairUniqueSrcVertexId() {
            _detail::VID_SIZE);
     return vid;
 }
+
 VertexId EdgeIndexIterator::GetPairUniqueDstVertexId() {
     VertexId vid = 0;
     Value key_vid = _detail::ReturnKeyEvenIfLong(it_->GetKey());
@@ -467,7 +468,9 @@ std::unique_ptr<KvTable> EdgeIndex::OpenTable(KvTransaction& txn, KvStore& store
 void EdgeIndex::_AppendIndexEntry(KvTransaction& txn, const Value& k, EdgeUid euid) {
     FMA_DBG_ASSERT(type_ == IndexType::GlobalUniqueIndex ||
                    type_ == IndexType::PairUniqueIndex);
-    Value key = CutEdgeIndexKeyIfLong(k);
+    if (k.Size() > GetMaxEdgeIndexKeySize())
+        THROW_CODE(InputError, "Edge index value [{}] is too long.", k.AsString());
+    Value key = Value::ConstRef(k);
     if (type_ == IndexType::PairUniqueIndex) {
         size_t key_size = key.Size();
         key.Resize(key_size + _detail::VID_SIZE * 2);
@@ -493,7 +496,7 @@ void EdgeIndex::_AppendNonUniqueIndexEntry(KvTransaction& txn, const Value& k,
                                 const std::vector<EdgeUid>& euids) {
     FMA_DBG_ASSERT(type_ == IndexType::NonuniqueIndex);
     FMA_DBG_ASSERT(!euids.empty());
-    Value key = CutEdgeIndexKeyIfLong(k);
+    Value key = CutKeyIfLongOnlyForNonUniqueIndex(k);
     size_t euid_per_idv = _detail::NODE_SPLIT_THRESHOLD / _detail::EUID_SIZE;
     for (size_t i = 0; i < euids.size(); i += euid_per_idv) {
         size_t end = i + euid_per_idv;
@@ -555,7 +558,7 @@ void EdgeIndex::Dump(KvTransaction& txn,
 }
 
 bool EdgeIndex::Delete(KvTransaction& txn, const Value& k, const EdgeUid& euid) {
-    Value key = CutEdgeIndexKeyIfLong(k);
+    Value key = type_ == IndexType::NonuniqueIndex ? CutKeyIfLongOnlyForNonUniqueIndex(k) : k;
     EdgeIndexIterator it =
         GetUnmanagedIterator(txn, k, k, euid.src, euid.dst, euid.lid, euid.tid, euid.eid);
     if (!it.IsValid() || it.KeyOutOfRange()) {
@@ -599,22 +602,39 @@ bool EdgeIndex::Update(KvTransaction& txn, const Value& old_key, const Value& ne
     return Add(txn, new_key, euid);
 }
 
+bool EdgeIndex::UniqueIndexConflict(KvTransaction& txn, const Value& k) {
+    if (type_ != IndexType::GlobalUniqueIndex) {
+        THROW_CODE(InputError, "edge UniqueIndexConflict only can be used in unique index.");
+    }
+    if (k.Size() > GetMaxEdgeIndexKeySize()) {
+        return true;
+    }
+    Value v;
+    return table_->GetValue(txn, k, v);
+}
+
 bool EdgeIndex::Add(KvTransaction& txn, const Value& k, const EdgeUid& euid) {
-    Value key = CutEdgeIndexKeyIfLong(k);
     switch (type_) {
     case IndexType::GlobalUniqueIndex:
         {
+            if (k.Size() > GetMaxEdgeIndexKeySize())
+                THROW_CODE(InputError, "Edge global unique index value [{}] is too long.",
+                           k.AsString());
             Value v(_detail::EUID_SIZE);
             _detail::WriteVid(v.Data(), euid.src);
             _detail::WriteVid(v.Data() + _detail::VID_SIZE, euid.dst);
             _detail::WriteLabelId(v.Data() + _detail::LID_BEGIN, euid.lid);
             _detail::WriteTemporalId(v.Data() + _detail::TID_BEGIN, euid.tid);
             _detail::WriteEid(v.Data() + _detail::EID_BEGIN, euid.eid);
-            return table_->AddKV(txn, key, v);
+            return table_->AddKV(txn, Value::ConstRef(k), v);
         }
     case IndexType::PairUniqueIndex:
         {
-            Value real_key = _detail::PatchPairUniqueIndexKey(key, euid.src, euid.dst);
+            if (k.Size() > GetMaxEdgeIndexKeySize())
+                THROW_CODE(InputError, "Edge pair unique index value [{}] is too long.",
+                           k.AsString());
+            Value real_key = _detail::PatchPairUniqueIndexKey(Value::ConstRef(k),
+                                                              euid.src, euid.dst);
             Value val(_detail::LID_SIZE + _detail::TID_SIZE + _detail::EID_SIZE);
             _detail::WriteLabelId(val.Data(), euid.lid);
             _detail::WriteTemporalId(val.Data() + _detail::LID_SIZE, euid.tid);
@@ -623,10 +643,11 @@ bool EdgeIndex::Add(KvTransaction& txn, const Value& k, const EdgeUid& euid) {
         }
     case IndexType::NonuniqueIndex:
         {
+            Value key = CutKeyIfLongOnlyForNonUniqueIndex(k);
             EdgeIndexIterator it = GetUnmanagedIterator(txn, key, key, euid.src, euid.dst,
                                                         euid.lid, euid.tid, euid.eid);
             if (!it.IsValid() || it.KeyOutOfRange()) {
-                if (!it.PrevKV() || !it.KeyEquals(key, euid.src, euid.dst)) {
+                if (!it.PrevKV() || !it.KeyEquals(key)) {
                     // create a new VertexIndexValue
                     EdgeIndexValue iv;
                     uint8_t r = iv.InsertEUid({euid.src, euid.dst, euid.lid, euid.tid, euid.eid});
@@ -689,7 +710,9 @@ size_t EdgeIndex::GetMaxEdgeIndexKeySize() {
     return key_size;
 }
 
-Value EdgeIndex::CutEdgeIndexKeyIfLong(const Value& k) {
+Value EdgeIndex::CutKeyIfLongOnlyForNonUniqueIndex(const Value& k) {
+    if (type_ != IndexType::NonuniqueIndex)
+        return Value::ConstRef(k);
     size_t key_size = GetMaxEdgeIndexKeySize();
     if (k.Size() < key_size) return Value::ConstRef(k);
     return Value(k.Data(), key_size);

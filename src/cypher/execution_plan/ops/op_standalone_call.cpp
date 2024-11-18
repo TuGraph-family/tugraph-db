@@ -20,6 +20,7 @@
 #include "procedure/procedure.h"
 #include "resultset/record.h"
 #include "server/json_convert.h"
+#include "db/galaxy.h"
 
 cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
     auto &call = call_clause_;
@@ -121,7 +122,13 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 }
             }
         }
-        procedure_->function(ctx, nullptr, parameters, _yield_items, &records);
+        std::vector<Entry> evaluate_parameters;
+        evaluate_parameters.reserve(parameters.size());
+        for (const auto& expr : parameters) {
+            ArithExprNode node(expr, {});
+            evaluate_parameters.emplace_back(node.Evaluate(ctx, *record));
+        }
+        procedure_->function(ctx, record.get(), evaluate_parameters, _yield_items, &records);
         auto &header = ctx->result_->Header();
         for (auto &r : records) {
             auto record = ctx->result_->MutableRecord();
@@ -131,7 +138,7 @@ cypher::OpBase::OpResult cypher::StandaloneCall::RealConsume(RTContext *ctx) {
                 auto type = header[idx].second;
                 switch (type) {
                 case lgraph_api::LGraphType::NODE:
-                    CYPHER_TODO();
+                    record->Insert(title, v.node->GetVid(), ctx->txn_.get());
                     break;
                 case lgraph_api::LGraphType::RELATIONSHIP:
                     CYPHER_TODO();

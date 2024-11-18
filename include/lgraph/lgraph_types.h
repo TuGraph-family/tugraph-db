@@ -192,7 +192,8 @@ enum FieldType {
     POINT = 12,       // Point type of spatial data
     LINESTRING = 13,  // LineString type of spatial data
     POLYGON = 14,     // Polygon type of spatial data
-    SPATIAL = 15      // spatial data, it's now unused but may be used in the future.
+    SPATIAL = 15,     // spatial data, it's now unused but may be used in the future.
+    FLOAT_VECTOR = 16  // float vector
 };
 
 /**
@@ -238,6 +239,8 @@ inline const std::string to_string(FieldType v) {
         return "POLYGON";
     case SPATIAL:
         return "SPATIAL";
+    case FLOAT_VECTOR:
+        return "FLOAT_VECTOR";
     default:
         throw std::runtime_error("Unknown Field Type");
     }
@@ -321,14 +324,13 @@ inline const std::string to_string(LGraphType type) {
     }
 }
 
-
 /**
  * @brief The parameter of procedure/plugin
  */
 struct Parameter {
     std::string name;  ///> name of the parameter
-    int index;  ///> index of the parameter list in which the parameter stay
-    LGraphType type;  ///> type of the parameter
+    int index;         ///> index of the parameter list in which the parameter stay
+    LGraphType type;   ///> type of the parameter
 };
 
 /**
@@ -340,7 +342,7 @@ struct Parameter {
  *  results: length, nodeIds
  */
 struct SigSpec {
-    std::vector<Parameter> input_list;  ///> input parameter list
+    std::vector<Parameter> input_list;   ///> input parameter list
     std::vector<Parameter> result_list;  ///> return parameter list
 };
 
@@ -480,17 +482,30 @@ struct FieldData {
         data.buf = new std::string(s.AsEWKB());
     }
 
+    explicit FieldData(const std::vector<float>& fv) {
+        type = FieldType::FLOAT_VECTOR;
+        data.vp = new std::vector<float>(fv);
+    }
+
+    explicit FieldData(std::vector<float>&& fv) {
+        type = FieldType::FLOAT_VECTOR;
+        data.vp = new std::vector<float>(std::move(fv));
+    }
+
     ~FieldData() {
         if (IsBufType(type)) delete data.buf;
+        if (type == FieldType::FLOAT_VECTOR) delete data.vp;
     }
 
     FieldData(const FieldData& rhs) {
         type = rhs.type;
         if (IsBufType(rhs.type)) {
             data.buf = new std::string(*rhs.data.buf);
-        } else {
+        } else if (rhs.type != FieldType::FLOAT_VECTOR) {
             // the integer type must have the biggest size, see static_assertion below
             data.int64 = rhs.data.int64;
+        } else {
+            data.vp = new std::vector<float>(*rhs.data.vp);
         }
     }
 
@@ -507,9 +522,11 @@ struct FieldData {
         type = rhs.type;
         if (IsBufType(rhs.type)) {
             data.buf = new std::string(*rhs.data.buf);
-        } else {
+        } else if (rhs.type != FieldType::FLOAT_VECTOR) {
             // the integer type must have the biggest size, see static_assertion below
             data.int64 = rhs.data.int64;
+        } else {
+            data.vp = new std::vector<float>(*rhs.data.vp);
         }
         return *this;
     }
@@ -612,6 +629,8 @@ struct FieldData {
         }
     }
 
+    static inline FieldData FloatVector(const std::vector<float>& fv) { return FieldData(fv); }
+
     //-------------------------
     // Constructs blobs.
     // A blob is a byte array. It can be used to store binary data such as images, html
@@ -677,6 +696,7 @@ struct FieldData {
         case FieldType::LINESTRING:
         case FieldType::POLYGON:
         case FieldType::SPATIAL:
+        case FieldType::FLOAT_VECTOR:
             throw std::bad_cast();
         }
         return 0;
@@ -710,6 +730,7 @@ struct FieldData {
         case FieldType::LINESTRING:
         case FieldType::POLYGON:
         case FieldType::SPATIAL:
+        case FieldType::FLOAT_VECTOR:
             throw std::bad_cast();
         }
         return 0.;
@@ -864,6 +885,11 @@ struct FieldData {
         throw std::bad_cast();
     }
 
+    inline std::vector<float> AsFloatVector() const {
+        if (type == FieldType::FLOAT_VECTOR) return *data.vp;
+        throw std::bad_cast();
+    }
+
     std::any ToBolt() const;
 
     /** @brief   Get string representation of this FieldData. */
@@ -898,6 +924,22 @@ struct FieldData {
         case FieldType::POLYGON:
         case FieldType::SPATIAL:
             return *data.buf;
+        case FieldType::FLOAT_VECTOR:
+            {
+                std::string vec_str;
+                for (float num : *data.vp) {
+                    if (num > 999999) {
+                        vec_str += std::to_string(num).substr(0, 7);
+                    } else {
+                        vec_str += std::to_string(num).substr(0, 8);
+                    }
+                    vec_str += ',';
+                }
+                if (!vec_str.empty()) {
+                    vec_str.pop_back();
+                }
+                return vec_str;
+            }
         }
         throw std::runtime_error("Unhandled data type, probably corrupted data.");
         return "";
@@ -915,6 +957,7 @@ struct FieldData {
     inline bool operator==(const FieldData& rhs) const {
         if (type == FieldType::NUL && rhs.type == FieldType::NUL) return true;
         if (type == FieldType::NUL || rhs.type == FieldType::NUL) return false;
+        if (type == FieldType::FLOAT_VECTOR || rhs.type == FieldType::FLOAT_VECTOR) return false;
         if (type == rhs.type) {
             switch (type) {
             case FieldType::NUL:
@@ -944,6 +987,8 @@ struct FieldData {
             case FieldType::POLYGON:
             case FieldType::SPATIAL:
                 return *data.buf == *rhs.data.buf;
+            case FieldType::FLOAT_VECTOR:
+                throw std::runtime_error("Float vector data are not comparable now.");
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -966,6 +1011,7 @@ struct FieldData {
     inline bool operator>(const FieldData& rhs) const {
         if (type == FieldType::NUL) return false;
         if (rhs.type == FieldType::NUL) return true;
+        if (type == FieldType::FLOAT_VECTOR || rhs.type == FieldType::FLOAT_VECTOR) return false;
         if (type == rhs.type) {
             switch (type) {
             case FieldType::NUL:
@@ -996,6 +1042,8 @@ struct FieldData {
             case FieldType::POLYGON:
             case FieldType::SPATIAL:
                 throw std::runtime_error("Spatial data are not comparable now.");
+            case FieldType::FLOAT_VECTOR:
+                throw std::runtime_error("Float vector data are not comparable now.");
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -1016,6 +1064,7 @@ struct FieldData {
     inline bool operator>=(const FieldData& rhs) const {
         if (rhs.type == FieldType::NUL) return true;
         if (type == FieldType::NUL) return false;
+        if (type == FieldType::FLOAT_VECTOR || rhs.type == FieldType::FLOAT_VECTOR) return false;
         if (type == rhs.type) {
             switch (type) {
             case FieldType::NUL:
@@ -1046,6 +1095,8 @@ struct FieldData {
             case FieldType::POLYGON:
             case FieldType::SPATIAL:
                 throw std::runtime_error("Spatial data are not comparable now.");
+            case FieldType::FLOAT_VECTOR:
+                throw std::runtime_error("Float vector data are not comparable now.");
             }
             throw std::runtime_error("Unhandled data type, probably corrupted data.");
         } else if (IsInteger(type) && IsInteger(rhs.type)) {
@@ -1080,6 +1131,7 @@ struct FieldData {
         float sp;
         double dp;
         std::string* buf;
+        std::vector<float>* vp;
     } data;
 
     inline bool is_null() const { return type == FieldType::NUL; }
@@ -1143,9 +1195,91 @@ struct FieldData {
     bool IsSpatial() const { return type == FieldType::SPATIAL || IsPoint() || IsLineString()
     || IsPolygon(); }
 
+    /** @brief   Query if this object is float vector*/
+    bool IsFloatVector() const { return type == FieldType::FLOAT_VECTOR; }
+
+    struct Hash {
+        size_t operator()(const FieldData& fd) const {
+            switch (fd.type) {
+            case FieldType::NUL:
+                return 0;
+            case FieldType::BOOL:
+                return std::hash<bool>()(fd.AsBool());
+            case FieldType::INT8:
+                return std::hash<int8_t>()(fd.AsInt8());
+            case FieldType::INT16:
+                return std::hash<int16_t>()(fd.AsInt16());
+            case FieldType::INT32:
+                return std::hash<int32_t>()(fd.AsInt32());
+            case FieldType::INT64:
+                return std::hash<int64_t>()(fd.AsInt64());
+            case FieldType::FLOAT:
+                return std::hash<float>()(fd.AsFloat());
+            case FieldType::DOUBLE:
+                return std::hash<double>()(fd.AsDouble());
+            case FieldType::DATE:
+                return std::hash<int32_t>()(fd.AsDate().DaysSinceEpoch());
+            case FieldType::DATETIME:
+                return std::hash<int64_t>()(fd.AsDateTime().MicroSecondsSinceEpoch());
+            case FieldType::STRING:
+                return std::hash<std::string>()(fd.AsString());
+            case FieldType::BLOB:
+                return std::hash<std::string>()(fd.AsBlob());
+            case FieldType::POINT:
+                {
+                    switch (fd.GetSRID()) {
+                    case ::lgraph_api::SRID::WGS84:
+                        return std::hash<std::string>()(fd.AsWgsPoint().AsEWKB());
+                    case ::lgraph_api::SRID::CARTESIAN:
+                        return std::hash<std::string>()(fd.AsCartesianPoint().AsEWKB());
+                    default:
+                        THROW_CODE(InputError, "unsupported spatial srid");
+                    }
+                }
+            case FieldType::LINESTRING:
+                {
+                    switch (fd.GetSRID()) {
+                    case ::lgraph_api::SRID::WGS84:
+                        return std::hash<std::string>()(fd.AsWgsLineString().AsEWKB());
+                    case ::lgraph_api::SRID::CARTESIAN:
+                        return std::hash<std::string>()(fd.AsCartesianLineString().AsEWKB());
+                    default:
+                        THROW_CODE(InputError, "unsupported spatial srid");
+                    }
+                }
+            case FieldType::POLYGON:
+                {
+                    switch (fd.GetSRID()) {
+                    case ::lgraph_api::SRID::WGS84:
+                        return std::hash<std::string>()(fd.AsWgsPolygon().AsEWKB());
+                    case ::lgraph_api::SRID::CARTESIAN:
+                        return std::hash<std::string>()(fd.AsCartesianPolygon().AsEWKB());
+                    default:
+                        THROW_CODE(InputError, "unsupported spatial srid");
+                    }
+                }
+            case FieldType::SPATIAL:
+                {
+                    switch (fd.GetSRID()) {
+                    case ::lgraph_api::SRID::WGS84:
+                        return std::hash<std::string>()(fd.AsWgsSpatial().AsEWKB());
+                    case ::lgraph_api::SRID::CARTESIAN:
+                        return std::hash<std::string>()(fd.AsCartesianSpatial().AsEWKB());
+                    default:
+                        THROW_CODE(InputError, "unsupported spatial srid");
+                    }
+                }
+            default:
+                throw std::runtime_error("Unhandled data type, probably corrupted data.");
+            }
+        }
+    };
+
  private:
     /** @brief   Query if 't' is BLOB or STRING */
-    static inline bool IsBufType(FieldType t) { return t >= FieldType::STRING; }
+    static inline bool IsBufType(FieldType t) {
+        return t >= FieldType::STRING && t < FieldType::FLOAT_VECTOR;
+    }
 
     /** @brief   Query if 't' is INT8, 16, 32, or 64 */
     static inline bool IsInteger(FieldType t) {
@@ -1209,10 +1343,10 @@ enum class IndexType {
 };
 
 enum class CompositeIndexType {
-    /** @brief this is not unique composite index
-     *  Temporarily require all attributes to be non-empty attributes
-     * */
-    UniqueIndex = 1
+    /** @brief this is unique composite index */
+    UniqueIndex = 1,
+    /** @brief this is not unique composite index */
+    NonUniqueIndex = 2
 };
 
 /** @brief   An index specifier. */
@@ -1222,6 +1356,25 @@ struct IndexSpec {
     /** @brief   field name */
     std::string field;
     IndexType type;
+};
+
+/** @brief   A composite index specifier. */
+struct CompositeIndexSpec {
+    /** @brief   label name */
+    std::string label;
+    /** @brief   fields name */
+    std::vector<std::string> fields;
+    CompositeIndexType type;
+};
+
+struct VectorIndexSpec {
+    std::string label;
+    std::string field;
+    std::string index_type;
+    int dimension;
+    std::string distance_type;
+    int hnsw_m;
+    int hnsw_ef_construction;
 };
 
 struct EdgeUid {
@@ -1305,6 +1458,22 @@ struct EdgeUid {
             if (lhs.src > rhs.src) return false;
             if (lhs.eid < rhs.eid) return true;
             return false;
+        }
+    };
+
+    struct Hash {
+        size_t operator()(const EdgeUid& edgeUid) const {
+            size_t hashValue = 0;
+            hashValue = std::hash<int64_t>()(edgeUid.eid);
+            hashValue ^= std::hash<int64_t>()(edgeUid.dst) +
+                        0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            hashValue ^= std::hash<int64_t>()(edgeUid.lid) +
+                        0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            hashValue ^= std::hash<int64_t>()(edgeUid.src) +
+                        0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            hashValue ^= std::hash<int64_t>()(edgeUid.tid) +
+                        0x9e3779b9 + (hashValue << 6) + (hashValue >> 2);
+            return hashValue;
         }
     };
 };

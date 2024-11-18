@@ -19,6 +19,7 @@
 #ifndef VISIT_AND_CHECK_WITH_ERROR_MSG
 #define VISIT_AND_CHECK_WITH_ERROR_MSG(ast)                                                       \
     do {                                                                                          \
+        if (!ast) NOT_SUPPORT();                                                                  \
         auto res = std::any_cast<geax::frontend::GEAXErrorCode>(visit(ast));                      \
         if (res != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {                                 \
             error_msg_ = error_msg_.empty() ? fma_common::StringFormatter::Format(                \
@@ -33,6 +34,7 @@
 #ifndef ACCEPT_AND_CHECK_WITH_ERROR_MSG
 #define ACCEPT_AND_CHECK_WITH_ERROR_MSG(ast)                                                      \
     do {                                                                                          \
+        if (!ast) NOT_SUPPORT();                                                                  \
         auto res = std::any_cast<geax::frontend::GEAXErrorCode>(ast->accept(*this));              \
         if (res != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {                                 \
             error_msg_ = error_msg_.empty() ? fma_common::StringFormatter::Format(                \
@@ -40,6 +42,19 @@
                                                   std::string(__FILE__), __LINE__)                \
                                             : error_msg_;                                         \
             return res;                                                                           \
+        }                                                                                         \
+    } while (0)
+#endif
+
+#ifndef ACCEPT_AND_CHECK_WITH_PASS_MSG
+#define ACCEPT_AND_CHECK_WITH_PASS_MSG(ast)                                                       \
+    do {                                                                                          \
+        if (!ast) NOT_SUPPORT();                                                                  \
+        auto res = std::any_cast<geax::frontend::GEAXErrorCode>(ast->accept(*this));              \
+        if (res != geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS) {                       \
+            auto error_msg = fma_common::StringFormatter::Format(                                 \
+                                "visit({}) failed", std::string(#ast));                           \
+            throw lgraph::CypherException(error_msg);                                             \
         }                                                                                         \
     } while (0)
 #endif
@@ -68,8 +83,16 @@
 #ifndef NOT_SUPPORT_AND_THROW
 #define NOT_SUPPORT_AND_THROW()                                                                 \
     do {                                                                                        \
-        auto error_msg_ = fma_common::StringFormatter::Format("visit(...) failed at {}:{}",     \
+        auto error_msg = fma_common::StringFormatter::Format("visit(...) failed at {}:{}",     \
                                                               std::string(__FILE__), __LINE__); \
-        throw lgraph::CypherException(error_msg_);                                              \
+        throw lgraph::CypherException(error_msg);                                              \
     } while (0)
 #endif
+
+template <typename Base, typename Drive>
+void checkedCast(Base* b, Drive*& d) {
+    static_assert(std::is_base_of<Base, Drive>::value,
+            "type `Base` must be the base of type `Drive`");
+    d = dynamic_cast<Drive*>(b);
+    assert(d);
+}
