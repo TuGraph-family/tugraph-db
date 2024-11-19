@@ -115,7 +115,7 @@ Time::Time(const std::string& str) {
     }
 }
 
-Time::Time(const Value& params) {
+Time::Time(const Value& params, int64_t truncate) {
     std::string timezoneName = "UTC";
     if (params.IsLocalTime()) {
         nanoseconds_since_today_with_of_ = params.AsLocalTime().GetStorage();
@@ -260,7 +260,10 @@ Time::Time(const Value& params) {
     if (!nanosecondValue.IsNull() && (nanosecondValue.AsInteger() < 0 || nanosecondValue.AsInteger() >= (!microsecondValue.IsNull() ? 1000 : !millisecondValue.IsNull() ? 1000000 : 1000000000))) {
         THROW_CODE(InvalidParameter, "Invalid value for Nanosecond: {}", nanosecondValue.AsInteger());
     }
-    if (!millisecondValue.IsNull() || !microsecondValue.IsNull() || !nanosecondValue.IsNull()) {
+    int64_t sub_second = (millisecondValue.IsNull() ? 0 : millisecondValue.AsInteger()) * 1000000 +
+                         (microsecondValue.IsNull() ? 0 : microsecondValue.AsInteger()) * 1000 +
+                         (nanosecondValue.IsNull() ? 0 : nanosecondValue.AsInteger());
+    if (truncate && sub_second >= truncate && (!millisecondValue.IsNull() || !microsecondValue.IsNull() || !nanosecondValue.IsNull())) {
         millisecond = microsecond = nanosecond = 0;
     }
     if (!millisecondValue.IsNull()) {

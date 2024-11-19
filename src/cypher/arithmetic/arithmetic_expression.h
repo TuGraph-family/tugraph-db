@@ -262,6 +262,9 @@ struct BuiltinFunction {
                       const std::vector<ArithExprNode> &args);
     static Value Coalesce(RTContext *ctx, const Record &record,
                           const std::vector<ArithExprNode> &args);
+   private:
+    static std::tuple<std::unordered_map<std::string, Value>, int64_t> _TimeUnitTruncate(
+        RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args);
 };
 
 /* OperandNode represents either a constant numeric value,

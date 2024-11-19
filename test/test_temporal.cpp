@@ -817,11 +817,11 @@ TEST(Time, localdatetimeNestedMap) {
               "16:00:42.000000000+05:00:00");
 }
 
-static std::string testdb = "varlendb";
+static std::string test_db = "temporal_db";
 
 TEST(Time, truncate) {
-    fs::remove_all(testdb);
-    auto graphDB = GraphDB::Open(testdb, {});
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
     cypher::RTContext rtx;
     auto txn = graphDB->BeginTransaction();
     auto resultIterator = txn->Execute(&rtx, "WITH time({hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}) AS t\n"
@@ -841,6 +841,26 @@ TEST(Time, truncate) {
         EXPECT_EQ(std::any_cast<Value>(records[3].data).AsLocalTime().ToString(), "12:31:14.000000000");
         EXPECT_EQ(std::any_cast<Value>(records[4].data).AsLocalTime().ToString(), "12:31:14.645000000");
         EXPECT_EQ(std::any_cast<Value>(records[5].data).AsLocalTime().ToString(), "12:31:14.645876000");
+    }
+    txn->Commit();
+    txn = graphDB->BeginTransaction();
+    resultIterator = txn->Execute(&rtx, "WITH time({hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '-01:00'}) AS t\n"
+                                  "RETURN\n"
+                                  "  time.truncate('day', t) AS truncDay,\n"
+                                  "  time.truncate('hour', t) AS truncHour,\n"
+                                  "  time.truncate('minute', t) AS truncMinute,\n"
+                                  "  time.truncate('second', t) AS truncSecond,\n"
+                                  "  time.truncate('millisecond', t, {nanosecond: 2}) AS truncMillisecond,\n"
+                                  "  time.truncate('microsecond', t) AS truncMicrosecond");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsTime().ToString(), "00:00:00.000000000-01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsTime().ToString(), "12:00:00.000000000-01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[2].data).AsTime().ToString(), "12:31:00.000000000-01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[3].data).AsTime().ToString(), "12:31:14.000000000-01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[4].data).AsTime().ToString(), "12:31:14.645000002-01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[5].data).AsTime().ToString(), "12:31:14.645876000-01:00:00");
     }
     txn->Commit();
 }
