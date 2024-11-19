@@ -19,3 +19,4 @@
 #include "common/temporal/localdatetime.h"
 #include "common/temporal/time.h"
 #include "common/temporal/localtime.h"
+#include "common/temporal/duration.h"

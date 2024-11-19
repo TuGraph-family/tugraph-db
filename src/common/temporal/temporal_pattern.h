@@ -146,4 +146,13 @@ const std::regex LOCALDATETIME_REGEX(LOCALDATETIME_PATTERN);
 const std::regex DATETIME_REGEX(DATETIME_PATTERN);
 const std::regex OFFSET_REGEX(OFFSET_PATTERN);
 const std::regex ZONENAME_REGEX(ZONENAME_PATTERN);
+
+// duration
+const int64_t NANOS_PER_SECOND = 1000000000L;
+const int64_t AVG_NANOS_PER_MONTH = 2629746000000000L;
+const int64_t SECONDS_PER_DAY = 86400L;
+const int64_t AVG_SECONDS_PER_MONTH = 2629746;
+const std::vector<std::string> DURATION_KEYS = {"years", "months",
+      "weeks", "days", "hours", "minutes", "seconds", "milliseconds",
+      "microseconds", "nanoseconds"};
 }  // namespace

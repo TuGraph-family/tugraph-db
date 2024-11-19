@@ -1678,6 +1678,7 @@ std::any CypherBaseVisitorV2::visitOC_FunctionInvocation(
     std::string name;
     checkedAnyCast(visit(ctx->oC_FunctionName()), name);
     geax::frontend::Expr *res = nullptr;
+    VisitGuard guard(VisitType::kFunctionInvocation, visit_types_);
     auto it = S_AGG_LIST.find(name);
     auto bit = S_BAGG_LIST.find(name);
     if (name == "EXISTS") {
@@ -1918,8 +1919,9 @@ std::any CypherBaseVisitorV2::visitOC_MapLiteral(LcypherParser::OC_MapLiteralCon
             std::string name = vstr->val();
             ps->appendProperty(std::move(name), expr);
         }*/
-    if (VisitGuard::InClause(VisitType::kNodePattern, visit_types_) ||
-               VisitGuard::InClause(VisitType::kRelationshipPattern, visit_types_)) {
+    if (!VisitGuard::InClause(VisitType::kFunctionInvocation, visit_types_) &&
+        (VisitGuard::InClause(VisitType::kNodePattern, visit_types_) ||
+               VisitGuard::InClause(VisitType::kRelationshipPattern, visit_types_))) {
         geax::frontend::ElementFiller *filler = nullptr;
         checkedCast(node_, filler);
         if (ctx->oC_Expression().size() != ctx->oC_PropertyKeyName().size())
