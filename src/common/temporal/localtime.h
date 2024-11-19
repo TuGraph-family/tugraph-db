@@ -28,7 +28,7 @@ class LocalTime {
    public:
     LocalTime();
     explicit LocalTime(const std::string& str);
-    explicit LocalTime(const Value& params);
+    explicit LocalTime(const Value& params, int64_t truncate = 0);
     explicit LocalTime(int64_t nanoseconds)
         : nanoseconds_since_today_(nanoseconds){};
     [[nodiscard]] int64_t GetStorage() const {

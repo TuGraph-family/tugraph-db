@@ -615,6 +615,77 @@ Value BuiltinFunction::LocalTime(RTContext *ctx, const Record &record,
     }
 }
 
+std::tuple<std::unordered_map<std::string, Value>, int64_t> BuiltinFunction::_TimeUnitTruncate(
+    RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+    if (args.size() > 4) CYPHER_ARGUMENT_ERROR();
+    auto truncate_unit = args[1].Evaluate(ctx, record).constant.AsString();
+    auto r = args[2].Evaluate(ctx, record);
+    std::unordered_map<std::string, Value> um;
+    int64_t base_nanosecond = 0;
+    if (r.IsConstant() && (r.constant.IsLocalTime() || r.constant.IsTime()
+                           || r.constant.IsDateTime() || r.constant.IsLocalDateTime())) {
+        if (args.size() == 4) {
+            auto p = args[3].Evaluate(ctx, record);
+            for (const auto &kv : p.constant.AsMap()) {
+                um.emplace(kv);
+            }
+        }
+        auto truncate = [&truncate_unit, &base_nanosecond] (int64_t nanosecond) {
+            if (truncate_unit == "day") {
+                base_nanosecond = 86400000000000L;
+                return nanosecond / 86400000000000 * 86400000000000;
+            } else if (truncate_unit == "hour") {
+                base_nanosecond = 3600000000000;
+                return nanosecond / 3600000000000 * 3600000000000;
+            } else if (truncate_unit == "minute") {
+                base_nanosecond = 60000000000;
+                return nanosecond / 60000000000 * 60000000000;
+            } else if (truncate_unit == "second") {
+                base_nanosecond = 1000000000;
+                return nanosecond / 1000000000 * 1000000000;
+            } else if (truncate_unit == "millisecond") {
+                base_nanosecond = 1000000;
+                return nanosecond / 1000000 * 1000000;
+            } else if (truncate_unit == "microsecond") {
+                base_nanosecond = 1000;
+                return nanosecond / 1000 * 1000;
+            } else {
+                THROW_CODE(InvalidParameter, "Unsupported unit: {}", truncate_unit);
+            }
+        };
+        switch (r.constant.type) {
+            case ValueType::LOCALTIME:
+                um.emplace("time", common::LocalTime(truncate(r.constant.AsLocalTime().GetStorage())));
+                break;
+            case ValueType::TIME:
+                um.emplace("time", common::Time(truncate(std::get<0>(r.constant.AsTime().GetStorage())), std::get<1>(r.constant.AsTime().GetStorage())));
+                break;
+            case ValueType::DATETIME:
+                um.emplace("time", common::DateTime(truncate(std::get<0>(r.constant.AsDateTime().GetStorage())), std::get<1>(r.constant.AsDateTime().GetStorage())));
+                break;
+            case ValueType::LOCALDATETIME:
+                um.emplace("time", common::LocalDateTime(truncate(r.constant.AsLocalDateTime().GetStorage())));
+                break;
+            default:
+                break;
+        }
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+    return {um, base_nanosecond};
+}
+
+Value BuiltinFunction::LocalTimeTruncate(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    auto d = _TimeUnitTruncate(ctx, record, args);
+    return Value::LocalTime(common::LocalTime(Value::Map(std::get<0>(d)), std::get<1>(d)));
+}
+
+Value BuiltinFunction::TimeTruncate(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+    auto d = _TimeUnitTruncate(ctx, record, args);
+    return Value::Time(common::Time(Value::Map(std::get<0>(d)), std::get<1>(d)));
+}
+
 Value BuiltinFunction::Time(RTContext *ctx, const Record &record,
                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();

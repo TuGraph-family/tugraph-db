@@ -237,6 +237,10 @@ struct BuiltinFunction {
                            const std::vector<ArithExprNode> &args);
     static Value Time(RTContext *ctx, const Record &record,
                            const std::vector<ArithExprNode> &args);
+    static Value LocalTimeTruncate(RTContext *ctx, const Record &record,
+                           const std::vector<ArithExprNode> &args);
+    static Value TimeTruncate(RTContext *ctx, const Record &record,
+                      const std::vector<ArithExprNode> &args);
 
     static Value Range(RTContext *ctx, const Record &record,
                        const std::vector<ArithExprNode> &args);
@@ -258,6 +262,9 @@ struct BuiltinFunction {
                       const std::vector<ArithExprNode> &args);
     static Value Coalesce(RTContext *ctx, const Record &record,
                           const std::vector<ArithExprNode> &args);
+   private:
+    static std::tuple<std::unordered_map<std::string, Value>, int64_t> _TimeUnitTruncate(
+        RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args);
 };
 
 /* OperandNode represents either a constant numeric value,
@@ -440,6 +447,8 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("coalesce", BuiltinFunction::Coalesce);
         ae_registered_funcs.emplace("localtime", BuiltinFunction::LocalTime);
         ae_registered_funcs.emplace("time", BuiltinFunction::Time);
+        ae_registered_funcs.emplace("localtime.truncate", BuiltinFunction::LocalTimeTruncate);
+        ae_registered_funcs.emplace("time.truncate", BuiltinFunction::TimeTruncate);
         return ae_registered_funcs;
     }
 
