@@ -206,6 +206,28 @@ enum FieldType {
     FLOAT_VECTOR = 16  // float vector
 };
 
+inline bool const is_integer_type(FieldType type) {
+    switch (type) {
+    case INT8:
+    case INT16:
+    case INT32:
+    case INT64:
+        return true;
+    default:
+        return false;
+    }
+}
+
+inline bool const is_float_type(FieldType type) {
+    switch (type) {
+    case FLOAT:
+    case DOUBLE:
+        return true;
+    default:
+        return false;
+    }
+}
+
 /**
  * @brief   Get the name of the given FieldType.
  *
@@ -1391,11 +1413,21 @@ struct FieldSpec {
           id(id),
           set_init_value(false),
           set_default_value(false) {}
+    FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& iv)
+        : name(n),
+          type(t),
+          optional(nu),
+          deleted(false),
+          id(id),
+          init_value(iv),
+          set_init_value(true),
+          set_default_value(false) {}
     FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& iv,
               const FieldData& dv)
         : name(n),
           type(t),
           optional(nu),
+          deleted(false),
           id(id),
           init_value(iv),
           set_init_value(true),
