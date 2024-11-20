@@ -734,6 +734,10 @@ void Schema::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(
  */
 void Schema::ParseAndSet(Value& record, const std::string& data,
                          ::lgraph::_detail::FieldExtractorBase* extractor) const {
+    if (!fast_alter_schema) {
+        GetFieldExtractorV1(extractor)->ParseAndSet(record, data);
+        return;
+    }
     if (data.empty() &&
         (extractor->IsFixedType() || extractor->Type() == FieldType::LINESTRING ||
          extractor->Type() == FieldType::POLYGON || extractor->Type() == FieldType::SPATIAL ||
