@@ -40,8 +40,8 @@
 
 #__docusaurus {
   padding: 16px 120px 0;
-  background-image: linear-gradient(180deg, #d8e2ee 0%, #d8e2ee 100%);
-  cursor: pointer;
+  background-color: transparent;
+  cursor: pointer !important;
 }
 
 /* Sidebar Style */
@@ -64,6 +64,16 @@
   color: #424e66 !important;
 }
 
+.menu__list-item-collapsible,
+.menu__list-item {
+  border-radius: 8px;
+}
+
+.menu__list-item-collapsible > a,
+.menu__list-item > a {
+  line-height: 22px;
+}
+
 .menu__link--active {
   background: #0e0b3b0d;
   border-radius: 8px;
@@ -73,8 +83,17 @@
   font-weight: 500;
 }
 
+.clean-btn::before {
+  background-size: 1rem 1rem;
+}
+
+.sidebarViewport_aRkj::-webkit-scrollbar {
+  display: none; /* 隐藏滚动条 */
+}
 .sidebarViewport_aRkj {
-  overflow-y: auto !important;
+  -ms-overflow-style: none; /* IE 和 Edge */
+  scrollbar-width: none; /* Firefox */
+  overflow-y: auto !important; /* 保持内容可滚动 */
 }
 
 /* Docs container Style */
@@ -83,53 +102,83 @@
   border-radius: 12px;
   padding: 14px 32px;
   font-size: 14px !important;
+}
 
-  h1 {
-    font-size: 24px !important;
-    color: #1a1b25e0 !important;
-    line-height: 32px !important;
-    font-weight: 600 !important;
-  }
+.markdown > h2,
+.markdown > h3,
+.markdown > h4,
+.markdown > h5 {
+  color: #292d3b !important;
+  font-weight: 600 !important;
+}
 
-  h2 {
-    font-size: 24px !important;
-    color: #1a1b25e0 !important;
-    line-height: 32px !important;
-    font-weight: 600 !important;
-    margin-top: 28px !important;
-  }
+.markdown h1:first-child {
+  font-size: 26px !important;
+  color: #292d3b !important;
+  font-weight: 600 !important;
+}
 
-  p,
-  th,
-  td,
-  li,
-  span {
-    font-size: 14px !important;
-    color: #1a1b25e0 !important;
-    line-height: 22px !important;
-  }
+.markdown > h2 {
+  font-size: 20px !important;
+  margin-top: 28px !important;
+}
 
-  a {
-    font-size: 14px !important;
-    color: #1677ff !important;
-  }
-  .breadcrumbs__item:not(:last-child):after {
-    content: "/";
-    background: none;
-    margin: 0 0 0 5px !important;
-    font-size: 14px !important;
-  }
+.markdown > h3 {
+  font-size: 18px !important;
+}
+.markdown > h4 {
+  font-size: 16px !important;
+}
+.markdown > h5 {
+  font-size: 14px !important;
+}
 
-  .breadcrumbs__link {
-    background-color: transparent !important;
-    font-size: 12px !important;
-    color: #0a0a0ae1 !important;
-    line-height: 20px;
-    padding: 0;
-  }
+.markdown > a {
+  font-size: 14px !important;
+  color: #2e5dfe !important;
+}
+
+.breadcrumbs__item:not(:last-child):after {
+  content: "/";
+  background: none;
+  margin: 0 0 0 5px !important;
+  font-size: 14px !important;
+}
+
+.breadcrumbs__link {
+  background-color: transparent !important;
+  font-size: 12px !important;
+  color: #0a0a0ae1 !important;
+  line-height: 20px;
+  padding: 0;
+}
+
+.markdown p,
+.markdown th,
+.markdown td,
+.markdown li,
+.markdown span {
+  font-size: 14px !important;
+  color: #1a1b25e0 !important;
+  line-height: 22px !important;
+}
+
+.table-of-contents li > a {
+  font-size: 14px;
+  color: #768191;
+}
+
+.table-of-contents > li > .table-of-contents__link--active {
+  font-size: 14px;
+  color: #2e5dfe;
+  font-weight: 500;
 }
 
 /* Cascader style */
+
+.ant-cascader-menu {
+  height: fit-content !important;
+}
 .itemWrapper {
   display: flex;
   flex-direction: column;
