@@ -1,8 +1,8 @@
-import React from 'react';
-import Link from '@docusaurus/Link';
-import { translate } from '@docusaurus/Translate';
+import React from "react";
+import Link from "@docusaurus/Link";
+import { translate } from "@docusaurus/Translate";
 
-import { useLocation } from '@docusaurus/router';
+import { useLocation } from "@docusaurus/router";
 
 export default function HomeBreadcrumbItem(): JSX.Element {
   const { pathname } = useLocation();
@@ -23,7 +23,6 @@ export default function HomeBreadcrumbItem(): JSX.Element {
     }
   };
 
-
   const homeText = () => {
     const lang =
       pathname?.split("/")?.find((item) => ["zh", "en"].includes(item)) || "en";
@@ -31,22 +30,20 @@ export default function HomeBreadcrumbItem(): JSX.Element {
       return "Docs";
     }
     return "文档";
-  }
+  };
 
   return (
     <li className="breadcrumbs__item">
       <Link
         aria-label={translate({
-          id: 'theme.docs.breadcrumbs.home',
-          message: 'Home page',
-          description: 'The ARIA label for the home page in the breadcrumbs',
+          id: "theme.docs.breadcrumbs.home",
+          message: "Home page",
+          description: "The ARIA label for the home page in the breadcrumbs",
         })}
         className="breadcrumbs__link"
-
-        href={homeHref()}>
-        <div style={{ color: '#1a1b2572' }}>
-          {homeText()}
-        </div>
+        href={homeHref()}
+      >
+        <div style={{ color: "#1a1b2572" }}>{homeText()}</div>
       </Link>
     </li>
   );
