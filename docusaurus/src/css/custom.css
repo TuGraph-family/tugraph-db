@@ -41,7 +41,7 @@
 #__docusaurus {
   padding: 16px 120px 0;
   background-color: transparent;
-  cursor: pointer;
+  cursor: pointer !important;
 }
 
 /* Sidebar Style */
@@ -104,18 +104,18 @@
   font-size: 14px !important;
 }
 
-.markdown > h1,
 .markdown > h2,
 .markdown > h3,
 .markdown > h4,
-.markdown > h5,
-.markdown > h6 {
+.markdown > h5 {
   color: #292d3b !important;
   font-weight: 600 !important;
 }
 
-.markdown > h1 {
+.markdown h1:first-child {
   font-size: 26px !important;
+  color: #292d3b !important;
+  font-weight: 600 !important;
 }
 
 .markdown > h2 {
@@ -153,17 +153,17 @@
   padding: 0;
 }
 
-.markdown > p,
-.markdown > th,
-.markdown > td,
-.markdown > li,
-.markdown > span {
+.markdown p,
+.markdown th,
+.markdown td,
+.markdown li,
+.markdown span {
   font-size: 14px !important;
   color: #1a1b25e0 !important;
   line-height: 22px !important;
 }
 
-.table-of-contents > li > a {
+.table-of-contents li > a {
   font-size: 14px;
   color: #768191;
 }
