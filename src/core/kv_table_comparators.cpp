@@ -47,9 +47,9 @@ struct KeyCompareFunc {
  * The comparator for bytes or strings.
  */
 static int LexicalKeyVidCompareFunc(const MDB_val* a, const MDB_val* b) {
-    int diff;
-    int len_diff;
-    unsigned int len;
+    int diff = 0;
+    int len_diff = 0;
+    unsigned int len = 0;
 
     len = static_cast<int>(a->mv_size) - VID_SIZE;
     len_diff = static_cast<int>(a->mv_size) - static_cast<int>(b->mv_size);
@@ -59,12 +59,15 @@ static int LexicalKeyVidCompareFunc(const MDB_val* a, const MDB_val* b) {
     }
 
     diff = memcmp(a->mv_data, b->mv_data, len);
-    if (diff == 0 && len_diff == 0) {
+    if (diff) {
+        return diff;
+    } else if (len_diff) {
+        return len_diff;
+    } else {
         int64_t a_vid = GetVid((char*)a->mv_data + a->mv_size - VID_SIZE);
         int64_t b_vid = GetVid((char*)b->mv_data + b->mv_size - VID_SIZE);
         return a_vid < b_vid ? -1 : a_vid > b_vid ? 1 : 0;
     }
-    return static_cast<int>(diff ? diff : len_diff < 0 ? -1 : len_diff);
 }
 
 /**
@@ -114,7 +117,11 @@ static int LexicalKeyEuidCompareFunc(const MDB_val* a, const MDB_val* b) {
     }
 
     diff = memcmp(a->mv_data, b->mv_data, len);
-    if (diff == 0 && len_diff == 0) {
+    if (diff) {
+        return diff;
+    } else if (len_diff) {
+        return len_diff;
+    } else {
         int64_t a_vid1 = GetVid((char*)a->mv_data + a->mv_size - EUID_SIZE);
         int64_t a_vid2 = GetVid((char*)a->mv_data + a->mv_size - EUID_SIZE + VID_SIZE);
         int64_t a_lid = GetLabelId((char*)a->mv_data + a->mv_size - EUID_SIZE + LID_BEGIN);
@@ -133,7 +140,6 @@ static int LexicalKeyEuidCompareFunc(const MDB_val* a, const MDB_val* b) {
                : a_eid > b_eid   ? 1
                                  : 0;
     }
-    return static_cast<int>(diff ? diff : len_diff < 0 ? -1 : len_diff);
 }
 
 template <FieldType DT>

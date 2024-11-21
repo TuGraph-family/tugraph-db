@@ -970,12 +970,10 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
             fe->ParseAndSet(new_prop, values[i]);
             VectorIndex* index = fe->GetVectorIndex();
             if (index) {
-                bool oldnull = fe->GetIsNull(old_prop);
-                bool newnull = fe->GetIsNull(new_prop);
+                auto old_v = fe->GetConstRef(old_prop);
+                auto new_v = fe->GetConstRef(new_prop);
                 std::vector<int64_t> vids {vid};
-                if (!oldnull && !newnull) {
-                    const auto& old_v = fe->GetConstRef(old_prop);
-                    const auto& new_v = fe->GetConstRef(new_prop);
+                if (!old_v.Empty() && !new_v.Empty()) {
                     if (old_v == new_v) {
                         continue;
                     }
@@ -991,9 +989,8 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                                    floatvector.back().size(), dim);
                     }
                     index->Add(floatvector, vids);
-                } else if (oldnull && !newnull) {
+                } else if (old_v.Empty() && !new_v.Empty()) {
                     // add
-                    const auto& new_v = fe->GetConstRef(new_prop);
                     auto dim = index->GetVecDimension();
                     std::vector<std::vector<float>> floatvector;
                     floatvector.emplace_back(new_v.AsFloatVector());
@@ -1003,7 +1000,7 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                                    floatvector.back().size(), dim);
                     }
                     index->Add(floatvector, vids);
-                } else if (!oldnull && newnull) {
+                } else if (!old_v.Empty() && new_v.Empty()) {
                     // delete
                     index->Remove(vids);
                 }
@@ -1013,12 +1010,10 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
             // update index if there is no error
             VertexIndex* index = fe->GetVertexIndex();
             if (index && index->IsReady()) {
-                bool oldnull = fe->GetIsNull(old_prop);
-                bool newnull = fe->GetIsNull(new_prop);
-                if (!oldnull && !newnull) {
+                auto old_v = fe->GetConstRef(old_prop);
+                auto new_v = fe->GetConstRef(new_prop);
+                if (!old_v.Empty() && !new_v.Empty()) {
                     // update
-                    const auto& old_v = fe->GetConstRef(old_prop);
-                    const auto& new_v = fe->GetConstRef(new_prop);
                     if (old_v == new_v) {
                         // If the values are equal, there is no need to update the index.
                         continue;
@@ -1028,16 +1023,16 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                         THROW_CODE(InputError,
                             "failed to update vertex index, {}:[{}] already exists", fe->Name(),
                                                  fe->FieldToString(new_prop));
-                } else if (oldnull && !newnull) {
+                } else if (old_v.Empty() && !new_v.Empty()) {
                     // set to non-null, add index
-                    bool r = index->Add(*txn_, fe->GetConstRef(new_prop), vid);
+                    bool r = index->Add(*txn_, new_v, vid);
                     if (!r)
                         THROW_CODE(InputError,
                             "failed to add vertex index, {}:[{}] already exists", fe->Name(),
                                                  fe->FieldToString(new_prop));
-                } else if (!oldnull && newnull) {
+                } else if (!old_v.Empty() && new_v.Empty()) {
                     // set to null, delete index
-                    bool r = index->Delete(*txn_, fe->GetConstRef(old_prop), vid);
+                    bool r = index->Delete(*txn_, old_v, vid);
                     FMA_DBG_ASSERT(r);
                 } else {
                     // both null, nothing to do

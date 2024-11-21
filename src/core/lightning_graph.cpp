@@ -2014,25 +2014,29 @@ bool LightningGraph::BlockingAddIndex(const std::string& label, const std::strin
                 FMA_FMT("start building vertex index for {}:{} in detached model", label, field);
             VertexIndex* index = extractor->GetVertexIndex();
             uint64_t count = 0;
+            uint64_t filter = 0;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
-                auto prop = kv_iter->GetValue();
-                if (extractor->GetIsNull(prop)) {
+                auto props = kv_iter->GetValue();
+                auto prop = extractor->GetConstRef(props);
+                if (prop.Empty()) {
+                    filter++;
                     continue;
                 }
-                if (!index->Add(txn.GetTxn(), extractor->GetConstRef(prop), vid)) {
+                if (!index->Add(txn.GetTxn(), prop, vid)) {
                     THROW_CODE(InternalError,
                         "Failed to index vertex [{}] with field value [{}:{}]",
-                        vid, extractor->Name(), extractor->FieldToString(prop));
+                        vid, extractor->Name(), extractor->FieldToString(props));
                 }
                 count++;
                 if (count % 100000 == 0) {
-                    LOG_DEBUG() << "index count: " << count;
+                    LOG_INFO() << "index count: " << count;
                 }
             }
             kv_iter.reset();
-            LOG_DEBUG() << "index count: " << count;
+            LOG_INFO() << "index count: " << count;
+            LOG_INFO() << FMA_FMT("{} records are skipped during adding index.", filter);
             txn.Commit();
             schema_.Assign(new_schema.release());
             LOG_INFO() <<
