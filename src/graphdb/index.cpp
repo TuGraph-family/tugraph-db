@@ -112,12 +112,14 @@ VertexFullTextIndex::VertexFullTextIndex(rocksdb::TransactionDB* db,
                                          GraphCF* graph_cf,
                                          IdGenerator* id_generator,
                                          meta::VertexFullTextIndex meta,
+                                         uint32_t index_id,
                                          const std::unordered_set<uint32_t>& lids,
                                          const std::unordered_set<uint32_t>& pids,
                                          size_t commit_interval)
     : db_(db), graph_cf_(graph_cf),
       id_generator_(id_generator),
       meta_(std::move(meta)),
+      index_id_(index_id),
       lids_(lids),
       pids_(pids),
       interval_(commit_interval),
@@ -130,6 +132,35 @@ VertexFullTextIndex::VertexFullTextIndex(rocksdb::TransactionDB* db,
         std::make_unique<::rust::Box<::FTIndex>>(new_ftindex(meta_.path(), fields));
     ft_index_ = instance_->operator->();
     StartTimer();
+}
+
+void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid) {
+    auto s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->index, IndexKey(vid), {});
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+}
+
+void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid) {
+    auto s = txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, IndexKey(vid));
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+}
+
+bool VertexFullTextIndex::IsIndexed(Transaction* txn, int64_t vid) {
+    std::string index_key = IndexKey(vid);
+    std::string val;
+    auto s = txn->dbtxn()->Get({}, graph_cf_->index, index_key, &val);
+    if (s.ok()) {
+        return true;
+    } else if (s.IsNotFound()) {
+        return false;
+    } else {
+        THROW_CODE(StorageEngineError, s.ToString());
+    }
+}
+
+std::string VertexFullTextIndex::IndexKey(int64_t vid) {
+    std::string ret((const char*)&index_id_, sizeof(index_id_));
+    ret.append((const char*)&vid, sizeof(vid));
+    return ret;
 }
 
 void VertexFullTextIndex::Load() {
@@ -168,7 +199,10 @@ void VertexFullTextIndex::Load() {
                 values.push_back(pv.AsString());
             }
             if (!fields.empty()) {
-                AddVertex(*(int64_t*)key.data(), fields, values);
+                int64_t id = *(int64_t*)key.data();
+                auto s = db_->Put({}, graph_cf_->index, IndexKey(id), {});
+                if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+                AddVertex(id, fields, values);
                 count++;
                 if (count == 10000) {
                     Commit();

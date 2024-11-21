@@ -51,6 +51,48 @@ TEST(VectorIndex, build) {
     EXPECT_EQ(count, 4);
     txn->Commit();
 }
+
+
+class VectorIndexParamTest : public::testing::TestWithParam<int>
+{
+};
+
+TEST_P(VectorIndexParamTest, dim) {
+    fs::remove_all(testdb);
+    auto graphDB = GraphDB::Open(testdb, {});
+    std::string index_name = "vector_index";
+    int dim = GetParam();
+    graphDB->AddVertexVectorIndex(index_name, "person", "embedding", 10, dim, "l2", 16, 100);
+    auto txn = graphDB->BeginTransaction();
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0, 1.0);
+    for (auto i = 0; i < 1000; i++) {
+        std::vector<Value> embedding;
+        embedding.reserve(dim);
+        for (auto j = 0; j < dim; j++) {
+            embedding.push_back(Value::Float(dis(gen)));
+        }
+        txn->CreateVertex(
+            {"person"},
+            {{"id", Value::Integer(1)},
+             {"embedding", Value::Array(embedding)}});
+    }
+    txn->Commit();
+    std::vector<float> query;
+    query.reserve(dim);
+    for (auto j = 0; j < dim; j++) {
+        query.emplace_back(dis(gen));
+    }
+    txn = graphDB->BeginTransaction();
+    for (auto viter = txn->QueryVertexByKnnSearch(index_name, query, 20, 100);
+         viter->Valid(); viter->Next()) {
+    }
+    txn->Commit();
+}
+
+INSTANTIATE_TEST_SUITE_P(VectorIndex, VectorIndexParamTest, testing::Values(128, 512, 1024, 2048, 4096));
+
 TEST(VectorIndex, del) {
     fs::remove_all(testdb);
     auto graphDB = GraphDB::Open(testdb, {});

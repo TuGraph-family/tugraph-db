@@ -32,6 +32,7 @@ message VertexFullTextIndex {
     repeated string properties   = 4;
     repeated uint32 label_ids    = 5;
     repeated uint32 property_ids = 6;
+    uint32 index_id              = 7;
 }
 
 message VertexVectorIndex {

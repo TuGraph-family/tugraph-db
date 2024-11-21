@@ -423,6 +423,12 @@ class VertexFullTextIndex : public ::google::protobuf::Message /* @@protoc_inser
   ::std::string* release_path();
   void set_allocated_path(::std::string* path);
 
+  // uint32 index_id = 7;
+  void clear_index_id();
+  static const int kIndexIdFieldNumber = 7;
+  ::google::protobuf::uint32 index_id() const;
+  void set_index_id(::google::protobuf::uint32 value);
+
   // @@protoc_insertion_point(class_scope:meta.VertexFullTextIndex)
  private:
 
@@ -435,6 +441,7 @@ class VertexFullTextIndex : public ::google::protobuf::Message /* @@protoc_inser
   mutable int _property_ids_cached_byte_size_;
   ::google::protobuf::internal::ArenaStringPtr name_;
   ::google::protobuf::internal::ArenaStringPtr path_;
+  ::google::protobuf::uint32 index_id_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
 };
@@ -1286,6 +1293,20 @@ inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
 VertexFullTextIndex::mutable_property_ids() {
   // @@protoc_insertion_point(field_mutable_list:meta.VertexFullTextIndex.property_ids)
   return &property_ids_;
+}
+
+// uint32 index_id = 7;
+inline void VertexFullTextIndex::clear_index_id() {
+  index_id_ = 0u;
+}
+inline ::google::protobuf::uint32 VertexFullTextIndex::index_id() const {
+  // @@protoc_insertion_point(field_get:meta.VertexFullTextIndex.index_id)
+  return index_id_;
+}
+inline void VertexFullTextIndex::set_index_id(::google::protobuf::uint32 value) {
+  
+  index_id_ = value;
+  // @@protoc_insertion_point(field_set:meta.VertexFullTextIndex.index_id)
 }
 
 // -------------------------------------------------------------------

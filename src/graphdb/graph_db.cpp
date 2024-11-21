@@ -246,6 +246,7 @@ void GraphDB::AddVertexFullTextIndex(
         pids.insert(pid);
         native_pids.insert(big_to_native(pid));
     }
+    uint32_t index_id = id_generator_.GetNextIndexId();
     // write meta info
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexFullTextIndex));
@@ -258,7 +259,7 @@ void GraphDB::AddVertexFullTextIndex(
     *meta.mutable_label_ids() = {native_lids.begin(), native_lids.end()};
     *meta.mutable_property_ids() = {native_pids.begin(), native_pids.end()};
     auto v_ft_index = std::make_unique<VertexFullTextIndex>(
-        db_, assistant_, &graph_cf_, &id_generator_, meta, lids, pids,
+        db_, assistant_, &graph_cf_, &id_generator_, meta, index_id, lids, pids,
         options_.ft_commit_interval_);
     v_ft_index->Load();
     rocksdb::WriteOptions wo;
@@ -284,6 +285,7 @@ void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
     meta_info_.DeleteVertexFullTextIndex(index_name);
     try {
         std::filesystem::remove_all(path);
+        LOG_INFO("remove fulltext index data {}", path);
     } catch (const std::exception& e) {
         LOG_ERROR("[DeleteVertexFullTextIndex] remove_all {} meet error: {}", path, e.what());
     }

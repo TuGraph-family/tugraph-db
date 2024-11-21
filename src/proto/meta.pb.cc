@@ -131,6 +131,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexFullTextIndex, properties_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexFullTextIndex, label_ids_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexFullTextIndex, property_ids_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexFullTextIndex, index_id_),
   ~0u,  // no _has_bits_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -157,8 +158,8 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::meta::VertexPropertyIndex)},
   { 12, -1, sizeof(::meta::VertexFullTextIndex)},
-  { 23, -1, sizeof(::meta::VertexVectorIndex)},
-  { 38, -1, sizeof(::meta::GraphDBMetaInfo)},
+  { 24, -1, sizeof(::meta::VertexVectorIndex)},
+  { 39, -1, sizeof(::meta::GraphDBMetaInfo)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
@@ -193,20 +194,20 @@ void AddDescriptorsImpl() {
       "ex\022\014\n\004name\030\001 \001(\t\022\021\n\tis_unique\030\002 \001(\010\022\r\n\005l"
       "abel\030\003 \001(\t\022\020\n\010label_id\030\004 \001(\r\022\020\n\010property"
       "\030\005 \001(\t\022\023\n\013property_id\030\006 \001(\r\022\020\n\010index_id\030"
-      "\007 \001(\r\"~\n\023VertexFullTextIndex\022\014\n\004name\030\001 \001"
-      "(\t\022\014\n\004path\030\002 \001(\t\022\016\n\006labels\030\003 \003(\t\022\022\n\nprop"
-      "erties\030\004 \003(\t\022\021\n\tlabel_ids\030\005 \003(\r\022\024\n\014prope"
-      "rty_ids\030\006 \003(\r\"\330\001\n\021VertexVectorIndex\022\014\n\004n"
-      "ame\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\020\n\010label_id\030\003 \001"
-      "(\r\022\020\n\010property\030\004 \001(\t\022\023\n\013property_id\030\005 \001("
-      "\r\022\024\n\014sharding_num\030\006 \001(\r\022\022\n\ndimensions\030\007 "
-      "\001(\r\022\025\n\rdistance_type\030\010 \001(\t\022\016\n\006hnsw_m\030\t \001"
-      "(\r\022\034\n\024hnsw_ef_construction\030\n \001(\r\"7\n\017Grap"
-      "hDBMetaInfo\022\022\n\ngraph_name\030\001 \001(\t\022\020\n\010graph"
-      "_id\030\002 \001(\rb\006proto3"
+      "\007 \001(\r\"\220\001\n\023VertexFullTextIndex\022\014\n\004name\030\001 "
+      "\001(\t\022\014\n\004path\030\002 \001(\t\022\016\n\006labels\030\003 \003(\t\022\022\n\npro"
+      "perties\030\004 \003(\t\022\021\n\tlabel_ids\030\005 \003(\r\022\024\n\014prop"
+      "erty_ids\030\006 \003(\r\022\020\n\010index_id\030\007 \001(\r\"\330\001\n\021Ver"
+      "texVectorIndex\022\014\n\004name\030\001 \001(\t\022\r\n\005label\030\002 "
+      "\001(\t\022\020\n\010label_id\030\003 \001(\r\022\020\n\010property\030\004 \001(\t\022"
+      "\023\n\013property_id\030\005 \001(\r\022\024\n\014sharding_num\030\006 \001"
+      "(\r\022\022\n\ndimensions\030\007 \001(\r\022\025\n\rdistance_type\030"
+      "\010 \001(\t\022\016\n\006hnsw_m\030\t \001(\r\022\034\n\024hnsw_ef_constru"
+      "ction\030\n \001(\r\"7\n\017GraphDBMetaInfo\022\022\n\ngraph_"
+      "name\030\001 \001(\t\022\020\n\010graph_id\030\002 \001(\rb\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 577);
+      descriptor, 596);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "meta.proto", &protobuf_RegisterTypes);
 }
@@ -744,6 +745,7 @@ const int VertexFullTextIndex::kLabelsFieldNumber;
 const int VertexFullTextIndex::kPropertiesFieldNumber;
 const int VertexFullTextIndex::kLabelIdsFieldNumber;
 const int VertexFullTextIndex::kPropertyIdsFieldNumber;
+const int VertexFullTextIndex::kIndexIdFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 VertexFullTextIndex::VertexFullTextIndex()
@@ -769,12 +771,14 @@ VertexFullTextIndex::VertexFullTextIndex(const VertexFullTextIndex& from)
   if (from.path().size() > 0) {
     path_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.path_);
   }
+  index_id_ = from.index_id_;
   // @@protoc_insertion_point(copy_constructor:meta.VertexFullTextIndex)
 }
 
 void VertexFullTextIndex::SharedCtor() {
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   path_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  index_id_ = 0u;
 }
 
 VertexFullTextIndex::~VertexFullTextIndex() {
@@ -813,6 +817,7 @@ void VertexFullTextIndex::Clear() {
   property_ids_.Clear();
   name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   path_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  index_id_ = 0u;
   _internal_metadata_.Clear();
 }
 
@@ -930,6 +935,20 @@ bool VertexFullTextIndex::MergePartialFromCodedStream(
         break;
       }
 
+      // uint32 index_id = 7;
+      case 7: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(56u /* 56 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &index_id_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
       default: {
       handle_unusual:
         if (tag == 0) {
@@ -1018,6 +1037,11 @@ void VertexFullTextIndex::SerializeWithCachedSizes(
       this->property_ids(i), output);
   }
 
+  // uint32 index_id = 7;
+  if (this->index_id() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(7, this->index_id(), output);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
@@ -1100,6 +1124,11 @@ void VertexFullTextIndex::SerializeWithCachedSizes(
       WriteUInt32NoTagToArray(this->property_ids_, target);
   }
 
+  // uint32 index_id = 7;
+  if (this->index_id() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(7, this->index_id(), target);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
@@ -1179,6 +1208,13 @@ size_t VertexFullTextIndex::ByteSizeLong() const {
         this->path());
   }
 
+  // uint32 index_id = 7;
+  if (this->index_id() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->index_id());
+  }
+
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   SetCachedSize(cached_size);
   return total_size;
@@ -1218,6 +1254,9 @@ void VertexFullTextIndex::MergeFrom(const VertexFullTextIndex& from) {
 
     path_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.path_);
   }
+  if (from.index_id() != 0) {
+    set_index_id(from.index_id());
+  }
 }
 
 void VertexFullTextIndex::CopyFrom(const ::google::protobuf::Message& from) {
@@ -1252,6 +1291,7 @@ void VertexFullTextIndex::InternalSwap(VertexFullTextIndex* other) {
     GetArenaNoVirtual());
   path_.Swap(&other->path_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
+  swap(index_id_, other->index_id_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
 
