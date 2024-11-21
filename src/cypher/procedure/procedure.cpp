@@ -414,6 +414,8 @@ void BuiltinProcedure::DbIndexVectorCreateNodeIndex(
     } else {
         THROW_CODE(InvalidParameter, "dimension is required");
     }
+    CYPHER_ARG_CHECK(dimension >= 1 && dimension <= 4096,
+                     "dimension should be an integer in the range [1, 4096]");
     std::string distance_type = "l2";
     if (parameter.count("distance_type")) {
         distance_type = parameter.at("distance_type").AsString();

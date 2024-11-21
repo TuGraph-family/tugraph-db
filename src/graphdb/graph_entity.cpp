@@ -215,7 +215,6 @@ int Vertex::Delete() {
             }
 
             // delete vertex properties
-            std::unordered_set<uint32_t> string_pids;
             std::unique_ptr<rocksdb::Iterator> vp_iter;
             rocksdb::Slice vp_prefix = key;
             vp_iter.reset(txn_->dbtxn()->GetIterator(
@@ -227,11 +226,6 @@ int Vertex::Delete() {
                 auto pid = *(uint32_t *)(p_key.data() + sizeof(int64_t));
                 pids.insert(pid);
                 auto p_val = vp_iter->value().ToString();  // must copy
-                if (static_cast<ValueType>(*p_val.data()) == ValueType::STRING) {
-                    if (p_val.size() > 1) {
-                        string_pids.insert(pid);
-                    }
-                }
                 for (auto lid : labelIds) {
                     auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(
                         lid, pid);
@@ -249,15 +243,17 @@ int Vertex::Delete() {
             // fulltext index
             for (const auto &[name, ft] :
                  txn_->db()->meta_info().GetVertexFullTextIndex()) {
-                if (!ft->MatchLabelIds(labelIds) ||
-                    !ft->MatchPropertyIds(string_pids)) {
+                if (!ft->MatchLabelIds(labelIds)) {
                     continue;
                 }
-                FTIndexUpdate del;
-                del.type = UpdateType::Delete;
-                del.ft_index_name = name;
-                del.id = id_;
-                txn_->ft_updates().emplace_back(std::move(del));
+                if (ft->IsIndexed(txn_, id_)) {
+                    FTIndexUpdate del;
+                    del.type = UpdateType::Delete;
+                    del.ft_index_name = name;
+                    del.id = id_;
+                    txn_->ft_updates().emplace_back(std::move(del));
+                    ft->DeleteIndex(txn_, id_);
+                }
             }
             // vector index
             for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
@@ -376,9 +372,10 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
         if (!ft->MatchLabelIds(new_lids)) {
             continue;
         }
-        if (ft->MatchLabelIds(labelIds)) {
+        if (ft->IsIndexed(txn_, id_)) {
             continue;
         }
+
         FTIndexUpdate add;
         add.id = id_;
         add.type = UpdateType::Add;
@@ -394,6 +391,7 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
         }
         if (!add.fields.empty()) {
             txn_->ft_updates().emplace_back(std::move(add));
+            ft->AddIndex(txn_, id_);
         }
     }
     // vector index
@@ -467,22 +465,14 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
         if (!ft->MatchLabelIds(remove_lids)) {
             continue;
         }
-        bool exist = false;
-        for (auto pid : ft->PropertyIds()) {
-            auto p_val = GetProperty(pid);
-            if (p_val.IsString() && !p_val.AsString().empty()) {
-                exist = true;
-                break;
-            }
+        if (ft->IsIndexed(txn_, id_)) {
+            FTIndexUpdate del;
+            del.type = UpdateType::Delete;
+            del.ft_index_name = ft_name;
+            del.id = id_;
+            txn_->ft_updates().emplace_back(std::move(del));
+            ft->DeleteIndex(txn_, id_);
         }
-        if (!exist) {
-            continue;
-        }
-        FTIndexUpdate del;
-        del.type = UpdateType::Delete;
-        del.ft_index_name = ft_name;
-        del.id = id_;
-        txn_->ft_updates().emplace_back(std::move(del));
     }
     // vector index
     for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
@@ -616,23 +606,13 @@ void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values)
         if (!index->MatchLabelIds(lids) || !index->MatchPropertyIds(pids)) {
             continue;
         }
-        bool ft_exists = false;
-        std::unordered_map<uint32_t, Value> store_props;
-        for (auto prop_id : index->PropertyIds()) {
-            auto v = GetProperty(prop_id);
-            if (!v.IsNull()) {
-                if (v.IsString() && !v.AsString().empty()) {
-                    ft_exists = true;
-                }
-                store_props.emplace(prop_id, std::move(v));
-            }
-        }
-        if (ft_exists) {
+        if (index->IsIndexed(txn_, id_)) {
             FTIndexUpdate del;
             del.id = id_;
             del.type = UpdateType::Delete;
             del.ft_index_name = name;
             txn_->ft_updates().emplace_back(std::move(del));
+            index->DeleteIndex(txn_, id_);
         }
         std::vector<std::string> fields;
         std::vector<std::string> field_values;
@@ -644,9 +624,9 @@ void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values)
                     text = iter->second->AsString();
                 }
             } else {
-                auto it = store_props.find(prop_id);
-                if (it != store_props.end() && it->second.IsString() && !it->second.AsString().empty()) {
-                    text = it->second.AsString();
+                auto prop = GetProperty(prop_id);
+                if (prop.IsString() && !prop.AsString().empty()) {
+                    text = prop.AsString();
                 }
             }
             if (text) {
@@ -662,6 +642,7 @@ void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values)
             add.fields = std::move(fields);
             add.field_valus = std::move(field_values);
             txn_->ft_updates().emplace_back(std::move(add));
+            index->AddIndex(txn_, id_);
         }
     }
     // vector index
@@ -738,27 +719,14 @@ void Vertex::RemoveAllProperty() {
         if (!ft->MatchLabelIds(lids)) {
             continue;
         }
-        bool exist = false;
-        for (auto id : ft->PropertyIds()) {
-            auto iter = props.find(id);
-            if (iter  == props.end()) {
-                continue;
-            }
-            if (static_cast<ValueType>(*iter->second.data()) != ValueType::STRING) {
-                continue;
-            }
-            if (iter->second.size() > 1) {
-                exist = true;
-            }
+        if (ft->IsIndexed(txn_, id_)) {
+            FTIndexUpdate del;
+            del.id = id_;
+            del.type = UpdateType::Delete;
+            del.ft_index_name = ft_name;
+            txn_->ft_updates().emplace_back(std::move(del));
+            ft->DeleteIndex(txn_, id_);
         }
-        if (!exist) {
-            continue;
-        }
-        FTIndexUpdate del;
-        del.id = id_;
-        del.type = UpdateType::Delete;
-        del.ft_index_name = ft_name;
-        txn_->ft_updates().emplace_back(std::move(del));
     }
     // vector index
     for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
@@ -815,38 +783,28 @@ void Vertex::RemoveProperty(const std::string &name) {
         if (!ft->MatchLabelIds(lids) || !ft->MatchPropertyIds({pid})) {
             continue;
         }
-
-        bool ft_exists = false;
-        std::unordered_map<uint32_t, Value> store_props;
-        for (auto prop_id : ft->PropertyIds()) {
-            auto v = GetProperty(prop_id);
-            if (!v.IsNull()) {
-                if (v.IsString() && !v.AsString().empty()) {
-                    ft_exists = true;
-                }
-                store_props.emplace(prop_id, std::move(v));
-            }
-        }
-        if (ft_exists) {
+        if (ft->IsIndexed(txn_, id_)) {
             FTIndexUpdate del;
             del.id = id_;
             del.type = UpdateType::Delete;
             del.ft_index_name = ft_name;
             txn_->ft_updates().emplace_back(std::move(del));
+            ft->DeleteIndex(txn_, id_);
         }
+
         std::vector<std::string> fields;
         std::vector<std::string> field_values;
         for (auto prop_id : ft->PropertyIds()) {
             if (prop_id == pid) {
                 continue;
             }
-            auto it = store_props.find(prop_id);
-            if (it != store_props.end() && it->second.IsString() && !it->second.AsString().empty()) {
+            auto prop = GetProperty(prop_id);
+            if (prop.IsString() && !prop.AsString().empty()) {
                 fields.push_back(txn_->db()
                                      ->id_generator()
                                      .GetPropertyName(prop_id)
                                      .value());
-                field_values.push_back(it->second.AsString());
+                field_values.push_back(prop.AsString());
             }
         }
         if (!fields.empty()) {
@@ -857,6 +815,7 @@ void Vertex::RemoveProperty(const std::string &name) {
             add.fields = std::move(fields);
             add.field_valus = std::move(field_values);
             txn_->ft_updates().emplace_back(std::move(add));
+            ft->AddIndex(txn_, id_);
         }
     }
     // vector index

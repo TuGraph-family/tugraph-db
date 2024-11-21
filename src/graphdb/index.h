@@ -75,6 +75,7 @@ class VertexFullTextIndex {
                         boost::asio::io_service &service,
                         GraphCF* graph_cf, IdGenerator* id_generator,
                         meta::VertexFullTextIndex meta,
+                        uint32_t index_id,
                         const std::unordered_set<uint32_t>& lids,
                         const std::unordered_set<uint32_t>& pids,
                         size_t commit_interval);
@@ -97,6 +98,10 @@ class VertexFullTextIndex {
     const meta::VertexFullTextIndex& meta() const {return meta_;}
     void Load();
     std::shared_mutex& Mutex() {return mutex_;}
+    std::string IndexKey(int64_t vid);
+   bool IsIndexed(txn::Transaction* txn, int64_t vid);
+   void AddIndex(txn::Transaction* txn, int64_t vid);
+   void DeleteIndex(txn::Transaction* txn, int64_t vid);
    private:
     void StartTimer();
 
@@ -104,6 +109,7 @@ class VertexFullTextIndex {
     GraphCF* graph_cf_;
     IdGenerator* id_generator_;
     meta::VertexFullTextIndex meta_;
+    uint32_t index_id_;
     std::unordered_set<uint32_t> lids_;
     std::unordered_set<uint32_t> pids_;
     ::FTIndex* ft_index_;
