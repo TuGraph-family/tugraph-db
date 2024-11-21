@@ -183,18 +183,24 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
 
   useEffect(() => {
 
-    const sendPostMsg = (path: string) => {
-      window.parent.postMessage({ path }, "*");
+    const sendPostMsg = () => {
+      window.parent.postMessage({ path: window.location.pathname }, "*");
     };
 
-    sendPostMsg(window.location.pathname);
+    const sendPostHashMsg = () => {
+      window.parent.postMessage({ path: window.location.pathname + window.location.hash }, "*");
+    }
 
-    window.addEventListener("click", () => {
-      sendPostMsg(window.location.pathname);
-    });
-    window.addEventListener("hashchange", () => {
-      sendPostMsg(window.location.pathname + window.location.hash);
-    });
+    window.addEventListener("click", sendPostMsg);
+    window.addEventListener("hashchange", sendPostHashMsg);
+
+    sendPostMsg();
+
+    return () => {
+      window.removeEventListener('click', sendPostMsg);
+      window.removeEventListener('hashchange', sendPostHashMsg);
+    }
+
   }, []);
 
 
