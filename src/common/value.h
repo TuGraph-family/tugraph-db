@@ -147,7 +147,7 @@ struct Value {
         data = d;
     }
     explicit Value(const common::Duration& d) {
-        type = ValueType::TIME;
+        type = ValueType::DURATION;
         data = d;
     }
 

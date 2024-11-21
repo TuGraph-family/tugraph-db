@@ -686,6 +686,20 @@ Value BuiltinFunction::TimeTruncate(RTContext *ctx, const Record &record, const 
     return Value::Time(common::Time(Value::Map(std::get<0>(d)), std::get<1>(d)));
 }
 
+Value BuiltinFunction::Duration(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+    CYPHER_THROW_ASSERT(args.size() == 2);
+    auto r = args[1].Evaluate(ctx, record);
+    if (r.IsMap()) {
+        auto dt = common::Duration(r.constant);
+        return Value(dt);
+    } else if (r.IsString()) {
+        auto dt = common::Duration(r.constant.AsString());
+        return Value(dt);
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+}
+
 Value BuiltinFunction::Time(RTContext *ctx, const Record &record,
                             const std::vector<ArithExprNode> &args) {
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
