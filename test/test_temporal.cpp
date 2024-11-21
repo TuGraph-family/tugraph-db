@@ -906,3 +906,13 @@ TEST(Duration, fromMap) {
     EXPECT_EQ(common::Duration(Value({{"minutes", Value::Double(1.5)}, {"seconds", Value::Integer(1)}})).ToString(),
               "PT1M31S");
 }
+
+TEST(Duration, durationFromString) {
+    EXPECT_EQ(common::Duration("P14DT16H12M").ToString(), "P14DT16H12M");
+    EXPECT_EQ(common::Duration("P5M1.5D").ToString(), "P5M1DT12H");
+    EXPECT_EQ(common::Duration("P0.75M").ToString(), "P22DT19H51M49.5S");
+    EXPECT_EQ(common::Duration("PT0.75M").ToString(), "PT45S");
+    EXPECT_EQ(common::Duration("P2.5W").ToString(), "P17DT12H");
+    EXPECT_EQ(common::Duration("P12Y5M14DT16H12M70S").ToString(), "P12Y5M14DT16H13M10S");
+    EXPECT_EQ(common::Duration("P2012-02-02T14:37:21.545").ToString(), "P2012Y2M2DT14H37M21.545S");
+}
