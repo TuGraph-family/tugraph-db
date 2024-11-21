@@ -82,6 +82,28 @@ int64_t Duration::optLong(const std::string &value) {
     return value.empty() ? 0 : std::stoi(value);
 }
 
+int64_t Duration::getTimeValue(const Value& d) {
+    if (d.IsDate()) {
+        return d.AsDate().GetStorage() * SECONDS_PER_DAY * NANOS_PER_SECOND;
+    } else if (d.IsDateTime()) {
+        return std::get<0>(d.AsDateTime().GetStorage()) - std::get<1>(d.AsDateTime().GetStorage()) * 1000000000;
+    } else if (d.IsLocalDateTime()) {
+        return d.AsLocalDateTime().GetStorage();
+    } else if (d.IsTime()) {
+        return std::get<0>(d.AsTime().GetStorage()) - std::get<1>(d.AsTime().GetStorage()) * 1000000000;
+    } else if (d.IsLocalTime()) {
+        return d.AsLocalTime().GetStorage();
+    } else {
+        THROW_CODE(InvalidParameter, "The type of {} is not time", d.ToString());
+    }
+}
+
+Duration Duration::between(const Value& from, const Value& to) {
+    int64_t bet = getTimeValue(to) - getTimeValue(from);
+    return Duration(bet / AVG_NANOS_PER_MONTH, bet % AVG_NANOS_PER_MONTH / (SECONDS_PER_DAY * NANOS_PER_SECOND),
+                    bet % (SECONDS_PER_DAY * NANOS_PER_SECOND) / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
+}
+
 Duration Duration::parseDuration(int sign, int64_t month, int64_t day, std::smatch &match,
                                  bool strict, const std::string &hour, const std::string &min,
                                  const std::string &sec, const std::string &sub) {

@@ -243,6 +243,8 @@ struct BuiltinFunction {
                            const std::vector<ArithExprNode> &args);
     static Value TimeTruncate(RTContext *ctx, const Record &record,
                       const std::vector<ArithExprNode> &args);
+    static Value Between(RTContext *ctx, const Record &record,
+                              const std::vector<ArithExprNode> &args);
 
     static Value Range(RTContext *ctx, const Record &record,
                        const std::vector<ArithExprNode> &args);
@@ -452,6 +454,7 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("duration", BuiltinFunction::Duration);
         ae_registered_funcs.emplace("localtime.truncate", BuiltinFunction::LocalTimeTruncate);
         ae_registered_funcs.emplace("time.truncate", BuiltinFunction::TimeTruncate);
+        ae_registered_funcs.emplace("duration.between", BuiltinFunction::TimeTruncate);
         return ae_registered_funcs;
     }
 

@@ -686,6 +686,12 @@ Value BuiltinFunction::TimeTruncate(RTContext *ctx, const Record &record, const 
     return Value::Time(common::Time(Value::Map(std::get<0>(d)), std::get<1>(d)));
 }
 
+Value BuiltinFunction::Between(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+    CYPHER_THROW_ASSERT(args.size() == 3);
+    auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
+    return Value::Duration(common::Duration::between(from.constant, to.constant));
+}
+
 Value BuiltinFunction::Duration(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
     CYPHER_THROW_ASSERT(args.size() == 2);
     auto r = args[1].Evaluate(ctx, record);
