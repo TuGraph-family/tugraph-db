@@ -1,0 +1,5 @@
+lgraph_result
+===================================
+
+.. doxygenfile:: lgraph_result.h
+   :project: cpp_procedure
