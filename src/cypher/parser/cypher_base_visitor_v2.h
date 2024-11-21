@@ -46,7 +46,8 @@ enum class VisitType {
     kUnionClause,
     kNodePattern,
     kRelationshipPattern,
-    kUnwindClause
+    kUnwindClause,
+    kFunctionInvocation
 };
 
 class VisitGuard {

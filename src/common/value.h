@@ -38,6 +38,7 @@ enum class ValueType : char {
     LOCALTIME,
     TIME,
     DATETIME,
+    DURATION
 };
 
 struct Value {
@@ -145,6 +146,10 @@ struct Value {
         type = ValueType::TIME;
         data = d;
     }
+    explicit Value(const common::Duration& d) {
+        type = ValueType::DURATION;
+        data = d;
+    }
 
     [[nodiscard]]
     bool AsBool() const {
@@ -225,6 +230,11 @@ struct Value {
             return std::any_cast<const common::Time&>(data);
         THROW_CODE(UnknownError, "AsTime, but Value is not Time");
     }
+    [[nodiscard]] const common::Duration& AsDuration() const {
+        if (LIKELY(type == ValueType::DURATION))
+            return std::any_cast<const common::Duration&>(data);
+        THROW_CODE(UnknownError, "AsDuration, but Value is not Duration");
+    }
 
     static Value Bool(bool b) { return Value(b); }
     static Value Integer(int64_t b) { return Value(b); }
@@ -242,6 +252,7 @@ struct Value {
     static Value DateTime(const class common::DateTime& b) { return Value(b); };
     static Value LocalTime(const class common::LocalTime& b) { return Value(b); }
     static Value Time(const class common::Time& b) { return Value(b); }
+    static Value Duration(const class common::Duration& b) { return Value(b); }
 
     [[nodiscard]] bool IsNull() const {return type == ValueType::Null;}
     [[nodiscard]] bool IsBool() const {return type == ValueType::BOOL;}
@@ -266,6 +277,7 @@ struct Value {
     }
     [[nodiscard]] bool IsLocalTime() const {return type == ValueType::LOCALTIME;}
     [[nodiscard]] bool IsTime() const {return type == ValueType::TIME;}
+    [[nodiscard]] bool IsDuration() const {return type == ValueType::DURATION;}
 
     [[nodiscard]] std::string ToString(bool str_quotation_mark = true) const;
     [[nodiscard]] std::any ToBolt() const;

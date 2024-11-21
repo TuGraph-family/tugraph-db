@@ -150,6 +150,18 @@ std::string Value::Serialize() const {
             buffer.append((const char*)&offset, sizeof(offset));
             break;
         }
+        case ValueType::DURATION: {
+            auto& v = std::any_cast<const common::Duration&>(data);
+            int64_t months = v.months;
+            int64_t days = v.days;
+            int64_t seconds = v.seconds;
+            int64_t nanosecond = v.nanos;
+            buffer.append((const char*)&months, sizeof(months));
+            buffer.append((const char*)&days, sizeof(days));
+            buffer.append((const char*)&seconds, sizeof(seconds));
+            buffer.append((const char*)&nanosecond, sizeof(nanosecond));
+            break;
+        }
         default: {
             THROW_CODE(ValueException, "Unsupported data type for value serializing, type: " + ::ToString(type));
         }
@@ -275,6 +287,11 @@ void Value::Deserialize(const char* p, size_t size) {
             data = common::Time(*(int64_t*)p, *(int64_t*)(p+1));
             break;
         }
+        case ValueType::DURATION: {
+            assert(size == sizeof(int64_t) * 4);
+            data = common::Duration(*(int64_t*)p, *(int64_t*)(p+1), *(int64_t*)(p+2), *(int64_t*)(p+3));
+            break;
+        }
         default: {
             THROW_CODE(ValueException, "unexpected data type for Deserialize : " + ::ToString(type));
         }
@@ -297,6 +314,7 @@ std::string ToString(ValueType t) {
         case ValueType::LOCALDATETIME : return "LOCALDATETIME";
         case ValueType::LOCALTIME : return "LOCALTIME";
         case ValueType::TIME : return "TIME";
+        case ValueType::DURATION : return "DURATION";
         default: THROW_CODE(ValueException, "unexpected ValueType for Type ToString");
     }
 }
@@ -343,6 +361,9 @@ std::string Value::ToString(bool str_quotation_mark) const {
         }
         case ValueType::TIME: {
             return std::any_cast<const common::Time&>(data).ToString();
+        }
+        case ValueType::DURATION: {
+            return std::any_cast<const common::Duration&>(data).ToString();
         }
         default: THROW_CODE(ValueException, "unexpected ValueType for Value ToString");
     }
@@ -391,6 +412,12 @@ std::any Value::ToBolt() const {
         case ValueType::TIME: {
             auto storage = std::any_cast<const common::Time&>(data).GetStorage();
             return bolt::Time{std::get<0>(storage), std::get<1>(storage)};
+        }
+        case ValueType::DURATION: {
+            return bolt::Duration{std::any_cast<const common::Duration&>(data).months,
+                                  std::any_cast<const common::Duration&>(data).days,
+                                  std::any_cast<const common::Duration&>(data).seconds,
+                                  std::any_cast<const common::Duration&>(data).nanos};
         }
         default: THROW_CODE(ValueException, "unexpected ValueType for Value ToString");
     }
@@ -443,6 +470,8 @@ bool Value::operator>(const Value& rhs) const {
                 return std::any_cast<const common::LocalTime>(data) > std::any_cast<const common::LocalTime&>(rhs.data);
             case ValueType::TIME:
                 return std::any_cast<const common::Time>(data) > std::any_cast<const common::Time&>(rhs.data);
+            case ValueType::DURATION:
+                return std::any_cast<const common::Duration>(data) > std::any_cast<const common::Duration&>(rhs.data);
             default:
                 THROW_CODE(ValueException, "Unhandled data type");
         }
@@ -498,7 +527,8 @@ bool Value::operator>=(const Value& rhs) const {
                 return std::any_cast<const common::LocalTime>(data) >= std::any_cast<const common::LocalTime&>(rhs.data);
             case ValueType::TIME:
                 return std::any_cast<const common::Time>(data) >= std::any_cast<const common::Time&>(rhs.data);
-
+            case ValueType::DURATION:
+                return std::any_cast<const common::Duration>(data) >= std::any_cast<const common::Duration&>(rhs.data);
             default:
                 THROW_CODE(ValueException, "Unhandled data type");
         }
@@ -567,6 +597,8 @@ bool Value::operator==(const Value& b) const {
             return std::any_cast<const common::LocalTime>(data) == std::any_cast<const common::LocalTime&>(b.data);
         case ValueType::TIME:
             return std::any_cast<const common::Time>(data) == std::any_cast<const common::Time&>(b.data);
+        case ValueType::DURATION:
+            return std::any_cast<const common::Duration>(data) == std::any_cast<const common::Duration&>(b.data);
         case ValueType::Null: {
             return true;
         }

@@ -864,3 +864,80 @@ TEST(Time, truncate) {
     }
     txn->Commit();
 }
+
+TEST(Time, createVE) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    txn->Execute(&rtx, "CREATE (:Val {date: date({year: 1984, month: 10, day: 11})});")->Consume();
+    auto resultIterator = txn->Execute(&rtx, "MATCH (n:Val) return n.date;");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsDate().ToString(), "1984-10-11");
+    }
+    txn->Commit();
+}
+
+TEST(Duration, fromMap) {
+    EXPECT_EQ(common::Duration(Value({{"days", Value::Integer(14)}, {"hours", Value::Integer(16)},
+                                      {"minutes", Value::Integer(12)}})).ToString(),
+              "P14DT16H12M");
+    EXPECT_EQ(common::Duration(Value({{"months", Value::Integer(5)}, {"days", Value::Double(1.5)}})).ToString(),
+              "P5M1DT12H");
+    EXPECT_EQ(common::Duration(Value({{"months", Value::Double(0.75)}})).ToString(),
+              "P22DT19H51M49.5S");
+    EXPECT_EQ(common::Duration(Value({{"weeks", Value::Double(2.5)}})).ToString(),
+              "P17DT12H");
+    EXPECT_EQ(common::Duration(Value({{"years", Value::Integer(12)}, {"months", Value::Integer(5)},
+                                      {"days", Value::Integer(14)}, {"hours", Value::Integer(16)},
+                                      {"minutes", Value::Integer(12)}, {"seconds", Value::Integer(70)}})).ToString(),
+              "P12Y5M14DT16H13M10S");
+    EXPECT_EQ(common::Duration(Value({{"days", Value::Integer(14)}, {"seconds", Value::Integer(70)},
+                                      {"milliseconds", Value::Integer(1)}})).ToString(),
+              "P14DT1M10.001S");
+    EXPECT_EQ(common::Duration(Value({{"days", Value::Integer(14)}, {"seconds", Value::Integer(70)},
+                                      {"microseconds", Value::Integer(1)}})).ToString(),
+              "P14DT1M10.000001S");
+    EXPECT_EQ(common::Duration(Value({{"days", Value::Integer(14)}, {"seconds", Value::Integer(70)},
+                                      {"nanoseconds", Value::Integer(1)}})).ToString(),
+              "P14DT1M10.000000001S");
+    EXPECT_EQ(common::Duration(Value({{"minutes", Value::Double(1.5)}, {"seconds", Value::Integer(1)}})).ToString(),
+              "PT1M31S");
+}
+
+TEST(Duration, durationFromString) {
+    EXPECT_EQ(common::Duration("P14DT16H12M").ToString(), "P14DT16H12M");
+    EXPECT_EQ(common::Duration("P5M1.5D").ToString(), "P5M1DT12H");
+    EXPECT_EQ(common::Duration("P0.75M").ToString(), "P22DT19H51M49.5S");
+    EXPECT_EQ(common::Duration("PT0.75M").ToString(), "PT45S");
+    EXPECT_EQ(common::Duration("P2.5W").ToString(), "P17DT12H");
+    EXPECT_EQ(common::Duration("P12Y5M14DT16H12M70S").ToString(), "P12Y5M14DT16H13M10S");
+    EXPECT_EQ(common::Duration("P2012-02-02T14:37:21.545").ToString(), "P2012Y2M2DT14H37M21.545S");
+}
+
+TEST(Duration, between) {
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2018-01-01T12:00")),
+                                        Value::LocalDateTime(common::LocalDateTime("2018-01-02T10:00"))).ToString(), "PT22H");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2018-01-02T10:00")),
+                                        Value::LocalDateTime(common::LocalDateTime("2018-01-01T12:00"))).ToString(), "PT-22H");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2018-01-01T10:00:00.2")),
+                                        Value::LocalDateTime(common::LocalDateTime("2018-01-02T10:00:00.1"))).ToString(), "PT23H59M59.9S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2018-01-02T10:00:00.1")),
+                                        Value::LocalDateTime(common::LocalDateTime("2018-01-01T10:00:00.2"))).ToString(), "PT-23H-59M-59.9S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2017-10-28T23:00+02:00")),
+                                        Value::DateTime(common::DateTime("2017-10-29T04:00+01:00"))).ToString(), "PT6H");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2017-10-29T04:00+01:00")),
+                                        Value::DateTime(common::DateTime("2017-10-28T23:00+02:00"))).ToString(), "PT-6H");
+//    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+//                                        Value::Date(common::Date("2015-06-24"))).ToString(), "P30Y8M13D");
+//    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+//                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142"))).ToString(), "P31Y9M10DT21H45M22.142S");
+//    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+//                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100"))).ToString(), "P30Y9M10DT21H40M32.142S");
+//    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+//                                        Value::LocalTime(common::LocalTime("16:30"))).ToString(), "PT16H30M");
+//    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+//                                        Value::Time(common::Time("16:30+0100"))).ToString(), "PT16H30M");
+}

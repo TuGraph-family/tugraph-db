@@ -52,7 +52,7 @@ add_library(common STATIC
 		src/common/temporal/datetime.cpp
 		src/common/temporal/localdatetime.cpp
 		src/common/temporal/time.cpp
-		src/common/temporal/localtime.cpp)
+		src/common/temporal/localtime.cpp src/common/temporal/duration.cpp)
 
 add_library(cypher STATIC
 		src/cypher/parser/generated/LcypherLexer.cpp
