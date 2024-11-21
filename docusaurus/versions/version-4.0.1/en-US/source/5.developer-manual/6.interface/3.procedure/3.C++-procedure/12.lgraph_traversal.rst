@@ -1,5 +1,0 @@
-lgraph_traversal
-===================================
-
-.. doxygenfile:: lgraph_traversal.h
-   :project: cpp_procedure

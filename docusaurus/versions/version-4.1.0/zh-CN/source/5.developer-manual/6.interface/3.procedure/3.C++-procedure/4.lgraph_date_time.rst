@@ -1,5 +1,0 @@
-lgraph_date_time
-===================================
-
-.. doxygenfile:: lgraph_date_time.h
-   :project: cpp_procedure

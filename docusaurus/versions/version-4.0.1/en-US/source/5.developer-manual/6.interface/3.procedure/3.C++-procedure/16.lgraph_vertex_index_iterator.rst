@@ -1,5 +1,0 @@
-lgraph_vertex_index_iterator
-===================================
-
-.. doxygenfile:: lgraph_vertex_index_iterator.h
-   :project: cpp_procedure

@@ -1,5 +1,0 @@
-lgraph_db
-===================================
-
-.. doxygenfile:: lgraph_db.h
-   :project: cpp_procedure

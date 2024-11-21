@@ -1,5 +1,0 @@
-lgraph_types
-===================================
-
-.. doxygenfile:: lgraph_types.h
-   :project: cpp_procedure

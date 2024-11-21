@@ -1,5 +1,0 @@
-base64_encode
-===================================
-
-.. doxygenfile:: base64_encode.h
-   :project: cpp_procedure
