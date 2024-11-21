@@ -74,12 +74,13 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     const [type, version] = values
     if (type === 'TuGraph_Analytics') {
       window.location.href = `https://liukaiming-alipay.github.io/tugraph-analytics/${getCurrentLanguage()}/introduction/`;
-      return
+      return;
     }
 
     if (type === 'TuGraph_Learn') {
-      // TODO 图学习引擎
-      return
+      const learnPath = `/tugraph-db/zh/${version}/olap&procedure/learn/tutorial`;
+      history.push(learnPath);
+      return;
     }
 
     const lang = getCurrentLanguage();
@@ -87,15 +88,15 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     const basePath = `${prefix}/${lang}`;
 
     // 移除现有版本号部分
-    const segments = pathname.split("/");
-    const langIndex = segments.indexOf(lang);
-    const versionIndex = langIndex + 1;
-    const remainingPath = segments
-      .slice(versionIndex + (versions.includes(segments[versionIndex]) ? 1 : 0))
-      .join("/");
+    // const segments = pathname.split("/");
+    // const langIndex = segments.indexOf(lang);
+    // const versionIndex = langIndex + 1;
+    // const remainingPath = segments
+    //   .slice(versionIndex + (versions.includes(segments[versionIndex]) ? 1 : 0))
+    //   .join("/");
 
     // 构造新路径
-    const newPath = `${basePath}/${version}/${remainingPath}`;
+    const newPath = `${basePath}/${version}/guide`;
     history.push(newPath);
   };
 
@@ -181,14 +182,18 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   useEffect(() => {
+
+    const sendPostMsg = (path: string) => {
+      window.parent.postMessage({ path }, "*");
+    };
+
+    sendPostMsg(window.location.pathname);
+
     window.addEventListener("click", () => {
-      const currentPath = window.location.pathname;
-      window.parent.postMessage({ path: currentPath }, "*");
+      sendPostMsg(window.location.pathname);
     });
     window.addEventListener("hashchange", () => {
-      const currentPath = window.location.pathname;
-      const hash = window.location.hash;
-      window.parent.postMessage({ path: currentPath + hash }, "*");
+      sendPostMsg(window.location.pathname + window.location.hash);
     });
   }, []);
 
