@@ -23,4 +23,4 @@ jobs:
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: docusaurus/build # The folder the action should deploy.
+          folder: docs/docusaurus/build # The folder the action should deploy.
