@@ -102,7 +102,6 @@ Duration Duration::between(const Value& from, const Value& to) {
     int64_t from_nanos = getTimeValue(from), to_nanos = getTimeValue(to);
     auto s = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(from_nanos)))};
     auto e = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(to_nanos)))};
-
     int64_t bet = getTimeValue(to) - getTimeValue(from);
     return Duration(bet / AVG_NANOS_PER_MONTH, bet % AVG_NANOS_PER_MONTH / (SECONDS_PER_DAY * NANOS_PER_SECOND),
                     bet % (SECONDS_PER_DAY * NANOS_PER_SECOND) / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
