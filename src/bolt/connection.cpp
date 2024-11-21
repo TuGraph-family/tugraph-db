@@ -20,11 +20,10 @@
 #include "bolt/messages.h"
 #include "bolt/to_string.h"
 #include "common/logger.h"
-
-namespace bolt {
 using namespace boost::asio;
+using namespace boost::endian;
 namespace beast = boost::beast;
-
+namespace bolt {
 void socket_set_options(tcp::socket& socket) {
     socket.set_option(ip::tcp::no_delay(true));
     socket.set_option(socket_base::keep_alive(true));
@@ -250,7 +249,7 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec) {
         Close();
         return;
     }
-    boost::endian::big_to_native_inplace(chunk_size_);
+    big_to_native_inplace(chunk_size_);
     if (chunk_size_ == 0 && !chunk_.empty()) {
         unpacker_.Reset(std::string_view((const char*)chunk_.data(), chunk_.size()));
         unpacker_.Next();

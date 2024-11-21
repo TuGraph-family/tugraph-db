@@ -22,9 +22,7 @@
 #include "proto/meta.pb.h"
 #include "transaction/transaction.h"
 namespace fs = std::filesystem;
-using boost::endian::big_to_native;
-using boost::endian::native_to_big;
-using boost::endian::big_to_native_inplace;
+using namespace boost::endian;
 namespace graphdb {
 std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOptions& graph_options) {
     std::string rocksdb_path = path + "/data";
@@ -61,7 +59,8 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
                                              "edge_type_eid",
                                              "name_id",
                                              "meta_info",
-                                             "index"};
+                                             "index",
+                                             "wal"};
     std::vector<rocksdb::ColumnFamilyDescriptor> cfs;
     cfs.reserve(built_in_cfs.size());
     for (const auto& name : built_in_cfs) {
@@ -84,6 +83,7 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     graph_db->graph_cf_.name_id = cf_handles[6];
     graph_db->graph_cf_.meta_info = cf_handles[7];
     graph_db->graph_cf_.index = cf_handles[8];
+    graph_db->graph_cf_.wal = cf_handles[9];
     graph_db->cf_handles_ = std::move(cf_handles);
     graph_db->options_ = graph_options;
     graph_db->service_threads_.emplace_back([&graph_db](){
@@ -314,8 +314,8 @@ void GraphDB::AddVertexVectorIndex(
     meta.set_label(label);
     meta.set_property(property);
     meta.set_sharding_num(sharding_num);
-    meta.set_label_id(boost::endian::big_to_native(lid));
-    meta.set_property_id(boost::endian::big_to_native(pid));
+    meta.set_label_id(big_to_native(lid));
+    meta.set_property_id(big_to_native(pid));
     meta.set_dimensions(dimension);
     meta.set_distance_type(std::move(distance_type));
     meta.set_hnsw_m(hnsw_m);

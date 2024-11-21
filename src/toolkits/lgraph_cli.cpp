@@ -26,7 +26,7 @@
 #include "tabulate/table.hpp"
 #include <gflags/gflags.h>
 using namespace boost;
-
+using namespace boost::endian;
 DEFINE_string(format, "table", "format");
 DEFINE_string(ip, "127.0.0.1", "ip");
 DEFINE_int32(port, 7687, "port");
@@ -46,7 +46,7 @@ std::any ReadMessage(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator) {
     std::vector<uint8_t> buffer;
     while (true) {
         asio::read(socket, asio::buffer((void*)(&size), sizeof(size)));
-        boost::endian::big_to_native_inplace(size);
+        big_to_native_inplace(size);
         if (size == 0) {
             if (!buffer.empty()) {
                 break;

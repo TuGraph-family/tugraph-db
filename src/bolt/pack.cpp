@@ -21,7 +21,7 @@
 #include <iostream>
 #include <boost/endian/conversion.hpp>
 #include "bolt/pack.h"
-
+using namespace boost::endian;
 namespace bolt {
 
 Marker markers[0x100];
@@ -37,11 +37,11 @@ void Packer::ListHeader(int ll, uint8_t shortOffset, uint8_t longOffset) {
             hdr.push_back(uint8_t(l));
         } else if (l < 0x10000) {
             hdr.push_back(longOffset + 1);
-            auto num = boost::endian::native_to_big(uint16_t(l));
+            auto num = native_to_big(uint16_t(l));
             hdr.append((const char*)&num, 2);
         } else if (l < std::numeric_limits<uint32_t>::max()) {
             hdr.push_back(longOffset + 2);
-            auto num = boost::endian::native_to_big(uint32_t(l));
+            auto num = native_to_big(uint32_t(l));
             hdr.append((const char *) &num, 4);
         } else {
             err_ = "Trying to pack too large list of size " + std::to_string(l);
@@ -59,15 +59,15 @@ void Packer::Int64(int64_t i) {
         buf_->push_back((uint8_t)i);
     } else if (-int64_t(0x8000) <= i && i < int64_t(0x8000)) {
         buf_->push_back((uint8_t)0xc9);
-        auto num = boost::endian::native_to_big(uint16_t(i));
+        auto num = native_to_big(uint16_t(i));
         buf_->append((const char*)&num, 2);
     } else if (-int64_t(0x80000000) <= i && i < int64_t(0x80000000)) {
         buf_->push_back((uint8_t)0xca);
-        auto num = boost::endian::native_to_big(uint32_t(i));
+        auto num = native_to_big(uint32_t(i));
         buf_->append((const char*)&num, 4);
     } else {
         buf_->push_back((uint8_t)0xcb);
-        auto num = boost::endian::native_to_big(uint64_t(i));
+        auto num = native_to_big(uint64_t(i));
         buf_->append((const char*)&num, 8);
     }
 }
@@ -80,11 +80,11 @@ void Packer::Bytes(const std::string& b) {
         hdr.push_back(uint8_t(l));
     } else if (l < 0x10000) {
         hdr.push_back(uint8_t(0xcd));
-        auto num = boost::endian::native_to_big(uint16_t(l));
+        auto num = native_to_big(uint16_t(l));
         hdr.append((const char*)&num, sizeof(uint16_t));
     } else if (l < 0x100000000) {
         hdr.push_back(uint8_t(0xce));
-        auto num = boost::endian::native_to_big(uint32_t(l));
+        auto num = native_to_big(uint32_t(l));
         hdr.append((const char*)&num, sizeof(uint32_t));
     } else {
         err_ = "Trying to pack too large byte array of size " + std::to_string(l);
@@ -133,13 +133,13 @@ int64_t Unpacker::Int() {
         i = *((int8_t *) (buf_.data() + off_));
         break;
     case 2:
-        i = boost::endian::big_to_native(*((int16_t *) (buf_.data() + off_)));
+        i = big_to_native(*((int16_t *) (buf_.data() + off_)));
         break;
     case 4:
-        i = boost::endian::big_to_native(*((int32_t *) (buf_.data() + off_)));
+        i = big_to_native(*((int32_t *) (buf_.data() + off_)));
         break;
     case 8:
-        i = boost::endian::big_to_native(*((int64_t *) (buf_.data() + off_)));
+        i = big_to_native(*((int64_t *) (buf_.data() + off_)));
         break;
     default:
         SetErr("Illegal int length: " + std::to_string(i));
@@ -155,7 +155,7 @@ double Unpacker::Double() {
     if (err_) {
         return std::numeric_limits<double>::quiet_NaN();
     }
-    boost::endian::big_to_native_inplace(*(uint64_t*)buffer);
+    big_to_native_inplace(*(uint64_t*)buffer);
     return *(double*)buffer;
 }
 
@@ -225,10 +225,10 @@ uint32_t Unpacker::ReadLen(uint32_t n) {
         l = *((uint8_t *) (buf_.data() + off_));
         break;
     case 2:
-        l = boost::endian::big_to_native(*((uint16_t *) (buf_.data() + off_)));
+        l = big_to_native(*((uint16_t *) (buf_.data() + off_)));
         break;
     case 4:
-        l = boost::endian::big_to_native(*((uint32_t *) (buf_.data() + off_)));
+        l = big_to_native(*((uint32_t *) (buf_.data() + off_)));
         break;
     default:
         SetErr("Illegal length: " + std::to_string(n) + ", current type: " +

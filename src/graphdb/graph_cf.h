@@ -29,5 +29,6 @@ struct GraphCF {
     rocksdb::ColumnFamilyHandle* name_id = nullptr;
     rocksdb::ColumnFamilyHandle* meta_info = nullptr;
     rocksdb::ColumnFamilyHandle* index = nullptr;
+    rocksdb::ColumnFamilyHandle* wal = nullptr;
 };
 }

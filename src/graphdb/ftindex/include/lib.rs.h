@@ -916,6 +916,8 @@ void ft_add_document(::FTIndex &ft, ::std::int64_t id, ::rust::Vec<::rust::Strin
 
 void ft_delete_document(::FTIndex &ft, ::std::int64_t id);
 
-void ft_commit(::FTIndex &ft);
+void ft_commit(::FTIndex &ft, ::rust::String const &payload);
 
 ::rust::Vec<::IdScore> ft_query(::FTIndex &ft, ::rust::String const &query, ::QueryOptions const &options);
+
+::rust::String ft_get_payload(::FTIndex &ft);

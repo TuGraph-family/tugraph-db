@@ -61,14 +61,6 @@ enum UpdateType {
     Delete,
 };
 
-struct FTIndexUpdate {
-    UpdateType type;
-    std::string ft_index_name;
-    int64_t id;
-    std::vector<std::string> fields;
-    std::vector<std::string> field_valus;
-};
-
 class VertexFullTextIndex {
    public:
     VertexFullTextIndex(rocksdb::TransactionDB* db,
@@ -82,7 +74,7 @@ class VertexFullTextIndex {
     void AddVertex(int64_t id, std::vector<std::string> fields,
                    std::vector<std::string> values);
     void DeleteVertex(int64_t id);
-    void Commit();
+    void ApplyWAL();
     [[nodiscard]] bool MatchLabelIds(
         const std::unordered_set<uint32_t>& lids) const;
     [[nodiscard]] bool MatchPropertyIds(
@@ -97,25 +89,27 @@ class VertexFullTextIndex {
     [[nodiscard]] const std::string& Name() const { return meta_.name(); }
     const meta::VertexFullTextIndex& meta() const {return meta_;}
     void Load();
-    std::shared_mutex& Mutex() {return mutex_;}
     std::string IndexKey(int64_t vid);
+    std::string NextWALKey();
    bool IsIndexed(txn::Transaction* txn, int64_t vid);
-   void AddIndex(txn::Transaction* txn, int64_t vid);
-   void DeleteIndex(txn::Transaction* txn, int64_t vid);
+   void AddIndex(txn::Transaction* txn, int64_t vid, const meta::FullTextIndexUpdate& wal);
+   void DeleteIndex(txn::Transaction* txn, int64_t vid, const meta::FullTextIndexUpdate& wal);
    private:
     void StartTimer();
+    void Commit(const std::string& payload);
 
-    rocksdb::TransactionDB* db_;
-    GraphCF* graph_cf_;
-    IdGenerator* id_generator_;
+    rocksdb::TransactionDB* db_ = nullptr;
+    GraphCF* graph_cf_ = nullptr;
+    IdGenerator* id_generator_ = nullptr;
     meta::VertexFullTextIndex meta_;
     uint32_t index_id_;
+    std::atomic<uint64_t> next_wal_id_ = 1;
+    uint64_t apply_id_ = 0;
     std::unordered_set<uint32_t> lids_;
     std::unordered_set<uint32_t> pids_;
-    ::FTIndex* ft_index_;
+    ::FTIndex* ft_index_ = nullptr;
     std::unique_ptr<::rust::Box<::FTIndex>> instance_;
-    std::shared_mutex mutex_;
-    bool auto_commit_ = true;
+    std::mutex mutex_;
     size_t interval_ = 5;
     boost::asio::steady_timer timer_;
 };

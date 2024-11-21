@@ -87,7 +87,7 @@ Feature: test fulltext index
       (maya)-[:EMAILED {message: "I have booked a team meeting tomorrow."}]->(nils);
       CALL db.index.fulltext.createNodeIndex('namesAndTeams',['Employee','Manager'], ['name','team']);
       match (n {name:'Nils Johansson'}) delete n;
-      CALL db.index.fulltext.commit();
+      CALL db.index.fulltext.applyWal();
       """
     When executing query
       """
@@ -102,7 +102,7 @@ Feature: test fulltext index
       """
     When executing query
       """
-      CALL db.index.fulltext.commit();
+      CALL db.index.fulltext.applyWal();
       """
     When executing query
       """
@@ -125,7 +125,7 @@ Feature: test fulltext index
       (maya)-[:EMAILED {message: "I have booked a team meeting tomorrow."}]->(nils);
       CALL db.index.fulltext.createNodeIndex('namesAndTeams',['Employee','Manager'], ['name','team']);
       match (n {name:'Nils Johansson'}) remove n.name;
-      CALL db.index.fulltext.commit();
+      CALL db.index.fulltext.applyWal();
       """
     When executing query
       """
@@ -140,7 +140,7 @@ Feature: test fulltext index
       """
     When executing query
       """
-      CALL db.index.fulltext.commit();
+      CALL db.index.fulltext.applyWal();
       """
     When executing query
       """
@@ -227,7 +227,7 @@ Feature: test fulltext index
       CALL db.index.fulltext.createNodeIndex('Chunk_tags',['Chunk'], ['tags']);
       CREATE(n1:Chunk {id:1, tags:'keyword1 keyword2 keyword3 keyword4'})
       CREATE(n2:Chunk {id:2, tags:'keyword5 keyword6 keyword7 keyword8'});
-      CALL db.index.fulltext.commit();
+      CALL db.index.fulltext.applyWal();
       """
     When executing query
       """
@@ -259,7 +259,7 @@ Feature: test fulltext index
     Then an Error should be raised
     When executing query
     """
-    CALL db.index.fulltext.commit();
+    CALL db.index.fulltext.applyWal();
     """
     When executing query
       """

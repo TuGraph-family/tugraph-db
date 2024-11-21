@@ -39,7 +39,7 @@ TEST(FTIndex, basic_v1) {
         ::rust::Vec<::rust::String> values = {"title3 common_title title4", "body3 common_body, body4"};
         ft_add_document(*ft, 2, fields, values);
     }
-    ft_commit(*ft);
+    ft_commit(*ft, "payload");
     auto ret = ft_query(*ft, "common_title", {10});
     EXPECT_EQ(ret.size(), 2);
     ret = ft_query(*ft, "common_body", {10});
@@ -67,7 +67,7 @@ TEST(FTIndex, basic_v2) {
         ::rust::Vec<::rust::String> values = {"title3 common_title title33", "body3 common_body, body33"};
         ft_add_document(*ft, 2, fields, values);
     }
-    ft_commit(*ft);
+    ft_commit(*ft, "payload");
     auto ret = ft_query(*ft, "title1", {10});
     EXPECT_EQ(ret.size(), 1);
     ret = ft_query(*ft, "body1", {10});
@@ -89,7 +89,7 @@ TEST(FTIndex, chinese) {
         ::rust::Vec<::rust::String> values = {"标题3 公共标题 标题4", "内容3 公共内容 内容4"};
         ft_add_document(*ft, 2, fields, values);
     }
-    ft_commit(*ft);
+    ft_commit(*ft, "payload");
     auto ret = ft_query(*ft, "标题1", {10});
     EXPECT_EQ(ret.size(), 1);
     EXPECT_EQ(ret[0].id, 1);
@@ -112,9 +112,9 @@ TEST(FTIndex, update) {
         ::rust::Vec<::rust::String> values = {"title3 common_title title4", "body3 common_body, body4"};
         ft_add_document(*ft, 2, fields, values);
     }
-    ft_commit(*ft);
+    ft_commit(*ft, "payload");
     ft_delete_document(*ft, 1);
-    ft_commit(*ft);
+    ft_commit(*ft, "payload");
     auto ret = ft_query(*ft, "common_title", {10});
     EXPECT_EQ(ret.size(), 1);
     EXPECT_EQ(ret[0].id, 2);
@@ -122,7 +122,7 @@ TEST(FTIndex, update) {
         ::rust::Vec<::rust::String> values = {"title11 common_title title22", "body11 common_body body22"};
         ft_add_document(*ft, 1, fields, values);
     }
-    ft_commit(*ft);
+    ft_commit(*ft, "payload");
     ret = ft_query(*ft, "title11", {10});
     EXPECT_EQ(ret.size(), 1);
     EXPECT_EQ(ret[0].id, 1);
@@ -158,7 +158,7 @@ TEST(FTIndex, indexVertex) {
                        {"str", Value::Integer(4)}});
     txn->Commit();
     for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
-        index->Commit();
+        index->ApplyWAL();
     }
     txn = graphDB->BeginTransaction();
     int count = 0;
@@ -200,7 +200,7 @@ TEST(FTIndex, deleteVertex) {
                        {"str", Value::Integer(4)}});
     txn->Commit();
     for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
-        index->Commit();
+        index->ApplyWAL();
     }
     txn = graphDB->BeginTransaction();
     int count = 0;
@@ -218,7 +218,7 @@ TEST(FTIndex, deleteVertex) {
         txn->Commit();
     }
     for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
-        index->Commit();
+        index->ApplyWAL();
     }
     txn = graphDB->BeginTransaction();
     count = 0;
@@ -242,7 +242,7 @@ TEST(FTIndex, deleteVertex) {
         txn->Commit();
     }
     for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
-        index->Commit();
+        index->ApplyWAL();
     }
     txn = graphDB->BeginTransaction();
     count = 0;
@@ -277,7 +277,7 @@ TEST(FTIndex, updateVertex) {
                        {"str", Value::Integer(4)}});
     txn->Commit();
     for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
-        index->Commit();
+        index->ApplyWAL();
     }
     txn = graphDB->BeginTransaction();
     int count = 0;
@@ -289,7 +289,7 @@ TEST(FTIndex, updateVertex) {
     EXPECT_EQ(count, 1);
     txn->Commit();
     for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
-        index->Commit();
+        index->ApplyWAL();
     }
     txn = graphDB->BeginTransaction();
     count = 0;
@@ -304,7 +304,7 @@ TEST(FTIndex, updateVertex) {
     }
     txn->Commit();
     for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
-        index->Commit();
+        index->ApplyWAL();
     }
     txn = graphDB->BeginTransaction();
     count = 0;
