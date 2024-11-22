@@ -25,6 +25,8 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 include_directories(src)
 include_directories(deps/geax-front-end/include)
 
+set(FT_INDEX_LIB ${PROJECT_SOURCE_DIR}/src/graphdb/ftindex/target/release/libftindex.a)
+
 add_library(bolt STATIC
 		src/bolt/connection.cpp
 		src/bolt/hydrator.cpp
@@ -127,7 +129,7 @@ set(THIRD_STATIC_LIBS
 	gtest.a
 	protobuf.a
 	date-tz.a
-	${PROJECT_SOURCE_DIR}/src/graphdb/ftindex/target/release/libftindex.a
+	${FT_INDEX_LIB}
 	antlr4-runtime.a
 )
 
@@ -209,14 +211,15 @@ target_link_libraries(lgraph_cli PRIVATE
 		-Wl,--end-group
 )
 
-add_custom_command(
-		TARGET lgraph_server PRE_BUILD
-		COMMAND cd ${PROJECT_SOURCE_DIR}/src/graphdb/ftindex && cargo build --release
-)
-add_custom_command(
-		TARGET test_case PRE_BUILD
-		COMMAND cd ${PROJECT_SOURCE_DIR}/src/graphdb/ftindex && cargo build --release
-)
+if(NOT EXISTS ${FT_INDEX_LIB})
+	add_custom_target(
+		BuildFTIndex
+		COMMAND cargo build --release
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/graphdb/ftindex
+	)
+	add_dependencies(lgraph_server BuildFTIndex)
+	add_dependencies(test_case BuildFTIndex)
+endif()
 
 install(TARGETS lgraph_server lgraph_cli RUNTIME DESTINATION bin)
 install(FILES
