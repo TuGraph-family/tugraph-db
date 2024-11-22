@@ -24,6 +24,7 @@
 #include <nlohmann/json.hpp>
 
 using namespace txn;
+using namespace boost::endian;
 namespace graphdb {
 void VertexPropertyIndex::AddIndex(Transaction* txn, int64_t vid,
                                    rocksdb::Slice value) {
@@ -100,9 +101,7 @@ void VertexFullTextIndex::StartTimer() {
             LOG_ERROR("timer async_wait error: {}", e.message());
             return;
         }
-        if (auto_commit_) {
-            Commit();
-        }
+        ApplyWAL();
         StartTimer();
     });
 }
@@ -131,16 +130,39 @@ VertexFullTextIndex::VertexFullTextIndex(rocksdb::TransactionDB* db,
     instance_ =
         std::make_unique<::rust::Box<::FTIndex>>(new_ftindex(meta_.path(), fields));
     ft_index_ = instance_->operator->();
+    auto payload = ft_get_payload(*ft_index_);
+    if (!payload.empty()) {
+        apply_id_ = std::stoull(payload.c_str());
+    }
+
+    std::string prefix((const char*)&index_id_, sizeof(index_id_));
+    prefix.append(8, 0xFF);
+    rocksdb::ReadOptions ro;
+    std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
+    iter->SeekForPrev(prefix);
+    if (iter->Valid()) {
+        auto key = iter->key();
+        if (key.starts_with({(const char*)&index_id_, sizeof(index_id_)})) {
+            key.remove_prefix(sizeof(index_id_));
+            assert(key.size() == sizeof(uint64_t));
+            uint64_t wal_id = *(uint64_t*)key.data();
+            next_wal_id_ = big_to_native(wal_id) + 1;
+        }
+    }
     StartTimer();
 }
 
-void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid) {
+void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid, const meta::FullTextIndexUpdate& wal) {
     auto s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->index, IndexKey(vid), {});
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(), wal.SerializeAsString());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }
 
-void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid) {
+void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid, const meta::FullTextIndexUpdate& wal) {
     auto s = txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, IndexKey(vid));
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(), wal.SerializeAsString());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }
 
@@ -163,8 +185,14 @@ std::string VertexFullTextIndex::IndexKey(int64_t vid) {
     return ret;
 }
 
+std::string VertexFullTextIndex::NextWALKey() {
+    std::string ret((const char*)&index_id_, sizeof(index_id_));
+    uint64_t wal_id = native_to_big(next_wal_id_++);
+    ret.append((const char*)&wal_id, sizeof(wal_id));
+    return ret;
+}
+
 void VertexFullTextIndex::Load() {
-    auto_commit_ = false;
     int count = 0;
     for (auto lid : lids_) {
         rocksdb::ReadOptions ro;
@@ -205,16 +233,15 @@ void VertexFullTextIndex::Load() {
                 AddVertex(id, fields, values);
                 count++;
                 if (count == 10000) {
-                    Commit();
+                    Commit("0");
                     count = 0;
                 }
             }
         }
     }
     if (count > 0) {
-        Commit();
+        Commit("0");
     }
-    auto_commit_ = true;
 }
 
 void VertexFullTextIndex::AddVertex(int64_t id, std::vector<std::string> fields,
@@ -248,9 +275,71 @@ void VertexFullTextIndex::DeleteVertex(int64_t id) {
     ft_delete_document(*ft_index_, id);
 }
 
-void VertexFullTextIndex::Commit() {
-    std::unique_lock write_lock(mutex_);
-    ft_commit(*ft_index_);
+void VertexFullTextIndex::Commit(const std::string& payload) {
+    ft_commit(*ft_index_, payload);
+}
+
+void VertexFullTextIndex::ApplyWAL() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    std::string prefix((const char*)&index_id_, sizeof(index_id_));
+    std::string start_key(prefix);
+    uint64_t next = big_to_native(apply_id_) + 1;
+    native_to_big_inplace(next);
+    start_key.append((const char*)&next, sizeof(next));
+    int count = 0;
+    uint64_t consumed_wal_id = 0;
+    rocksdb::WriteBatch delete_batch;
+    rocksdb::ReadOptions ro;
+    rocksdb::WriteOptions wo;
+    std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
+    for (iter->Seek(start_key); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
+        auto key = iter->key();
+        delete_batch.Delete(graph_cf_->wal, key.ToString());
+
+        key.remove_prefix(sizeof(index_id_));
+        assert(key.size() == sizeof(apply_id_));
+        consumed_wal_id = *(uint64_t*)key.data();
+        meta::FullTextIndexUpdate update;
+        auto val = iter->value();
+        auto ret = update.ParseFromArray(val.data(), val.size());
+        assert(ret);
+        if (update.type() == meta::UpdateType::Add) {
+            AddVertex(update.id(),
+                      {std::make_move_iterator(update.mutable_fields()->begin()),
+                       std::make_move_iterator(update.mutable_fields()->end())},
+                      {std::make_move_iterator(update.mutable_values()->begin()),
+                       std::make_move_iterator(update.mutable_values()->end())});
+        } else {
+            DeleteVertex(update.id());
+        }
+        if (++count == 1000) {
+            auto payload = std::to_string(big_to_native(consumed_wal_id));
+            Commit(payload);
+            LOG_DEBUG("apply {} wal, payload: {}", count, payload);
+            count = 0;
+            rocksdb::TransactionDBWriteOptimizations two;
+            two.skip_concurrency_control = true;
+            two.skip_duplicate_key_check = true;
+            auto s = db_->Write(wo, two, &delete_batch);
+            if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+            delete_batch.Clear();
+        }
+    }
+    if (count > 0) {
+        auto payload = std::to_string(big_to_native(consumed_wal_id));
+        Commit(payload);
+        LOG_DEBUG("apply {} wal, payload: {}", count, payload);
+        count = 0;
+        rocksdb::TransactionDBWriteOptimizations two;
+        two.skip_concurrency_control = true;
+        two.skip_duplicate_key_check = true;
+        auto s = db_->Write(wo, two, &delete_batch);
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+        delete_batch.Clear();
+    }
+    if (consumed_wal_id != 0) {
+        apply_id_ = consumed_wal_id;
+    }
 }
 
 ::rust::Vec<::IdScore> VertexFullTextIndex::Query(const std::string& query,
@@ -310,13 +399,13 @@ std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
 }
 
 void VertexVectorIndex::RemoveIfExists(int64_t vid) {
-    auto native_id = boost::endian::big_to_native(vid);
+    auto native_id = big_to_native(vid);
     assert(native_id >= 0);
     indexes_[native_id % sharding_num_]->RemoveIfExists(vid);
 }
 
 void VertexVectorIndex::Add(int64_t vid, std::unique_ptr<float[]> embedding) {
-    auto native_id = boost::endian::big_to_native(vid);
+    auto native_id = big_to_native(vid);
     assert(native_id >= 0);
     indexes_[native_id % sharding_num_]->Add(vid, std::move(embedding));
 }

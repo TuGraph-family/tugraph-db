@@ -85,7 +85,7 @@ public:
                                              const VEC_STR &yield_items, std::vector<std::vector<ProcedureResult>> *records);
     static void DbIndexFullTextDeleteIndex(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                           const VEC_STR &yield_items, std::vector<std::vector<ProcedureResult>> *records);
-    static void DbIndexFullTextCommit(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    static void DbIndexFullTextApplyWal(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                            const VEC_STR &yield_items, std::vector<std::vector<ProcedureResult>> *records);
     static void DbIndexVectorCreateNodeIndex(
         cypher::RTContext *ctx, const cypher::Record *record,

@@ -29,6 +29,7 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
+#include <google/protobuf/generated_enum_reflection.h>
 #include <google/protobuf/unknown_field_set.h>
 // @@protoc_insertion_point(includes)
 #define PROTOBUF_INTERNAL_EXPORT_protobuf_meta_2eproto 
@@ -38,7 +39,7 @@ namespace protobuf_meta_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[4];
+  static const ::google::protobuf::internal::ParseTable schema[5];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -46,6 +47,9 @@ struct TableStruct {
 void AddDescriptors();
 }  // namespace protobuf_meta_2eproto
 namespace meta {
+class FullTextIndexUpdate;
+class FullTextIndexUpdateDefaultTypeInternal;
+extern FullTextIndexUpdateDefaultTypeInternal _FullTextIndexUpdate_default_instance_;
 class GraphDBMetaInfo;
 class GraphDBMetaInfoDefaultTypeInternal;
 extern GraphDBMetaInfoDefaultTypeInternal _GraphDBMetaInfo_default_instance_;
@@ -61,6 +65,7 @@ extern VertexVectorIndexDefaultTypeInternal _VertexVectorIndex_default_instance_
 }  // namespace meta
 namespace google {
 namespace protobuf {
+template<> ::meta::FullTextIndexUpdate* Arena::CreateMaybeMessage<::meta::FullTextIndexUpdate>(Arena*);
 template<> ::meta::GraphDBMetaInfo* Arena::CreateMaybeMessage<::meta::GraphDBMetaInfo>(Arena*);
 template<> ::meta::VertexFullTextIndex* Arena::CreateMaybeMessage<::meta::VertexFullTextIndex>(Arena*);
 template<> ::meta::VertexPropertyIndex* Arena::CreateMaybeMessage<::meta::VertexPropertyIndex>(Arena*);
@@ -69,6 +74,27 @@ template<> ::meta::VertexVectorIndex* Arena::CreateMaybeMessage<::meta::VertexVe
 }  // namespace google
 namespace meta {
 
+enum UpdateType {
+  Add = 0,
+  Delete = 1,
+  UpdateType_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
+  UpdateType_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
+};
+bool UpdateType_IsValid(int value);
+const UpdateType UpdateType_MIN = Add;
+const UpdateType UpdateType_MAX = Delete;
+const int UpdateType_ARRAYSIZE = UpdateType_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* UpdateType_descriptor();
+inline const ::std::string& UpdateType_Name(UpdateType value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    UpdateType_descriptor(), value);
+}
+inline bool UpdateType_Parse(
+    const ::std::string& name, UpdateType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<UpdateType>(
+    UpdateType_descriptor(), name, value);
+}
 // ===================================================================
 
 class VertexPropertyIndex : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:meta.VertexPropertyIndex) */ {
@@ -758,6 +784,162 @@ class GraphDBMetaInfo : public ::google::protobuf::Message /* @@protoc_insertion
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::internal::ArenaStringPtr graph_name_;
   ::google::protobuf::uint32 graph_id_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  friend struct ::protobuf_meta_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class FullTextIndexUpdate : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:meta.FullTextIndexUpdate) */ {
+ public:
+  FullTextIndexUpdate();
+  virtual ~FullTextIndexUpdate();
+
+  FullTextIndexUpdate(const FullTextIndexUpdate& from);
+
+  inline FullTextIndexUpdate& operator=(const FullTextIndexUpdate& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  FullTextIndexUpdate(FullTextIndexUpdate&& from) noexcept
+    : FullTextIndexUpdate() {
+    *this = ::std::move(from);
+  }
+
+  inline FullTextIndexUpdate& operator=(FullTextIndexUpdate&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const FullTextIndexUpdate& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const FullTextIndexUpdate* internal_default_instance() {
+    return reinterpret_cast<const FullTextIndexUpdate*>(
+               &_FullTextIndexUpdate_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    4;
+
+  void Swap(FullTextIndexUpdate* other);
+  friend void swap(FullTextIndexUpdate& a, FullTextIndexUpdate& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline FullTextIndexUpdate* New() const final {
+    return CreateMaybeMessage<FullTextIndexUpdate>(NULL);
+  }
+
+  FullTextIndexUpdate* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<FullTextIndexUpdate>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const FullTextIndexUpdate& from);
+  void MergeFrom(const FullTextIndexUpdate& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(FullTextIndexUpdate* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated string fields = 3;
+  int fields_size() const;
+  void clear_fields();
+  static const int kFieldsFieldNumber = 3;
+  const ::std::string& fields(int index) const;
+  ::std::string* mutable_fields(int index);
+  void set_fields(int index, const ::std::string& value);
+  #if LANG_CXX11
+  void set_fields(int index, ::std::string&& value);
+  #endif
+  void set_fields(int index, const char* value);
+  void set_fields(int index, const char* value, size_t size);
+  ::std::string* add_fields();
+  void add_fields(const ::std::string& value);
+  #if LANG_CXX11
+  void add_fields(::std::string&& value);
+  #endif
+  void add_fields(const char* value);
+  void add_fields(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& fields() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_fields();
+
+  // repeated string values = 4;
+  int values_size() const;
+  void clear_values();
+  static const int kValuesFieldNumber = 4;
+  const ::std::string& values(int index) const;
+  ::std::string* mutable_values(int index);
+  void set_values(int index, const ::std::string& value);
+  #if LANG_CXX11
+  void set_values(int index, ::std::string&& value);
+  #endif
+  void set_values(int index, const char* value);
+  void set_values(int index, const char* value, size_t size);
+  ::std::string* add_values();
+  void add_values(const ::std::string& value);
+  #if LANG_CXX11
+  void add_values(::std::string&& value);
+  #endif
+  void add_values(const char* value);
+  void add_values(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& values() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_values();
+
+  // int64 id = 2;
+  void clear_id();
+  static const int kIdFieldNumber = 2;
+  ::google::protobuf::int64 id() const;
+  void set_id(::google::protobuf::int64 value);
+
+  // .meta.UpdateType type = 1;
+  void clear_type();
+  static const int kTypeFieldNumber = 1;
+  ::meta::UpdateType type() const;
+  void set_type(::meta::UpdateType value);
+
+  // @@protoc_insertion_point(class_scope:meta.FullTextIndexUpdate)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> fields_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> values_;
+  ::google::protobuf::int64 id_;
+  int type_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
 };
@@ -1680,9 +1862,181 @@ inline void GraphDBMetaInfo::set_graph_id(::google::protobuf::uint32 value) {
   // @@protoc_insertion_point(field_set:meta.GraphDBMetaInfo.graph_id)
 }
 
+// -------------------------------------------------------------------
+
+// FullTextIndexUpdate
+
+// .meta.UpdateType type = 1;
+inline void FullTextIndexUpdate::clear_type() {
+  type_ = 0;
+}
+inline ::meta::UpdateType FullTextIndexUpdate::type() const {
+  // @@protoc_insertion_point(field_get:meta.FullTextIndexUpdate.type)
+  return static_cast< ::meta::UpdateType >(type_);
+}
+inline void FullTextIndexUpdate::set_type(::meta::UpdateType value) {
+  
+  type_ = value;
+  // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.type)
+}
+
+// int64 id = 2;
+inline void FullTextIndexUpdate::clear_id() {
+  id_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 FullTextIndexUpdate::id() const {
+  // @@protoc_insertion_point(field_get:meta.FullTextIndexUpdate.id)
+  return id_;
+}
+inline void FullTextIndexUpdate::set_id(::google::protobuf::int64 value) {
+  
+  id_ = value;
+  // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.id)
+}
+
+// repeated string fields = 3;
+inline int FullTextIndexUpdate::fields_size() const {
+  return fields_.size();
+}
+inline void FullTextIndexUpdate::clear_fields() {
+  fields_.Clear();
+}
+inline const ::std::string& FullTextIndexUpdate::fields(int index) const {
+  // @@protoc_insertion_point(field_get:meta.FullTextIndexUpdate.fields)
+  return fields_.Get(index);
+}
+inline ::std::string* FullTextIndexUpdate::mutable_fields(int index) {
+  // @@protoc_insertion_point(field_mutable:meta.FullTextIndexUpdate.fields)
+  return fields_.Mutable(index);
+}
+inline void FullTextIndexUpdate::set_fields(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.fields)
+  fields_.Mutable(index)->assign(value);
+}
+#if LANG_CXX11
+inline void FullTextIndexUpdate::set_fields(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.fields)
+  fields_.Mutable(index)->assign(std::move(value));
+}
+#endif
+inline void FullTextIndexUpdate::set_fields(int index, const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  fields_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:meta.FullTextIndexUpdate.fields)
+}
+inline void FullTextIndexUpdate::set_fields(int index, const char* value, size_t size) {
+  fields_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:meta.FullTextIndexUpdate.fields)
+}
+inline ::std::string* FullTextIndexUpdate::add_fields() {
+  // @@protoc_insertion_point(field_add_mutable:meta.FullTextIndexUpdate.fields)
+  return fields_.Add();
+}
+inline void FullTextIndexUpdate::add_fields(const ::std::string& value) {
+  fields_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:meta.FullTextIndexUpdate.fields)
+}
+#if LANG_CXX11
+inline void FullTextIndexUpdate::add_fields(::std::string&& value) {
+  fields_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:meta.FullTextIndexUpdate.fields)
+}
+#endif
+inline void FullTextIndexUpdate::add_fields(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  fields_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:meta.FullTextIndexUpdate.fields)
+}
+inline void FullTextIndexUpdate::add_fields(const char* value, size_t size) {
+  fields_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:meta.FullTextIndexUpdate.fields)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+FullTextIndexUpdate::fields() const {
+  // @@protoc_insertion_point(field_list:meta.FullTextIndexUpdate.fields)
+  return fields_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+FullTextIndexUpdate::mutable_fields() {
+  // @@protoc_insertion_point(field_mutable_list:meta.FullTextIndexUpdate.fields)
+  return &fields_;
+}
+
+// repeated string values = 4;
+inline int FullTextIndexUpdate::values_size() const {
+  return values_.size();
+}
+inline void FullTextIndexUpdate::clear_values() {
+  values_.Clear();
+}
+inline const ::std::string& FullTextIndexUpdate::values(int index) const {
+  // @@protoc_insertion_point(field_get:meta.FullTextIndexUpdate.values)
+  return values_.Get(index);
+}
+inline ::std::string* FullTextIndexUpdate::mutable_values(int index) {
+  // @@protoc_insertion_point(field_mutable:meta.FullTextIndexUpdate.values)
+  return values_.Mutable(index);
+}
+inline void FullTextIndexUpdate::set_values(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.values)
+  values_.Mutable(index)->assign(value);
+}
+#if LANG_CXX11
+inline void FullTextIndexUpdate::set_values(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.values)
+  values_.Mutable(index)->assign(std::move(value));
+}
+#endif
+inline void FullTextIndexUpdate::set_values(int index, const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  values_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:meta.FullTextIndexUpdate.values)
+}
+inline void FullTextIndexUpdate::set_values(int index, const char* value, size_t size) {
+  values_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:meta.FullTextIndexUpdate.values)
+}
+inline ::std::string* FullTextIndexUpdate::add_values() {
+  // @@protoc_insertion_point(field_add_mutable:meta.FullTextIndexUpdate.values)
+  return values_.Add();
+}
+inline void FullTextIndexUpdate::add_values(const ::std::string& value) {
+  values_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:meta.FullTextIndexUpdate.values)
+}
+#if LANG_CXX11
+inline void FullTextIndexUpdate::add_values(::std::string&& value) {
+  values_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:meta.FullTextIndexUpdate.values)
+}
+#endif
+inline void FullTextIndexUpdate::add_values(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  values_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:meta.FullTextIndexUpdate.values)
+}
+inline void FullTextIndexUpdate::add_values(const char* value, size_t size) {
+  values_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:meta.FullTextIndexUpdate.values)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+FullTextIndexUpdate::values() const {
+  // @@protoc_insertion_point(field_list:meta.FullTextIndexUpdate.values)
+  return values_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+FullTextIndexUpdate::mutable_values() {
+  // @@protoc_insertion_point(field_mutable_list:meta.FullTextIndexUpdate.values)
+  return &values_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
@@ -1693,6 +2047,18 @@ inline void GraphDBMetaInfo::set_graph_id(::google::protobuf::uint32 value) {
 // @@protoc_insertion_point(namespace_scope)
 
 }  // namespace meta
+
+namespace google {
+namespace protobuf {
+
+template <> struct is_proto_enum< ::meta::UpdateType> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::meta::UpdateType>() {
+  return ::meta::UpdateType_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

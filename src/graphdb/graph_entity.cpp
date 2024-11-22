@@ -24,6 +24,7 @@
 #include "graph_db.h"
 #include "common/logger.h"
 #include "transaction/transaction.h"
+using namespace boost::endian;
 namespace graphdb {
 std::unique_ptr<EdgeIterator> Vertex::NewEdgeIterator(
     EdgeDirection direction, const std::unordered_set<std::string> &types,
@@ -247,12 +248,10 @@ int Vertex::Delete() {
                     continue;
                 }
                 if (ft->IsIndexed(txn_, id_)) {
-                    FTIndexUpdate del;
-                    del.type = UpdateType::Delete;
-                    del.ft_index_name = name;
-                    del.id = id_;
-                    txn_->ft_updates().emplace_back(std::move(del));
-                    ft->DeleteIndex(txn_, id_);
+                    meta::FullTextIndexUpdate del;
+                    del.set_type(meta::UpdateType::Delete);
+                    del.set_id(id_);
+                    ft->DeleteIndex(txn_, id_, del);
                 }
             }
             // vector index
@@ -375,23 +374,19 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
         if (ft->IsIndexed(txn_, id_)) {
             continue;
         }
-
-        FTIndexUpdate add;
-        add.id = id_;
-        add.type = UpdateType::Add;
-        add.ft_index_name = ft_name;
+        meta::FullTextIndexUpdate add;
+        add.set_id(id_);
+        add.set_type(meta::UpdateType::Add);
         for (auto pid : ft->PropertyIds()) {
             auto prop_val = GetProperty(pid);
             if (!(prop_val.IsString() && !prop_val.AsString().empty())) {
                 continue;
             }
-            add.fields.push_back(
-                txn_->db()->id_generator().GetPropertyName(pid).value());
-            add.field_valus.push_back(prop_val.AsString());
+            add.add_fields(txn_->db()->id_generator().GetPropertyName(pid).value());
+            add.add_values(prop_val.AsString());
         }
-        if (!add.fields.empty()) {
-            txn_->ft_updates().emplace_back(std::move(add));
-            ft->AddIndex(txn_, id_);
+        if (!add.fields().empty()) {
+            ft->AddIndex(txn_, id_, add);
         }
     }
     // vector index
@@ -466,12 +461,10 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
             continue;
         }
         if (ft->IsIndexed(txn_, id_)) {
-            FTIndexUpdate del;
-            del.type = UpdateType::Delete;
-            del.ft_index_name = ft_name;
-            del.id = id_;
-            txn_->ft_updates().emplace_back(std::move(del));
-            ft->DeleteIndex(txn_, id_);
+            meta::FullTextIndexUpdate del;
+            del.set_type(meta::UpdateType::Delete);
+            del.set_id(id_);
+            ft->DeleteIndex(txn_, id_, del);
         }
     }
     // vector index
@@ -607,15 +600,14 @@ void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values)
             continue;
         }
         if (index->IsIndexed(txn_, id_)) {
-            FTIndexUpdate del;
-            del.id = id_;
-            del.type = UpdateType::Delete;
-            del.ft_index_name = name;
-            txn_->ft_updates().emplace_back(std::move(del));
-            index->DeleteIndex(txn_, id_);
+            meta::FullTextIndexUpdate del;
+            del.set_type(meta::UpdateType::Delete);
+            del.set_id(id_);
+            index->DeleteIndex(txn_, id_, del);
         }
-        std::vector<std::string> fields;
-        std::vector<std::string> field_values;
+        meta::FullTextIndexUpdate add;
+        add.set_id(id_);
+        add.set_type(meta::UpdateType::Add);
         for (auto prop_id : index->PropertyIds()) {
             std::optional<std::string> text;
             auto iter = original.find(prop_id);
@@ -630,19 +622,12 @@ void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values)
                 }
             }
             if (text) {
-                fields.push_back(txn_->db()->id_generator().GetPropertyName(prop_id).value());
-                field_values.push_back(std::move(text.value()));
+                add.add_fields(txn_->db()->id_generator().GetPropertyName(prop_id).value());
+                add.add_values(std::move(text.value()));
             }
         }
-        if (!fields.empty()) {
-            FTIndexUpdate add;
-            add.id = id_;
-            add.type = UpdateType::Add;
-            add.ft_index_name = name;
-            add.fields = std::move(fields);
-            add.field_valus = std::move(field_values);
-            txn_->ft_updates().emplace_back(std::move(add));
-            index->AddIndex(txn_, id_);
+        if (!add.fields().empty()) {
+            index->AddIndex(txn_, id_, add);
         }
     }
     // vector index
@@ -720,12 +705,10 @@ void Vertex::RemoveAllProperty() {
             continue;
         }
         if (ft->IsIndexed(txn_, id_)) {
-            FTIndexUpdate del;
-            del.id = id_;
-            del.type = UpdateType::Delete;
-            del.ft_index_name = ft_name;
-            txn_->ft_updates().emplace_back(std::move(del));
-            ft->DeleteIndex(txn_, id_);
+            meta::FullTextIndexUpdate del;
+            del.set_id(id_);
+            del.set_type(meta::UpdateType::Delete);
+            ft->DeleteIndex(txn_, id_, del);
         }
     }
     // vector index
@@ -784,38 +767,30 @@ void Vertex::RemoveProperty(const std::string &name) {
             continue;
         }
         if (ft->IsIndexed(txn_, id_)) {
-            FTIndexUpdate del;
-            del.id = id_;
-            del.type = UpdateType::Delete;
-            del.ft_index_name = ft_name;
-            txn_->ft_updates().emplace_back(std::move(del));
-            ft->DeleteIndex(txn_, id_);
+            meta::FullTextIndexUpdate del;
+            del.set_id(id_);
+            del.set_type(meta::UpdateType::Delete);
+            ft->DeleteIndex(txn_, id_, del);
         }
 
-        std::vector<std::string> fields;
-        std::vector<std::string> field_values;
+        meta::FullTextIndexUpdate add;
+        add.set_type(meta::UpdateType::Add);
+        add.set_id(id_);
         for (auto prop_id : ft->PropertyIds()) {
             if (prop_id == pid) {
                 continue;
             }
             auto prop = GetProperty(prop_id);
             if (prop.IsString() && !prop.AsString().empty()) {
-                fields.push_back(txn_->db()
-                                     ->id_generator()
-                                     .GetPropertyName(prop_id)
-                                     .value());
-                field_values.push_back(prop.AsString());
+                add.add_fields(txn_->db()
+                                   ->id_generator()
+                                   .GetPropertyName(prop_id)
+                                   .value());
+                add.add_values(prop.AsString());
             }
         }
-        if (!fields.empty()) {
-            FTIndexUpdate add;
-            add.id = id_;
-            add.type = UpdateType::Add;
-            add.ft_index_name = ft_name;
-            add.fields = std::move(fields);
-            add.field_valus = std::move(field_values);
-            txn_->ft_updates().emplace_back(std::move(add));
-            ft->AddIndex(txn_, id_);
+        if (!add.fields().empty()) {
+            ft->AddIndex(txn_, id_, add);
         }
     }
     // vector index
@@ -907,9 +882,9 @@ Vertex Edge::GetOtherEnd(int64_t vid) const {
         if (vid != endId_) {
             THROW_CODE(UnknownError,
                        "GetOtherEnd error, startId:{}, endId:{}, vid:{}",
-                       boost::endian::big_to_native(startId_),
-                       boost::endian::big_to_native(endId_),
-                       boost::endian::big_to_native(vid));
+                       big_to_native(startId_),
+                       big_to_native(endId_),
+                       big_to_native(vid));
         }
         return GetStart();
     }

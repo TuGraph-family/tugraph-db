@@ -158,9 +158,9 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
         bool ret = meta.ParseFromString(val.ToString());
         assert(ret);
         LOG_INFO("vertex property index: [{}]", meta.ShortDebugString());
-        uint32_t lid = boost::endian::native_to_big(meta.label_id());
-        uint32_t pid = boost::endian::native_to_big(meta.property_id());
-        uint32_t index_id = boost::endian::native_to_big(meta.index_id());
+        uint32_t lid = native_to_big(meta.label_id());
+        uint32_t pid = native_to_big(meta.property_id());
+        uint32_t index_id = native_to_big(meta.index_id());
         VertexPropertyIndex vi(meta, graph_cf->index, index_id, lid, pid);
         uint64_t index_key = (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
         vertex_property_indexes.emplace(index_key, std::move(vi));

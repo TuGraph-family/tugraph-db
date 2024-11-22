@@ -103,7 +103,7 @@ std::vector<Procedure> global_procedures = {
         Procedure::SIG_SPEC{{"index_name", {0, ProcedureResultType::Value}}},
         Procedure::SIG_SPEC{}),
     Procedure(
-        "db.index.fulltext.commit", BuiltinProcedure::DbIndexFullTextCommit,
+        "db.index.fulltext.applyWal", BuiltinProcedure::DbIndexFullTextApplyWal,
         Procedure::SIG_SPEC{},
         Procedure::SIG_SPEC{}
         ),
@@ -559,18 +559,18 @@ void BuiltinProcedure::DbIndexFullTextQueryNodes(
     }
 }
 
-void BuiltinProcedure::DbIndexFullTextCommit(
+void BuiltinProcedure::DbIndexFullTextApplyWal(
     RTContext *ctx, const Record *record, const VEC_EXPR &args,
     const VEC_STR &yield_items,
     std::vector<std::vector<ProcedureResult>> *records) {
     CYPHER_ARG_CHECK(args.empty(), fmt::format("Function requires 0 arguments, but {} are "
-                                                   "given. Usage: db.index.fulltext.commit()",
+                                                   "given. Usage: db.index.fulltext.applyWal",
                                                    args.size()))
     std::string name = ctx->txn_->db()->db_meta().graph_name();
     auto graphdb = server::g_galaxy->OpenGraph(name);
     for (auto& [_, index] : graphdb->meta_info().GetVertexFullTextIndex()) {
-        LOG_INFO("Commit fulltext index {} manually", index->Name());
-        index->Commit();
+        LOG_INFO("Manually apply WAL for FullText index {}", index->Name());
+        index->ApplyWAL();
     }
 }
 
