@@ -40,6 +40,9 @@ class Duration {
     static double parseFractional(const std::string& input, size_t pos);
     static int64_t optLong(const std::string& value);
     static int64_t getTimeValue(const Value& d);
+    static bool hasDate(const Value& d);
+    static bool hasZone(const Value& d);
+    static int64_t getZoneOffsetTime(const Value& d);
    public:
     int64_t months{};
     int64_t days{};

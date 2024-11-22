@@ -86,11 +86,11 @@ int64_t Duration::getTimeValue(const Value& d) {
     if (d.IsDate()) {
         return d.AsDate().GetStorage() * SECONDS_PER_DAY * NANOS_PER_SECOND;
     } else if (d.IsDateTime()) {
-        return std::get<0>(d.AsDateTime().GetStorage()) - std::get<1>(d.AsDateTime().GetStorage()) * 1000000000;
+        return std::get<0>(d.AsDateTime().GetStorage()) - std::get<1>(d.AsDateTime().GetStorage()) * NANOS_PER_SECOND;
     } else if (d.IsLocalDateTime()) {
         return d.AsLocalDateTime().GetStorage();
     } else if (d.IsTime()) {
-        return std::get<0>(d.AsTime().GetStorage()) - std::get<1>(d.AsTime().GetStorage()) * 1000000000;
+        return std::get<0>(d.AsTime().GetStorage()) - std::get<1>(d.AsTime().GetStorage()) * NANOS_PER_SECOND;
     } else if (d.IsLocalTime()) {
         return d.AsLocalTime().GetStorage();
     } else {
@@ -98,10 +98,59 @@ int64_t Duration::getTimeValue(const Value& d) {
     }
 }
 
+bool Duration::hasDate(const Value &d) {
+    return d.IsDate() || d.IsDateTime() || d.IsLocalDateTime();
+}
+
+bool Duration::hasZone(const Value &d) {
+    return d.IsDateTime() || d.IsTime();
+}
+
+int64_t Duration::getZoneOffsetTime(const Value &d) {
+    if (d.IsDateTime()) {
+        return std::get<1>(d.AsDateTime().GetStorage()) * NANOS_PER_SECOND;
+    } else if (d.IsTime()) {
+        return std::get<1>(d.AsTime().GetStorage()) * NANOS_PER_SECOND;
+    } else {
+        THROW_CODE(InvalidParameter, "do not have zone");
+    }
+}
+
 Duration Duration::between(const Value& from, const Value& to) {
-    int64_t bet = getTimeValue(to) - getTimeValue(from);
-    return Duration(bet / AVG_NANOS_PER_MONTH, bet % AVG_NANOS_PER_MONTH / (SECONDS_PER_DAY * NANOS_PER_SECOND),
-                    bet % (SECONDS_PER_DAY * NANOS_PER_SECOND) / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
+    int64_t from_nanos = getTimeValue(from), to_nanos = getTimeValue(to);
+    if (hasDate(from) && !hasDate(to)) {
+        to_nanos = to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + from_nanos / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
+    } else if (!hasDate(from) && hasDate(to)) {
+        from_nanos = from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + to_nanos / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
+    }
+    if (hasZone(from) && !hasZone(to)) {
+        to_nanos -= getZoneOffsetTime(from);
+    } else if (!hasZone(from) && hasZone(to)) {
+        from_nanos -= getZoneOffsetTime(to);
+    }
+    int64_t bet = to_nanos - from_nanos;
+    int64_t month = 0, day = 0;
+    if (std::abs(bet) >= SECONDS_PER_DAY * NANOS_PER_SECOND) {
+        bet %= (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        auto start_ymd = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(from_nanos)))};
+        auto end_ymd = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(to_nanos)))};
+        month = (date::year_month(end_ymd.year(), end_ymd.month()) - date::year_month(start_ymd.year(), start_ymd.month())).count();
+        if (month > 0 && (start_ymd + date::months(month) > end_ymd || (start_ymd + date::months(month) == end_ymd && bet < 0))) {
+            month--;
+        }
+        if (month < 0 && (start_ymd + date::months(month) < end_ymd || (start_ymd + date::months(month) == end_ymd && bet > 0))) {
+            month++;
+        }
+        start_ymd += date::months(month);
+        day = (date::sys_days(end_ymd) - date::sys_days(start_ymd)).count();
+        if (day > 0 && from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) > to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND)) {
+            day--;
+        }
+        if (day < 0 && from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) < to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND)) {
+            day++;
+        }
+    }
+    return Duration(month, day, bet / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
 }
 
 Duration Duration::parseDuration(int sign, int64_t month, int64_t day, std::smatch &match,
