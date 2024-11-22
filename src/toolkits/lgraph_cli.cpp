@@ -229,7 +229,8 @@ int main(int argc, char** argv) {
             LOG_ERROR("Unexpected accepted version");
             return -1;
         }
-        meta = {{"scheme", "basic"}, {"principal", FLAGS_user}, {"credentials", FLAGS_password}};
+        meta = {{"scheme", "basic"}, {"principal", FLAGS_user}, {"credentials", FLAGS_password},
+                {"patch_bolt", std::vector<std::string>{"utc"}}};
         ps.AppendHello(meta);
         asio::write(socket, asio::const_buffer(ps.ConstBuffer().data(), ps.ConstBuffer().size()));
         auto msg = ReadMessage(socket, hydrator);
@@ -239,6 +240,9 @@ int main(int argc, char** argv) {
             if (iter == std::string::npos) {
                 LOG_ERROR("The server is not tugraph-db");
                 return -1;
+            }
+            if (success->patches.size() == 1 && success->patches[0] == "utc") {
+                hydrator.UseUtc(true);
             }
         } else if (msg.type() == typeid(std::optional<bolt::Neo4jError>)) {
             const auto& error = std::any_cast<std::optional<bolt::Neo4jError>&>(msg);
