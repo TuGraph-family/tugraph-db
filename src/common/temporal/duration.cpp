@@ -116,7 +116,7 @@ int64_t Duration::getZoneOffsetTime(const Value &d) {
     }
 }
 
-Duration Duration::between(const Value& from, const Value& to) {
+Duration Duration::between(const Value& from, const Value& to, const std::string& unit) {
     int64_t from_nanos = getTimeValue(from), to_nanos = getTimeValue(to);
     if (hasDate(from) && !hasDate(to)) {
         to_nanos = to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + from_nanos / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
@@ -150,7 +150,17 @@ Duration Duration::between(const Value& from, const Value& to) {
             day++;
         }
     }
-    return Duration(month, day, bet / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
+    if (unit.empty()) {
+        return Duration(month, day, bet / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
+    } else if (unit == "MONTH") {
+        return Duration(month, 0, 0, 0);
+    } else if (unit == "DAY") {
+        return Duration(0, day, 0, 0);
+    } else if (unit == "SECOND") {
+        return Duration(0, 0, bet / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
+    } else {
+        THROW_CODE(InvalidParameter, "Unsupported unit: {}", unit);
+    }
 }
 
 Duration Duration::parseDuration(int sign, int64_t month, int64_t day, std::smatch &match,
