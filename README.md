@@ -109,5 +109,15 @@ Slack (For developer quick communication):
 Contact us via dingtalk, wechat, email and telephone:
 ![contacts](./docs/images/contact-en.png)
 
+## 7. Acknowledgement
+
+Thanks to all the individual developers who have contributed to this repository, which are listed below.
+
+<a href="https://github.com/TuGraph-family/tugraph-db/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=TuGraph-family/tugraph-db" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
+
 
 
