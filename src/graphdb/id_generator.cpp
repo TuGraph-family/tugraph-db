@@ -21,6 +21,7 @@
 #include <iostream>
 #include "common/exceptions.h"
 #include "common/logger.h"
+using namespace boost::endian;
 namespace graphdb {
 void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
     int64_t max_vid = 0;
@@ -33,8 +34,7 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
         auto iter = db->NewIterator({}, graph_cf->graph_topology);
         iter->SeekToLast();
         if (iter->Valid()) {
-            max_vid =
-                boost::endian::big_to_native((*(int64_t *)iter->key().data_));
+            max_vid = big_to_native((*(int64_t *)iter->key().data_));
         }
         delete iter;
     }
@@ -48,17 +48,17 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
             if (*key.data_ == static_cast<char>(TokenNameType::VertexLabel)) {
                 vertex_labels_name_to_id_[name] = id;
                 vertex_labels_id_to_name_[id] = name;
-                max_lid = std::max(max_lid, boost::endian::big_to_native(id));
+                max_lid = std::max(max_lid, big_to_native(id));
             } else if (*key.data_ ==
                        static_cast<char>(TokenNameType::EdgeType)) {
                 edge_types_name_to_id_[name] = id;
                 edge_types_id_to_name_[id] = name;
-                max_tid = std::max(max_tid, boost::endian::big_to_native(id));
+                max_tid = std::max(max_tid, big_to_native(id));
             } else if (*key.data_ ==
                        static_cast<char>(TokenNameType::Property)) {
                 properties_name_to_id_[name] = id;
                 properties_id_to_name_[id] = name;
-                max_pid = std::max(max_pid, boost::endian::big_to_native(id));
+                max_pid = std::max(max_pid, big_to_native(id));
             }
         }
         delete iter;
@@ -67,21 +67,20 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
         std::vector<uint32_t> tids;
         tids.reserve(edge_types_name_to_id_.size());
         for (const auto &[name, id] : edge_types_name_to_id_) {
-            tids.push_back(boost::endian::big_to_native(id));
+            tids.push_back(big_to_native(id));
         }
         std::sort(tids.begin(), tids.end());
         std::vector<int64_t> eids;
         auto iter = db->NewIterator({}, graph_cf->edge_type_eid);
         for (auto tid : tids) {
             auto next_tid = tid + 1;
-            boost::endian::native_to_big_inplace(next_tid);
+            native_to_big_inplace(next_tid);
             iter->SeekForPrev({(const char *)(&next_tid), sizeof(next_tid)});
             if (iter->Valid()) {
                 auto key = iter->key();
-                if (boost::endian::big_to_native(*(uint32_t *)(key.data())) ==
+                if (big_to_native(*(uint32_t *)(key.data())) ==
                     tid) {
-                    eids.push_back(boost::endian::big_to_native(
-                        *(int64_t *)(key.data() + sizeof(tid))));
+                    eids.push_back(big_to_native(*(int64_t *)(key.data() + sizeof(tid))));
                 }
             }
         }
@@ -95,7 +94,7 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
         auto iter = db->NewIterator({}, graph_cf->index);
         iter->SeekToLast();
         if (iter->Valid()) {
-            max_index_id = boost::endian::big_to_native((*(uint32_t *)iter->key().data_));
+            max_index_id = big_to_native((*(uint32_t *)iter->key().data_));
         }
         delete iter;
     }
@@ -113,15 +112,15 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
 }
 
 int64_t IdGenerator::GetNextVid() {
-    return boost::endian::native_to_big(vertex_next_vid_++);
+    return native_to_big(vertex_next_vid_++);
 }
 
 int64_t IdGenerator::GetNextEid() {
-    return boost::endian::native_to_big(edge_next_eid_++);
+    return native_to_big(edge_next_eid_++);
 }
 
 uint32_t IdGenerator::GetNextIndexId() {
-    return boost::endian::native_to_big(index_next_id_++);
+    return native_to_big(index_next_id_++);
 }
 
 std::optional<uint32_t> IdGenerator::GetLid(const std::string &name) {
@@ -213,8 +212,7 @@ uint32_t IdGenerator::GetOrCreateLid(const std::string &name) {
         std::string key, val;
         char flag = static_cast<char>(TokenNameType::VertexLabel);
         key.append(1, flag);
-        uint32_t bigendian_lid =
-            boost::endian::native_to_big(label_next_lid_++);
+        uint32_t bigendian_lid = native_to_big(label_next_lid_++);
         key.append(name);
         val.append((const char *)&bigendian_lid, sizeof(bigendian_lid));
         rocksdb::WriteOptions options;
@@ -246,8 +244,7 @@ uint32_t IdGenerator::GetOrCreateTid(const std::string &name) {
         std::string key, val;
         char flag = static_cast<char>(TokenNameType::EdgeType);
         key.append(1, flag);
-        uint32_t bigendian_tid =
-            boost::endian::native_to_big(label_next_tid_++);
+        uint32_t bigendian_tid = native_to_big(label_next_tid_++);
         key.append(name);
         val.append((const char *)&bigendian_tid, sizeof(bigendian_tid));
         rocksdb::WriteOptions options;
@@ -279,8 +276,7 @@ uint32_t IdGenerator::GetOrCreatePid(const std::string &name) {
         std::string key, val;
         char flag = static_cast<char>(TokenNameType::Property);
         key.append(1, flag);
-        uint32_t bigendian_pid =
-            boost::endian::native_to_big(label_next_pid_++);
+        uint32_t bigendian_pid = native_to_big(label_next_pid_++);
         key.append(name);
         val.append((const char *)&bigendian_pid, sizeof(bigendian_pid));
         rocksdb::WriteOptions options;

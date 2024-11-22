@@ -52,3 +52,15 @@ message GraphDBMetaInfo {
     string graph_name = 1;
     uint32 graph_id   = 2;
 }
+
+enum UpdateType {
+    Add = 0;
+    Delete = 1;
+};
+
+message FullTextIndexUpdate {
+    UpdateType type        = 1;
+    int64 id               = 2;
+    repeated string fields = 3;
+    repeated string values = 4;
+}

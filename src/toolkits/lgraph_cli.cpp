@@ -26,7 +26,7 @@
 #include "tabulate/table.hpp"
 #include <gflags/gflags.h>
 using namespace boost;
-
+using namespace boost::endian;
 DEFINE_string(format, "table", "format");
 DEFINE_string(ip, "127.0.0.1", "ip");
 DEFINE_int32(port, 7687, "port");
@@ -46,7 +46,7 @@ std::any ReadMessage(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator) {
     std::vector<uint8_t> buffer;
     while (true) {
         asio::read(socket, asio::buffer((void*)(&size), sizeof(size)));
-        boost::endian::big_to_native_inplace(size);
+        big_to_native_inplace(size);
         if (size == 0) {
             if (!buffer.empty()) {
                 break;
@@ -229,7 +229,8 @@ int main(int argc, char** argv) {
             LOG_ERROR("Unexpected accepted version");
             return -1;
         }
-        meta = {{"scheme", "basic"}, {"principal", FLAGS_user}, {"credentials", FLAGS_password}};
+        meta = {{"scheme", "basic"}, {"principal", FLAGS_user}, {"credentials", FLAGS_password},
+                {"patch_bolt", std::vector<std::string>{"utc"}}};
         ps.AppendHello(meta);
         asio::write(socket, asio::const_buffer(ps.ConstBuffer().data(), ps.ConstBuffer().size()));
         auto msg = ReadMessage(socket, hydrator);
@@ -239,6 +240,9 @@ int main(int argc, char** argv) {
             if (iter == std::string::npos) {
                 LOG_ERROR("The server is not tugraph-db");
                 return -1;
+            }
+            if (success->patches.size() == 1 && success->patches[0] == "utc") {
+                hydrator.UseUtc(true);
             }
         } else if (msg.type() == typeid(std::optional<bolt::Neo4jError>)) {
             const auto& error = std::any_cast<std::optional<bolt::Neo4jError>&>(msg);

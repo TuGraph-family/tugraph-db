@@ -27,6 +27,7 @@
 #include "graphdb/graph_db.h"
 #include "common/logger.h"
 using namespace graphdb;
+using namespace boost::endian;
 namespace txn {
 Vertex Transaction::CreateVertex(
     const std::unordered_set<std::string>& labels,
@@ -81,20 +82,17 @@ Vertex Transaction::CreateVertex(
         if (!ft->MatchLabelIds(lids)) {
             continue;
         }
-        FTIndexUpdate add;
-        add.type = UpdateType::Add;
-        add.id = vid;
-        add.ft_index_name = ft_name;
+        meta::FullTextIndexUpdate add;
+        add.set_type(meta::UpdateType::Add);
+        add.set_id(vid);
         for (const auto& [pid, prop] : pid_values) {
             if (prop->IsString() && !prop->AsString().empty() && ft->PropertyIds().count(pid)) {
-                add.fields.push_back(
-                    db_->id_generator().GetPropertyName(pid).value());
-                add.field_valus.push_back(prop->AsString());
+                add.add_fields(db_->id_generator().GetPropertyName(pid).value());
+                add.add_values(prop->AsString());
             }
         }
-        if (!add.fields.empty()) {
-            ft_updates_.push_back(std::move(add));
-            ft->AddIndex(this, vid);
+        if (!add.fields().empty()) {
+            ft->AddIndex(this, vid, add);
         }
     }
     // vector index
@@ -190,8 +188,7 @@ Vertex Transaction::GetVertexById(int64_t vid) {
     if (s.ok()) {
         return {this, vid};
     } else if (s.IsNotFound()) {
-        THROW_CODE(VertexIdNotFound, "Vertex id {} not found",
-                   boost::endian::big_to_native(vid));
+        THROW_CODE(VertexIdNotFound, "Vertex id {} not found", big_to_native(vid));
     } else {
         THROW_CODE(StorageEngineError, s.ToString());
     }
@@ -212,8 +209,7 @@ Edge Transaction::GetEdgeById(uint32_t etid, int64_t eid) {
         return {this, eid, startId, endId, etid};
     } else if (s.IsNotFound()) {
         THROW_CODE(EdgeIdNotFound, "Edge [etid:{},eid:{}] not found",
-                   boost::endian::big_to_native(etid),
-                   boost::endian::big_to_native(eid));
+                   big_to_native(etid), big_to_native(eid));
     } else {
         THROW_CODE(StorageEngineError, s.ToString());
     }
@@ -345,31 +341,6 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
     }
 }
 
-void Transaction::CommitFTIndex() {
-    if (ft_updates_.empty()) {
-        return;
-    }
-    std::unordered_map<std::string, std::shared_lock<std::shared_mutex>> locks;
-    auto& ft = db_->meta_info().GetVertexFullTextIndex();
-    for (auto& item : ft_updates_) {
-        auto iter = ft.find(item.ft_index_name);
-        assert(iter != ft.end());
-        if (!locks.count(iter->second->Name())) {
-            locks.emplace(iter->second->Name(), iter->second->Mutex());
-        }
-        switch (item.type) {
-            case UpdateType::Add: {
-                iter->second->AddVertex(item.id, item.fields, item.field_valus);
-                break;
-            }
-            case UpdateType::Delete: {
-                iter->second->DeleteVertex(item.id);
-                break;
-            }
-        }
-    }
-}
-
 void Transaction::CommitVectorIndex() {
     if (vector_updates_.empty()) {
         return;
@@ -398,7 +369,6 @@ void Transaction::CommitVectorIndex() {
 }
 
 void Transaction::Commit() {
-    CommitFTIndex();
     CommitVectorIndex();
     auto s = txn_->Commit();
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());

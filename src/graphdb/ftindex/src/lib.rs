@@ -32,8 +32,9 @@ mod ffi {
         fn new_ftindex(path: &String, properties: &Vec<String>) -> Result<Box<FTIndex>>;
         fn ft_add_document(ft: &mut FTIndex, id:i64, fields: &Vec<String>, valus: &Vec<String>) -> Result<()>;
         fn ft_delete_document(ft: &mut FTIndex, id:i64) -> Result<()>;
-        fn ft_commit(ft: &mut FTIndex) -> Result<()>;
+        fn ft_commit(ft: &mut FTIndex, payload: &String) -> Result<()>;
         fn ft_query(ft: &mut FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>>;
+        fn ft_get_payload(ft: &mut FTIndex) -> Result<String>;
     }
 }
 
@@ -80,10 +81,17 @@ pub fn ft_delete_document(ft: &mut FTIndex, id:i64) -> Result<(), Box<dyn Error>
     Ok(())
 }
 
-pub fn ft_commit(ft: &mut FTIndex) -> Result<(),  Box<dyn Error>> {
-    ft.writer.commit()?;
+pub fn ft_commit(ft: &mut FTIndex, payload: &String) -> Result<(),  Box<dyn Error>> {
+    let mut prepared_commit = ft.writer.prepare_commit()?;
+    prepared_commit.set_payload(payload);
+    prepared_commit.commit()?;
     ft.reader.reload()?;
     Ok(())
+}
+
+pub fn ft_get_payload(ft: &mut FTIndex) -> Result<String,  Box<dyn Error>> {
+    let metas = ft.index.load_metas()?;
+    Ok(metas.payload.unwrap_or("".to_string()))
 }
 
 pub fn ft_query(ft: &mut FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>, Box<dyn Error>> {

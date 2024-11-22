@@ -334,6 +334,16 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             return;
         }
         auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[0]);
+        if (!val.count("principal") || !val.count("credentials")) {
+            std::string err = "Miss 'principal' or 'credentials' in Hello msg";
+            LOG_ERROR(err);
+            bolt::PackStream ps;
+            ps.AppendFailure({{"code", "error"},
+                              {"message", err}});
+            conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
+            return;
+        }
         auto& principal = std::any_cast<const std::string&>(val.at("principal"));
         auto& credentials = std::any_cast<const std::string&>(val.at("credentials"));
         /*auto galaxy = BoltServer::Instance().StateMachine()->GetGalaxy();
@@ -355,6 +365,16 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             auto& user_agent = std::any_cast<const std::string&>(val.at("user_agent"));
             if (boost::algorithm::starts_with(user_agent, "neo4j-python")) {
                 session->python_driver = true;
+            }
+        }
+        if (val.count("patch_bolt")) {
+            auto& patch = std::any_cast<const std::vector<std::any>&>(val.at("patch_bolt"));
+            if (patch.size() == 1) {
+                auto item = std::any_cast<std::string>(patch[0]);
+                if (item == "utc") {
+                    session->utc_patch = true;
+                    meta["patch_bolt"] = std::vector<std::string>{"utc"};
+                }
             }
         }
         session->state = SessionState::READY;

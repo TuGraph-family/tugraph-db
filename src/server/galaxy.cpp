@@ -25,6 +25,7 @@
 
 #include "common/exceptions.h"
 using namespace graphdb;
+using namespace boost::endian;
 namespace server {
 std::unique_ptr<server::Galaxy> g_galaxy;
 Galaxy::~Galaxy() {
@@ -126,7 +127,7 @@ GraphDB *Galaxy::CreateGraph(const std::string &name) {
     rocksdb::WriteBatch wb;
     std::string key;
     key.append(1, static_cast<char>(GalaxyMetaDataType::GraphDB));
-    boost::endian::native_to_big_inplace(graph_id);
+    native_to_big_inplace(graph_id);
     key.append((const char *)&graph_id, sizeof(graph_id));
     wb.Put(key, meta.SerializeAsString());
     uint64_t next = next_graph_id_;
@@ -150,7 +151,7 @@ void Galaxy::DeleteGraph(const std::string &name) {
     std::string key;
     uint64_t graph_id = iter->second->db_meta().graph_id();
     key.append(1, static_cast<char>(GalaxyMetaDataType::GraphDB));
-    boost::endian::native_to_big_inplace(graph_id);
+    native_to_big_inplace(graph_id);
     key.append((const char *)&graph_id, sizeof(graph_id));
     auto s = meta_db_->Delete(wo, key);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
