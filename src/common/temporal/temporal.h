@@ -20,3 +20,4 @@
 #include "common/temporal/time.h"
 #include "common/temporal/localtime.h"
 #include "common/temporal/duration.h"
+#include "common/temporal/temporal_pattern.h"
