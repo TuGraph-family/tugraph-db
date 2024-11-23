@@ -81,6 +81,7 @@ add_standalone(wlpa)
 add_standalone(subgraph_isomorphism)
 add_standalone(sybilrank)
 add_standalone(leiden)
+add_stanalone(khop)
 
 add_embed(apsp)
 add_embed(bfs)
