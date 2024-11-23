@@ -1,3 +1,4 @@
+// Copyright 2024 Yingqi Zhao
 #include "olap/olap_on_disk.h"
 #include "tools/json.hpp"
 #include "./algo.h"
@@ -5,29 +6,23 @@ using namespace lgraph_api;
 using namespace lgraph_api::olap;
 using json = nlohmann::json;
 
-class MyConfig : public ConfigBase<Empty>
-{
+class MyConfig : public ConfigBase<Empty> {
  public:
     std::string root = "0";
     std::string name = std::string("khop");
-    size_t value_k=3;
-    void AddParameter(fma_common::Configuration& config)
-    {
+    size_t value_k = 3;
+    void AddParameter(fma_common::Configuration& config) {
         ConfigBase<Empty>::AddParameter(config);
         config.Add(root, "root", true).Comment("Identifier of the root node.");
-        config.Add(value_k, "value_k", true).Comment(
-            "Number of search layers(value of k in K-hop algorithm)."
-        );
+        config.Add(value_k, "value_k", true).Comment("Number of search layers(value of k in K-hop algorithm).");
     }
-    void Print()
-    {
+    void Print() {
         ConfigBase<Empty>::Print();
         std::cout << " name: " << name << std::endl;
         std::cout << " root: " << name << std::endl;
         std::cout << " value_k: " << value_k << std::endl;
     }
-    MyConfig(int& argc, char**& argv) : ConfigBase<Empty>(argc, argv)
-    {
+    MyConfig(int& argc, char**& argv) : ConfigBase<Empty>(argc, argv) {
         fma_common::Configuration config;
         AddParameter(config);
         config.ExitAfterHelp(true);
@@ -36,7 +31,7 @@ class MyConfig : public ConfigBase<Empty>
     }
 };
 
-extern size_t k_hop(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>&result, size_t k);
+extern size_t k_hop(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& result, size_t k);
 
 int main(int argc, char** argv){
     double start_time;
@@ -78,6 +73,6 @@ int main(int argc, char** argv){
     printf("core_cost = %.2lf(s)\n", core_cost);
     printf("output_cost = %.2lf(s)\n", output_cost);
     printf("total_cost = %.2lf(s)\n", prepare_cost + core_cost + output_cost);
-    printf("DONE. \n");
+    printf("DONE.\n");
     return 0;
 }
