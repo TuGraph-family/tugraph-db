@@ -33,7 +33,7 @@ class MyConfig : public ConfigBase<Empty> {
 
 extern size_t k_hop(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& result, size_t k);
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
     double start_time;
     MemUsage memUsage;
     memUsage.startMemRecord();
@@ -42,34 +42,33 @@ int main(int argc, char** argv){
     OlapOnDisk<Empty> graph;
     graph.Load(config, INPUT_SYMMETRIC);
     size_t root_vid;
-    auto result=graph.AllocVertexArray<size_t>();
+    auto result = graph.AllocVertexArray<size_t>();
     result.Fill(0);
-    if(config.id_mapping)
+    if (config.id_mapping)
         root_vid = graph.hash_list_.find(config.root);
     else
         root_vid = std::stoi(config.root);
-    size_t value_k=config.value_k;
+    size_t value_k = config.value_k;
     memUsage.print();
     memUsage.reset();
     auto prepare_cost = get_time()- start_time;
     printf("prepare_cost = %.2lf(s)\n", prepare_cost);
     
     start_time = get_time();
-    size_t count_result=k_hop(graph, root_vid, result, value_k);
+    size_t count_result = k_hop(graph, root_vid, result, value_k);
     memUsage.print();
     memUsage.reset();
     auto core_cost = get_time()- start_time;
-    
+
     start_time = get_time();
-    if (config.output_dir != "")
-    {
+    if (config.output_dir != "") {
         graph.Write<size_t>(config, result, graph.NumVertices(), config.name);
     }
     printf("\n================\n");
     printf("Find %lu vertexes in %lu-hop from node NO.%lu", count_result, value_k, root_vid);
     printf("\n================\n");
     auto output_cost = get_time()- start_time;
-    
+
     printf("core_cost = %.2lf(s)\n", core_cost);
     printf("output_cost = %.2lf(s)\n", output_cost);
     printf("total_cost = %.2lf(s)\n", prepare_cost + core_cost + output_cost);
