@@ -14,7 +14,8 @@ class MyConfig : public ConfigBase<Empty> {
     void AddParameter(fma_common::Configuration& config) {
         ConfigBase<Empty>::AddParameter(config);
         config.Add(root, "root", true).Comment("Identifier of the root node.");
-        config.Add(value_k, "value_k", true).Comment("Number of search layers(value of k in K-hop algorithm).");
+        config.Add(value_k, "value_k", true).Comment(
+            "Number of search layers(value of k in K-hop algorithm).");
     }
     void Print() {
         ConfigBase<Empty>::Print();
@@ -31,7 +32,8 @@ class MyConfig : public ConfigBase<Empty> {
     }
 };
 
-extern size_t k_hop(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& result, size_t k);
+extern size_t k_hop(OlapBase<Empty>& graph, size_t root_vid,
+    ParallelVector<size_t>& result, size_t k);
 
 int main(int argc, char** argv) {
     double start_time;
@@ -53,7 +55,7 @@ int main(int argc, char** argv) {
     memUsage.reset();
     auto prepare_cost = get_time()- start_time;
     printf("prepare_cost = %.2lf(s)\n", prepare_cost);
-    
+
     start_time = get_time();
     size_t count_result = k_hop(graph, root_vid, result, value_k);
     memUsage.print();
