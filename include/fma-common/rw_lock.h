@@ -17,6 +17,7 @@
 #include "fma-common/cache_aligned_vector.h"
 #include "fma-common/thread_id.h"
 #include "fma-common/utils.h"
+#include "fma-common/string_formatter.h"
 
 namespace fma_common {
 
