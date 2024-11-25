@@ -983,3 +983,146 @@ TEST(Duration, between) {
 //    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("-999999999-01-01")),
 //                                        Value::Date(common::Date("+999999999-12-31"))).ToString(), "P1999999998Y11M30D");
 }
+
+TEST(Duration, betweenFunction) {
+    // months
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::Date(common::Date("2015-06-24")), "MONTH").ToString(), "P30Y8M");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "MONTH").ToString(), "P31Y9M");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "MONTH").ToString(), "P30Y9M");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::Time(common::Time("16:30+0100")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::Date(common::Date("2015-06-24")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::Date(common::Date("2015-06-24")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::Date(common::Date("2015-06-24")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "MONTH").ToString(), "P1Y");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::Time(common::Time("16:30+0100")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::Date(common::Date("2015-06-24")), "MONTH").ToString(), "P11M");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "MONTH").ToString(), "P2Y");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "MONTH").ToString(), "P1Y");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "MONTH").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::Time(common::Time("16:30+0100")), "MONTH").ToString(), "PT0S");
+    // days
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::Date(common::Date("2015-06-24")), "DAY").ToString(), "P11213D");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "DAY").ToString(), "P11606D");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "DAY").ToString(), "P11240D");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::Time(common::Time("16:30+0100")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::Date(common::Date("2015-06-24")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::Date(common::Date("2015-06-24")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::Date(common::Date("2015-06-24")), "DAY").ToString(), "P-27D");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "DAY").ToString(), "P366D");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::Time(common::Time("16:30+0100")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::Date(common::Date("2015-06-24")), "DAY").ToString(), "P337D");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "DAY").ToString(), "P731D");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "DAY").ToString(), "P365D");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "DAY").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::Time(common::Time("16:30+0100")), "DAY").ToString(), "PT0S");
+
+    // seconds
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::Date(common::Date("2015-06-24")), "SECOND").ToString(), "PT269112H");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "SECOND").ToString(), "PT278565H45M22.142S");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "SECOND").ToString(), "PT269781H40M32.142S");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "SECOND").ToString(), "PT16H30M");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("1984-10-11")),
+                                        Value::Time(common::Time("16:30+0100")), "SECOND").ToString(), "PT16H30M");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::Date(common::Date("2015-06-24")), "SECOND").ToString(), "PT-14H-30M");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "SECOND").ToString(), "PT7H15M22.142S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "SECOND").ToString(), "PT7H10M32.142S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "SECOND").ToString(), "PT2H");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("14:30")),
+                                        Value::Time(common::Time("16:30+0100")), "SECOND").ToString(), "PT2H");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::Date(common::Date("2015-06-24")), "SECOND").ToString(), "PT-14H-30M");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "SECOND").ToString(), "PT7H15M22.142S");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "SECOND").ToString(), "PT6H10M32.142S");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "SECOND").ToString(), "PT2H");
+    EXPECT_EQ(common::Duration::between(Value::Time(common::Time("14:30")),
+                                        Value::Time(common::Time("16:30+0100")), "SECOND").ToString(), "PT1H");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::Date(common::Date("2015-06-24")), "SECOND").ToString(), "PT-669H-40M-32.142S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "SECOND").ToString(), "PT8784H4M50S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "SECOND").ToString(), "PT0S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "SECOND").ToString(), "PT-5H-10M-32.142S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2015-07-21T21:40:32.142")),
+                                        Value::Time(common::Time("16:30+0100")), "SECOND").ToString(), "PT-5H-10M-32.142S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::Date(common::Date("2015-06-24")), "SECOND").ToString(), "PT8090H19M23.857S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:45:22.142")), "SECOND").ToString(), "PT17544H4M45.999S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::DateTime(common::DateTime("2015-07-21T21:40:32.142+0100")), "SECOND").ToString(), "PT8760H59M55.999S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::LocalTime(common::LocalTime("16:30")), "SECOND").ToString(), "PT-5H-10M-36.143S");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2014-07-21T21:40:36.143+0200")),
+                                        Value::Time(common::Time("16:30+0100")), "SECOND").ToString(), "PT-4H-10M-36.143S");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2014-07-21T21:40:36.143")),
+                                        Value::LocalDateTime(common::LocalDateTime("2014-07-21T21:40:36.142")), "SECOND").ToString(), "PT-0.001S");
+}

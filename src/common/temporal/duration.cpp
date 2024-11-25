@@ -129,12 +129,13 @@ Duration Duration::between(const Value& from, const Value& to, const std::string
         from_nanos -= getZoneOffsetTime(to);
     }
     int64_t bet = to_nanos - from_nanos;
-    int64_t month = 0, day = 0;
+    int64_t month = 0, day = 0, all_day = 0;
     if (std::abs(bet) >= SECONDS_PER_DAY * NANOS_PER_SECOND) {
         bet %= (SECONDS_PER_DAY * NANOS_PER_SECOND);
         auto start_ymd = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(from_nanos)))};
         auto end_ymd = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(to_nanos)))};
         month = (date::year_month(end_ymd.year(), end_ymd.month()) - date::year_month(start_ymd.year(), start_ymd.month())).count();
+        all_day = (date::sys_days(end_ymd) - date::sys_days(start_ymd)).count();
         if (month > 0 && (start_ymd + date::months(month) > end_ymd || (start_ymd + date::months(month) == end_ymd && bet < 0))) {
             month--;
         }
@@ -145,9 +146,11 @@ Duration Duration::between(const Value& from, const Value& to, const std::string
         day = (date::sys_days(end_ymd) - date::sys_days(start_ymd)).count();
         if (day > 0 && from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) > to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND)) {
             day--;
+            all_day--;
         }
         if (day < 0 && from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) < to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND)) {
             day++;
+            all_day++;
         }
     }
     if (unit.empty()) {
@@ -155,8 +158,9 @@ Duration Duration::between(const Value& from, const Value& to, const std::string
     } else if (unit == "MONTH") {
         return Duration(month, 0, 0, 0);
     } else if (unit == "DAY") {
-        return Duration(0, day, 0, 0);
+        return Duration(0, all_day, 0, 0);
     } else if (unit == "SECOND") {
+        bet = to_nanos - from_nanos;
         return Duration(0, 0, bet / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
     } else {
         THROW_CODE(InvalidParameter, "Unsupported unit: {}", unit);

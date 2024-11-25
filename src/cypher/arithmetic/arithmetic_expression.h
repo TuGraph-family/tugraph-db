@@ -243,8 +243,14 @@ struct BuiltinFunction {
                            const std::vector<ArithExprNode> &args);
     static Value TimeTruncate(RTContext *ctx, const Record &record,
                       const std::vector<ArithExprNode> &args);
-    static Value Between(RTContext *ctx, const Record &record,
+    static Value DurationBetween(RTContext *ctx, const Record &record,
                               const std::vector<ArithExprNode> &args);
+    static Value DurationInSeconds(RTContext *ctx, const Record &record,
+                                 const std::vector<ArithExprNode> &args);
+    static Value DurationInDays(RTContext *ctx, const Record &record,
+                                 const std::vector<ArithExprNode> &args);
+    static Value DurationInMonths(RTContext *ctx, const Record &record,
+                                 const std::vector<ArithExprNode> &args);
 
     static Value Range(RTContext *ctx, const Record &record,
                        const std::vector<ArithExprNode> &args);
@@ -454,7 +460,10 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("duration", BuiltinFunction::Duration);
         ae_registered_funcs.emplace("localtime.truncate", BuiltinFunction::LocalTimeTruncate);
         ae_registered_funcs.emplace("time.truncate", BuiltinFunction::TimeTruncate);
-        ae_registered_funcs.emplace("duration.between", BuiltinFunction::TimeTruncate);
+        ae_registered_funcs.emplace("duration.between", BuiltinFunction::DurationBetween);
+        ae_registered_funcs.emplace("duration.inSeconds", BuiltinFunction::DurationInSeconds);
+        ae_registered_funcs.emplace("duration.inDays", BuiltinFunction::DurationInDays);
+        ae_registered_funcs.emplace("duration.inMonths", BuiltinFunction::DurationInMonths);
         return ae_registered_funcs;
     }
 
