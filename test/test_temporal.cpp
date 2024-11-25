@@ -22,6 +22,8 @@
 using namespace graphdb;
 namespace fs = std::filesystem;
 
+static std::string test_db = "temporal_db";
+
 TEST(Date, dateFromString) {
     EXPECT_EQ(common::Date("2015-07-21").ToString(), "2015-07-21");
     EXPECT_EQ(common::Date("20150721").ToString(), "2015-07-21");
@@ -35,8 +37,6 @@ TEST(Date, dateFromString) {
     EXPECT_EQ(common::Date("2015202").ToString(), "2015-07-21");
     EXPECT_EQ(common::Date("2015").ToString(), "2015-01-01");
 }
-
-TEST(Date, dateFromStringException) {}
 
 TEST(Date, dateFromMap) {
     EXPECT_EQ(common::Date(Value({{"year", Value((int64_t)1816)},
@@ -142,6 +142,314 @@ TEST(Date, dateFromMap) {
               "1817-01-07");
 }
 
+TEST(Date, truncateDate2Date) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 2017, month: 10, day: 11}) AS other\n"
+        "RETURN\n"
+        "   date.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   date.truncate('millennium', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "2000-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "2000-01-01");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt =
+        txn->Execute(&rtx,
+                     "WITH date({year: 1984, month: 10, day: 11}) AS other\n"
+                     "RETURN\n"
+                     "  date.truncate('century', other, {day: 2}) AS col0,\n"
+                     "  date.truncate('century', other, {}) AS col1,\n"
+                     "  date.truncate('decade', other, {day: 2}) AS col2,\n"
+                     "  date.truncate('decade', other, {}) AS col3,\n"
+                     "  date.truncate('year', other, {day: 2}) AS col4,\n"
+                     "  date.truncate('year', other, {}) AS col5,\n"
+                     "  date.truncate('month', other, {day: 2}) AS col6,\n"
+                     "  date.truncate('month', other, {}) AS col7,\n"
+                     "  date.truncate('week', other, {dayOfWeek: 2}) AS col8,\n"
+                     "  date.truncate('week', other, {}) AS col9,\n"
+                     "  date.truncate('day', other, {}) AS col10");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1900-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1900-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDate().ToString(),
+                  "1980-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDate().ToString(),
+                  "1980-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[4].data).AsDate().ToString(),
+                  "1984-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[5].data).AsDate().ToString(),
+                  "1984-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDate().ToString(),
+                  "1984-10-02");
+        EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDate().ToString(),
+                  "1984-10-01");
+        EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDate().ToString(),
+                  "1984-10-09");
+        EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDate().ToString(),
+                  "1984-10-08");
+        EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDate().ToString(),
+                  "1984-10-11");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt =
+        txn->Execute(&rtx,
+                     "WITH date({year: 1984, month: 2, day: 1}) AS other\n"
+                     "RETURN\n"
+                     "   date.truncate('weekYear', other, {day: 5}) AS col0,\n"
+                     "   date.truncate('weekYear', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1984-01-05");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1984-01-02");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt =
+        txn->Execute(&rtx,
+                     "WITH date({year: 1984, month: 11, day: 11}) AS other\n"
+                     "RETURN\n"
+                     "   date.truncate('quarter', other, {day: 2}) AS col0,\n"
+                     "   date.truncate('quarter', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1984-10-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1984-10-01");
+    }
+    txn->Commit();
+}
+
+TEST(Date, truncateDatetime2Date) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "   date.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   date.truncate('millennium', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "2000-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "2000-01-01");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "  date.truncate('century', other, {day: 2}) AS col0,\n"
+        "  date.truncate('century', other, {}) AS col1,\n"
+        "  date.truncate('decade', other, {day: 2}) AS col2,\n"
+        "  date.truncate('decade', other, {}) AS col3,\n"
+        "  date.truncate('year', other, {day: 2}) AS col4,\n"
+        "  date.truncate('year', other, {}) AS col5,\n"
+        "  date.truncate('month', other, {day: 2}) AS col6,\n"
+        "  date.truncate('month', other, {}) AS col7,\n"
+        "  date.truncate('week', other, {dayOfWeek: 2}) AS col8,\n"
+        "  date.truncate('week', other, {}) AS col9,\n"
+        "  date.truncate('day', other, {}) AS col10");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1900-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1900-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDate().ToString(),
+                  "1980-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDate().ToString(),
+                  "1980-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[4].data).AsDate().ToString(),
+                  "1984-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[5].data).AsDate().ToString(),
+                  "1984-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDate().ToString(),
+                  "1984-10-02");
+        EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDate().ToString(),
+                  "1984-10-01");
+        EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDate().ToString(),
+                  "1984-10-09");
+        EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDate().ToString(),
+                  "1984-10-08");
+        EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDate().ToString(),
+                  "1984-10-11");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 2, day: 1, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "   date.truncate('weekYear', other, {day: 5}) AS col0,\n"
+        "   date.truncate('weekYear', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1984-01-05");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1984-01-02");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "   date.truncate('quarter', other, {day: 2}) AS col0,\n"
+        "   date.truncate('quarter', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1984-10-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1984-10-01");
+    }
+    txn->Commit();
+}
+
+TEST(Date, truncateLocaldatetime2Date) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "   date.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   date.truncate('millennium', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "2000-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "2000-01-01");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "  date.truncate('century', other, {day: 2}) AS col0,\n"
+        "  date.truncate('century', other, {}) AS col1,\n"
+        "  date.truncate('decade', other, {day: 2}) AS col2,\n"
+        "  date.truncate('decade', other, {}) AS col3,\n"
+        "  date.truncate('year', other, {day: 2}) AS col4,\n"
+        "  date.truncate('year', other, {}) AS col5,\n"
+        "  date.truncate('month', other, {day: 2}) AS col6,\n"
+        "  date.truncate('month', other, {}) AS col7,\n"
+        "  date.truncate('week', other, {dayOfWeek: 2}) AS col8,\n"
+        "  date.truncate('week', other, {}) AS col9,\n"
+        "  date.truncate('day', other, {}) AS col10");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1900-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1900-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDate().ToString(),
+                  "1980-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDate().ToString(),
+                  "1980-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[4].data).AsDate().ToString(),
+                  "1984-01-02");
+        EXPECT_EQ(std::any_cast<Value>(record[5].data).AsDate().ToString(),
+                  "1984-01-01");
+        EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDate().ToString(),
+                  "1984-10-02");
+        EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDate().ToString(),
+                  "1984-10-01");
+        EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDate().ToString(),
+                  "1984-10-09");
+        EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDate().ToString(),
+                  "1984-10-08");
+        EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDate().ToString(),
+                  "1984-10-11");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 2, day: 1, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "   date.truncate('weekYear', other, {day: 5}) AS col0,\n"
+        "   date.truncate('weekYear', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1984-01-05");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1984-01-02");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "   date.truncate('quarter', other, {day: 2}) AS col0,\n"
+        "   date.truncate('quarter', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDate().ToString(),
+                  "1984-10-02");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDate().ToString(),
+                  "1984-10-01");
+    }
+    txn->Commit();
+}
+
 TEST(DateTime, dateTimeFromString) {
     EXPECT_EQ(common::DateTime("2015-07-21T21:40:32.142+0100").ToString(),
               "2015-07-21T21:40:32.142000000+01:00:00");
@@ -159,6 +467,611 @@ TEST(DateTime, dateTimeFromString) {
               "2015-07-20T21:40:00.000000000-02:00:00");
     EXPECT_EQ(common::DateTime("2015202T21+18:00").ToString(),
               "2015-07-21T21:00:00.000000000+18:00:00");
+}
+
+TEST(DateTime, truncateDate2Datetime) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 2017, month: 10, day: 11}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   datetime.truncate('millennium', other, {}) AS col1,\n"
+        "   datetime.truncate('millennium', other, {timezone: "
+        "'Europe/Stockholm'}) AS col2,\n"
+        "   datetime.truncate('century', other, {timezone: "
+        "'Europe/Stockholm'}) AS col3");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "2000-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 1984, month: 10, day: 11}) AS other\n"
+        "RETURN\n"
+        "  datetime.truncate('century', other, {day: 2}) AS col0,\n"
+        "  datetime.truncate('century', other, {}) AS col1,\n"
+        "  datetime.truncate('decade', other, {day: 2}) AS col2,\n"
+        "  datetime.truncate('decade', other, {}) AS col3,\n"
+        "  datetime.truncate('decade', other, {timezone: "
+        "'Europe/Stockholm'}) AS col4,\n"
+        "  datetime.truncate('year', other, {day: 2}) AS col5,\n"
+        "  datetime.truncate('year', other, {}) AS col6,\n"
+        "  datetime.truncate('year', other, {timezone: 'Europe/Stockholm'}) AS "
+        "col7,\n"
+        "  datetime.truncate('month', other, {day: 2}) AS col8,\n"
+        "  datetime.truncate('month', other, {}) AS col9,\n"
+        "  datetime.truncate('month', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col10,\n"
+        "  datetime.truncate('week', other, {dayOfWeek: 2}) AS col11,\n"
+        "  datetime.truncate('week', other, {}) AS col12,\n"
+        "  datetime.truncate('week', other, {timezone: 'Europe/Stockholm'}) AS "
+        "col13,\n"
+        "  datetime.truncate('day', other, {}) AS col14,\n"
+        "  datetime.truncate('day', other, {nanosecond: 2}) AS col15,\n"
+        "  datetime.truncate('day', other, {timezone: 'Europe/Stockholm'}) AS "
+        "col16");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1900-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1900-01-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDateTime().ToString(),
+                  "1980-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDateTime().ToString(),
+                  "1980-01-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[4].data).AsDateTime().ToString(),
+                  "1980-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[5].data).AsDateTime().ToString(),
+                  "1984-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDateTime().ToString(),
+                  "1984-01-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDateTime().ToString(),
+                  "1984-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDateTime().ToString(),
+                  "1984-10-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[11].data).AsDateTime().ToString(),
+                  "1984-10-09T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[12].data).AsDateTime().ToString(),
+                  "1984-10-08T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[13].data).AsDateTime().ToString(),
+                  "1984-10-08T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[14].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[15].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000002Z");
+        EXPECT_EQ(std::any_cast<Value>(record[16].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 1984, month: 2, day: 1}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('weekYear', other, {day: 5}) AS col0,\n"
+        "   datetime.truncate('weekYear', other, {}) AS col1,\n"
+        "   datetime.truncate('weekYear', other, {timezone: "
+        "'Europe/Stockholm'}) AS col2");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1984-01-05T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1984-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDateTime().ToString(),
+                  "1984-01-02T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 1984, month: 11, day: 11}) AS other\n"
+        "RETURN\n"
+        "  datetime.truncate('quarter', other, {day: 2}) AS col0,\n"
+        "  datetime.truncate('quarter', other, {}) AS col1,\n"
+        "  datetime.truncate('quarter', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col2");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1984-10-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+}
+
+TEST(DateTime, truncateDatetime2Datetime) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   datetime.truncate('millennium', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "2000-01-02T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '-01:00'}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('millennium', other, {timezone: "
+        "'Europe/Stockholm'}) AS col0,\n"
+        "   datetime.truncate('century', other, {timezone: "
+        "'Europe/Stockholm'}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "  datetime.truncate('century', other, {day: 2}) AS col0,\n"
+        "  datetime.truncate('century', other, {}) AS col1,\n"
+        "  datetime.truncate('decade', other, {day: 2}) AS col2,\n"
+        "  datetime.truncate('decade', other, {}) AS col3,\n"
+        "  datetime.truncate('year', other, {day: 2}) AS col4,\n"
+        "  datetime.truncate('year', other, {}) AS col5,\n"
+        "  datetime.truncate('month', other, {day: 2}) AS col6,\n"
+        "  datetime.truncate('month', other, {}) AS col7,\n"
+        "  datetime.truncate('week', other, {dayOfWeek: 2}) AS col8,\n"
+        "  datetime.truncate('week', other, {}) AS col9,\n"
+        "  datetime.truncate('day', other, {}) AS col10,\n"
+        "  datetime.truncate('day', other, {nanosecond: 2}) AS col11,\n"
+        "  datetime.truncate('second', other, {}) AS col12,\n"
+        "  datetime.truncate('second', other, {nanosecond: 2}) AS col13,\n"
+        "  datetime.truncate('millisecond', other, {}) AS col14,\n"
+        "  datetime.truncate('millisecond', other, {nanosecond: 2}) AS col15,\n"
+        "  datetime.truncate('microsecond', other, {}) AS col16,\n"
+        "  datetime.truncate('microsecond', other, {nanosecond: 2}) AS "
+        "col17");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1900-01-02T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1900-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDateTime().ToString(),
+                  "1980-01-02T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDateTime().ToString(),
+                  "1980-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[4].data).AsDateTime().ToString(),
+                  "1984-01-02T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[5].data).AsDateTime().ToString(),
+                  "1984-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDateTime().ToString(),
+                  "1984-10-02T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDateTime().ToString(),
+                  "1984-10-09T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDateTime().ToString(),
+                  "1984-10-08T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[11].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000002+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[12].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[13].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.000000002+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[14].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.645000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[15].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.645000002+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[16].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.645876000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[17].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.645876002+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '-01:00'}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('decade', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col0,\n"
+        "   datetime.truncate('year', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col1,\n"
+        "   datetime.truncate('month', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col2,\n"
+        "   datetime.truncate('week', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col3,\n"
+        "   datetime.truncate('day', other, {timezone: 'Europe/Stockholm'}) AS "
+        "col4,\n"
+        "   datetime.truncate('hour', other, {}) AS col5,\n"
+        "   datetime.truncate('hour', other, {nanosecond: 2}) AS col6,\n"
+        "   datetime.truncate('hour', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col7,\n"
+        "   datetime.truncate('minute', other, {}) AS col8,\n"
+        "   datetime.truncate('minute', other, {nanosecond: 2}) AS col9,\n"
+        "   datetime.truncate('minute', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col10");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1980-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1984-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDateTime().ToString(),
+                  "1984-10-08T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[4].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000000+01:00:00");
+
+        EXPECT_EQ(std::any_cast<Value>(record[5].data).AsDateTime().ToString(),
+                  "1984-10-11T12:00:00.000000000-01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDateTime().ToString(),
+                  "1984-10-11T12:00:00.000000002-01:00:00");
+        // EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDateTime().ToString(),
+        //           "1984-10-11T12:00:00.000000000+01:00:00");
+
+        EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:00.000000000-01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:00.000000002-01:00:00");
+        // EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDateTime().ToString(),
+        //           "1984-10-11T12:31:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('weekYear', other, {}) AS col0,\n"
+        "   datetime.truncate('weekYear', other, {day: 5}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1983-01-03T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1983-01-05T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '-01:00'}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('weekYear', other, {timezone: "
+        "'Europe/Stockholm'}) AS col0");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1983-01-03T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "  datetime.truncate('quarter', other, {day: 2}) AS col0,\n"
+        "  datetime.truncate('quarter', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1984-10-02T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '-01:00'}) AS other\n"
+        "RETURN\n"
+        "  datetime.truncate('quarter', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col0");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+}
+
+TEST(DateTime, truncateLocaldatetime2Datetime) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   datetime.truncate('millennium', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "2000-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000Z");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt =
+        txn->Execute(&rtx,
+                     "WITH localdatetime({year: 2017, month: 10, day: 11, "
+                     "hour: 12, minute: 31, "
+                     "second: 14, nanosecond: 645876123}) AS other\n"
+                     "RETURN\n"
+                     "   datetime.truncate('millennium', other, {timezone: "
+                     "'Europe/Stockholm'}) AS col0,\n"
+                     "   datetime.truncate('century', other, {timezone: "
+                     "'Europe/Stockholm'}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "2000-01-01T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "  datetime.truncate('century', other, {day: 2}) AS col0,\n"
+        "  datetime.truncate('century', other, {}) AS col1,\n"
+        "  datetime.truncate('decade', other, {day: 2}) AS col2,\n"
+        "  datetime.truncate('decade', other, {}) AS col3,\n"
+        "  datetime.truncate('year', other, {day: 2}) AS col4,\n"
+        "  datetime.truncate('year', other, {}) AS col5,\n"
+        "  datetime.truncate('month', other, {day: 2}) AS col6,\n"
+        "  datetime.truncate('month', other, {}) AS col7,\n"
+        "  datetime.truncate('week', other, {dayOfWeek: 2}) AS col8,\n"
+        "  datetime.truncate('week', other, {}) AS col9,\n"
+        "  datetime.truncate('day', other, {}) AS col10,\n"
+        "  datetime.truncate('day', other, {nanosecond: 2}) AS col11,\n"
+        "  datetime.truncate('second', other, {}) AS col12,\n"
+        "  datetime.truncate('second', other, {nanosecond: 2}) AS col13,\n"
+        "  datetime.truncate('millisecond', other, {}) AS col14,\n"
+        "  datetime.truncate('millisecond', other, {nanosecond: 2}) AS col15,\n"
+        "  datetime.truncate('microsecond', other, {}) AS col16,\n"
+        "  datetime.truncate('microsecond', other, {nanosecond: 2}) AS "
+        "col17");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1900-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1900-01-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDateTime().ToString(),
+                  "1980-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDateTime().ToString(),
+                  "1980-01-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[4].data).AsDateTime().ToString(),
+                  "1984-01-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[5].data).AsDateTime().ToString(),
+                  "1984-01-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDateTime().ToString(),
+                  "1984-10-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDateTime().ToString(),
+                  "1984-10-09T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDateTime().ToString(),
+                  "1984-10-08T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[11].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000002Z");
+        EXPECT_EQ(std::any_cast<Value>(record[12].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[13].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.000000002Z");
+        EXPECT_EQ(std::any_cast<Value>(record[14].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.645000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[15].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.645000002Z");
+        EXPECT_EQ(std::any_cast<Value>(record[16].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.645876000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[17].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:14.645876002Z");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('decade', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col0,\n"
+        "   datetime.truncate('year', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col1,\n"
+        "   datetime.truncate('month', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col2,\n"
+        "   datetime.truncate('week', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col3,\n"
+        "   datetime.truncate('day', other, {timezone: 'Europe/Stockholm'}) AS "
+        "col4,\n"
+        "   datetime.truncate('hour', other, {}) AS col5,\n"
+        "   datetime.truncate('hour', other, {nanosecond: 2}) AS col6,\n"
+        "   datetime.truncate('hour', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col7,\n"
+        "   datetime.truncate('minute', other, {}) AS col8,\n"
+        "   datetime.truncate('minute', other, {nanosecond: 2}) AS col9,\n"
+        "   datetime.truncate('minute', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col10");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1980-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1984-01-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[2].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[3].data).AsDateTime().ToString(),
+                  "1984-10-08T00:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[4].data).AsDateTime().ToString(),
+                  "1984-10-11T00:00:00.000000000+01:00:00");
+
+        EXPECT_EQ(std::any_cast<Value>(record[5].data).AsDateTime().ToString(),
+                  "1984-10-11T12:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDateTime().ToString(),
+                  "1984-10-11T12:00:00.000000002Z");
+        // EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDateTime().ToString(),
+        //           "1984-10-11T12:00:00.000000000+01:00:00");
+
+        EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:00.000000002Z");
+        // EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDateTime().ToString(),
+        //           "1984-10-11T12:31:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 1, day: 1, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "   datetime.truncate('weekYear', other, {}) AS col0,\n"
+        "   datetime.truncate('weekYear', other, {day: 5}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1983-01-03T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1983-01-05T00:00:00.000000000Z");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt =
+        txn->Execute(&rtx,
+                     "WITH localdatetime({year: 1984, month: 1, day: 1, hour: "
+                     "12, minute: 31, "
+                     "second: 14, nanosecond: 645876123}) AS other\n"
+                     "RETURN\n"
+                     "   datetime.truncate('weekYear', other, {timezone: "
+                     "'Europe/Stockholm'}) AS col0");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1983-01-03T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "  datetime.truncate('quarter', other, {day: 2}) AS col0,\n"
+        "  datetime.truncate('quarter', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1984-10-02T00:00:00.000000000Z");
+        EXPECT_EQ(std::any_cast<Value>(record[1].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000Z");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "  datetime.truncate('quarter', other, {timezone: 'Europe/Stockholm'}) "
+        "AS col0");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(record[0].data).AsDateTime().ToString(),
+                  "1984-10-01T00:00:00.000000000+01:00:00");
+    }
+    txn->Commit();
 }
 
 TEST(LocalDateTime, localDateTimeFromString) {
@@ -549,6 +1462,461 @@ TEST(LocalDateTime, localDateTimeFromMap) {
               "1984-10-11T12:31:14.123456789");
 }
 
+TEST(LocalDateTime, truncateDate2Localdatetime) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 2017, month: 10, day: 11}) AS other\n"
+        "RETURN\n"
+        "   localdatetime.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   localdatetime.truncate('millennium', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "2000-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "2000-01-01T00:00:00.000000000");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 1984, month: 10, day: 11}) AS other\n"
+        "RETURN\n"
+        "  localdatetime.truncate('century', other, {day: 2}) AS col0,\n"
+        "  localdatetime.truncate('century', other, {}) AS col1,\n"
+        "  localdatetime.truncate('decade', other, {day: 2}) AS col2,\n"
+        "  localdatetime.truncate('decade', other, {}) AS col3,\n"
+        "  localdatetime.truncate('year', other, {day: 2}) AS col4,\n"
+        "  localdatetime.truncate('year', other, {}) AS col5,\n"
+        "  localdatetime.truncate('month', other, {day: 2}) AS col6,\n"
+        "  localdatetime.truncate('month', other, {}) AS col7,\n"
+        "  localdatetime.truncate('week', other, {dayOfWeek: 2}) AS col8,\n"
+        "  localdatetime.truncate('week', other, {}) AS col9,\n"
+        "  localdatetime.truncate('day', other, {}) AS col10,\n"
+        "  localdatetime.truncate('day', other, {nanosecond: 2}) AS col11");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1900-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1900-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[2].data).AsLocalDateTime().ToString(),
+            "1980-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[3].data).AsLocalDateTime().ToString(),
+            "1980-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[4].data).AsLocalDateTime().ToString(),
+            "1984-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[5].data).AsLocalDateTime().ToString(),
+            "1984-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[6].data).AsLocalDateTime().ToString(),
+            "1984-10-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[7].data).AsLocalDateTime().ToString(),
+            "1984-10-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[8].data).AsLocalDateTime().ToString(),
+            "1984-10-09T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[9].data).AsLocalDateTime().ToString(),
+            "1984-10-08T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[10].data).AsLocalDateTime().ToString(),
+            "1984-10-11T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[11].data).AsLocalDateTime().ToString(),
+            "1984-10-11T00:00:00.000000002");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 1984, month: 2, day: 1}) AS other\n"
+        "RETURN\n"
+        "   localdatetime.truncate('weekYear', other, {day: 5}) AS col0,\n"
+        "   localdatetime.truncate('weekYear', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1984-01-05T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1984-01-02T00:00:00.000000000");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH date({year: 1984, month: 11, day: 11}) AS other\n"
+        "RETURN\n"
+        "  localdatetime.truncate('quarter', other, {day: 2}) AS col0,\n"
+        "  localdatetime.truncate('quarter', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1984-10-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1984-10-01T00:00:00.000000000");
+    }
+    txn->Commit();
+}
+
+TEST(LocalDateTime, truncateDatetime2Localdatetime) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 2017, month: 10, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "   localdatetime.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   localdatetime.truncate('millennium', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "2000-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "2000-01-01T00:00:00.000000000");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "  localdatetime.truncate('century', other, {day: 2}) AS col0,\n"
+        "  localdatetime.truncate('century', other, {}) AS col1,\n"
+        "  localdatetime.truncate('decade', other, {day: 2}) AS col2,\n"
+        "  localdatetime.truncate('decade', other, {}) AS col3,\n"
+        "  localdatetime.truncate('year', other, {day: 2}) AS col4,\n"
+        "  localdatetime.truncate('year', other, {}) AS col5,\n"
+        "  localdatetime.truncate('month', other, {day: 2}) AS col6,\n"
+        "  localdatetime.truncate('month', other, {}) AS col7,\n"
+        "  localdatetime.truncate('week', other, {dayOfWeek: 2}) AS col8,\n"
+        "  localdatetime.truncate('week', other, {}) AS col9,\n"
+        "  localdatetime.truncate('day', other, {}) AS col10,\n"
+        "  localdatetime.truncate('day', other, {nanosecond: 2}) AS col11,\n"
+        "  localdatetime.truncate('hour', other, {}) AS col12,\n"
+        "  localdatetime.truncate('hour', other, {nanosecond: 2}) AS col13,\n"
+        "  localdatetime.truncate('minute', other, {}) AS col14,\n"
+        "  localdatetime.truncate('minute', other, {nanosecond: 2}) AS col15,\n"
+        "  localdatetime.truncate('second', other, {}) AS col16,\n"
+        "  localdatetime.truncate('second', other, {nanosecond: 2}) AS col17,\n"
+        "  localdatetime.truncate('millisecond', other, {}) AS col18,\n"
+        "  localdatetime.truncate('millisecond', other, {nanosecond: 2}) AS "
+        "col19,\n"
+        "  localdatetime.truncate('microsecond', other, {}) AS col20,\n"
+        "  localdatetime.truncate('microsecond', other, {nanosecond: 2}) AS "
+        "col21");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1900-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1900-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[2].data).AsLocalDateTime().ToString(),
+            "1980-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[3].data).AsLocalDateTime().ToString(),
+            "1980-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[4].data).AsLocalDateTime().ToString(),
+            "1984-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[5].data).AsLocalDateTime().ToString(),
+            "1984-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[6].data).AsLocalDateTime().ToString(),
+            "1984-10-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[7].data).AsLocalDateTime().ToString(),
+            "1984-10-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[8].data).AsLocalDateTime().ToString(),
+            "1984-10-09T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[9].data).AsLocalDateTime().ToString(),
+            "1984-10-08T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[10].data).AsLocalDateTime().ToString(),
+            "1984-10-11T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[11].data).AsLocalDateTime().ToString(),
+            "1984-10-11T00:00:00.000000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[12].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[13].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:00:00.000000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[14].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[15].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:00.000000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[16].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[17].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.000000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[18].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.645000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[19].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.645000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[20].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.645876000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[21].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.645876002");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 1, day: 1, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "   localdatetime.truncate('weekYear', other, {}) AS col0,\n"
+        "   localdatetime.truncate('weekYear', other, {day: 5}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1983-01-03T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1983-01-05T00:00:00.000000000");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, "
+        "second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS other\n"
+        "RETURN\n"
+        "  localdatetime.truncate('quarter', other, {day: 2}) AS col0,\n"
+        "  localdatetime.truncate('quarter', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1984-10-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1984-10-01T00:00:00.000000000");
+    }
+    txn->Commit();
+}
+
+TEST(LocalDateTime, truncateLocaldatetime2Localdatetime) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 2017, month: 10, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "   localdatetime.truncate('millennium', other, {day: 2}) AS col0,\n"
+        "   localdatetime.truncate('millennium', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "2000-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "2000-01-01T00:00:00.000000000");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "  localdatetime.truncate('century', other, {day: 2}) AS col0,\n"
+        "  localdatetime.truncate('century', other, {}) AS col1,\n"
+        "  localdatetime.truncate('decade', other, {day: 2}) AS col2,\n"
+        "  localdatetime.truncate('decade', other, {}) AS col3,\n"
+        "  localdatetime.truncate('year', other, {day: 2}) AS col4,\n"
+        "  localdatetime.truncate('year', other, {}) AS col5,\n"
+        "  localdatetime.truncate('month', other, {day: 2}) AS col6,\n"
+        "  localdatetime.truncate('month', other, {}) AS col7,\n"
+        "  localdatetime.truncate('week', other, {dayOfWeek: 2}) AS col8,\n"
+        "  localdatetime.truncate('week', other, {}) AS col9,\n"
+        "  localdatetime.truncate('day', other, {}) AS col10,\n"
+        "  localdatetime.truncate('day', other, {nanosecond: 2}) AS col11,\n"
+        "  localdatetime.truncate('hour', other, {}) AS col12,\n"
+        "  localdatetime.truncate('hour', other, {nanosecond: 2}) AS col13,\n"
+        "  localdatetime.truncate('minute', other, {}) AS col14,\n"
+        "  localdatetime.truncate('minute', other, {nanosecond: 2}) AS col15,\n"
+        "  localdatetime.truncate('second', other, {}) AS col16,\n"
+        "  localdatetime.truncate('second', other, {nanosecond: 2}) AS col17,\n"
+        "  localdatetime.truncate('millisecond', other, {}) AS col18,\n"
+        "  localdatetime.truncate('millisecond', other, {nanosecond: 2}) AS "
+        "col19,\n"
+        "  localdatetime.truncate('microsecond', other, {}) AS col20,\n"
+        "  localdatetime.truncate('microsecond', other, {nanosecond: 2}) AS "
+        "col21");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1900-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1900-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[2].data).AsLocalDateTime().ToString(),
+            "1980-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[3].data).AsLocalDateTime().ToString(),
+            "1980-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[4].data).AsLocalDateTime().ToString(),
+            "1984-01-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[5].data).AsLocalDateTime().ToString(),
+            "1984-01-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[6].data).AsLocalDateTime().ToString(),
+            "1984-10-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[7].data).AsLocalDateTime().ToString(),
+            "1984-10-01T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[8].data).AsLocalDateTime().ToString(),
+            "1984-10-09T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[9].data).AsLocalDateTime().ToString(),
+            "1984-10-08T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[10].data).AsLocalDateTime().ToString(),
+            "1984-10-11T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[11].data).AsLocalDateTime().ToString(),
+            "1984-10-11T00:00:00.000000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[12].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[13].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:00:00.000000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[14].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[15].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:00.000000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[16].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[17].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.000000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[18].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.645000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[19].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.645000002");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[20].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.645876000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[21].data).AsLocalDateTime().ToString(),
+            "1984-10-11T12:31:14.645876002");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 1, day: 1, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "   localdatetime.truncate('weekYear', other, {}) AS col0,\n"
+        "   localdatetime.truncate('weekYear', other, {day: 5}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1983-01-03T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1983-01-05T00:00:00.000000000");
+    }
+    txn->Commit();
+
+    txn = graphDB->BeginTransaction();
+    resultIt = txn->Execute(
+        &rtx,
+        "WITH localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: "
+        "31, second: 14, nanosecond: 645876123}) AS other\n"
+        "RETURN\n"
+        "  localdatetime.truncate('quarter', other, {day: 2}) AS col0,\n"
+        "  localdatetime.truncate('quarter', other, {}) AS col1");
+    LOG_INFO(resultIt->GetHeader());
+    for (; resultIt->Valid(); resultIt->Next()) {
+        auto record = resultIt->GetRecord();
+        EXPECT_EQ(
+            std::any_cast<Value>(record[0].data).AsLocalDateTime().ToString(),
+            "1984-10-02T00:00:00.000000000");
+        EXPECT_EQ(
+            std::any_cast<Value>(record[1].data).AsLocalDateTime().ToString(),
+            "1984-10-01T00:00:00.000000000");
+    }
+    txn->Commit();
+}
+
 TEST(LocalTime, timeFromString) {
     EXPECT_EQ(common::LocalTime("21:40:32.142").ToString(), "21:40:32.142000000");
     EXPECT_EQ(common::LocalTime("214032.142").ToString(), "21:40:32.142000000");
@@ -816,8 +2184,6 @@ TEST(Time, localdatetimeNestedMap) {
                                        {"second", Value::Integer(42)}, {"timezone", Value::String("+05:00")}})).ToString(),
               "16:00:42.000000000+05:00:00");
 }
-
-static std::string test_db = "temporal_db";
 
 TEST(Time, truncate) {
     fs::remove_all(test_db);
