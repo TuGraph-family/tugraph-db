@@ -129,7 +129,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/leveldb-v1
     && ln -s /usr/local/lib/libleveldb.so.1.20 /usr/local/lib/libleveldb.so \
     && rm -rf /leveldb*
 
-# install node.js && pnpm
+# install node.js
 # if it is not accessible, replace it with the link below
 # https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.20.0-linux-x64.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.20.0-linux-x64.tar.gz \
@@ -139,11 +139,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.2
     && npm config set registry https://registry.npmmirror.com \
     && rm -rf /node-v16.20.0-linux-x64.tar.gz \
     && npm install --global yarn \
-    && npm install --global pnpm \
     && ln -s /node-v16.20.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
-    && ln -s /node-v16.20.0-linux-x64/bin/pnpm /usr/local/bin/pnpm \
-    && yarn config set registry https://registry.npmmirror.com \
-    && pnpm config set registry https://registry.npmmirror.com
+    && yarn config set registry https://registry.npmmirror.com
 
 # install lcov
 # if it is not accessible, replace it with the link below
@@ -348,12 +345,12 @@ RUN wget -O /tmp/openblas-faiss.tar.gz https://tugraph-web.oss-cn-beijing.aliyun
     && rm -rf /tmp/openblas-faiss /tmp/openblas-faiss.tar.gz && ldconfig
 
 # install vsag
-RUN wget -O /tmp/vsag.tar.gz https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/vsag.tar.gz \
-    && tar -xzvf /tmp/vsag.tar.gz -C /tmp \
-    && cd /tmp/vsag && sh ./scripts/deps/install_deps_centos.sh \
-    && yum install -y libgfortran && ln -s /usr/lib64/libgfortran.so.5 /usr/local/lib/libgfortran.so \
-    && ldconfig && make ${JFLAG} release VSAG_CMAKE_ARGS="-S. -Bbuild -DDISABLE_SSE_FORCE=OFF -DDISABLE_AVX_FORCE=OFF -DDISABLE_AVX2_FORCE=OFF -DDISABLE_AVX512_FORCE=ON" \
-    && make install && rm -rf /tmp/vsag /tmp/vsag.tar.gz /opt/intel
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/vsag-0.11.5.tar.gz -O /tmp/vsag.tar.gz && \
+    cd /tmp && mkdir vsag && tar -xzf vsag.tar.gz --strip-components=1 -C vsag && cd vsag && \
+    yum install -y libgfortran5.x86_64 && ln -s /usr/lib64/libgfortran.so.5.0.0 /usr/local/lib/libgfortran.so && ldconfig && \
+    mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
+    make -j10 && make install && \
+    cd / && rm -rf /tmp/vsag*
 
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
     LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
