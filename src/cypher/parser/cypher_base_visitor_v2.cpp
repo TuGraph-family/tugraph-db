@@ -421,6 +421,7 @@ std::any CypherBaseVisitorV2::visitOC_SetItem(LcypherParser::OC_SetItemContext *
     if (ctx->oC_PropertyExpression()) {
         auto update = ALLOC_GEAOBJECT(geax::frontend::UpdateProperties);
         node->appendItem(update);
+        update->setMode(geax::frontend::UpdateProperties::Mode::Property);
         VisitGuard guard(VisitType::kSetVariable, visit_types_);
         SWITCH_CONTEXT_VISIT(ctx->oC_PropertyExpression(), update);
         geax::frontend::Expr *expr = nullptr;

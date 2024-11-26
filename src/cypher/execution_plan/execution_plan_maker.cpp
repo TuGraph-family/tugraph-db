@@ -187,9 +187,7 @@ geax::frontend::GEAXErrorCode ExecutionPlanMaker::Build(geax::frontend::AstNode*
 std::string ExecutionPlanMaker::_DumpPlanBeforeConnect(int , bool ) const {
     std::string s = "Execution Plan Before Connect: \n";
     for (size_t i = 0; i < pattern_graph_root_.size(); i++) {
-        if (should_connect_[i]) {
-            OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
-        }
+        OpBase::DumpStream(pattern_graph_root_[i], 0, false, s);
     }
     return s;
 }

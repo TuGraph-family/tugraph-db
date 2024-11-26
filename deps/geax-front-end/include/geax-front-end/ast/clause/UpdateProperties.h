@@ -27,11 +27,12 @@ namespace frontend {
 class UpdateProperties : public SetItem {
 public:
      enum Mode {
-         Assign = 0, // set a = b;
-         Append  // set a += b;
+        Property = 0, // set a.name = b;
+        Assign,       // set a = b;
+        Append        // set a += b;
      };
     UpdateProperties() : SetItem(AstNodeType::kUpdateProperties),
-                          mode_(Mode::Assign), structs_(nullptr), variable_(nullptr) {}
+                          mode_(Mode::Property), structs_(nullptr), variable_(nullptr) {}
     ~UpdateProperties() = default;
 
     void setV(std::string&& v) { v_ = std::move(v); }
