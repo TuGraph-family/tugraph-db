@@ -558,6 +558,9 @@ int Vertex::GetDegree(graphdb::EdgeDirection direction) {
 }
 
 void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values) {
+    if (values.empty()) {
+        return;
+    }
     std::unordered_map<uint32_t, const Value*> original;
     std::unordered_map<uint32_t, std::string> serialized;
     std::unordered_set<uint32_t> pids;
@@ -922,6 +925,9 @@ std::unordered_map<std::string, Value> Edge::GetAllProperty() {
 }
 
 void Edge::SetProperties(const std::unordered_map<std::string, Value> &properties) {
+    if (properties.empty()) {
+        return;
+    }
     Lock();
     for (auto& [name, value] : properties) {
         auto pid = txn_->db()->id_generator().GetOrCreatePid(name);

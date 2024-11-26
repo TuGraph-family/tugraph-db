@@ -20,7 +20,7 @@
 #include "geax-front-end/ast/clause/SingleLabel.h"
 #include "geax-front-end/ast/clause/UpdateProperties.h"
 #include "geax-front-end/ast/stmt/SetStatement.h"
-
+using namespace geax::frontend;
 namespace cypher {
 
 void static ExtractLabelTree(std::vector<std::string> &labels, const geax::frontend::LabelTree *root) {
@@ -69,8 +69,8 @@ void OpGqlMerge::MergeNode(RTContext *ctx, const geax::frontend::Node *node_patt
     }
     if (!on_match) {
         /* ON CREATE */
-        for (const auto& pair : properties_on_create) {
-            properties_merge.insert(pair);
+        for (auto& [key, val] : properties_on_create) {
+            properties_merge.emplace(key, std::move(val));
         }
         v = ctx->txn_->CreateVertex({labels.begin(), labels.end()}, properties_merge);
         ctx->result_info_->statistics.vertices_created++;
@@ -146,12 +146,23 @@ void OpGqlMerge::ExtractProperties(RTContext *ctx, const std::string &var, std::
             if (props->v() != var) {
                 THROW_CODE(CypherException, "Variable `{}` not found", props->v());
             }
-            auto properties = props->structs()->properties();
-            for (auto property : properties) {
-                ArithExprNode ae(std::get<1>(property), *record->symbol_table);
+            if (props->mode() == UpdateProperties::Mode::Property) {
+                auto properties = props->structs()->properties();
+                for (auto property : properties) {
+                    ArithExprNode ae(std::get<1>(property),
+                                     *record->symbol_table);
+                    auto val = ae.Evaluate(ctx, *record);
+                    if (!val.IsScalar()) CYPHER_TODO();
+                    ex_props.emplace(std::get<0>(property),
+                                     std::move(val.constant));
+                }
+            } else if (props->mode() == UpdateProperties::Mode::Append) {
+                ArithExprNode ae(props->variable(), *record->symbol_table);
                 auto val = ae.Evaluate(ctx, *record);
-                if (!val.IsScalar()) CYPHER_TODO();
-                ex_props.emplace(std::get<0>(property), std::move(val.constant));
+                if (!val.IsMap()) CYPHER_TODO();
+                ex_props = val.constant.AsMap();
+            } else {
+                CYPHER_TODO();
             }
         }
     }
@@ -192,9 +203,15 @@ void OpGqlMerge::MergeChains(RTContext *ctx, const geax::frontend::Node *node_pa
     for (auto iter = src_node.vertex_->NewEdgeIterator(graphdb::EdgeDirection::OUTGOING, label, edge_properties, dst_node.vertex_.value());
          iter->Valid(); iter->Next()) {
         matched = true;
+        /* ON MATCH */
+        iter->GetEdge().SetProperties(properties_on_match);
         e = iter->GetEdge();
     }
     if (!matched) {
+        for (auto& [key, val] : properties_on_create) {
+            edge_properties.emplace(key, std::move(val));
+        }
+        /* ON CREATE */
         e = ctx->txn_->CreateEdge(src_node.vertex_.value(), dst_node.vertex_.value(), label, edge_properties);
         ctx->result_info_->statistics.edges_created++;
     }
