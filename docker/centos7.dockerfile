@@ -11,7 +11,7 @@ RUN cp -rf /etc/yum.repos.d /etc/yum.repos.d.bak && cd /etc/yum.repos.d && \
     sed -i 's|# baseurl=http://mirror\.centos\.org|baseurl=https://mirrors.aliyun.com|g' CentOS-SCLo-scl.repo && \
     yum clean all && yum makecache
 
-RUN yum -y install devtoolset-10 devtoolset-10-libasan-devel devtoolset-10-libstdc++-devel vim python3-devel passwd gfortran openssh-server rsync openssl-static git procps iproute findutils tar wget which autoconf automake libtool
+RUN yum -y install devtoolset-10 devtoolset-10-libasan-devel devtoolset-10-libstdc++-devel vim python3-devel passwd gfortran openssh-server rsync openssl-static git procps iproute findutils tar wget which autoconf automake libtool openblas-devel
 
 RUN echo "source /opt/rh/devtoolset-10/enable" >> /etc/bashrc
 SHELL ["/bin/bash", "--login", "-c"]
@@ -100,6 +100,12 @@ RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/vsag_v0
     mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
     make -j10 && make install && \
     cd / && rm -rf /tmp/vsag*
+
+RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/faiss_v1.9.0.tar.gz -O /tmp/faiss.tar.gz && \
+    cd /tmp && mkdir faiss && tar -xzf faiss.tar.gz --strip-components=1 -C faiss && cd faiss && \
+    mkdir build && cd build && cmake -DFAISS_ENABLE_GPU=OFF -DFAISS_ENABLE_PYTHON=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DFAISS_OPT_LEVEL=generic .. && \
+    make -j10 && make install && \
+    cd / && rm -rf /tmp/faiss*
 
 RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/json_v3.11.3.tar.gz -O /tmp/nlohmann.tar.gz && \
     cd /tmp && mkdir nlohmann && tar -xzf nlohmann.tar.gz --strip-components=1 -C nlohmann && cd nlohmann && \
