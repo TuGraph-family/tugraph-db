@@ -235,7 +235,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
           </div>
         </Cascader>
 
-        <Tooltip title={getPlaceholderByLanguage(getCurrentLanguage())}>
+        <Tooltip title={getPlaceholderByLanguage(getCurrentLanguage())} trigger={['hover', 'click']} >
           <div className="searchWrapper">
             <DocSearch
               {...{

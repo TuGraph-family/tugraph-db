@@ -44,6 +44,10 @@
   cursor: pointer !important;
 }
 
+.headerlink {
+  display: none;
+}
+
 /* Sidebar Style */
 .thin-scrollbar {
   padding: 0 !important;
