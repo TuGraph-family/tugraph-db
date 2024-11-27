@@ -837,6 +837,7 @@ void Schema::_SetVariableLengthValue(Value& record, const Value& data,
     // adjust offset of other fields
     for (size_t i = extr->GetFieldId() + 1; i < count; i++) {
         if (fields_[i]->IsFixedType()) continue;
+        if (fields_[i]->IsDeleted()) continue;
         size_t offset = extr->GetFieldOffset(record, i);
         size_t var_offset = ::lgraph::_detail::UnalignedGet<DataOffset>(rptr + offset);
         ::lgraph::_detail::UnalignedSet<DataOffset>(rptr + offset, var_offset + diff);

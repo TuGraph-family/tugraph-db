@@ -456,18 +456,9 @@ class Schema {
             _detail::FieldExtractorBase* extr = GetFieldExtractor(name_or_num);
             is_set[extr->GetFieldId()] = true;
             if (_F_UNLIKELY(extr->Type() == FieldType::BLOB)) {
-                if (fast_alter_schema) {
-                    ParseAndSetBlob(prop, data, on_large_blob, extr);
-                } else {
-                    GetFieldExtractorV1(extr)->ParseAndSetBlob(prop, data,
-                                                                                  on_large_blob);
-                }
+                ParseAndSetBlob(prop, data, on_large_blob, extr);
             } else {
-                if (fast_alter_schema) {
-                    ParseAndSet(prop, data, extr);
-                } else {
-                    GetFieldExtractorV1(extr)->ParseAndSet(prop, data);
-                }
+                ParseAndSet(prop, data, extr);
             }
         }
         for (size_t i = 0; i < fields_.size(); i++) {
