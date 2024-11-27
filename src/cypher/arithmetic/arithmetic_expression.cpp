@@ -28,6 +28,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <boost/algorithm/string.hpp>
 
 #include "common/logger.h"
 #include "cypher/cypher_exception.h"
@@ -246,6 +247,131 @@ Value BuiltinFunction::Concat(RTContext *ctx, const Record &record,
     }
 
     THROW_CODE(CypherException, "Function `CONCAT()` is not supported for: " + arg1.ToString());
+}
+
+Value BuiltinFunction::ToLower(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    std::transform(arg1.begin(), arg1.end(), arg1.begin(), [](unsigned char c) {
+        return std::tolower(c);
+    });
+    return Value(std::move(arg1));
+}
+
+Value BuiltinFunction::ToUpper(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    std::transform(arg1.begin(), arg1.end(), arg1.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
+    return Value(std::move(arg1));
+}
+
+static std::string ltrim(const std::string& s) {
+    auto it = std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    });
+    return {it, s.end()};
+}
+
+static std::string rtrim(const std::string& s) {
+    auto it = std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    });
+    return {s.begin(), it.base()};
+}
+
+static std::string trim(const std::string& s) {
+    return ltrim(rtrim(s));
+}
+
+Value BuiltinFunction::Trim(RTContext *ctx, const Record &record,
+                                        const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    return Value(trim(arg1));
+}
+
+Value BuiltinFunction::Ltrim(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    return Value(ltrim(arg1));
+}
+
+Value BuiltinFunction::Rtrim(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    return Value(rtrim(arg1));
+}
+
+Value BuiltinFunction::Replace(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args) {
+    if (args.size() != 4) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    auto arg2_entry = args[2].Evaluate(ctx, record);
+    std::string arg2 = arg2_entry.constant.AsString();
+    auto arg3_entry = args[3].Evaluate(ctx, record);
+    std::string arg3 = arg3_entry.constant.AsString();
+    size_t pos = 0;
+    while ((pos = arg1.find(arg2, pos)) != std::string::npos) {
+        arg1.replace(pos, arg2.length(), arg3);
+        pos += arg3.length();
+    }
+    return Value(std::move(arg1));
+}
+
+Value BuiltinFunction::Split(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    auto arg2_entry = args[2].Evaluate(ctx, record);
+    std::string arg2 = arg2_entry.constant.AsString();
+    std::vector<std::string> split_result;
+    boost::algorithm::split(split_result, arg1, boost::is_any_of(arg2));
+    return Value(split_result);
+}
+
+Value BuiltinFunction::Left(RTContext *ctx, const Record &record,
+                                        const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    auto arg2_entry = args[2].Evaluate(ctx, record);
+    int64_t arg2 = arg2_entry.constant.AsInteger();
+    if (arg2 < 0) THROW_CODE(InvalidParameter);
+    return Value(arg1.substr(0, std::min((size_t)arg2, arg1.size())));
+}
+
+Value BuiltinFunction::Right(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    auto arg2_entry = args[2].Evaluate(ctx, record);
+    int64_t arg2 = arg2_entry.constant.AsInteger();
+    if (arg2 < 0) THROW_CODE(InvalidParameter);
+    size_t len = std::min((size_t)arg2, arg1.size());
+    return Value(arg1.substr(arg1.size() - len, len));
+}
+
+Value BuiltinFunction::Reverse(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.AsString();
+    std::reverse(arg1.begin(), arg1.end());
+    return Value(std::move(arg1));
 }
 
 Value BuiltinFunction::Mask(RTContext *ctx, const Record &record,

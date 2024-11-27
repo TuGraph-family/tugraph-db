@@ -449,3 +449,76 @@ Feature: test expression
       |<(:Person{birthyear:1910,name:'RachelKempson'})-[:MARRIED]->(:Person{birthyear:1908,name:'MichaelRedgrave'})-[:HAS_CHILD]->(:Person{birthyear:1939,name:'CorinRedgrave'})>      |(:Person{birthyear:1939,name:'CorinRedgrave'})    |
       |<(:Person{birthyear:1910,name:'RachelKempson'})-[:MARRIED]->(:Person{birthyear:1908,name:'MichaelRedgrave'})-[:MARRIED]->(:Person{birthyear:1910,name:'RachelKempson'})>        |(:Person{birthyear:1910,name:'RachelKempson'})    |
       |<(:Person{birthyear:1910,name:'RachelKempson'})-[:MARRIED]->(:Person{birthyear:1908,name:'MichaelRedgrave'})-[:ACTED_IN{charactername:'TheHeadmaster'}]->(:Film{title:'GoodbyeMr.Chips'})>|(:Film{title:'GoodbyeMr.Chips'})        |
+
+  Scenario: case02
+    Given an empty graph
+    When executing query
+    """
+    RETURN toLower("TuGraph") as ret;
+    """
+    Then the result should be, in any order
+    | ret |
+    | 'tugraph' |
+    When executing query
+    """
+    RETURN toUpper("TuGraph") as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | 'TUGRAPH' |
+    When executing query
+    """
+    RETURN trim("  TuGraph  ") as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | 'TuGraph' |
+    When executing query
+    """
+    RETURN replace("Hello TuGraph", "TuGraph", "World") as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | 'Hello World' |
+    When executing query
+    """
+    RETURN split("TuGraph,Graph,Database", ",") as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | ['TuGraph','Graph','Database'] |
+    When executing query
+    """
+    RETURN left("TuGraph", 3) as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | 'TuG' |
+    When executing query
+    """
+    RETURN right("TuGraph", 2) as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | 'ph' |
+    When executing query
+    """
+    RETURN reverse("TuGraph") as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | 'hparGuT' |
+    When executing query
+    """
+    RETURN lTrim("  TuGraph  ") as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | 'TuGraph  ' |
+    When executing query
+    """
+    RETURN rTrim("  TuGraph  ") as ret;
+    """
+    Then the result should be, in any order
+      | ret |
+      | '  TuGraph' |

@@ -190,9 +190,28 @@ struct BuiltinFunction {
     /* String functions - string types */
     static Value SubString(RTContext *ctx, const Record &record,
                                        const std::vector<ArithExprNode> &args);
-
     static Value Concat(RTContext *ctx, const Record &record,
                                     const std::vector<ArithExprNode> &args);
+    static Value ToLower(RTContext *ctx, const Record &record,
+                                     const std::vector<ArithExprNode> &args);
+    static Value ToUpper(RTContext *ctx, const Record &record,
+                                     const std::vector<ArithExprNode> &args);
+    static Value Trim(RTContext *ctx, const Record &record,
+                      const std::vector<ArithExprNode> &args);
+    static Value Ltrim(RTContext *ctx, const Record &record,
+                       const std::vector<ArithExprNode> &args);
+    static Value Rtrim(RTContext *ctx, const Record &record,
+                       const std::vector<ArithExprNode> &args);
+    static Value Replace(RTContext *ctx, const Record &record,
+                         const std::vector<ArithExprNode> &args);
+    static Value Split(RTContext *ctx, const Record &record,
+                       const std::vector<ArithExprNode> &args);
+    static Value Left(RTContext *ctx, const Record &record,
+                      const std::vector<ArithExprNode> &args);
+    static Value Right(RTContext *ctx, const Record &record,
+                       const std::vector<ArithExprNode> &args);
+    static Value Reverse(RTContext *ctx, const Record &record,
+                         const std::vector<ArithExprNode> &args);
 
     static Value Mask(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
@@ -448,6 +467,17 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("regexp", BuiltinFunction::Regexp);
         ae_registered_funcs.emplace("substring", BuiltinFunction::SubString);
         ae_registered_funcs.emplace("concat", BuiltinFunction::Concat);
+        ae_registered_funcs.emplace("tolower", BuiltinFunction::ToLower);
+        ae_registered_funcs.emplace("toupper", BuiltinFunction::ToUpper);
+        ae_registered_funcs.emplace("trim", BuiltinFunction::Trim);
+        ae_registered_funcs.emplace("ltrim", BuiltinFunction::Ltrim);
+        ae_registered_funcs.emplace("rtrim", BuiltinFunction::Rtrim);
+        ae_registered_funcs.emplace("replace", BuiltinFunction::Replace);
+        ae_registered_funcs.emplace("split", BuiltinFunction::Split);
+        ae_registered_funcs.emplace("left", BuiltinFunction::Left);
+        ae_registered_funcs.emplace("right", BuiltinFunction::Right);
+        ae_registered_funcs.emplace("reverse", BuiltinFunction::Reverse);
+
         ae_registered_funcs.emplace("mask", BuiltinFunction::Mask);
         ae_registered_funcs.emplace("date", BuiltinFunction::Date);
         ae_registered_funcs.emplace("localdatetime", BuiltinFunction::LocalDateTime);
