@@ -2501,19 +2501,76 @@ TEST(Duration, betweenFunction) {
                                         Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:40:36.143")), "MONTH").ToString(), "P-2Y");
     EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2018-07-21T21:40:36.143+0500")),
                                         Value::DateTime(common::DateTime("1984-07-21T22:40:36.143+0200")), "MONTH").ToString(), "P-33Y-11M");
-//    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime(Value::Map({
-//                                            {"year", Value::Integer(2017)},
-//                                            {"month", Value::Integer(10)},
-//                                            {"day", Value::Integer(29)},
-//                                            {"hour", Value::Integer(0)},
-//                                            {"timezone", Value::String("Europe/Stockholm")}
-//                                        }))),
-//                                        Value::LocalDateTime(common::LocalDateTime(Value::Map({
-//                                            {"year", Value::Integer(2017)},
-//                                            {"month", Value::Integer(10)},
-//                                            {"day", Value::Integer(29)},
-//                                            {"hour", Value::Integer(4)},
-//                                        }))), "SECOND").ToString(), "PT5H");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)},
+                                            {"hour", Value::Integer(0)},
+                                            {"timezone", Value::String("Europe/Stockholm")}
+                                        }))),
+                                        Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)},
+                                            {"hour", Value::Integer(4)},
+                                        }))), "SECOND").ToString(), "PT4H");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)},
+                                            {"hour", Value::Integer(0)},
+                                            {"timezone", Value::String("Europe/Stockholm")}
+                                        }))),
+                                        Value::LocalTime(common::LocalTime(Value::Map({
+                                            {"hour", Value::Integer(4)},
+                                        }))), "SECOND").ToString(), "PT4H");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)},
+                                            {"hour", Value::Integer(0)}
+                                        }))),
+                                        Value::DateTime(common::DateTime(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)},
+                                            {"hour", Value::Integer(4)},
+                                            {"timezone", Value::String("Europe/Stockholm")}
+                                        }))), "SECOND").ToString(), "PT4H");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime(Value::Map({
+                                            {"hour", Value::Integer(0)}
+                                        }))),
+                                        Value::DateTime(common::DateTime(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)},
+                                            {"hour", Value::Integer(4)},
+                                            {"timezone", Value::String("Europe/Stockholm")}
+                                        }))), "SECOND").ToString(), "PT4H");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)}
+                                        }))),
+                                        Value::DateTime(common::DateTime(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)},
+                                            {"hour", Value::Integer(4)},
+                                            {"timezone", Value::String("Europe/Stockholm")}
+                                        }))), "SECOND").ToString(), "PT4H");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(29)},
+                                            {"hour", Value::Integer(0)},
+                                            {"timezone", Value::String("Europe/Stockholm")}
+                                        }))),
+                                        Value::Date(common::Date(Value::Map({
+                                            {"year", Value::Integer(2017)},
+                                            {"month", Value::Integer(10)},
+                                            {"day", Value::Integer(30)}
+                                        }))), "SECOND").ToString(), "PT24H");
     EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:54.7")),
                                         Value::LocalTime(common::LocalTime("12:34:54.3")), "SECOND").ToString(), "PT-0.4S");
     EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:54.3")),

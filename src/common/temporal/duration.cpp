@@ -98,6 +98,22 @@ int64_t Duration::getTimeValue(const Value& d) {
     }
 }
 
+int64_t Duration::getTimeValueWithOffset(const Value &d) {
+    if (d.IsDate()) {
+        return d.AsDate().GetStorage() * SECONDS_PER_DAY * NANOS_PER_SECOND;
+    } else if (d.IsDateTime()) {
+        return std::get<0>(d.AsDateTime().GetStorage());
+    } else if (d.IsLocalDateTime()) {
+        return d.AsLocalDateTime().GetStorage();
+    } else if (d.IsTime()) {
+        return std::get<0>(d.AsTime().GetStorage());
+    } else if (d.IsLocalTime()) {
+        return d.AsLocalTime().GetStorage();
+    } else {
+        THROW_CODE(InvalidParameter, "The type of {} is not time", d.ToString());
+    }
+}
+
 bool Duration::hasDate(const Value &d) {
     return d.IsDate() || d.IsDateTime() || d.IsLocalDateTime();
 }
@@ -119,9 +135,9 @@ int64_t Duration::getZoneOffsetTime(const Value &d) {
 Duration Duration::between(const Value& from, const Value& to, const std::string& unit) {
     int64_t from_nanos = getTimeValue(from), to_nanos = getTimeValue(to);
     if (hasDate(from) && !hasDate(to)) {
-        to_nanos = to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + from_nanos / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        to_nanos = to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + getTimeValueWithOffset(from) / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
     } else if (!hasDate(from) && hasDate(to)) {
-        from_nanos = from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + to_nanos / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        from_nanos = from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + getTimeValueWithOffset(to) / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
     }
     if (hasZone(from) && !hasZone(to)) {
         to_nanos -= getZoneOffsetTime(from);
