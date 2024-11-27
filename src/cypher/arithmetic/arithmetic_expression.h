@@ -361,6 +361,29 @@ struct BuiltinFunction {
     static cypher::FieldData Exists(RTContext *ctx, const Record &record,
                                   const std::vector<ArithExprNode> &args);
 
+    static cypher::FieldData ToLower(RTContext *ctx, const Record &record,
+                                    const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData ToUpper(RTContext *ctx, const Record &record,
+                                     const std::vector<ArithExprNode> &args);
+
+    static cypher::FieldData Trim(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    static cypher::FieldData Ltrim(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    static cypher::FieldData Rtrim(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    static cypher::FieldData Replace(RTContext *ctx, const Record &record,
+                                   const std::vector<ArithExprNode> &args);
+    static cypher::FieldData Split(RTContext *ctx, const Record &record,
+                                   const std::vector<ArithExprNode> &args);
+    static cypher::FieldData Left(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    static cypher::FieldData Right(RTContext *ctx, const Record &record,
+                                   const std::vector<ArithExprNode> &args);
+    static cypher::FieldData Reverse(RTContext *ctx, const Record &record,
+                                     const std::vector<ArithExprNode> &args);
+
     /* binary function (open cypher extension) */
     static cypher::FieldData Bin(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
@@ -585,11 +608,22 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("polygon", BuiltinFunction::Polygon);
         ae_registered_funcs.emplace("polygonwkb", BuiltinFunction::PolygonWKB);
         ae_registered_funcs.emplace("polygonwkt", BuiltinFunction::PolygonWKT);
+
         ae_registered_funcs.emplace("startswith", BuiltinFunction::StartsWith);
         ae_registered_funcs.emplace("endswith", BuiltinFunction::EndsWith);
         ae_registered_funcs.emplace("contains", BuiltinFunction::Contains);
         ae_registered_funcs.emplace("regexp", BuiltinFunction::Regexp);
         ae_registered_funcs.emplace("exists", BuiltinFunction::Exists);
+        ae_registered_funcs.emplace("tolower", BuiltinFunction::ToLower);
+        ae_registered_funcs.emplace("toupper", BuiltinFunction::ToUpper);
+        ae_registered_funcs.emplace("trim", BuiltinFunction::Trim);
+        ae_registered_funcs.emplace("ltrim", BuiltinFunction::Ltrim);
+        ae_registered_funcs.emplace("rtrim", BuiltinFunction::Rtrim);
+        ae_registered_funcs.emplace("replace", BuiltinFunction::Replace);
+        ae_registered_funcs.emplace("split", BuiltinFunction::Split);
+        ae_registered_funcs.emplace("left", BuiltinFunction::Left);
+        ae_registered_funcs.emplace("right", BuiltinFunction::Right);
+        ae_registered_funcs.emplace("reverse", BuiltinFunction::Reverse);
 
         /* native API-like functions */
         ae_registered_funcs.emplace("native.getedgefield", BuiltinFunction::NativeGetEdgeField);
