@@ -1125,4 +1125,57 @@ TEST(Duration, betweenFunction) {
                                         Value::Time(common::Time("16:30+0100")), "SECOND").ToString(), "PT-4H-10M-36.143S");
     EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2014-07-21T21:40:36.143")),
                                         Value::LocalDateTime(common::LocalDateTime("2014-07-21T21:40:36.142")), "SECOND").ToString(), "PT-0.001S");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("2018-03-11")),
+                                        Value::Date(common::Date("2016-06-24")), "MONTH").ToString(), "P-1Y-8M");
+    EXPECT_EQ(common::Duration::between(Value::Date(common::Date("2018-07-21")),
+                                        Value::DateTime(common::DateTime("2016-07-21T21:40:32.142+0100")), "MONTH").ToString(), "P-1Y-11M");
+    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime("2018-07-21T21:40:32.142")),
+                                        Value::Date(common::Date("2016-07-21")), "MONTH").ToString(), "P-2Y");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2018-07-21T21:40:36.143+0200")),
+                                        Value::LocalDateTime(common::LocalDateTime("2016-07-21T21:40:36.143")), "MONTH").ToString(), "P-2Y");
+    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime("2018-07-21T21:40:36.143+0500")),
+                                        Value::DateTime(common::DateTime("1984-07-21T22:40:36.143+0200")), "MONTH").ToString(), "P-33Y-11M");
+//    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime(Value::Map({
+//                                            {"year", Value::Integer(2017)},
+//                                            {"month", Value::Integer(10)},
+//                                            {"day", Value::Integer(29)},
+//                                            {"hour", Value::Integer(0)},
+//                                            {"timezone", Value::String("Europe/Stockholm")}
+//                                        }))),
+//                                        Value::LocalDateTime(common::LocalDateTime(Value::Map({
+//                                            {"year", Value::Integer(2017)},
+//                                            {"month", Value::Integer(10)},
+//                                            {"day", Value::Integer(29)},
+//                                            {"hour", Value::Integer(4)},
+//                                        }))), "SECOND").ToString(), "PT5H");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:54.7")),
+                                        Value::LocalTime(common::LocalTime("12:34:54.3")), "SECOND").ToString(), "PT-0.4S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:54.3")),
+                                        Value::LocalTime(common::LocalTime("12:34:54.7")), "SECOND").ToString(), "PT0.4S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:54.7")),
+                                        Value::LocalTime(common::LocalTime("12:34:55.3")), "SECOND").ToString(), "PT0.6S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:54.7")),
+                                        Value::LocalTime(common::LocalTime("12:44:55.3")), "SECOND").ToString(), "PT10M0.6S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:44:54.7")),
+                                        Value::LocalTime(common::LocalTime("12:34:55.3")), "SECOND").ToString(), "PT-9M-59.4S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:56")),
+                                        Value::LocalTime(common::LocalTime("12:34:55.7")), "SECOND").ToString(), "PT-0.3S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:56")),
+                                        Value::LocalTime(common::LocalTime("12:44:55.7")), "SECOND").ToString(), "PT9M59.7S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:44:56")),
+                                        Value::LocalTime(common::LocalTime("12:34:55.7")), "SECOND").ToString(), "PT-10M-0.3S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:56.3")),
+                                        Value::LocalTime(common::LocalTime("12:34:54.7")), "SECOND").ToString(), "PT-1.6S");
+    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime("12:34:54.7")),
+                                        Value::LocalTime(common::LocalTime("12:34:56.3")), "SECOND").ToString(), "PT1.6S");
+//    EXPECT_EQ(common::Duration::between(Value::LocalTime(common::LocalTime()),
+//                                        Value::LocalTime(common::LocalTime()), "SECOND").ToString(), "PT0S");
+//    EXPECT_EQ(common::Duration::between(Value::Time(common::Time()),
+//                                        Value::Time(common::Time()), "SECOND").ToString(), "PT0S");
+//    EXPECT_EQ(common::Duration::between(Value::Date(common::Date()),
+//                                        Value::Date(common::Date()), "SECOND").ToString(), "PT0S");
+//    EXPECT_EQ(common::Duration::between(Value::LocalDateTime(common::LocalDateTime()),
+//                                        Value::LocalDateTime(common::LocalDateTime()), "SECOND").ToString(), "PT0S");
+//    EXPECT_EQ(common::Duration::between(Value::DateTime(common::DateTime()),
+//                                        Value::DateTime(common::DateTime()), "SECOND").ToString(), "PT0S");
 }

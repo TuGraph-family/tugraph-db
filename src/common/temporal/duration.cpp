@@ -132,23 +132,25 @@ Duration Duration::between(const Value& from, const Value& to, const std::string
     int64_t month = 0, day = 0, all_day = 0;
     if (std::abs(bet) >= SECONDS_PER_DAY * NANOS_PER_SECOND) {
         bet %= (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        auto from_day_nanos = from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        auto to_day_nanos = to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND);
         auto start_ymd = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(from_nanos)))};
         auto end_ymd = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(to_nanos)))};
         month = (date::year_month(end_ymd.year(), end_ymd.month()) - date::year_month(start_ymd.year(), start_ymd.month())).count();
         all_day = (date::sys_days(end_ymd) - date::sys_days(start_ymd)).count();
-        if (month > 0 && (start_ymd + date::months(month) > end_ymd || (start_ymd + date::months(month) == end_ymd && bet < 0))) {
+        if (month > 0 && (start_ymd + date::months(month) > end_ymd || (start_ymd + date::months(month) == end_ymd && from_day_nanos > to_day_nanos))) {
             month--;
         }
-        if (month < 0 && (start_ymd + date::months(month) < end_ymd || (start_ymd + date::months(month) == end_ymd && bet > 0))) {
+        if (month < 0 && (start_ymd + date::months(month) < end_ymd || (start_ymd + date::months(month) == end_ymd && from_day_nanos < to_day_nanos))) {
             month++;
         }
         start_ymd += date::months(month);
         day = (date::sys_days(end_ymd) - date::sys_days(start_ymd)).count();
-        if (day > 0 && from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) > to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND)) {
+        if (day > 0 && from_day_nanos > to_day_nanos) {
             day--;
             all_day--;
         }
-        if (day < 0 && from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) < to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND)) {
+        if (day < 0 && from_day_nanos < to_day_nanos) {
             day++;
             all_day++;
         }
