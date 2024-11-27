@@ -40,6 +40,7 @@ class Duration {
     static double parseFractional(const std::string& input, size_t pos);
     static int64_t optLong(const std::string& value);
     static int64_t getTimeValue(const Value& d);
+    static int64_t getTimeValueWithOffset(const Value& d);
     static bool hasDate(const Value& d);
     static bool hasZone(const Value& d);
     static int64_t getZoneOffsetTime(const Value& d);
@@ -51,7 +52,7 @@ class Duration {
     explicit Duration(const Value& params);
     explicit Duration(const std::string& str);
     explicit Duration(int64_t m = 0, int64_t d = 0, int64_t s = 0, int64_t n = 0);
-    static Duration between(const Value& from, const Value& to);
+    static Duration between(const Value& from, const Value& to, const std::string& unit = "");
 
     [[nodiscard]] std::string ToString() const;
     Duration& operator=(const Duration& other);

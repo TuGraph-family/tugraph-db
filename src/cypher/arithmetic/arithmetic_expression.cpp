@@ -817,10 +817,28 @@ Value BuiltinFunction::TimeTruncate(RTContext *ctx, const Record &record, const 
     return Value::Time(common::Time(Value::Map(std::get<0>(d)), std::get<1>(d)));
 }
 
-Value BuiltinFunction::Between(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+Value BuiltinFunction::DurationBetween(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
     CYPHER_THROW_ASSERT(args.size() == 3);
     auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
     return Value::Duration(common::Duration::between(from.constant, to.constant));
+}
+
+Value BuiltinFunction::DurationInSeconds(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+    CYPHER_THROW_ASSERT(args.size() == 3);
+    auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
+    return Value::Duration(common::Duration::between(from.constant, to.constant, "SECOND"));
+}
+
+Value BuiltinFunction::DurationInDays(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+    CYPHER_THROW_ASSERT(args.size() == 3);
+    auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
+    return Value::Duration(common::Duration::between(from.constant, to.constant, "DAY"));
+}
+
+Value BuiltinFunction::DurationInMonths(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
+    CYPHER_THROW_ASSERT(args.size() == 3);
+    auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
+    return Value::Duration(common::Duration::between(from.constant, to.constant, "MONTH"));
 }
 
 Value BuiltinFunction::Duration(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {

@@ -98,6 +98,22 @@ int64_t Duration::getTimeValue(const Value& d) {
     }
 }
 
+int64_t Duration::getTimeValueWithOffset(const Value &d) {
+    if (d.IsDate()) {
+        return d.AsDate().GetStorage() * SECONDS_PER_DAY * NANOS_PER_SECOND;
+    } else if (d.IsDateTime()) {
+        return std::get<0>(d.AsDateTime().GetStorage());
+    } else if (d.IsLocalDateTime()) {
+        return d.AsLocalDateTime().GetStorage();
+    } else if (d.IsTime()) {
+        return std::get<0>(d.AsTime().GetStorage());
+    } else if (d.IsLocalTime()) {
+        return d.AsLocalTime().GetStorage();
+    } else {
+        THROW_CODE(InvalidParameter, "The type of {} is not time", d.ToString());
+    }
+}
+
 bool Duration::hasDate(const Value &d) {
     return d.IsDate() || d.IsDateTime() || d.IsLocalDateTime();
 }
@@ -116,12 +132,12 @@ int64_t Duration::getZoneOffsetTime(const Value &d) {
     }
 }
 
-Duration Duration::between(const Value& from, const Value& to) {
+Duration Duration::between(const Value& from, const Value& to, const std::string& unit) {
     int64_t from_nanos = getTimeValue(from), to_nanos = getTimeValue(to);
     if (hasDate(from) && !hasDate(to)) {
-        to_nanos = to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + from_nanos / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        to_nanos = to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + getTimeValueWithOffset(from) / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
     } else if (!hasDate(from) && hasDate(to)) {
-        from_nanos = from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + to_nanos / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        from_nanos = from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) + getTimeValueWithOffset(to) / (SECONDS_PER_DAY * NANOS_PER_SECOND) * (SECONDS_PER_DAY * NANOS_PER_SECOND);
     }
     if (hasZone(from) && !hasZone(to)) {
         to_nanos -= getZoneOffsetTime(from);
@@ -129,28 +145,44 @@ Duration Duration::between(const Value& from, const Value& to) {
         from_nanos -= getZoneOffsetTime(to);
     }
     int64_t bet = to_nanos - from_nanos;
-    int64_t month = 0, day = 0;
+    int64_t month = 0, day = 0, all_day = 0;
     if (std::abs(bet) >= SECONDS_PER_DAY * NANOS_PER_SECOND) {
         bet %= (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        auto from_day_nanos = from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND);
+        auto to_day_nanos = to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND);
         auto start_ymd = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(from_nanos)))};
         auto end_ymd = date::year_month_day{date::floor<date::days>(date::local_time<std::chrono::nanoseconds>(std::chrono::nanoseconds(to_nanos)))};
         month = (date::year_month(end_ymd.year(), end_ymd.month()) - date::year_month(start_ymd.year(), start_ymd.month())).count();
-        if (month > 0 && (start_ymd + date::months(month) > end_ymd || (start_ymd + date::months(month) == end_ymd && bet < 0))) {
+        all_day = (date::sys_days(end_ymd) - date::sys_days(start_ymd)).count();
+        if (month > 0 && (start_ymd + date::months(month) > end_ymd || (start_ymd + date::months(month) == end_ymd && from_day_nanos > to_day_nanos))) {
             month--;
         }
-        if (month < 0 && (start_ymd + date::months(month) < end_ymd || (start_ymd + date::months(month) == end_ymd && bet > 0))) {
+        if (month < 0 && (start_ymd + date::months(month) < end_ymd || (start_ymd + date::months(month) == end_ymd && from_day_nanos < to_day_nanos))) {
             month++;
         }
         start_ymd += date::months(month);
         day = (date::sys_days(end_ymd) - date::sys_days(start_ymd)).count();
-        if (day > 0 && from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) > to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND)) {
+        if (day > 0 && from_day_nanos > to_day_nanos) {
             day--;
+            all_day--;
         }
-        if (day < 0 && from_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND) < to_nanos % (SECONDS_PER_DAY * NANOS_PER_SECOND)) {
+        if (day < 0 && from_day_nanos < to_day_nanos) {
             day++;
+            all_day++;
         }
     }
-    return Duration(month, day, bet / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
+    if (unit.empty()) {
+        return Duration(month, day, bet / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
+    } else if (unit == "MONTH") {
+        return Duration(month, 0, 0, 0);
+    } else if (unit == "DAY") {
+        return Duration(0, all_day, 0, 0);
+    } else if (unit == "SECOND") {
+        bet = to_nanos - from_nanos;
+        return Duration(0, 0, bet / NANOS_PER_SECOND, bet % NANOS_PER_SECOND);
+    } else {
+        THROW_CODE(InvalidParameter, "Unsupported unit: {}", unit);
+    }
 }
 
 Duration Duration::parseDuration(int sign, int64_t month, int64_t day, std::smatch &match,
