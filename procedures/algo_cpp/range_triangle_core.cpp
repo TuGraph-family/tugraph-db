@@ -41,14 +41,14 @@ size_t RangeTriangleCountCommon(ParallelVector<size_t> &num_triangle,
     if (f1 == 0 || f2 == 0 || (ptr_a + b1) -> neighbour > (ptr_b + f2 - 1) -> neighbour ||
         (ptr_b + b2) -> neighbour > (ptr_a + f1 - 1) -> neighbour)
         return 0;
-    if ((ptr_a + b1) -> neighbour<(ptr_b + b2) -> neighbour)
+    if ((ptr_a + b1) -> neighbour < (ptr_b + b2) -> neighbour)
         b1 = binarySearch((ptr_b + b2) -> neighbour, ptr_a, b1, f1);
     else if ((ptr_a + b1) -> neighbour > (ptr_b + b2) -> neighbour)
         b2 = binarySearch((ptr_a + b1) -> neighbour, ptr_b, b2, f2);
     if ((ptr_a + f1 - 1) -> neighbour > (ptr_b + f2 - 1) -> neighbour)
         f1 = binarySearch((ptr_b + f2 - 1) -> neighbour + 1, ptr_a, b1,
                           f1);
-    else if ((ptr_a + f1 - 1) -> neighbour<(ptr_b + f2 - 1) -> neighbour)
+    else if ((ptr_a + f1 - 1) -> neighbour < (ptr_b + f2 - 1) -> neighbour)
         f2 = binarySearch((ptr_a + f1 - 1) -> neighbour + 1, ptr_b, b2,
                           f2);
     size_t pre_a = -1;
@@ -66,15 +66,13 @@ size_t RangeTriangleCountCommon(ParallelVector<size_t> &num_triangle,
             ptr_b++;
             continue;
         }
-        if (ptr_a -> neighbour<ptr_b -> neighbour) {
+        if (ptr_a -> neighbour < ptr_b -> neighbour) {
             pre_a = ptr_a -> neighbour;
             ptr_a++;
-        }
-        else if (ptr_a -> neighbour > ptr_b -> neighbour) {
+        } else if (ptr_a -> neighbour > ptr_b -> neighbour) {
             pre_b = ptr_b -> neighbour;
             ptr_b++;
-        }
-        else {
+        } else {
             pre_a = ptr_a -> neighbour;
             pre_b = ptr_b -> neighbour;
             write_add(&num_triangle[a], (size_t)1);
@@ -105,7 +103,7 @@ size_t RangeTriangleCore(OlapBase<Empty> &graph, ParallelVector<size_t> &
             qsort(edges.begin(), graph.OutDegree(vtx),
                   sizeof(AdjUnit<Empty>), range_triangle_compare);
             return 1;
-        }, 
+        },
         active);
     printf("sorted\n");
     size_t discovered_triangles = graph.ProcessVertexActive<size_t>(
@@ -117,8 +115,7 @@ size_t RangeTriangleCore(OlapBase<Empty> &graph, ParallelVector<size_t> &
                 size_t dst = edge.neighbour;
                 if (pre == dst) {
                     continue;
-                }
-                else {
+                } else {
                     pre = dst;
                 }
                 if (src < dst) {
