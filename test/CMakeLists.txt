@@ -88,9 +88,11 @@ add_executable(unit_test
         test_perf_kv_fatkey.cpp
         test_perf_multi_writer.cpp
         test_perf_unaligned.cpp
+        test_plan_cache.cpp
         test_proto_convert.cpp
         test_python_plugin_manager.cpp
         test_python_plugin_manager_impl.cpp
+        test_query_compilation.cpp
         test_query.cpp
         test_random_delete.cpp
         test_rest_client.cpp
@@ -140,10 +142,13 @@ add_executable(unit_test
         ${LGRAPH_ROOT_DIR}/src/core/vector_index.cpp
 )
 
+target_include_directories(unit_test PRIVATE ${CMAKE_SOURCE_DIR}/deps/buildit/include)
+
 target_link_libraries(unit_test
         vsag
         lgraph_server_lib
         geax_isogql
+        ${CMAKE_SOURCE_DIR}/deps/buildit/build/libbuildit.a
         bolt
         librocksdb.a)
 
