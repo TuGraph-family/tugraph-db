@@ -15,20 +15,25 @@
 //
 // Created by wt on 6/15/18.
 //
+#include "cypher/arithmetic/arithmetic_expression.h"
+
+#include <date/date.h>
+#include <date/iso_week.h>
+
 #include <cmath>
 #include <cstdint>
 #include <random>
+#include <regex>
 #include <stack>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <regex>
+
+#include "common/logger.h"
 #include "cypher/cypher_exception.h"
 #include "cypher/cypher_types.h"
-#include "cypher/parser/symbol_table.h"
-#include "cypher/arithmetic/arithmetic_expression.h"
 #include "cypher/filter/filter.h"
-#include "common/logger.h"
+#include "cypher/parser/symbol_table.h"
 
 #define CHECK_NODE(e)                                                                      \
     do {                                                                                   \
@@ -722,6 +727,337 @@ Value BuiltinFunction::Duration(RTContext *ctx, const Record &record, const std:
     } else {
         CYPHER_ARGUMENT_ERROR();
     }
+}
+
+void _DateUnitTruncate(int64_t days_since_epoch, const std::string &unit,
+                       std::unordered_map<std::string, Value> &dateParams) {
+    if (unit == "day") {
+        date::year_month_day ymd(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)ymd.year());
+        dateParams["month"] = Value::Integer((unsigned)ymd.month());
+        dateParams["day"] = Value::Integer((unsigned)ymd.day());
+        return;
+    } else if (unit == "week") {
+        iso_week::year_weeknum_weekday yww(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)yww.year());
+        dateParams["week"] = Value::Integer((unsigned)yww.weeknum());
+        return;
+    } else if (unit == "month") {
+        date::year_month_day ymd(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)ymd.year());
+        dateParams["month"] = Value::Integer((unsigned)ymd.month());
+        return;
+    } else if (unit == "weekYear") {
+        iso_week::year_weeknum_weekday yww(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)yww.year());
+        if (dateParams.count("day")) {
+            dateParams["month"] = Value::Integer(1L);
+        } else {
+            dateParams["week"] = Value::Integer(1L);
+        }
+    } else if (unit == "quarter") {
+        date::year_month_day ymd(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)ymd.year());
+        unsigned month = (unsigned)ymd.month();
+        if (month >= 10) {
+            month = 10;
+        } else if (month >= 7) {
+            month = 7;
+        } else if (month >= 4) {
+            month = 4;
+        } else {
+            month = 1;
+        }
+        dateParams["month"] = Value::Integer(month);
+        return;
+    } else if (unit == "year") {
+        date::year_month_day ymd(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)ymd.year());
+        if (dateParams.count("month") == 0) {
+            dateParams["month"] = Value::Integer(1L);
+        }
+        return;
+    } else if (unit == "decade") {
+        date::year_month_day ymd(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)ymd.year() / 10 * 10);
+        if (dateParams.count("month") == 0) {
+            dateParams["month"] = Value::Integer(1L);
+        }
+    } else if (unit == "century") {
+        date::year_month_day ymd(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)ymd.year() / 100 * 100);
+        if (dateParams.count("month") == 0) {
+            dateParams["month"] = Value::Integer(1L);
+        }
+    } else if (unit == "millennium") {
+        date::year_month_day ymd(
+            date::local_days{date::days{days_since_epoch}});
+        dateParams["year"] = Value::Integer((int)ymd.year() / 1000 * 1000);
+        if (dateParams.count("month") == 0) {
+            dateParams["month"] = Value::Integer(1L);
+        }
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+}
+
+Value BuiltinFunction::DateTruncate(RTContext *ctx, const Record &record,
+                                    const std::vector<ArithExprNode> &args) {
+    if (args.size() > 4) CYPHER_ARGUMENT_ERROR();
+    auto unit = args[1].Evaluate(ctx, record).constant.AsString();
+    auto r = args[2].Evaluate(ctx, record);
+    std::unordered_map<std::string, Value> um;
+    auto p = args[3].Evaluate(ctx, record);
+    for (const auto &kv : p.constant.AsMap()) {
+        um.emplace(kv);
+    }
+    int64_t days_since_epoch;
+    if (r.constant.IsDate()) {
+        days_since_epoch = r.constant.AsDate().GetStorage();
+    } else if (r.constant.IsDateTime()) {
+        days_since_epoch =
+            std::get<0>(r.constant.AsDateTime().GetStorage()) /
+            std::chrono::duration_cast<std::chrono::nanoseconds>(date::days(1))
+                .count();
+    } else if (r.constant.IsLocalDateTime()) {
+        days_since_epoch =
+            r.constant.AsLocalDateTime().GetStorage() /
+            std::chrono::duration_cast<std::chrono::nanoseconds>(date::days(1))
+                .count();
+    } else {
+        CYPHER_ARGUMENT_ERROR();
+    }
+
+    _DateUnitTruncate(days_since_epoch, unit, um);
+
+    return Value(common::Date(Value::Map(um)));
+}
+
+static inline bool IsTruncateTimeUnit(const std::string &unit) {
+    return unit == "microsecond" || unit == "millisecond" || unit == "second" ||
+           unit == "minute" || unit == "hour";
+}
+
+Value BuiltinFunction::DateTimeTruncate(
+    RTContext *ctx, const Record &record,
+    const std::vector<ArithExprNode> &args) {
+    if (args.size() > 4) CYPHER_ARGUMENT_ERROR();
+    auto unit = args[1].Evaluate(ctx, record).constant.AsString();
+    auto r = args[2].Evaluate(ctx, record);
+    if (IsTruncateTimeUnit(unit)) {
+        int64_t days_since_epoch;
+        if (r.constant.IsDate()) {
+            days_since_epoch = r.constant.AsDate().GetStorage();
+        } else if (r.constant.IsDateTime()) {
+            days_since_epoch =
+                std::get<0>(r.constant.AsDateTime().GetStorage()) /
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count();
+        } else if (r.constant.IsLocalDateTime()) {
+            days_since_epoch =
+                r.constant.AsLocalDateTime().GetStorage() /
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count();
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
+        auto d = _TimeUnitTruncate(ctx, record, args);
+        auto t = common::Time(Value::Map(std::get<0>(d)), std::get<1>(d));
+        return Value(common::DateTime(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                date::days(days_since_epoch))
+                    .count() +
+                std::get<0>(t.GetStorage()),
+            std::get<1>(t.GetStorage())));
+    } else {
+        auto p = args[3].Evaluate(ctx, record);
+        std::unordered_map<std::string, Value> dateParams;
+        std::unordered_map<std::string, Value> timeParams;
+        for (const auto &[key, v] : p.constant.AsMap()) {
+            auto s = key;
+            std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+            // handle "timezone" in Time
+            if (s != DATE_TIMEZONE && validDateFields.count(s)) {
+                dateParams.emplace(s, v);
+            } else {
+                timeParams.emplace(s, v);
+            }
+        }
+        if (!timeParams.empty()) {
+            if (timeParams.count("hour") == 0)
+                timeParams["hour"] = Value::Integer(0L);
+            if (timeParams.count("minute") == 0)
+                timeParams["minute"] = Value::Integer(0L);
+            if (timeParams.count("second") == 0)
+                timeParams["second"] = Value::Integer(0L);
+        }
+        int64_t days_since_epoch;
+        int64_t nanoseconds_since_begin_of_day = 0;
+        int64_t tz_offset_seconds = 0;
+        if (r.constant.IsDate()) {
+            days_since_epoch = r.constant.AsDate().GetStorage();
+            _DateUnitTruncate(days_since_epoch, unit, dateParams);
+        } else if (r.constant.IsDateTime()) {
+            days_since_epoch =
+                std::get<0>(r.constant.AsDateTime().GetStorage()) /
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count();
+            tz_offset_seconds =
+                std::get<1>(r.constant.AsDateTime().GetStorage());
+            _DateUnitTruncate(days_since_epoch, unit, dateParams);
+        } else if (r.constant.IsLocalDateTime()) {
+            days_since_epoch =
+                r.constant.AsLocalDateTime().GetStorage() /
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count();
+            _DateUnitTruncate(days_since_epoch, unit, dateParams);
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
+
+        auto d = common::Date(Value(dateParams));
+        days_since_epoch = d.GetStorage();
+        if (!timeParams.empty()) {
+            auto t = common::Time(Value(timeParams));
+            nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
+            if (timeParams.count(DATE_TIMEZONE)) {
+                tz_offset_seconds = std::get<1>(t.GetStorage());
+            }
+        }
+
+        return Value(common::DateTime(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                date::days(days_since_epoch))
+                    .count() +
+                nanoseconds_since_begin_of_day,
+            tz_offset_seconds));
+    }
+}
+
+Value BuiltinFunction::LocalDateTimeTruncate(
+    RTContext *ctx, const Record &record,
+    const std::vector<ArithExprNode> &args) {
+    if (args.size() > 4) CYPHER_ARGUMENT_ERROR();
+    auto unit = args[1].Evaluate(ctx, record).constant.AsString();
+    auto r = args[2].Evaluate(ctx, record);
+    if (IsTruncateTimeUnit(unit)) {
+        int64_t days_since_epoch;
+        if (r.constant.IsDate()) {
+            days_since_epoch = r.constant.AsDate().GetStorage();
+        } else if (r.constant.IsDateTime()) {
+            days_since_epoch =
+                std::get<0>(r.constant.AsDateTime().GetStorage()) /
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count();
+        } else if (r.constant.IsLocalDateTime()) {
+            days_since_epoch =
+                r.constant.AsLocalDateTime().GetStorage() /
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count();
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
+        auto d = _TimeUnitTruncate(ctx, record, args);
+        auto t = common::LocalTime(Value::Map(std::get<0>(d)), std::get<1>(d));
+        return Value(common::LocalDateTime(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                date::days(days_since_epoch))
+                .count() +
+            t.GetStorage()));
+    } else {
+        auto p = args[3].Evaluate(ctx, record);
+        std::unordered_map<std::string, Value> dateParams;
+        std::unordered_map<std::string, Value> timeParams;
+        for (const auto &[key, v] : p.constant.AsMap()) {
+            auto s = key;
+            std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+            // handle "timezone" in Time
+            if (s != DATE_TIMEZONE && validDateFields.count(s)) {
+                dateParams.emplace(s, v);
+            } else {
+                timeParams.emplace(s, v);
+            }
+        }
+        if (!timeParams.empty()) {
+            if (timeParams.count("hour") == 0)
+                timeParams["hour"] = Value::Integer(0L);
+            if (timeParams.count("minute") == 0)
+                timeParams["minute"] = Value::Integer(0L);
+            if (timeParams.count("second") == 0)
+                timeParams["second"] = Value::Integer(0L);
+        }
+        int64_t days_since_epoch;
+        int64_t nanoseconds_since_begin_of_day = 0;
+        if (r.constant.IsDate()) {
+            days_since_epoch = r.constant.AsDate().GetStorage();
+            _DateUnitTruncate(days_since_epoch, unit, dateParams);
+        } else if (r.constant.IsDateTime()) {
+            days_since_epoch =
+                std::get<0>(r.constant.AsDateTime().GetStorage()) /
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count();
+            _DateUnitTruncate(days_since_epoch, unit, dateParams);
+        } else if (r.constant.IsLocalDateTime()) {
+            days_since_epoch =
+                r.constant.AsLocalDateTime().GetStorage() /
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count();
+            _DateUnitTruncate(days_since_epoch, unit, dateParams);
+        } else {
+            CYPHER_ARGUMENT_ERROR();
+        }
+
+        auto d = common::Date(Value(dateParams));
+        days_since_epoch = d.GetStorage();
+
+        if (!timeParams.empty()) {
+            auto t = common::LocalTime(Value(timeParams));
+            nanoseconds_since_begin_of_day = t.GetStorage();
+        }
+        return Value(common::LocalDateTime(
+            days_since_epoch *
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    date::days(1))
+                    .count() +
+            nanoseconds_since_begin_of_day));
+    }
+}
+
+Value BuiltinFunction::DateTimeFromEpoch(
+    RTContext *ctx, const Record &record,
+    const std::vector<ArithExprNode> &args) {
+    CYPHER_THROW_ASSERT(args.size() == 3);
+    auto seconds = args[1].Evaluate(ctx, record).constant.AsInteger();
+    auto nanoseconds = args[2].Evaluate(ctx, record).constant.AsInteger();
+    nanoseconds = nanoseconds + seconds * 1000000000L;
+    auto dt = common::DateTime(nanoseconds);
+    return Value::DateTime(dt);
+}
+
+Value BuiltinFunction::DateTimeFromEpochMillis(
+    RTContext *ctx, const Record &record,
+    const std::vector<ArithExprNode> &args) {
+    CYPHER_THROW_ASSERT(args.size() == 2);
+    auto milliseconds = args[1].Evaluate(ctx, record).constant.AsInteger();
+    auto nanoseconds = milliseconds * 1000000L;
+    auto dt = common::DateTime(nanoseconds);
+    return Value::DateTime(dt);
 }
 
 Value BuiltinFunction::Time(RTContext *ctx, const Record &record,

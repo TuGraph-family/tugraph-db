@@ -251,6 +251,18 @@ struct BuiltinFunction {
                                  const std::vector<ArithExprNode> &args);
     static Value DurationInMonths(RTContext *ctx, const Record &record,
                                  const std::vector<ArithExprNode> &args);
+    static Value DateTruncate(RTContext *ctx, const Record &record,
+                              const std::vector<ArithExprNode> &args);
+    static Value DateTimeTruncate(RTContext *ctx, const Record &record,
+                                  const std::vector<ArithExprNode> &args);
+    static Value LocalDateTimeTruncate(RTContext *ctx, const Record &record,
+                                       const std::vector<ArithExprNode> &args);
+
+    static Value DateTimeFromEpoch(RTContext *ctx, const Record &record,
+                                   const std::vector<ArithExprNode> &args);
+    static Value DateTimeFromEpochMillis(
+        RTContext *ctx, const Record &record,
+        const std::vector<ArithExprNode> &args);
 
     static Value Range(RTContext *ctx, const Record &record,
                        const std::vector<ArithExprNode> &args);
@@ -464,6 +476,17 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("duration.inSeconds", BuiltinFunction::DurationInSeconds);
         ae_registered_funcs.emplace("duration.inDays", BuiltinFunction::DurationInDays);
         ae_registered_funcs.emplace("duration.inMonths", BuiltinFunction::DurationInMonths);
+        ae_registered_funcs.emplace("duration.between", BuiltinFunction::TimeTruncate);
+        ae_registered_funcs.emplace("datetime.fromepoch",
+                                    BuiltinFunction::DateTimeFromEpoch);
+        ae_registered_funcs.emplace("datetime.fromepochmillis",
+                                    BuiltinFunction::DateTimeFromEpochMillis);
+        ae_registered_funcs.emplace("date.truncate",
+                                    BuiltinFunction::DateTruncate);
+        ae_registered_funcs.emplace("datetime.truncate",
+                                    BuiltinFunction::DateTimeTruncate);
+        ae_registered_funcs.emplace("localdatetime.truncate",
+                                    BuiltinFunction::LocalDateTimeTruncate);
         return ae_registered_funcs;
     }
 

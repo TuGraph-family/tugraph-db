@@ -352,11 +352,11 @@ Date::Date(const Value& params) {
             day = (unsigned)params_map.at(DATE_DAY).AsInteger();
         }
         if (params_map.count(DATE_WEEK)) {
-            week = (int)params_map.at(DATE_WEEK).AsInteger();
+            week = (unsigned)params_map.at(DATE_WEEK).AsInteger();
             dt = DateType::WEEK_DATE;
         }
         if (params_map.count(DATE_DOW)) {
-            dow = (int)params_map.at(DATE_DOW).AsInteger();
+            dow = (unsigned)params_map.at(DATE_DOW).AsInteger();
         }
         if (params_map.count(DATE_QUARTER)) {
             quarter = (int)params_map.at(DATE_QUARTER).AsInteger();
