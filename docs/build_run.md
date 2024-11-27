@@ -2,7 +2,9 @@
 
 ## 编译
 
-tugraph-db有制作好的编译镜像，专门用来源码编译，拉取编译镜像
+tugraph-db有制作好的编译镜像，专门用来源码编译。
+
+拉取编译镜像
 ```
 docker pull tugraph/5.x-compile-alinux3
 ```
