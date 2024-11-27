@@ -280,7 +280,9 @@ Time::Time(const Value& params, int64_t truncate) {
     std::chrono::nanoseconds ns{hour * 60 * 60 * 1000000000 + minute * 60 * 1000000000 + second * 1000000000 +
                                 millisecond * 1000000 + microsecond * 1000 + nanosecond};
     if (has_time_param) {
-        ns = std::chrono::nanoseconds(ns.count() - time_param_offset_second * 1000000000 + tz_offset_seconds_ * 1000000000);
+        if (!(truncate && time_param_offset_second != tz_offset_seconds_ && time_param_offset_second != 0)) {
+            ns = std::chrono::nanoseconds(ns.count() - time_param_offset_second * 1000000000 + tz_offset_seconds_ * 1000000000);
+        }
     }
     date::local_time<std::chrono::nanoseconds> tp{ns};
     auto t = make_zoned(timezoneName, tp);
