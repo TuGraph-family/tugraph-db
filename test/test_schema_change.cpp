@@ -124,7 +124,7 @@ static void CreateLargeSampleDB(const std::string& dir, bool fast_alter_schema) 
 }
 
 static void RemoveFieldId(std::map<std::string, lgraph::FieldSpec>& vec) {
-    for (auto &f : vec) {
+    for (auto& f : vec) {
         f.second.id = 0;
     }
 }
@@ -666,4 +666,59 @@ TEST_P(TestSchemaChange, DelLabel) {
         UT_EXPECT_EQ(s.GetTemporalFieldId(), s.GetFieldId("id"));
     }
     fma_common::SleepS(1);  // waiting for memory reclaiming by async task
+}
+
+TEST_F(TestSchemaChange, UpdateSchemaAndData) {
+    using namespace lgraph;
+    std::string dir = "./testdb";
+
+    AutoCleanDir cleaner(dir);
+
+    DBConfig conf;
+    conf.dir = dir;
+
+    UT_LOG() << "Test add and delete field with data";
+    {
+        CreateSampleDB(dir, true);
+        LightningGraph graph(conf);
+        size_t n_changed = 0;
+        graph.AlterLabelDelFields("person", std::vector<std::string>{"desc"}, true, &n_changed);
+        auto txn = graph.CreateReadTxn();
+        auto vit = txn.GetVertexIterator(0);
+        auto field_data = txn.GetVertexFields(vit);
+        UT_EXPECT_EQ(field_data.size(), 5);
+        txn.Commit();
+        graph.AlterLabelAddFields("person",
+                                  std::vector<FieldSpec>{FieldSpec{"cond", FieldType::INT32, true}},
+                                  std::vector<FieldData>{FieldData::Int32(10)}, true, &n_changed);
+        txn = graph.CreateReadTxn();
+        auto vit_ = txn.GetVertexIterator(0);
+        field_data = txn.GetVertexFields(vit_);
+        UT_EXPECT_EQ(field_data.size(), 6);
+    }
+
+    UT_LOG() << "Test insert data with new schema";
+    {
+        LightningGraph graph(conf);
+        auto txn = graph.CreateWriteTxn();
+        txn.AddVertex(std::string("person"),
+                      std::vector<std::string>({"id", "name", "age", "img", "img2", "cond"}),
+                      std::vector<std::string>(
+                          {"3", "p1", "11.5", "", lgraph_api::base64::Encode("img2"), "20"}));
+        txn.AddVertex(std::string("person"),
+                      std::vector<std::string>({"id", "name", "age", "img", "img2", "cond"}),
+                      std::vector<std::string>(
+                          {"4", "p1", "11.5", "", lgraph_api::base64::Encode("img2"), "40"}));
+        txn.Commit();
+        txn = graph.CreateReadTxn();
+        auto vit = txn.GetVertexIterator(0);
+        auto field_data = txn.GetVertexFields(vit);
+        UT_EXPECT_EQ(field_data.size(), 6);
+        vit.Next();
+        field_data = txn.GetVertexFields(vit);
+        UT_EXPECT_EQ(field_data.size(), 6);
+        vit.Next();
+        field_data = txn.GetVertexFields(vit);
+        UT_EXPECT_EQ(field_data.size(), 6);
+    }
 }
