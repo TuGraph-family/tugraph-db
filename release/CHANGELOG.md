@@ -1,5 +1,24 @@
 # Change Log for TuGraph
 
+# 4.5.1 (2024-11-28)
+
+**Breaking Changes:**
+
+1. support vector index experimentally
+
+**Improvements And Bug Fixes:**
+
+1. modify exists execution plan (#670)
+2. Fix lgraph_cli hang after a error query (#692)
+3. Capture more system signals (#705)
+4. Add core dump path (#698)
+5. Add missing pair_unique in output of dbms.graph.getGraphSchema() (#707)
+6. Fix bolt coredump (#718)
+7. support node by label range scan (#722)
+8. Skip empty value when adding index (#761)
+9. add some string handling functions (#785)
+10. Add time print for lgraph_cli (#787)
+
 # 4.5.0 (2024-09-05)
 
 **Breaking Changes:**
