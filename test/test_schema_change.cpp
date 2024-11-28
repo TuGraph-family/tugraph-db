@@ -17,6 +17,7 @@
 #include "gtest/gtest.h"
 
 #include "core/lightning_graph.h"
+#include "core/schema_common.h"
 #include "./graph_factory.h"
 #include "./test_tools.h"
 #include "./random_port.h"
@@ -682,7 +683,7 @@ TEST_F(TestSchemaChange, UpdateSchemaAndData) {
         CreateSampleDB(dir, true);
         LightningGraph graph(conf);
         size_t n_changed = 0;
-        graph.AlterLabelDelFields("person", std::vector<std::string>{"desc"}, true, &n_changed);
+        graph.AlterLabelDelFields("person", std::vector<std::string>{"img2"}, true, &n_changed);
         auto txn = graph.CreateReadTxn();
         auto vit = txn.GetVertexIterator(0);
         auto field_data = txn.GetVertexFields(vit);
@@ -702,13 +703,11 @@ TEST_F(TestSchemaChange, UpdateSchemaAndData) {
         LightningGraph graph(conf);
         auto txn = graph.CreateWriteTxn();
         txn.AddVertex(std::string("person"),
-                      std::vector<std::string>({"id", "name", "age", "img", "img2", "cond"}),
-                      std::vector<std::string>(
-                          {"3", "p1", "11.5", "", lgraph_api::base64::Encode("img2"), "20"}));
+                      std::vector<std::string>({"id", "name", "age", "img", "desc", "cond"}),
+                      std::vector<std::string>({"3", "p1", "11.5", "", "simple desc", "20"}));
         txn.AddVertex(std::string("person"),
-                      std::vector<std::string>({"id", "name", "age", "img", "img2", "cond"}),
-                      std::vector<std::string>(
-                          {"4", "p1", "11.5", "", lgraph_api::base64::Encode("img2"), "40"}));
+                      std::vector<std::string>({"id", "name", "age", "img", "desc", "cond"}),
+                      std::vector<std::string>({"4", "p1", "11.5", "", "desc", "40"}));
         txn.Commit();
         txn = graph.CreateReadTxn();
         auto vit = txn.GetVertexIterator(0);
@@ -720,5 +719,46 @@ TEST_F(TestSchemaChange, UpdateSchemaAndData) {
         vit.Next();
         field_data = txn.GetVertexFields(vit);
         UT_EXPECT_EQ(field_data.size(), 6);
+    }
+
+    UT_LOG() << "Test Update data with new Schema";
+    {
+        LightningGraph graph(conf);
+        auto txn = graph.CreateWriteTxn();
+        auto itr = txn.GetVertexIterator(0);
+        try {
+            txn.SetVertexProperty(itr, std::vector<std::string>{"desc"},
+                                  std::vector<FieldData>{FieldData::String("test")});
+        } catch (const FieldNotFoundException& e) {
+            UT_EXPECT_TRUE(true);
+        } catch (const LgraphException& e) {
+            UT_EXPECT_TRUE(false);
+        }
+        // shorter than orig
+        txn.SetVertexProperty(itr, std::vector<std::string>{"name"},
+                              std::vector<FieldData>{FieldData::String("p")});
+        // larger than orig
+        txn.SetVertexProperty(
+            itr, std::vector<std::string>{"desc"},
+            std::vector<FieldData>{FieldData::String("this is a desc larger than before")});
+        // set value that not exists in record
+        txn.SetVertexProperty(itr, std::vector<std::string>{"cond"},
+                              std::vector<FieldData>{FieldData::Int32(100)});
+        txn.Commit();
+        auto read_txn = graph.CreateReadTxn();
+        auto read_itr = read_txn.GetVertexIterator(0);
+        auto field_data = read_txn.GetVertexFields(read_itr);
+        std::unordered_map<std::string, FieldData> ret;
+        for (const auto& pair : field_data) {
+            ret.insert(pair);
+            std::cout << pair.first << std::endl;
+            std::cout << pair.second.ToString("") << std::endl;
+        }
+        UT_EXPECT_EQ(ret["id"], FieldData::Int32(1));
+        UT_EXPECT_EQ(ret["name"], FieldData::String("p"));
+        UT_EXPECT_EQ(ret["age"], FieldData::Float(11.5));
+        UT_EXPECT_EQ(ret["desc"], FieldData::String("this is a desc larger than before"));
+        UT_EXPECT_EQ(ret["cond"], FieldData::Int32(100));
+        UT_EXPECT_EQ(ret.size(), 6);
     }
 }

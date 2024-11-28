@@ -189,12 +189,12 @@ class FieldExtractorBase {
 
     // Get copy from record.
     ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const {
-        FMA_DBG_ASSERT(field_data_helper::FieldTypeSize(def_.type) == sizeof(T));
+        FMA_DBG_ASSERT(field_data_helper::FieldTypeSize(def_.type) == sizeof(data));
         size_t offset = GetFieldOffset(record);
         size_t size = GetDataSize(record);
         // for Field_extractor_v1, size always equals sizeof(T)
-        if (size == sizeof(T)) {
-            memcpy(&data, (char*)record.Data() + offset, sizeof(T));
+        if (size == sizeof(data)) {
+            memcpy(&data, (char*)record.Data() + offset, sizeof(data));
         } else {
             // For FieldExtractorV2, even with fixed-length data, there may be cases
             // where the data length in the record does not match the defined length,
