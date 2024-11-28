@@ -557,6 +557,8 @@ class Schema {
         }
     }
 
+    void SetFixedSizeValue(Value& record, const Value& data,
+                           ::lgraph::_detail::FieldExtractorV2* extractor) const;
     // copy field values from src to dst
     // dst must be a record created with this schema
     // fields are assumed to have the same type

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -513,6 +513,35 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
         GetFieldExtractorV1(extractor)->ParseAndSet(record, data);
         return;
     }
+    FieldId count = GetFieldExtractorV2(extractor)->GetRecordCount(record);
+    if (count <= extractor->GetFieldId()) {
+        Value new_prop = CreateEmptyRecord();
+        for (const auto& field : name_to_idx_) {
+            _detail::FieldExtractorV2* extr = GetFieldExtractorV2(GetFieldExtractor(field.first));
+            extr->SetIsNull(new_prop, false);
+            if (extr->IsFixedType()) {
+                if (extr->GetFieldId() >= count && extr->HasInitedValue()) {
+                    SetFixedSizeValue(new_prop,
+                                      field_data_helper::FieldDataToValueOfFieldType(
+                                          extr->GetInitedValue(), extr->Type()),
+                                      extr);
+                } else if (extr->GetFieldId() < count) {
+                    SetFixedSizeValue(new_prop, extr->GetConstRef(record), extr);
+                }
+            } else {
+                if (extr->GetFieldId() >= count && extr->HasInitedValue()) {
+                    _SetVariableLengthValue(new_prop,
+                                            field_data_helper::FieldDataToValueOfFieldType(
+                                                extr->GetInitedValue(), extr->Type()),
+                                            extr);
+                } else if (extr->GetFieldId() < count) {
+                    _SetVariableLengthValue(new_prop, extr->GetConstRef(record), extr);
+                }
+            }
+        }
+        record = new_prop;
+    }
+
     bool data_is_null = data.type == FieldType::NUL;
     extractor->SetIsNull(record, data_is_null);
     if (data_is_null) return;
@@ -855,6 +884,44 @@ void Schema::CopyFieldsRaw(Value& dst, const std::vector<size_t> fids_in_dst,
         const _detail::FieldExtractorV1* src_fe =
             GetFieldExtractorV1(src_schema->GetFieldExtractor(fids_in_src[i]));
         dst_fe->CopyDataRaw(dst, src, src_fe);
+    }
+}
+
+void Schema::SetFixedSizeValue(Value& record, const Value& data,
+                               ::lgraph::_detail::FieldExtractorV2* extractor) const {
+#define _SET_FIXED_FIELD(ft)                                                       \
+    do {                                                                           \
+        typename field_data_helper::FieldType2StorageType<FieldType::ft>::type sd; \
+        extractor->ConvertData(&sd, data.Data(), sizeof(sd));                      \
+        memcpy(ptr, &sd, sizeof(sd));                                              \
+    } while (0)
+    FMA_DBG_ASSERT(extractor->IsFixedType());
+    auto* ptr = static_cast<char*>(extractor->GetFieldPointer(record));
+    if (data.Size() == extractor->TypeSize()) {
+        memcpy(ptr, data.Data(), data.Size());
+    } else {
+        switch (extractor->Type()) {
+        case FieldType::INT8:
+            _SET_FIXED_FIELD(INT8);
+            break;
+        case FieldType::INT16:
+            _SET_FIXED_FIELD(INT16);
+            break;
+        case FieldType::INT32:
+            _SET_FIXED_FIELD(INT32);
+            break;
+        case FieldType::INT64:
+            _SET_FIXED_FIELD(INT64);
+            break;
+        case FieldType::FLOAT:
+            _SET_FIXED_FIELD(FLOAT);
+            break;
+        case FieldType::DOUBLE:
+            _SET_FIXED_FIELD(DOUBLE);
+            break;
+        default:
+            LOG_ERROR() << "Error here";
+        }
     }
 }
 
