@@ -1,6 +1,8 @@
 # community procedures
 
  In this directory, The procedures are contribution from the commmunity.
+ 
+**Note: Please be aware that the compilation of the procedures mentioned here has not been verified on GitHub CI. Ensure that you compile your procedures successfully before submitting a pull request (PR)**
 
 ## K-hop Algorithm
  The K-hop algorithm is used to find all nodes within K hops from a given starting node in a graph. It is particularly useful in social network analysis, recommendation systems, and network topology analysis.

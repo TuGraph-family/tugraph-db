@@ -22,7 +22,6 @@
  */
 #include "olap/olap_on_disk.h"
 #include "tools/json.hpp"
-#include "./algo.h"
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
 using json = nlohmann::json;

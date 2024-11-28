@@ -15,7 +15,6 @@
  */
 
 #include "lgraph/olap_base.h"
-#include "./algo.h"
 
 using namespace lgraph_api;
 using namespace lgraph_api::olap;
@@ -29,7 +28,7 @@ size_t k_hop(OlapBase<Empty>& graph, size_t root_vid, ParallelVector<size_t>& re
     parent.Fill(0);
     parent[root] = root;
     size_t num_activations = 1;
-    size_t discovered_vertices, j = 0;
+    size_t discovered_vertices = 0, j = 0;
     for (size_t ii = 0; ii < k; ii++) {
         active_out.Clear();
         num_activations = graph.ProcessVertexActive<size_t>(
