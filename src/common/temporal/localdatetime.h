@@ -48,6 +48,7 @@ class LocalDateTime {
         return nanoseconds_since_epoch_;
     }
     [[nodiscard]] std::string ToString() const;
+    [[nodiscard]] Value GetUnit(std::string unit) const;
     bool operator<(const LocalDateTime& rhs) const noexcept;
     bool operator<=(const LocalDateTime& rhs) const noexcept;
     bool operator>(const LocalDateTime& rhs) const noexcept;

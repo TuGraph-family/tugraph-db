@@ -59,6 +59,7 @@ class Date {
     explicit Date(const Value& params);
     [[nodiscard]] int64_t GetStorage() const { return days_since_epoch_; }
     [[nodiscard]] std::string ToString() const;
+    [[nodiscard]] Value GetUnit(std::string unit) const;
     bool operator<(const Date& rhs) const noexcept;
     bool operator<=(const Date& rhs) const noexcept;
     bool operator>(const Date& rhs) const noexcept;

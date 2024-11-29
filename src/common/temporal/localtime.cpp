@@ -36,11 +36,11 @@ LocalTime::LocalTime(const Value& params, int64_t truncate) {
         return;
     }
     if (params.IsDateTime()) {
-        nanoseconds_since_today_ = std::get<0>(params.AsDateTime().GetStorage());
+        nanoseconds_since_today_ = std::get<0>(params.AsDateTime().GetStorage()) % (NANOS_PER_SECOND * SECONDS_PER_DAY);
         return;
     }
     if (params.IsLocalDateTime()) {
-        nanoseconds_since_today_ = params.AsLocalDateTime().GetStorage();
+        nanoseconds_since_today_ = params.AsLocalDateTime().GetStorage() % (NANOS_PER_SECOND * SECONDS_PER_DAY);
         return;
     }
     std::unordered_map<std::string, Value> parse_params_map;
@@ -216,6 +216,25 @@ std::string LocalTime::ToString() const {
     date::local_time<std::chrono::nanoseconds> tp(
         (std::chrono::nanoseconds(nanoseconds_since_today_)));
     return date::format("%H:%M:%S", tp);
+}
+
+Value LocalTime::GetUnit(std::string unit) const {
+    std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
+    if (unit == "hour") {
+        return Value::Integer(nanoseconds_since_today_ / 3600000000000 % 24);
+    } else if (unit == "minute") {
+        return Value::Integer(nanoseconds_since_today_ / 60000000000 % 60);
+    } else if (unit == "second") {
+        return Value::Integer(nanoseconds_since_today_ / 1000000000 % 60);
+    } else if (unit == "millisecond") {
+        return Value::Integer(nanoseconds_since_today_ / 1000000 % 1000);
+    } else if (unit == "microsecond") {
+        return Value::Integer(nanoseconds_since_today_ / 1000 % 1000000);
+    } else if (unit == "nanosecond") {
+        return Value::Integer(nanoseconds_since_today_ % 1000000000);
+    } else {
+        THROW_CODE(InvalidParameter, "No such field: {}", unit);
+    }
 }
 
 void LocalTime::fromTimeZone(std::string timezone) {

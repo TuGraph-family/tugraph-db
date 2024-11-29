@@ -35,6 +35,7 @@ class LocalTime {
         return nanoseconds_since_today_;
     }
     [[nodiscard]] std::string ToString() const;
+    [[nodiscard]] Value GetUnit(std::string unit) const;
     void fromTimeZone(std::string timezone);
     bool operator<(const LocalTime& rhs) const noexcept;
     bool operator<=(const LocalTime& rhs) const noexcept;

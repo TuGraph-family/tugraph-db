@@ -50,6 +50,7 @@ class DateTime {
         return {nanoseconds_since_epoch_, tz_offset_seconds_};
     }
     [[nodiscard]] std::string ToString() const;
+    [[nodiscard]] Value GetUnit(std::string unit) const;
     bool operator<(const DateTime& rhs) const noexcept;
     bool operator<=(const DateTime& rhs) const noexcept;
     bool operator>(const DateTime& rhs) const noexcept;

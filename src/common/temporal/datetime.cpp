@@ -93,6 +93,16 @@ std::string DateTime::ToString() const {
     }
 }
 
+Value DateTime::GetUnit(std::string unit) const {
+    std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
+    if (unit == "year" || unit == "month" || unit == "day" || unit == "weekyear" || unit == "week" ||
+        unit == "weekday" || unit == "ordinalday" || unit == "quarter" || unit == "dayofquarter") {
+        return Date(nanoseconds_since_epoch_ / NANOS_PER_SECOND / SECONDS_PER_DAY).GetUnit(unit);
+    } else {
+        return Time(nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY), tz_offset_seconds_).GetUnit(unit);
+    }
+}
+
 bool DateTime::operator<(const DateTime& rhs) const noexcept {
     return nanoseconds_since_epoch_ < rhs.nanoseconds_since_epoch_;
 }

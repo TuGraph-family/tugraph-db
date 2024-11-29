@@ -97,7 +97,7 @@ void Date::fromYearMonthDay(int year, unsigned month, unsigned day) {
     date::year_month_day ymd = date::year_month_day{
         date::year{year}, date::month{month}, date::day{day}};
     if (ymd.ok()) {
-        date::local_days ld = (date::local_days)ymd;
+        auto ld = (date::local_days)ymd;
         days_since_epoch_ = ld.time_since_epoch().count();
     } else {
         std::ostringstream oss;
@@ -112,7 +112,7 @@ void Date::fromYearWeekDow(int year, unsigned week, unsigned dow) {
                                        iso_week::weekday{date::weekday{dow}});
 
     if (yww.ok()) {
-        date::local_days ld = date::local_days(yww);
+        auto ld = date::local_days(yww);
         days_since_epoch_ = ld.time_since_epoch().count();
     } else {
         std::ostringstream oss;
@@ -412,6 +412,35 @@ Date::Date(const Value& params) {
 std::string Date::ToString() const {
     date::local_days tp((date::days(days_since_epoch_)));
     return date::format("%Y-%m-%d", tp);
+}
+
+Value Date::GetUnit(std::string unit) const {
+    std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
+    date::year_month_day ymd((date::local_days((date::days(days_since_epoch_)))));
+    iso_week::year_weeknum_weekday yww(date::local_days{date::days{days_since_epoch_}});
+    if (unit == "year") {
+        return Value::Integer(int(ymd.year()));
+    } else if (unit == "month") {
+        return Value::Integer(unsigned(ymd.month()));
+    } else if (unit == "day") {
+        return Value::Integer(unsigned(ymd.day()));
+    } else if (unit == "weekyear") {
+        return Value::Integer(int(yww.year()));
+    } else if (unit == "week") {
+        return Value::Integer(unsigned(yww.weeknum()));
+    } else if (unit == "weekday") {
+        return Value::Integer(unsigned(yww.weekday()));
+    } else if (unit == "ordinalday") {
+        return Value::Integer(days_since_epoch_ - date::local_days(date::year_month_day{ymd.year(),
+                    date::month(1), date::day(1)}).time_since_epoch().count() + 1);
+    } else if (unit == "quarter") {
+        return Value::Integer((unsigned(ymd.month()) - 1) / 3 + 1);
+    } else if (unit == "dayofquarter") {
+        return Value::Integer(days_since_epoch_ - date::local_days(date::year_month_day{ymd.year(),
+                       date::month(((unsigned(ymd.month()) - 1) / 3) * 3 + 1), date::day(1)}).time_since_epoch().count() + 1);
+    } else {
+        THROW_CODE(InvalidParameter, "No such field: {}", unit);
+    }
 }
 
 bool Date::operator<(const Date& rhs) const noexcept {

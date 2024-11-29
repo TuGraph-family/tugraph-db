@@ -81,6 +81,16 @@ std::string LocalDateTime::ToString() const {
     return date::format("%Y-%m-%dT%H:%M:%S", tp);
 }
 
+Value LocalDateTime::GetUnit(std::string unit) const {
+    std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
+    if (unit == "year" || unit == "month" || unit == "day" || unit == "weekyear" || unit == "week" ||
+        unit == "weekday" || unit == "ordinalday" || unit == "quarter" || unit == "dayofquarter") {
+        return Date(nanoseconds_since_epoch_ / NANOS_PER_SECOND / SECONDS_PER_DAY).GetUnit(unit);
+    } else {
+        return LocalTime(nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY)).GetUnit(unit);
+    }
+}
+
 bool LocalDateTime::operator<(const LocalDateTime& rhs) const noexcept {
     return nanoseconds_since_epoch_ < rhs.nanoseconds_since_epoch_;
 }
