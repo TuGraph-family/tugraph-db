@@ -51,6 +51,8 @@ Value Entry::GetEntityField(RTContext *ctx, const std::string &fd) {
                     return constant.AsDateTime().GetUnit(fd);
                 case ValueType::LOCALDATETIME:
                     return constant.AsLocalDateTime().GetUnit(fd);
+                case ValueType::DURATION:
+                    return constant.AsDuration().GetUnit(fd);
                 default:
                     THROW_CODE(CypherException, "Only support for map & time-related type");
             }

@@ -2711,5 +2711,33 @@ TEST(Date, getField) {
         EXPECT_EQ(std::any_cast<Value>(records[19].data).AsInteger(), 469020674);
         EXPECT_EQ(std::any_cast<Value>(records[20].data).AsInteger(), 469020674645);
     }
+
+    resultIterator = txn->Execute(&rtx, "with duration({years: 1, months: 4, days: 10, hours: 1, minutes: 1, seconds: 1, nanoseconds: 111111111}) as d return "
+                                  "d.years, d.quarters, d.months, d.weeks, d.days, d.hours, d.minutes, d.seconds, d.milliseconds, d.microseconds, d.nanoseconds,"
+                                  "d.quartersOfYear, d.monthsOfQuarter, d.monthsOfYear, d.daysOfWeek, d.minutesOfHour, d.secondsOfMinute, d.millisecondsOfSecond, d.microsecondsOfSecond, d.nanosecondsOfSecond");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsInteger(), 1);
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsInteger(), 5);
+        EXPECT_EQ(std::any_cast<Value>(records[2].data).AsInteger(), 16);
+        EXPECT_EQ(std::any_cast<Value>(records[3].data).AsInteger(), 1);
+        EXPECT_EQ(std::any_cast<Value>(records[4].data).AsInteger(), 10);
+        EXPECT_EQ(std::any_cast<Value>(records[5].data).AsInteger(), 1);
+        EXPECT_EQ(std::any_cast<Value>(records[6].data).AsInteger(), 61);
+        EXPECT_EQ(std::any_cast<Value>(records[7].data).AsInteger(), 3661);
+        EXPECT_EQ(std::any_cast<Value>(records[8].data).AsInteger(), 3661111);
+        EXPECT_EQ(std::any_cast<Value>(records[9].data).AsInteger(), 3661111111);
+        EXPECT_EQ(std::any_cast<Value>(records[10].data).AsInteger(), 3661111111111);
+        EXPECT_EQ(std::any_cast<Value>(records[11].data).AsInteger(), 1);
+        EXPECT_EQ(std::any_cast<Value>(records[12].data).AsInteger(), 1);
+        EXPECT_EQ(std::any_cast<Value>(records[13].data).AsInteger(), 4);
+        EXPECT_EQ(std::any_cast<Value>(records[14].data).AsInteger(), 3);
+        EXPECT_EQ(std::any_cast<Value>(records[15].data).AsInteger(), 1);
+        EXPECT_EQ(std::any_cast<Value>(records[16].data).AsInteger(), 1);
+        EXPECT_EQ(std::any_cast<Value>(records[17].data).AsInteger(), 111);
+        EXPECT_EQ(std::any_cast<Value>(records[18].data).AsInteger(), 111111);
+        EXPECT_EQ(std::any_cast<Value>(records[19].data).AsInteger(), 111111111);
+    }
     txn->Commit();
 }

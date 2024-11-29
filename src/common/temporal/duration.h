@@ -53,6 +53,7 @@ class Duration {
     explicit Duration(const std::string& str);
     explicit Duration(int64_t m = 0, int64_t d = 0, int64_t s = 0, int64_t n = 0);
     static Duration between(const Value& from, const Value& to, const std::string& unit = "");
+    [[nodiscard]] Value GetUnit(std::string unit) const;
 
     [[nodiscard]] std::string ToString() const;
     Duration& operator=(const Duration& other);
