@@ -68,12 +68,13 @@ class LocateNodeByIndexedPropV2 : public OptPass {
             // Reason that not to build unwind：unwind needs one more symbol in symbol table
             auto it = target_value_datas.find(node->Alias());
             if (it == target_value_datas.end()) return;
-            CYPHER_THROW_ASSERT(it->second.size() == 1);
             std::vector<lgraph::FieldData> values;
             std::string field;
             for (auto & [f, set] : it->second) {
                 values.insert(values.end(), set.begin(), set.end());
                 field = f;
+                // TODO(zhjwpku): choose one field
+                break;
             }
             auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, values);
             op_node_index_seek->parent = op_post;
@@ -81,6 +82,44 @@ class LocateNodeByIndexedPropV2 : public OptPass {
             OpBase::FreeStream(op_filter);
             op_filter = nullptr;
             op_post->AddChild(op_node_index_seek);
+        }
+
+        op_filter = nullptr;
+        target_value_datas.clear();
+        if (FindNodePropFirstFilter(root, op_filter, target_value_datas)) {
+            OpBase *target_op = nullptr;
+            if (FindAMactchedAllNodeScanOrNodeByLabelScan(op_filter, target_op,
+                                                          target_value_datas)) {
+                auto op_post = target_op->parent;
+
+                Node *node;
+                const SymbolTable *symtab;
+
+                if (target_op->type == OpType::ALL_NODE_SCAN) {
+                    node = dynamic_cast<AllNodeScan *>(target_op)->GetNode();
+                    symtab = dynamic_cast<AllNodeScan *>(target_op)->sym_tab_;
+                } else {
+                    node = dynamic_cast<NodeByLabelScan *>(target_op)->GetNode();
+                    symtab = dynamic_cast<NodeByLabelScan *>(target_op)->sym_tab_;
+                }
+
+                auto it = target_value_datas.find(node->Alias());
+                if (it == target_value_datas.end()) return;
+                std::vector<lgraph::FieldData> values;
+                std::string field;
+                for (auto &[f, set] : it->second) {
+                    values.insert(values.end(), set.begin(), set.end());
+                    field = f;
+                    // TODO(zhjwpku): choose one field
+                    break;
+                }
+                auto op_node_index_seek = new NodeIndexSeek(node, symtab, field, values);
+                op_node_index_seek->parent = op_post;
+                op_post->RemoveChild(target_op);
+                OpBase::FreeStream(target_op);
+                target_op = nullptr;
+                op_post->AddChild(op_node_index_seek);
+            }
         }
     }
 
@@ -105,10 +144,11 @@ class LocateNodeByIndexedPropV2 : public OptPass {
         return true;
     }
 
-    bool FindNodePropFilter(OpBase *root, OpFilter *&op_filter,
-                            std::unordered_map<std::string,
-                            std::unordered_map<std::string,
-                            std::set<lgraph::FieldData>>> &target_value_datas) {
+    bool FindNodePropFilter(
+        OpBase *root, OpFilter *&op_filter,
+        std::unordered_map<std::string,
+                           std::unordered_map<std::string, std::set<lgraph::FieldData>>>
+            &target_value_datas) {
         auto op = root;
         if (op->type == OpType::FILTER && op->children.size() == 1 &&
             (op->children[0]->type == OpType::ALL_NODE_SCAN ||
@@ -123,6 +163,56 @@ class LocateNodeByIndexedPropV2 : public OptPass {
             if (FindNodePropFilter(child, op_filter, target_value_datas)) return true;
         }
 
+        return false;
+    }
+
+    /**
+     * TODO(zhjwpku): This function now find the first Filter Node, which is a little bit hack.
+     * will change this later after analyze more cases.
+     */
+    bool FindNodePropFirstFilter(
+        OpBase *root, OpFilter *&op_filter,
+        std::unordered_map<std::string,
+                           std::unordered_map<std::string, std::set<lgraph::FieldData>>>
+            &target_value_datas) {
+        auto op = root;
+        if (op->type == OpType::FILTER && op->children.size() == 1) {
+            op_filter = dynamic_cast<OpFilter *>(op);
+            if (_CheckPropFilter(op_filter, target_value_datas)) {
+                return true;
+            }
+        }
+
+        for (auto child : op->children) {
+            if (FindNodePropFirstFilter(child, op_filter, target_value_datas)) return true;
+        }
+
+        return false;
+    }
+
+    bool FindAMactchedAllNodeScanOrNodeByLabelScan(
+        OpBase *op, OpBase *&matched,
+        const std::unordered_map<std::string,
+                                 std::unordered_map<std::string, std::set<lgraph::FieldData>>>
+            &target_value_datas) {
+        Node *node;
+
+        if (op->type == OpType::ALL_NODE_SCAN) {
+            node = dynamic_cast<AllNodeScan *>(op)->GetNode();
+        } else if (op->type == OpType::NODE_BY_LABEL_SCAN) {
+            node = dynamic_cast<NodeByLabelScan *>(op)->GetNode();
+        } else {
+            for (auto child : op->children) {
+                if (FindAMactchedAllNodeScanOrNodeByLabelScan(child, matched, target_value_datas))
+                    return true;
+            }
+            return false;
+        }
+        auto it = target_value_datas.find(node->Alias());
+        if (it != target_value_datas.end()) {
+            matched = op;
+            return true;
+        }
         return false;
     }
 
