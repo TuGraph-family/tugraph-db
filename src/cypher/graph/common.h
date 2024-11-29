@@ -43,6 +43,7 @@ struct Path {
     std::vector<bool> dirs_;
     std::vector<uint16_t> lids_;
     std::vector<int64_t> ids_;
+    std::vector<int64_t> tids_;
 
     Path() = default;
 
@@ -63,12 +64,14 @@ struct Path {
             lids_.push_back(edge.lid);
             ids_.push_back(edge.eid);
             ids_.push_back(edge.dst);
+            tids_.push_back(edge.tid);
         } else if (ids_.back() == edge.dst) {
             // backward
             dirs_.push_back(false);
             lids_.push_back(edge.lid);
             ids_.push_back(edge.eid);
             ids_.push_back(edge.src);
+            tids_.push_back(edge.tid);
         } else {
             throw std::runtime_error("The edge doesn't match the path's end.");
         }
@@ -79,6 +82,7 @@ struct Path {
         std::reverse(lids_.begin(), lids_.end());
         std::reverse(dirs_.begin(), dirs_.end());
         for (size_t i = 0; i < dirs_.size(); i++) dirs_[i] = !dirs_[i];
+        std::reverse(tids_.begin(), tids_.end());
     }
 
     void PopBack() {
@@ -86,12 +90,14 @@ struct Path {
         lids_.pop_back();
         ids_.pop_back();
         ids_.pop_back();
+        tids_.pop_back();
     }
 
     void Clear() {
         dirs_.clear();
         lids_.clear();
         ids_.clear();
+        tids_.clear();
     }
 
     lgraph::EdgeUid GetNthEdge(size_t n) const {
@@ -103,6 +109,17 @@ struct Path {
                    ? lgraph::EdgeUid(ids_[0 + n * 2], ids_[2 + n * 2], lids_[n], 0, ids_[1 + n * 2])
                    : lgraph::EdgeUid(ids_[2 + n * 2], ids_[0 + n * 2], lids_[n], 0,
                                      ids_[1 + n * 2]);  // TODO(heng)
+    }
+
+    lgraph::EdgeUid GetNthEdgeWithTid(size_t n) const {
+        size_t length = dirs_.size();
+        if (n >= length) {
+            throw std::runtime_error("Access out of range.");
+        }
+        return dirs_[n] ? lgraph::EdgeUid(ids_[0 + n * 2], ids_[2 + n * 2], lids_[n], tids_[n],
+                                          ids_[1 + n * 2])
+                        : lgraph::EdgeUid(ids_[2 + n * 2], ids_[0 + n * 2], lids_[n], tids_[n],
+                                          ids_[1 + n * 2]);
     }
 
     std::string ToString() const {
