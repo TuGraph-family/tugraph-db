@@ -23,10 +23,10 @@
 
 #ifndef NDEBUG
 #define VAR_LEN_EXP_DUMP_FOR_DEBUG()                                                         \
-    do {                                                                                       \
-        LOG_DEBUG() << __func__ << __LINE__ << ": hop=" << hop_ << ", edge="                   \
+    do {                                                                                     \
+        FMA_DBG() << __func__ << __LINE__ << ": hop=" << hop_ << ", edge="                   \
                   << (hop_ == 0 ? "na" : _detail::EdgeUid2String(eits_[hop_ - 1].GetUid())); \
-        LOG_DEBUG() << pattern_graph_->VisitedEdges().Dump();                                  \
+        FMA_DBG() << pattern_graph_->VisitedEdges().Dump();                                  \
     } while (0)
 #else
 #define VAR_LEN_EXP_DUMP_FOR_DEBUG()
