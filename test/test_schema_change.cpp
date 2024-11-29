@@ -751,14 +751,30 @@ TEST_F(TestSchemaChange, UpdateSchemaAndData) {
         std::unordered_map<std::string, FieldData> ret;
         for (const auto& pair : field_data) {
             ret.insert(pair);
-            std::cout << pair.first << std::endl;
-            std::cout << pair.second.ToString("") << std::endl;
         }
         UT_EXPECT_EQ(ret["id"], FieldData::Int32(1));
         UT_EXPECT_EQ(ret["name"], FieldData::String("p"));
         UT_EXPECT_EQ(ret["age"], FieldData::Float(11.5));
         UT_EXPECT_EQ(ret["desc"], FieldData::String("this is a desc larger than before"));
         UT_EXPECT_EQ(ret["cond"], FieldData::Int32(100));
+        UT_EXPECT_EQ(ret.size(), 6);
+    }
+
+    UT_LOG() << "Test Read data after modify";
+    {
+        LightningGraph graph(conf);
+        auto txn = graph.CreateReadTxn();
+        auto itr = txn.GetVertexIterator(3);
+        auto field_data = txn.GetVertexFields(itr);
+        std::unordered_map<std::string, FieldData> ret;
+        for (const auto& pair : field_data) {
+            ret.insert(pair);
+        }
+        UT_EXPECT_EQ(ret["id"], FieldData::Int32(4));
+        UT_EXPECT_EQ(ret["name"], FieldData::String("p1"));
+        UT_EXPECT_EQ(ret["age"], FieldData::Float(11.5));
+        UT_EXPECT_EQ(ret["desc"], FieldData::String("desc"));
+        UT_EXPECT_EQ(ret["cond"], FieldData::Int32(40));
         UT_EXPECT_EQ(ret.size(), 6);
     }
 }
