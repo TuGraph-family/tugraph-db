@@ -120,11 +120,13 @@ Time::Time(const Value& params, int64_t truncate) {
     if (params.IsTime()) {
         nanoseconds_since_today_with_of_ = std::get<0>(params.AsTime().GetStorage());
         tz_offset_seconds_ = std::get<1>(params.AsTime().GetStorage());
+        timezone_name_ = params.AsTime().GetTimezoneName();
         return;
     }
     if (params.IsDateTime()) {
         nanoseconds_since_today_with_of_ = std::get<0>(params.AsDateTime().GetStorage()) % (NANOS_PER_SECOND * SECONDS_PER_DAY);
         tz_offset_seconds_ = std::get<1>(params.AsDateTime().GetStorage());
+        timezone_name_ = params.AsDateTime().GetTimezoneName();
         return;
     }
     if (params.IsLocalDateTime()) {
@@ -150,12 +152,14 @@ Time::Time(const Value& params, int64_t truncate) {
             has_time_param = true;
             v = std::get<0>(parse_params_map["time"].AsTime().GetStorage());
             tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsTime().GetStorage());
+            timezone_name_ = parse_params_map["time"].AsTime().GetTimezoneName();
         } else if (parse_params_map["time"].IsLocalDateTime()) {
             v = parse_params_map["time"].AsLocalDateTime().GetStorage();
         } else if (parse_params_map["time"].IsDateTime()) {
             has_time_param = true;
             v = std::get<0>(parse_params_map["time"].AsDateTime().GetStorage());
             tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsDateTime().GetStorage());
+            timezone_name_ = parse_params_map["time"].AsDateTime().GetTimezoneName();
         }
         nanosecond = v % 1000;
         microsecond = v / 1000 % 1000;
@@ -286,6 +290,14 @@ Time::Time(const Value& params, int64_t truncate) {
     nanoseconds_since_today_with_of_ = t.get_local_time().time_since_epoch().count();
 }
 
+std::string Time::timeOffsetToTimezone() const {
+    char time_offset[32];
+    auto abs_second = std::abs(tz_offset_seconds_);
+    sprintf(time_offset, "%c%02ld:%02ld:%02ld", tz_offset_seconds_ < 0 ? '-' : '+', abs_second / 60 / 60,
+            abs_second / 60 % 60, abs_second % 60);
+    return {time_offset};
+}
+
 std::string Time::ToString() const {
     date::local_time<std::chrono::nanoseconds> tp(
         (std::chrono::nanoseconds(nanoseconds_since_today_with_of_)));
@@ -296,8 +308,12 @@ std::string Time::ToString() const {
         auto abs_second = std::abs(tz_offset_seconds_);
         sprintf(time_offset, "%c%02ld:%02ld:%02ld", tz_offset_seconds_ < 0 ? '-' : '+', abs_second / 60 / 60,
                 abs_second / 60 % 60, abs_second % 60);
-        return date::format("%H:%M:%S", tp) + std::string(time_offset);
+        return date::format("%H:%M:%S", tp) + timeOffsetToTimezone();
     }
+}
+
+std::string Time::GetTimezoneName() const {
+    return timezone_name_;
 }
 
 Value Time::GetUnit(std::string unit) const {
@@ -311,18 +327,17 @@ Value Time::GetUnit(std::string unit) const {
     } else if (unit == "millisecond") {
         return Value::Integer(nanoseconds_since_today_with_of_ / 1000000 % 1000);
     } else if (unit == "microsecond") {
-        return Value::Integer(nanoseconds_since_today_with_of_ / 1000 % 1000);
+        return Value::Integer(nanoseconds_since_today_with_of_ / 1000 % 1000000);
     } else if (unit == "nanosecond") {
-        return Value::Integer(nanoseconds_since_today_with_of_ % 1000);
+        return Value::Integer(nanoseconds_since_today_with_of_ % NANOS_PER_SECOND);
     } else if (unit == "timezone") {
-        return Value::String(timezone_name_);
+        if (timezone_name_[0] == '+' || timezone_name_[0] == '-') {
+            return Value::String(timeOffsetToTimezone());
+        } else {
+            return Value::String(timezone_name_);
+        }
     } else if (unit == "offset") {
-        std::string offset_sign = tz_offset_seconds_ < 0 ? "-" : "+";
-        auto abs_tz_offset_seconds_ = std::abs(tz_offset_seconds_);
-        auto offset_hour = abs_tz_offset_seconds_ / 3600 % 24;
-        auto offset_minute = abs_tz_offset_seconds_ / 60 % 60;
-        auto offset_second = abs_tz_offset_seconds_ % 60;
-        return Value::String(offset_sign + std::to_string(offset_hour) + ":" + std::to_string(offset_minute) + ":" + std::to_string(offset_second));
+        return Value::String(timeOffsetToTimezone());
     } else if (unit == "offsetminutes") {
         return Value::Integer(tz_offset_seconds_ / 60);
     } else if (unit == "offsetseconds") {

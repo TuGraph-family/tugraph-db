@@ -83,7 +83,11 @@ std::string LocalDateTime::ToString() const {
 
 Value LocalDateTime::GetUnit(std::string unit) const {
     std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
-    if (unit == "year" || unit == "month" || unit == "day" || unit == "weekyear" || unit == "week" ||
+    if (unit == "epochseconds") {
+        return Value::Integer(nanoseconds_since_epoch_ / NANOS_PER_SECOND);
+    } else if (unit == "epochmillis") {
+        return Value::Integer(nanoseconds_since_epoch_ / 1000000);
+    } if (unit == "year" || unit == "month" || unit == "day" || unit == "weekyear" || unit == "week" ||
         unit == "weekday" || unit == "ordinalday" || unit == "quarter" || unit == "dayofquarter") {
         return Date(nanoseconds_since_epoch_ / NANOS_PER_SECOND / SECONDS_PER_DAY).GetUnit(unit);
     } else {

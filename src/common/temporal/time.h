@@ -27,6 +27,7 @@ class Time {
     int64_t nanoseconds_since_today_with_of_ = 0;
     int64_t tz_offset_seconds_ = 0;
     std::string timezone_name_ = "Z";
+    [[nodiscard]] inline std::string timeOffsetToTimezone() const;
 
    public:
     Time();
@@ -38,6 +39,7 @@ class Time {
         return {nanoseconds_since_today_with_of_, tz_offset_seconds_};
     }
     [[nodiscard]] std::string ToString() const;
+    [[nodiscard]] std::string GetTimezoneName() const;
     [[nodiscard]] Value GetUnit(std::string unit) const;
     bool operator<(const Time& rhs) const noexcept;
     bool operator<=(const Time& rhs) const noexcept;

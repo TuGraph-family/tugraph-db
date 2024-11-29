@@ -2645,5 +2645,71 @@ TEST(Date, getField) {
         EXPECT_EQ(std::any_cast<Value>(records[4].data).AsInteger(), 645876);
         EXPECT_EQ(std::any_cast<Value>(records[5].data).AsInteger(), 645876123);
     }
+    resultIterator = txn->Execute(&rtx, "with time({hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}) as d return "
+                                  "d.hour, d.minute, d.second, d.millisecond, d.microsecond, d.nanosecond, d.timezone, d.offset, d.offsetMinutes, d.offsetSeconds");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsInteger(), 12);
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsInteger(), 31);
+        EXPECT_EQ(std::any_cast<Value>(records[2].data).AsInteger(), 14);
+        EXPECT_EQ(std::any_cast<Value>(records[3].data).AsInteger(), 645);
+        EXPECT_EQ(std::any_cast<Value>(records[4].data).AsInteger(), 645876);
+        EXPECT_EQ(std::any_cast<Value>(records[5].data).AsInteger(), 645876123);
+        EXPECT_EQ(std::any_cast<Value>(records[6].data).AsString(), "+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[7].data).AsString(), "+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[8].data).AsInteger(), 60);
+        EXPECT_EQ(std::any_cast<Value>(records[9].data).AsInteger(), 3600);
+    }
+    resultIterator = txn->Execute(&rtx, "with localdatetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) as d return "
+                                  "d.year, d.quarter, d.month, d.week, d.weekYear, d.day, d.ordinalDay, d.weekDay, d.dayOfQuarter,"
+                                  "d.hour, d.minute, d.second, d.millisecond, d.microsecond, d.nanosecond");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsInteger(), 1984);
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsInteger(), 4);
+        EXPECT_EQ(std::any_cast<Value>(records[2].data).AsInteger(), 11);
+        EXPECT_EQ(std::any_cast<Value>(records[3].data).AsInteger(), 45);
+        EXPECT_EQ(std::any_cast<Value>(records[4].data).AsInteger(), 1984);
+        EXPECT_EQ(std::any_cast<Value>(records[5].data).AsInteger(), 11);
+        EXPECT_EQ(std::any_cast<Value>(records[6].data).AsInteger(), 316);
+        EXPECT_EQ(std::any_cast<Value>(records[7].data).AsInteger(), 7);
+        EXPECT_EQ(std::any_cast<Value>(records[8].data).AsInteger(), 42);
+        EXPECT_EQ(std::any_cast<Value>(records[9].data).AsInteger(), 12);
+        EXPECT_EQ(std::any_cast<Value>(records[10].data).AsInteger(), 31);
+        EXPECT_EQ(std::any_cast<Value>(records[11].data).AsInteger(), 14);
+        EXPECT_EQ(std::any_cast<Value>(records[12].data).AsInteger(), 645);
+        EXPECT_EQ(std::any_cast<Value>(records[13].data).AsInteger(), 645876);
+        EXPECT_EQ(std::any_cast<Value>(records[14].data).AsInteger(), 645876123);
+    }
+    resultIterator = txn->Execute(&rtx, "with datetime({year: 1984, month: 11, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: 'Europe/Stockholm'}) as d return "
+                                  "d.year, d.quarter, d.month, d.week, d.weekYear, d.day, d.ordinalDay, d.weekDay, d.dayOfQuarter, d.hour, d.minute, d.second, d.millisecond, d.microsecond, "
+                                  "d.nanosecond,d.timezone, d.offset, d.offsetMinutes, d.offsetSeconds, d.epochSeconds, d.epochMillis");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsInteger(), 1984);
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsInteger(), 4);
+        EXPECT_EQ(std::any_cast<Value>(records[2].data).AsInteger(), 11);
+        EXPECT_EQ(std::any_cast<Value>(records[3].data).AsInteger(), 45);
+        EXPECT_EQ(std::any_cast<Value>(records[4].data).AsInteger(), 1984);
+        EXPECT_EQ(std::any_cast<Value>(records[5].data).AsInteger(), 11);
+        EXPECT_EQ(std::any_cast<Value>(records[6].data).AsInteger(), 316);
+        EXPECT_EQ(std::any_cast<Value>(records[7].data).AsInteger(), 7);
+        EXPECT_EQ(std::any_cast<Value>(records[8].data).AsInteger(), 42);
+        EXPECT_EQ(std::any_cast<Value>(records[9].data).AsInteger(), 12);
+        EXPECT_EQ(std::any_cast<Value>(records[10].data).AsInteger(), 31);
+        EXPECT_EQ(std::any_cast<Value>(records[11].data).AsInteger(), 14);
+        EXPECT_EQ(std::any_cast<Value>(records[12].data).AsInteger(), 645);
+        EXPECT_EQ(std::any_cast<Value>(records[13].data).AsInteger(), 645876);
+        EXPECT_EQ(std::any_cast<Value>(records[14].data).AsInteger(), 645876123);
+        EXPECT_EQ(std::any_cast<Value>(records[15].data).AsString(), "Europe/Stockholm");
+        EXPECT_EQ(std::any_cast<Value>(records[16].data).AsString(), "+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[17].data).AsInteger(), 60);
+        EXPECT_EQ(std::any_cast<Value>(records[18].data).AsInteger(), 3600);
+        EXPECT_EQ(std::any_cast<Value>(records[19].data).AsInteger(), 469020674);
+        EXPECT_EQ(std::any_cast<Value>(records[20].data).AsInteger(), 469020674645);
+    }
     txn->Commit();
 }

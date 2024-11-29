@@ -43,11 +43,16 @@ DateTime::DateTime(const std::string& str) {
         auto t = Time(str.substr(pos + 1));
         nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
         tz_offset_seconds_ = std::get<1>(t.GetStorage());
+        timezone_name_ = t.GetTimezoneName();
     }
 
     nanoseconds_since_epoch_ =
         std::chrono::nanoseconds(date::days(days_since_epoch)).count() +
         nanoseconds_since_begin_of_day;
+}
+
+std::string DateTime::GetTimezoneName() const {
+    return timezone_name_;
 }
 
 DateTime::DateTime(const Value& params) {
@@ -71,6 +76,7 @@ DateTime::DateTime(const Value& params) {
         auto t = Time(Value(std::move(timeParams)));
         nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
         tz_offset_seconds_ = std::get<1>(t.GetStorage());
+        timezone_name_ = t.GetTimezoneName();
     }
 
     nanoseconds_since_epoch_ =
@@ -95,7 +101,13 @@ std::string DateTime::ToString() const {
 
 Value DateTime::GetUnit(std::string unit) const {
     std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
-    if (unit == "year" || unit == "month" || unit == "day" || unit == "weekyear" || unit == "week" ||
+    if (unit == "epochseconds") {
+        return Value::Integer((nanoseconds_since_epoch_ - tz_offset_seconds_ * NANOS_PER_SECOND) / NANOS_PER_SECOND);
+    } else if (unit == "epochmillis") {
+        return Value::Integer((nanoseconds_since_epoch_ - tz_offset_seconds_ * NANOS_PER_SECOND) / 1000000);
+    } else if (unit == "timezone") {
+        return Value::String(timezone_name_);
+    } else if (unit == "year" || unit == "month" || unit == "day" || unit == "weekyear" || unit == "week" ||
         unit == "weekday" || unit == "ordinalday" || unit == "quarter" || unit == "dayofquarter") {
         return Date(nanoseconds_since_epoch_ / NANOS_PER_SECOND / SECONDS_PER_DAY).GetUnit(unit);
     } else {
