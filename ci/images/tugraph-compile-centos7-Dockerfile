@@ -340,33 +340,15 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-3
     && tar zxf tabulate-3a5830.tar.gz && cp -rf tabulate/include/tabulate /usr/local/include \
     && rm -rf /tabulate*
 
-RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
-
-# install epel
-RUN yum install -y epel-release && yum makecache
-
-# install openblas
-RUN yum install -y openblas-devel
-
-# install swig
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/swig-4.0.2.tar.gz \
-    && tar -xzvf swig-4.0.2.tar.gz && cd swig-4.0.2 && ./configure \
-    && make && make install && cd .. \
-    && rm -rf swig-4.0.2 swig-4.0.2.tar.gz
-
-# install faiss
-RUN wget -O /tmp/openblas-faiss.tar.gz https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/openblas-faiss.tar.gz \
-    && tar -xzvf /tmp/openblas-faiss.tar.gz -C /tmp && cd /tmp/openblas-faiss/OpenBLAS && make ${JFLAG} && make install \
-    && cd /tmp/openblas-faiss/faiss && cmake -B build -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_OPT_LEVEL=avx2 -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib -DOpenMP_CXX_FLAGS="-fopenmp" -DOpenMP_CXX_LIB_NAMES="gomp" -DOpenMP_gomp_LIBRARY="/usr/lib64/libgomp.so.1" -DBLAS_LIBRARIES=/opt/OpenBLAS/lib/libopenblas.so . && make -C build ${JFLAG} && make -C build install \
-    && rm -rf /tmp/openblas-faiss /tmp/openblas-faiss.tar.gz && ldconfig
-
 # install vsag
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/vsag-0.11.5.tar.gz -O /tmp/vsag.tar.gz && \
     cd /tmp && mkdir vsag && tar -xzf vsag.tar.gz --strip-components=1 -C vsag && cd vsag && \
     yum install -y libgfortran5.x86_64 && ln -s /usr/lib64/libgfortran.so.5.0.0 /usr/local/lib/libgfortran.so && ldconfig && \
     mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
-    make -j10 && make install && \
+    make ${JFLAG} && make install && \
     cd / && rm -rf /tmp/vsag*
+
+RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
     LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \

@@ -46,8 +46,6 @@ install(FILES
         DESTINATION etc)
 install(FILES
         /usr/local/lib64/libvsag.so
-        /lib64/libgfortran.so.5
-        /lib64/libgfortran.so.5.0.0
         DESTINATION lib64/lgraph)
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../include
         DESTINATION ./)
