@@ -50,7 +50,7 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     std::string cur_field_;
     std::set<lgraph::FieldData> cur_properties_;
 
-    std::any visit(geax::frontend::BOr* node) override {
+    std::any visit(geax::frontend::BAnd* node) override {
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
@@ -69,6 +69,7 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     }
 
     std::any visit(geax::frontend::BEqual* node) override {
+        cur_properties_.clear();
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         if (!cur_properties_.empty()) {
@@ -87,6 +88,7 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     }
 
     std::any visit(geax::frontend::BIn* node) override {
+        cur_properties_.clear();
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         if (!cur_properties_.empty()) {
