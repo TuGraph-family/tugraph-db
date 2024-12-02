@@ -5,13 +5,15 @@ import type { WrapperProps } from "@docusaurus/types";
 import { useLocation, useHistory } from "react-router-dom";
 import { DocSearch } from "@docsearch/react";
 import Link from "@docusaurus/Link";
-import { EN_DOC_OPTIONS, EN_TRANSLATIONS, ZH_DOC_OPTIONS, ZH_TRANSLATIONS } from "@site/src/constants";
+import {
+  EN_DOC_OPTIONS,
+  EN_TRANSLATIONS,
+  ZH_DOC_OPTIONS,
+  ZH_TRANSLATIONS,
+} from "@site/src/constants";
 import { Cascader, Tooltip } from "antd";
 
-
 type Props = WrapperProps<typeof DocSidebarType>;
-
-
 
 export default function DocSidebarWrapper(props: Props): JSX.Element {
   const location = useLocation();
@@ -52,52 +54,52 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const formatDocSearchVersion = (tag: string) => {
-    return tag.replace(/docs-(\d+\.\d+\.\d+)|docs-latest_zh/g, (match, version) => {
+    return tag.replace(
+      /docs-(\d+\.\d+\.\d+)|docs-latest_zh/g,
+      (match, version) => {
+        if (["3.5.1", "3.5.0"].includes(version)) {
+          return "docs-3-6-0";
+        }
 
-      if (['3.5.1', '3.5.0'].includes(version)) {
-        return 'docs-3-6-0';
+        if (["4.0.1", "4.0.0"].includes(version)) {
+          return "docs-4-1-0";
+        }
+
+        if (["4.3.2", "4.3.1", "4.3.0", "4.2.0"].includes(version)) {
+          return "docs-4-5-0";
+        }
+
+        return `docs-${version.replace(/\./g, "-")}`;
       }
-
-      if (['4.0.1', '4.0.0'].includes(version)) {
-        return 'docs-4-1-0';
-      }
-
-      if (['4.3.2', '4.3.1', '4.3.0', '4.2.0'].includes(version)) {
-        return 'docs-4-5-0';
-      }
-
-      return `docs-${version.replace(/\./g, '-')}`;
-    });
+    );
   };
 
   const onVersionChange = (values) => {
-    const [type, version] = values
-    if (type === 'TuGraph_Analytics') {
-      window.location.href = `https://liukaiming-alipay.github.io/tugraph-analytics/${getCurrentLanguage()}/introduction/`;
+    const [type, version] = values;
+    const lang = getCurrentLanguage();
+    if (type === "TuGraph_Analytics") {
+      window.location.href = `https://liukaiming-alipay.github.io/tugraph-analytics/${lang}/introduction`;
       return;
     }
 
-    if (type === 'TuGraph_Learn') {
-      const learnPath = `/tugraph-db/zh/${version}/olap&procedure/learn/tutorial`;
+    if (type === "TuGraph_Learn") {
+      const learnPath = `/tugraph-db/${lang}/${version}/olap&procedure/learn/tutorial`;
       history.push(learnPath);
       return;
     }
 
-    const lang = getCurrentLanguage();
     const prefix = "/tugraph-db";
     const basePath = `${prefix}/${lang}`;
-
-    // 移除现有版本号部分
-    // const segments = pathname.split("/");
-    // const langIndex = segments.indexOf(lang);
-    // const versionIndex = langIndex + 1;
-    // const remainingPath = segments
-    //   .slice(versionIndex + (versions.includes(segments[versionIndex]) ? 1 : 0))
-    //   .join("/");
 
     // 构造新路径
     const newPath = `${basePath}/${version}/guide`;
     history.push(newPath);
+  };
+
+  const getCurrentType = () => {
+    return pathname.includes("/olap&procedure/learn")
+      ? "TuGraph_Learn"
+      : "TuGraph_DB";
   };
 
   const navigator = useRef({
@@ -117,22 +119,23 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const getDocSearchKey = useMemo(() => {
-
     const { value } = getCurrentVersion();
 
-    if (['4.1.0', '4.0.1', '4.0.0', '3.6.0', '3.5.1', '3.5.0'].includes(value)) {
+    if (
+      ["4.1.0", "4.0.1", "4.0.0", "3.6.0", "3.5.1", "3.5.0"].includes(value)
+    ) {
       return {
         apiKey: "7d995257839cea75cceb969a6d96e40a",
         indexName: "zhongyunwanio",
         appId: "FHM90YCZ2Z",
-      }
+      };
     }
 
     return {
       apiKey: "829a7e48ddbd6916e159c003391543a0",
       indexName: "zhongyunwanio",
       appId: "DGYVABHR0M",
-    }
+    };
   }, [location.pathname]);
 
   const getTranslationsByLanguage = (lang: string) => {
@@ -150,46 +153,55 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const getDescByLanguage = (lang: string) => {
+    const type = getCurrentType();
+    const desc =
+      type === "TuGraph_Learn"
+        ? {
+            zh: "图学习引擎",
+            en: "Graph Learning Engine",
+          }
+        : {
+            zh: "社区版",
+            en: "Community",
+          };
     if (lang === "zh") {
-      return '社区版';
+      return desc.zh;
     }
-    return 'Community';
+    return desc.en;
   };
 
-
   const getOptions = (lang: string) => {
-
     if (lang === "zh") {
       return ZH_DOC_OPTIONS;
     }
     return EN_DOC_OPTIONS;
   };
 
-
-
   const customStyles = {
     control: (provided: React.CSSProperties) => ({
       ...provided,
-      width: '120px',
-      minHeight: '36px',
-      height: '36px',
-      margin: "10px 4px 0 8px"
+      width: "120px",
+      minHeight: "36px",
+      height: "36px",
+      margin: "10px 4px 0 8px",
     }),
     valueContainer: (provided: React.CSSProperties) => ({
       ...provided,
-      padding: '0 8px'
+      padding: "0 8px",
     }),
   };
 
   useEffect(() => {
-
     const sendPostMsg = () => {
       window.parent.postMessage({ path: window.location.pathname }, "*");
     };
 
     const sendPostHashMsg = () => {
-      window.parent.postMessage({ path: window.location.pathname + window.location.hash }, "*");
-    }
+      window.parent.postMessage(
+        { path: window.location.pathname + window.location.hash },
+        "*"
+      );
+    };
 
     window.addEventListener("click", sendPostMsg);
     window.addEventListener("hashchange", sendPostHashMsg);
@@ -197,12 +209,16 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     sendPostMsg();
 
     return () => {
-      window.removeEventListener('click', sendPostMsg);
-      window.removeEventListener('hashchange', sendPostHashMsg);
-    }
-
+      window.removeEventListener("click", sendPostMsg);
+      window.removeEventListener("hashchange", sendPostHashMsg);
+    };
   }, []);
 
+  const getCascaderTitle = () => {
+    const type = getCurrentType();
+
+    return type === "TuGraph_Learn" ? "TuGraph Learn" : "TuGraph DB";
+  };
 
   return (
     <div
@@ -210,27 +226,34 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       style={{
         display: "flex",
         justifyContent: "center",
-        flexDirection: "column"
+        flexDirection: "column",
       }}
     >
-
-      <div style={{ display: "flex", justifyContent: 'space-between', marginBottom: '8px' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "8px",
+        }}
+      >
         <Cascader
           allowClear={false}
-          value={['TuGraph_DB', getCurrentVersion()?.label]}
+          value={[getCurrentType(), getCurrentVersion()?.label]}
           options={getOptions(getCurrentLanguage())}
           onChange={onVersionChange}
         >
           <div className="itemWrapper">
             <div className="titleBlock">
-              <span className="titleText">TuGraph DB</span>
-              <div
-                className="downIcon"
-              />
+              <span className="titleText">{getCascaderTitle()}</span>
+              <div className="downIcon" />
             </div>
             <div className="contentArea">
-              <span id="engineDescription">{getDescByLanguage(getCurrentLanguage())}</span>
-              <span className="versionLabel">V{getCurrentVersion()?.label}</span>
+              <span id="engineDescription">
+                {getDescByLanguage(getCurrentLanguage())}
+              </span>
+              <span className="versionLabel">
+                V{getCurrentVersion()?.label}
+              </span>
             </div>
           </div>
         </Cascader>
@@ -243,26 +266,30 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
                 searchParameters: {
                   facetFilters: [
                     formatDocSearchVersion(
-                      `docusaurus_tag:docs-${getCurrentVersion()?.value}_${getCurrentLanguage()}-current`
+                      `docusaurus_tag:docs-${
+                        getCurrentVersion()?.value
+                      }_${getCurrentLanguage()}-current`
                     ),
                   ],
                 },
                 hitComponent: Hit,
                 transformItems: (items) => {
-                  return items.map(item => {
+                  return items.map((item) => {
                     return {
                       ...item,
-                      url: replaceVersionInLink('/tugraph-db' + item?.url?.split('/tugraph-db')[1] ?? '')
+                      url: replaceVersionInLink(
+                        "/tugraph-db" + item?.url?.split("/tugraph-db")[1] ?? ""
+                      ),
                     };
                   });
                 },
                 navigator: navigator,
                 translations: getTranslationsByLanguage(getCurrentLanguage()),
                 placeholder: getPlaceholderByLanguage(getCurrentLanguage()),
-              }} />
+              }}
+            />
           </div>
         </Tooltip>
-
       </div>
       <DocSidebar {...props} />
     </div>

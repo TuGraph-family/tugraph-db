@@ -39,7 +39,7 @@
 }
 
 #__docusaurus {
-  padding: 16px 120px 0;
+  padding: 0 120px;
   background-color: transparent;
   cursor: pointer !important;
 }
