@@ -91,17 +91,15 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     const prefix = "/tugraph-db";
     const basePath = `${prefix}/${lang}`;
 
-    // 移除现有版本号部分
-    // const segments = pathname.split("/");
-    // const langIndex = segments.indexOf(lang);
-    // const versionIndex = langIndex + 1;
-    // const remainingPath = segments
-    //   .slice(versionIndex + (versions.includes(segments[versionIndex]) ? 1 : 0))
-    //   .join("/");
-
     // 构造新路径
     const newPath = `${basePath}/${version}/guide`;
     history.push(newPath);
+  };
+
+  const getCurrentType = () => {
+    return pathname.includes("/olap&procedure/learn")
+      ? "TuGraph_Learn"
+      : "TuGraph_DB";
   };
 
   const navigator = useRef({
@@ -155,10 +153,21 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const getDescByLanguage = (lang: string) => {
+    const type = getCurrentType();
+    const desc =
+      type === "TuGraph_Learn"
+        ? {
+            zh: "图学习引擎",
+            en: "Graph Learning Engine",
+          }
+        : {
+            zh: "社区版",
+            en: "Community",
+          };
     if (lang === "zh") {
-      return "社区版";
+      return desc.zh;
     }
-    return "Community";
+    return desc.en;
   };
 
   const getOptions = (lang: string) => {
@@ -205,6 +214,12 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     };
   }, []);
 
+  const getCascaderTitle = () => {
+    const type = getCurrentType();
+
+    return type === "TuGraph_Learn" ? "TuGraph Learn" : "TuGraph DB";
+  };
+
   return (
     <div
       className="docsearch-wrapper"
@@ -223,13 +238,13 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       >
         <Cascader
           allowClear={false}
-          value={["TuGraph_DB", getCurrentVersion()?.label]}
+          value={[getCurrentType(), getCurrentVersion()?.label]}
           options={getOptions(getCurrentLanguage())}
           onChange={onVersionChange}
         >
           <div className="itemWrapper">
             <div className="titleBlock">
-              <span className="titleText">TuGraph DB</span>
+              <span className="titleText">{getCascaderTitle()}</span>
               <div className="downIcon" />
             </div>
             <div className="contentArea">
