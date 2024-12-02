@@ -759,15 +759,15 @@ TEST(DateTime, truncateDatetime2Datetime) {
                   "1984-10-11T12:00:00.000000000-01:00:00");
         EXPECT_EQ(std::any_cast<Value>(record[6].data).AsDateTime().ToString(),
                   "1984-10-11T12:00:00.000000002-01:00:00");
-        // EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDateTime().ToString(),
-        //           "1984-10-11T12:00:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[7].data).AsDateTime().ToString(),
+                  "1984-10-11T12:00:00.000000000+01:00:00");
 
         EXPECT_EQ(std::any_cast<Value>(record[8].data).AsDateTime().ToString(),
                   "1984-10-11T12:31:00.000000000-01:00:00");
         EXPECT_EQ(std::any_cast<Value>(record[9].data).AsDateTime().ToString(),
                   "1984-10-11T12:31:00.000000002-01:00:00");
-        // EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDateTime().ToString(),
-        //           "1984-10-11T12:31:00.000000000+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(record[10].data).AsDateTime().ToString(),
+                  "1984-10-11T12:31:00.000000000+01:00:00");
     }
     txn->Commit();
 
