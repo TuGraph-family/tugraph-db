@@ -543,11 +543,11 @@ bool Duration::operator!=(const Duration& rhs) const noexcept {
 }
 
 Duration Duration::operator+(const Duration &duration) const {
-    return Duration(months + duration.months, days + duration.days, seconds + duration.days, nanos + duration.nanos);
+    return Duration(months + duration.months, days + duration.days, seconds + duration.seconds, nanos + duration.nanos);
 }
 
 Duration Duration::operator-(const Duration &duration) const {
-    return Duration(months - duration.months, days - duration.days, seconds - duration.days, nanos - duration.nanos);
+    return Duration(months - duration.months, days - duration.days, seconds - duration.seconds, nanos - duration.nanos);
 }
 
 Duration Duration::operator*(double num) const {
