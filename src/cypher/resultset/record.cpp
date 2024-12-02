@@ -31,15 +31,31 @@ Value Entry::GetEntityField(RTContext *ctx, const std::string &fd) {
             return relationship->edge_->GetProperty(fd);
         }
         case CONSTANT: {
-            if (!constant.IsMap()) {
-                THROW_CODE(CypherException, "Only support for map type");
+            switch (constant.type) {
+                case ValueType::MAP:
+                    {
+                        const auto& map = constant.AsMap();
+                        auto it = map.find(fd);
+                        if (it == map.end()) {
+                            THROW_CODE(CypherException, "Not found for GetEntityField");
+                        }
+                        return it->second;
+                    }
+                case ValueType::TIME:
+                    return constant.AsTime().GetUnit(fd);
+                case ValueType::LOCALTIME:
+                    return constant.AsLocalTime().GetUnit(fd);
+                case ValueType::DATE:
+                    return constant.AsDate().GetUnit(fd);
+                case ValueType::DATETIME:
+                    return constant.AsDateTime().GetUnit(fd);
+                case ValueType::LOCALDATETIME:
+                    return constant.AsLocalDateTime().GetUnit(fd);
+                case ValueType::DURATION:
+                    return constant.AsDuration().GetUnit(fd);
+                default:
+                    THROW_CODE(CypherException, "Only support for map & time-related type");
             }
-            const auto& map = constant.AsMap();
-            auto it = map.find(fd);
-            if (it == map.end()) {
-                THROW_CODE(CypherException, "Not found for GetEntityField");
-            }
-            return it->second;
         }
         case NODE_SNAPSHOT:
         case RELP_SNAPSHOT:

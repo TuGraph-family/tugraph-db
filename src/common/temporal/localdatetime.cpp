@@ -81,6 +81,20 @@ std::string LocalDateTime::ToString() const {
     return date::format("%Y-%m-%dT%H:%M:%S", tp);
 }
 
+Value LocalDateTime::GetUnit(std::string unit) const {
+    std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
+    if (unit == "epochseconds") {
+        return Value::Integer(nanoseconds_since_epoch_ / NANOS_PER_SECOND);
+    } else if (unit == "epochmillis") {
+        return Value::Integer(nanoseconds_since_epoch_ / 1000000);
+    } if (unit == "year" || unit == "month" || unit == "day" || unit == "weekyear" || unit == "week" ||
+        unit == "weekday" || unit == "ordinalday" || unit == "quarter" || unit == "dayofquarter") {
+        return Date(nanoseconds_since_epoch_ / NANOS_PER_SECOND / SECONDS_PER_DAY).GetUnit(unit);
+    } else {
+        return LocalTime(nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY)).GetUnit(unit);
+    }
+}
+
 bool LocalDateTime::operator<(const LocalDateTime& rhs) const noexcept {
     return nanoseconds_since_epoch_ < rhs.nanoseconds_since_epoch_;
 }
@@ -103,6 +117,42 @@ bool LocalDateTime::operator==(const LocalDateTime& rhs) const noexcept {
 
 bool LocalDateTime::operator!=(const LocalDateTime& rhs) const noexcept {
     return nanoseconds_since_epoch_ != rhs.nanoseconds_since_epoch_;
+}
+
+LocalDateTime LocalDateTime::operator+(const Duration& duration) const {
+    auto days = nanoseconds_since_epoch_ / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    auto nanos = nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY) + duration.seconds * NANOS_PER_SECOND + duration.nanos;
+    if (nanos < 0) {
+        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+        days -= day;
+        nanos += day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    if (nanos >= NANOS_PER_SECOND * SECONDS_PER_DAY) {
+        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+        days += day;
+        nanos -= day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    date::year_month_day ymd((date::local_days((date::days(days)))));
+    ymd += date::months(duration.months);
+    return LocalDateTime((date::local_days(ymd).time_since_epoch().count() + duration.days) * NANOS_PER_SECOND * SECONDS_PER_DAY + nanos);
+}
+
+LocalDateTime LocalDateTime::operator-(const Duration& duration) const {
+    auto days = nanoseconds_since_epoch_ / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    auto nanos = nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY) - duration.seconds * NANOS_PER_SECOND - duration.nanos;
+    if (nanos < 0) {
+        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+        days -= day;
+        nanos += day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    if (nanos >= NANOS_PER_SECOND * SECONDS_PER_DAY) {
+        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+        days += day;
+        nanos -= day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    date::year_month_day ymd((date::local_days((date::days(days)))));
+    ymd -= date::months(duration.months);
+    return LocalDateTime((date::local_days(ymd).time_since_epoch().count() - duration.days) * NANOS_PER_SECOND * SECONDS_PER_DAY + nanos);
 }
 
 }  // namespace common

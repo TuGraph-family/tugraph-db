@@ -18,6 +18,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include "common/temporal/duration.h"
 
 // forword declaration to avoid include value.h here
 class Value;
@@ -59,12 +60,15 @@ class Date {
     explicit Date(const Value& params);
     [[nodiscard]] int64_t GetStorage() const { return days_since_epoch_; }
     [[nodiscard]] std::string ToString() const;
+    [[nodiscard]] Value GetUnit(std::string unit) const;
     bool operator<(const Date& rhs) const noexcept;
     bool operator<=(const Date& rhs) const noexcept;
     bool operator>(const Date& rhs) const noexcept;
     bool operator>=(const Date& rhs) const noexcept;
     bool operator==(const Date& rhs) const noexcept;
     bool operator!=(const Date& rhs) const noexcept;
+    Date operator-(const Duration& duration) const;
+    Date operator+(const Duration& duration) const;
 };
 
 }  // namespace common

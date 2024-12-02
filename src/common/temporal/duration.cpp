@@ -365,6 +365,53 @@ Duration::Duration(const Value &params) {
     }
 }
 
+Value Duration::GetUnit(std::string unit) const {
+    std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
+    if (unit == "years") {
+        return Value::Integer(months / 12);
+    } else if (unit == "quarters") {
+        return Value::Integer(months / 3);
+    } else if (unit == "months") {
+        return Value::Integer(months);
+    } else if (unit == "weeks") {
+        return Value::Integer(days / 7);
+    } else if (unit == "days") {
+        return Value::Integer(days);
+    } else if (unit == "hours") {
+        return Value::Integer(seconds / 3600);
+    } else if (unit == "minutes") {
+        return Value::Integer(seconds / 60);
+    } else if (unit == "seconds") {
+        return Value::Integer(seconds);
+    } else if (unit == "milliseconds") {
+        return Value::Integer(seconds * 1000 + nanos / 1000000);
+    } else if (unit == "microseconds") {
+        return Value::Integer(seconds * 1000000 + nanos / 1000);
+    } else if (unit == "nanoseconds") {
+        return Value::Integer(seconds * 1000000000 + nanos);
+    } else if (unit == "quartersofyear") {
+        return Value::Integer(months % 12 / 3);
+    } else if (unit == "monthsofquarter") {
+        return Value::Integer(months % 3);
+    } else if (unit == "monthsofyear") {
+        return Value::Integer(months % 12);
+    } else if (unit == "daysofweek") {
+        return Value::Integer(days % 7);
+    } else if (unit == "minutesofhour") {
+        return Value::Integer(seconds / 60 % 60);
+    } else if (unit == "secondsofminute") {
+        return Value::Integer(seconds % 60);
+    } else if (unit == "millisecondsofsecond") {
+        return Value::Integer(nanos / 1000000);
+    } else if (unit == "microsecondsofsecond") {
+        return Value::Integer(nanos / 1000);
+    } else if (unit == "nanosecondsofsecond") {
+        return Value::Integer(nanos);
+    } else {
+        THROW_CODE(InvalidParameter, "No such field: {}", unit);
+    }
+}
+
 void Duration::append(std::string &str, int64_t quantity, char unit) {
     if (quantity != 0) {
         str += std::to_string(quantity) + unit;
@@ -494,4 +541,21 @@ bool Duration::operator==(const Duration& rhs) const noexcept {
 bool Duration::operator!=(const Duration& rhs) const noexcept {
     return months != rhs.months || days != rhs.days || seconds != rhs.seconds || nanos != rhs.nanos;
 }
+
+Duration Duration::operator+(const Duration &duration) const {
+    return Duration(months + duration.months, days + duration.days, seconds + duration.seconds, nanos + duration.nanos);
+}
+
+Duration Duration::operator-(const Duration &duration) const {
+    return Duration(months - duration.months, days - duration.days, seconds - duration.seconds, nanos - duration.nanos);
+}
+
+Duration Duration::operator*(double num) const {
+    return Duration::approximate(months * num, days * num, seconds * num, nanos * num);
+}
+
+Duration Duration::operator/(double num) const {
+    return Duration::approximate(months / num, days / num, seconds / num, nanos / num);
+}
+
 }

@@ -26,14 +26,13 @@
 namespace common {
 
 Time::Time() {
-    auto t = date::make_zoned("UTC", std::chrono::system_clock::now());
+    auto t = date::make_zoned(date::current_zone(), std::chrono::system_clock::now());
     nanoseconds_since_today_with_of_ = t.get_local_time().time_since_epoch().count();
 }
 
 Time::Time(const std::string& str) {
     int64_t hour = 0, minute = 0, second = 0, nanoseconds = 0;
     int64_t zoneHour = 0, zoneMinute = 0, zoneSecond = 0;
-    std::string timezoneName = "UTC";
     std::smatch match;
     if (!std::regex_match(str, match, TIME_REGEX)) {
         THROW_CODE(InputError, "Failed to parse {} into Time", str);
@@ -82,9 +81,7 @@ Time::Time(const std::string& str) {
         }
         if (match[TIME_ZONE].matched) {
             auto tmp = match[TIME_ZONE].str();
-            if (tmp == "Z" || tmp == "z") {
-                timezoneName = "UTC";
-            } else {
+            if (tmp != "Z" && tmp != "z") {
                 if (match[TIME_ZONE_NAME].matched) {
                     THROW_CODE(InvalidParameter, "Using a named time zone e.g. "
                                "[UTC] is not valid for a time without a date. Instead, "
@@ -107,7 +104,7 @@ Time::Time(const std::string& str) {
         }
         std::chrono::nanoseconds ns{hour * 60 * 60 * 1000000000 + minute * 60 * 1000000000 + second * 1000000000 + nanoseconds};
         date::local_time<std::chrono::nanoseconds> tp{ns};
-        auto t = make_zoned(timezoneName, tp);
+        auto t = make_zoned(date::current_zone(), tp);
         nanoseconds_since_today_with_of_ = t.get_local_time().time_since_epoch().count();
     } catch (const std::exception& e) {
         THROW_CODE(InputError, "Failed to parse {} into Date, exception: {}",
@@ -116,7 +113,6 @@ Time::Time(const std::string& str) {
 }
 
 Time::Time(const Value& params, int64_t truncate) {
-    std::string timezoneName = "UTC";
     if (params.IsLocalTime()) {
         nanoseconds_since_today_with_of_ = params.AsLocalTime().GetStorage();
         return;
@@ -124,15 +120,17 @@ Time::Time(const Value& params, int64_t truncate) {
     if (params.IsTime()) {
         nanoseconds_since_today_with_of_ = std::get<0>(params.AsTime().GetStorage());
         tz_offset_seconds_ = std::get<1>(params.AsTime().GetStorage());
+        timezone_name_ = params.AsTime().GetTimezoneName();
         return;
     }
     if (params.IsDateTime()) {
-        nanoseconds_since_today_with_of_ = std::get<0>(params.AsDateTime().GetStorage());
+        nanoseconds_since_today_with_of_ = std::get<0>(params.AsDateTime().GetStorage()) % (NANOS_PER_SECOND * SECONDS_PER_DAY);
         tz_offset_seconds_ = std::get<1>(params.AsDateTime().GetStorage());
+        timezone_name_ = params.AsDateTime().GetTimezoneName();
         return;
     }
     if (params.IsLocalDateTime()) {
-        nanoseconds_since_today_with_of_ = params.AsLocalDateTime().GetStorage();
+        nanoseconds_since_today_with_of_ = params.AsLocalDateTime().GetStorage() % (NANOS_PER_SECOND * SECONDS_PER_DAY);
         return;
     }
     std::unordered_map<std::string, Value> parse_params_map;
@@ -154,12 +152,14 @@ Time::Time(const Value& params, int64_t truncate) {
             has_time_param = true;
             v = std::get<0>(parse_params_map["time"].AsTime().GetStorage());
             tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsTime().GetStorage());
+            timezone_name_ = parse_params_map["time"].AsTime().GetTimezoneName();
         } else if (parse_params_map["time"].IsLocalDateTime()) {
             v = parse_params_map["time"].AsLocalDateTime().GetStorage();
         } else if (parse_params_map["time"].IsDateTime()) {
             has_time_param = true;
             v = std::get<0>(parse_params_map["time"].AsDateTime().GetStorage());
             tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsDateTime().GetStorage());
+            timezone_name_ = parse_params_map["time"].AsDateTime().GetTimezoneName();
         }
         nanosecond = v % 1000;
         microsecond = v / 1000 % 1000;
@@ -190,34 +190,35 @@ Time::Time(const Value& params, int64_t truncate) {
     }
     if (parse_params_map.count("timezone")) {
         auto tmp = parse_params_map["timezone"].AsString();
-        if (tmp == "z" || tmp == "Z") {
-            timezoneName = "UTC";
-        } else if (tmp[0] == '+' || tmp[0] == '-') {
-            std::smatch match;
-            int64_t zoneHour = 0, zoneMinute = 0, zoneSecond = 0;
-            if (!std::regex_match(tmp, match, OFFSET_REGEX)) {
-                THROW_CODE(InputError, "Failed to parse {} into Time", tmp);
+        if (tmp != "z" && tmp != "Z") {
+            timezone_name_ = tmp;
+            if (tmp[0] == '+' || tmp[0] == '-') {
+                std::smatch match;
+                int64_t zoneHour = 0, zoneMinute = 0, zoneSecond = 0;
+                if (!std::regex_match(tmp, match, OFFSET_REGEX)) {
+                    THROW_CODE(InputError, "Failed to parse {} into Time", tmp);
+                }
+                if (match[2].matched) {
+                    zoneHour = std::stoi(match[2].str());
+                }
+                if (match[3].matched) {
+                    zoneMinute = std::stoi(match[3].str());
+                }
+                if (match[4].matched) {
+                    zoneSecond = std::stoi(match[3].str());
+                }
+                tz_offset_seconds_ = zoneHour * 60 * 60 + zoneMinute * 60 + zoneSecond;
+                if (tmp[0] == '-') {
+                    tz_offset_seconds_ *= -1;
+                }
+            } else {
+                std::smatch match;
+                if (!std::regex_match(tmp, match, ZONENAME_REGEX)) {
+                    THROW_CODE(InputError, "Failed to parse {} into Time", tmp);
+                }
+                std::replace(tmp.begin(), tmp.end(), ' ', '_');
+                tz_offset_seconds_ = date::zoned_time(tmp).get_info().offset.count();
             }
-            if (match[2].matched) {
-                zoneHour = std::stoi(match[2].str());
-            }
-            if (match[3].matched) {
-                zoneMinute = std::stoi(match[3].str());
-            }
-            if (match[4].matched) {
-                zoneSecond = std::stoi(match[3].str());
-            }
-            tz_offset_seconds_ = zoneHour * 60 * 60 + zoneMinute * 60 + zoneSecond;
-            if (tmp[0] == '-') {
-                tz_offset_seconds_ *= -1;
-            }
-        } else {
-            std::smatch match;
-            if (!std::regex_match(tmp, match, ZONENAME_REGEX)) {
-                THROW_CODE(InputError, "Failed to parse {} into Time", tmp);
-            }
-            std::replace(tmp.begin(), tmp.end(), ' ', '_');
-            tz_offset_seconds_ = date::zoned_time(tmp).get_info().offset.count();
         }
         if (parse_params_map.size() == 1) {
             nanoseconds_since_today_with_of_ = std::chrono::system_clock::now().time_since_epoch().count()
@@ -285,8 +286,16 @@ Time::Time(const Value& params, int64_t truncate) {
         }
     }
     date::local_time<std::chrono::nanoseconds> tp{ns};
-    auto t = make_zoned(timezoneName, tp);
+    auto t = make_zoned(date::current_zone(), tp);
     nanoseconds_since_today_with_of_ = t.get_local_time().time_since_epoch().count();
+}
+
+std::string Time::timeOffsetToTimezone() const {
+    char time_offset[32];
+    auto abs_second = std::abs(tz_offset_seconds_);
+    sprintf(time_offset, "%c%02ld:%02ld:%02ld", tz_offset_seconds_ < 0 ? '-' : '+', abs_second / 60 / 60,
+            abs_second / 60 % 60, abs_second % 60);
+    return {time_offset};
 }
 
 std::string Time::ToString() const {
@@ -299,7 +308,42 @@ std::string Time::ToString() const {
         auto abs_second = std::abs(tz_offset_seconds_);
         sprintf(time_offset, "%c%02ld:%02ld:%02ld", tz_offset_seconds_ < 0 ? '-' : '+', abs_second / 60 / 60,
                 abs_second / 60 % 60, abs_second % 60);
-        return date::format("%H:%M:%S", tp) + std::string(time_offset);
+        return date::format("%H:%M:%S", tp) + timeOffsetToTimezone();
+    }
+}
+
+std::string Time::GetTimezoneName() const {
+    return timezone_name_;
+}
+
+Value Time::GetUnit(std::string unit) const {
+    std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
+    if (unit == "hour") {
+        return Value::Integer(nanoseconds_since_today_with_of_ / 3600000000000 % 24);
+    } else if (unit == "minute") {
+        return Value::Integer(nanoseconds_since_today_with_of_ / 60000000000 % 60);
+    } else if (unit == "second") {
+        return Value::Integer(nanoseconds_since_today_with_of_ / 1000000000 % 60);
+    } else if (unit == "millisecond") {
+        return Value::Integer(nanoseconds_since_today_with_of_ / 1000000 % 1000);
+    } else if (unit == "microsecond") {
+        return Value::Integer(nanoseconds_since_today_with_of_ / 1000 % 1000000);
+    } else if (unit == "nanosecond") {
+        return Value::Integer(nanoseconds_since_today_with_of_ % NANOS_PER_SECOND);
+    } else if (unit == "timezone") {
+        if (timezone_name_[0] == '+' || timezone_name_[0] == '-') {
+            return Value::String(timeOffsetToTimezone());
+        } else {
+            return Value::String(timezone_name_);
+        }
+    } else if (unit == "offset") {
+        return Value::String(timeOffsetToTimezone());
+    } else if (unit == "offsetminutes") {
+        return Value::Integer(tz_offset_seconds_ / 60);
+    } else if (unit == "offsetseconds") {
+        return Value::Integer(tz_offset_seconds_);
+    } else {
+        THROW_CODE(InvalidParameter, "No such field: {}", unit);
     }
 }
 
@@ -325,6 +369,24 @@ bool Time::operator==(const Time& rhs) const noexcept {
 
 bool Time::operator!=(const Time& rhs) const noexcept {
     return nanoseconds_since_today_with_of_ != rhs.nanoseconds_since_today_with_of_;
+}
+
+Time Time::operator-(const Duration& duration) const {
+    auto nanos = (nanoseconds_since_today_with_of_ - duration.seconds * NANOS_PER_SECOND - duration.nanos) %
+                 (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    if (nanos < 0) {
+        nanos += NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    return Time(nanos, tz_offset_seconds_);
+}
+
+Time Time::operator+(const Duration& duration) const {
+    auto nanos = (nanoseconds_since_today_with_of_ + duration.seconds * NANOS_PER_SECOND + duration.nanos) %
+                 (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    if (nanos < 0) {
+        nanos += NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    return Time(nanos, tz_offset_seconds_);
 }
 
 }  // namespace common

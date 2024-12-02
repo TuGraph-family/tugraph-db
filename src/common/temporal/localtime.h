@@ -17,6 +17,7 @@
 #include <regex>
 #include <string>
 #include <unordered_map>
+#include "common/temporal/duration.h"
 
 class Value;
 
@@ -35,6 +36,7 @@ class LocalTime {
         return nanoseconds_since_today_;
     }
     [[nodiscard]] std::string ToString() const;
+    [[nodiscard]] Value GetUnit(std::string unit) const;
     void fromTimeZone(std::string timezone);
     bool operator<(const LocalTime& rhs) const noexcept;
     bool operator<=(const LocalTime& rhs) const noexcept;
@@ -42,5 +44,7 @@ class LocalTime {
     bool operator>=(const LocalTime& rhs) const noexcept;
     bool operator==(const LocalTime& rhs) const noexcept;
     bool operator!=(const LocalTime& rhs) const noexcept;
+    LocalTime operator-(const Duration& duration) const;
+    LocalTime operator+(const Duration& duration) const;
 };
 }
