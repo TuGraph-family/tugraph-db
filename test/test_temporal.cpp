@@ -2992,3 +2992,146 @@ TEST(Duration, timeExpression) {
     }
     txn->Commit();
 }
+
+TEST(Time, tostring) {
+    fs::remove_all(test_db);
+    auto graphDB = GraphDB::Open(test_db, {});
+    cypher::RTContext rtx;
+    auto txn = graphDB->BeginTransaction();
+    auto resultIterator = txn->Execute(&rtx, "WITH date({year: 1984, month: 10, day: 11}) AS d "
+                                       "RETURN tostring(d) AS ts, date(tostring(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "1984-10-11");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH localtime({hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d\n"
+                                  "      RETURN toString(d) AS ts, localtime(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "12:31:14.645876123");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH time({hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS d\n"
+                                  "      RETURN toString(d) AS ts, time(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "12:31:14.645876123+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH localdatetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123}) AS d\n"
+                                  "      RETURN toString(d) AS ts, localdatetime(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "1984-10-11T12:31:14.645876123");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH datetime({year: 1984, month: 10, day: 11, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: '+01:00'}) AS d\n"
+                                  "      RETURN toString(d) AS ts, datetime(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "1984-10-11T12:31:14.645876123+01:00:00");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({years: 12, months: 5, days: 14, hours: 16, minutes: 12, seconds: 70, nanoseconds: 1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "P12Y5M14DT16H13M10.000000001S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({years: 12, months: 5, days: -14, hours: 16}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "P12Y5M-14DT16H");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({minutes: 12, seconds: -60}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "PT11M");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({seconds: 2, milliseconds: -1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "PT1.999S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({seconds: -2, milliseconds: 1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "PT-1.999S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({seconds: -2, milliseconds: -1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "PT-2.001S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({days: 1, milliseconds: 1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "P1DT0.001S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({days: 1, milliseconds: -1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "P1DT-0.001S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({seconds: 60, milliseconds: -1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "PT59.999S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({seconds: -60, milliseconds: 1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "PT-59.999S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH duration({seconds: -60, milliseconds: -1}) AS d\n"
+                                  "      RETURN toString(d) AS ts, duration(toString(d)) = d AS b");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "PT-1M-0.001S");
+        EXPECT_EQ(std::any_cast<Value>(records[1].data).AsBool(), true);
+    }
+    resultIterator = txn->Execute(&rtx, "WITH datetime({year: 2017, month: 8, day: 8, hour: 12, minute: 31, second: 14, nanosecond: 645876123, timezone: 'Europe/Stockholm'}) AS d\n"
+                                  "      RETURN toString(d) AS ts");
+    LOG_INFO(resultIterator->GetHeader());
+    for (; resultIterator->Valid(); resultIterator->Next()) {
+        auto records = resultIterator->GetRecord();
+        EXPECT_EQ(std::any_cast<Value>(records[0].data).AsString(), "2017-08-08T12:31:14.645876123+02:00:00");
+    }
+    txn->Commit();
+}

@@ -621,6 +621,24 @@ Value BuiltinFunction::ToString(RTContext *ctx, const Record &record,
                 else
                     return Value("false");
             }
+            if (r.constant.IsTime()) {
+                return Value::String(r.constant.AsTime().ToString());
+            }
+            if (r.constant.IsLocalTime()) {
+                return Value::String(r.constant.AsLocalTime().ToString());
+            }
+            if (r.constant.IsDate()) {
+                return Value::String(r.constant.AsDate().ToString());
+            }
+            if (r.constant.IsDateTime()) {
+                return Value::String(r.constant.AsDateTime().ToString());
+            }
+            if (r.constant.IsLocalDateTime()) {
+                return Value::String(r.constant.AsLocalDateTime().ToString());
+            }
+            if (r.constant.IsDuration()) {
+                return Value::String(r.constant.AsDuration().ToString());
+            }
         default:
             break;
     }

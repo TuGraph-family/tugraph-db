@@ -217,7 +217,13 @@ Time::Time(const Value& params, int64_t truncate) {
                     THROW_CODE(InputError, "Failed to parse {} into Time", tmp);
                 }
                 std::replace(tmp.begin(), tmp.end(), ' ', '_');
-                tz_offset_seconds_ = date::zoned_time(tmp).get_info().offset.count();
+                timezone_name_ = tmp;
+                if (!parse_params_map.count("days_for_timezone")) {
+                    tz_offset_seconds_ = date::zoned_time(tmp).get_info().offset.count();
+                } else {
+                    tz_offset_seconds_ = date::zoned_time(tmp, date::local_time<std::chrono::nanoseconds>(
+                        std::chrono::nanoseconds(NANOS_PER_SECOND * SECONDS_PER_DAY * parse_params_map["days_for_timezone"].AsInteger()))).get_info().offset.count();
+                }
             }
         }
         if (parse_params_map.size() == 1) {
