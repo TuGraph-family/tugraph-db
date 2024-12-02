@@ -73,6 +73,7 @@ DateTime::DateTime(const Value& params) {
     int64_t nanoseconds_since_begin_of_day = 0;
     days_since_epoch = Date(Value(std::move(dateParams))).GetStorage();
     if (!timeParams.empty()) {
+        timeParams.emplace("days_for_timezone", days_since_epoch);
         auto t = Time(Value(std::move(timeParams)));
         nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
         tz_offset_seconds_ = std::get<1>(t.GetStorage());

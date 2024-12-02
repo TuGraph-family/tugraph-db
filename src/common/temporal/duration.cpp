@@ -535,7 +535,7 @@ bool Duration::operator>=(const Duration& rhs) const noexcept {
 }
 
 bool Duration::operator==(const Duration& rhs) const noexcept {
-    return months == rhs.months && days == rhs.days && seconds == rhs.seconds && nanos == rhs.nanos;
+    return ToString() == rhs.ToString();
 }
 
 bool Duration::operator!=(const Duration& rhs) const noexcept {
