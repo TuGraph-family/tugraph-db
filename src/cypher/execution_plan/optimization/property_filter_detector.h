@@ -49,8 +49,24 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     std::string cur_symbol_;
     std::string cur_field_;
     std::set<lgraph::FieldData> cur_properties_;
+    bool is_or_{false};
+    bool is_and_{false};
 
     std::any visit(geax::frontend::BOr* node) override {
+        if (is_and_) {
+            return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_NOT_PASS;
+        }
+        is_or_ = true;
+        ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
+        ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
+        return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
+    }
+
+    std::any visit(geax::frontend::BAnd* node) override {
+        if (is_or_) {
+            return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_NOT_PASS;
+        }
+        is_and_ = true;
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
@@ -73,8 +89,27 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         if (!cur_properties_.empty()) {
             auto& fields_map = properties_[cur_symbol_];
-            auto& fields = fields_map[cur_field_];
-            fields.insert(cur_properties_.begin(), cur_properties_.end());
+            if (is_and_) {
+                auto& fields = fields_map[cur_field_];
+                if (fields.size() == 0) {
+                    fields_map[cur_field_].insert(cur_properties_.begin(), cur_properties_.end());
+                } else {
+                    std::set<lgraph::FieldData> intersection;
+                    for (auto& property : cur_properties_) {
+                        if (fields.count(property)) {
+                            intersection.insert(property);
+                        }
+                    }
+                    fields_map[cur_field_] = intersection;
+                }
+            } else {
+                if (fields_map.size() > 1 ||
+                    (fields_map.size() == 1 && fields_map.count(cur_field_) == 0)) {
+                    return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_NOT_PASS;
+                }
+                fields_map[cur_field_].insert(cur_properties_.begin(), cur_properties_.end());
+            }
+            cur_properties_.clear();
         }
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
     }
@@ -91,8 +126,27 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         if (!cur_properties_.empty()) {
             auto& fields_map = properties_[cur_symbol_];
-            auto& fields = fields_map[cur_field_];
-            fields.insert(cur_properties_.begin(), cur_properties_.end());
+            if (is_and_) {
+                auto& fields = fields_map[cur_field_];
+                if (fields.size() == 0) {
+                    fields_map[cur_field_].insert(cur_properties_.begin(), cur_properties_.end());
+                } else {
+                    std::set<lgraph::FieldData> intersection;
+                    for (auto& property : cur_properties_) {
+                        if (fields.count(property)) {
+                            intersection.insert(property);
+                        }
+                    }
+                    fields_map[cur_field_] = intersection;
+                }
+            } else {
+                if (fields_map.size() > 1 ||
+                    (fields_map.size() == 1 && fields_map.count(cur_field_) == 0)) {
+                    return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_NOT_PASS;
+                }
+                fields_map[cur_field_].insert(cur_properties_.begin(), cur_properties_.end());
+            }
+            cur_properties_.clear();
         }
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
     }
