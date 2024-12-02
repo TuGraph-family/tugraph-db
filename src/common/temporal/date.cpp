@@ -405,7 +405,6 @@ Date::Date(const Value& params) {
         default:
             THROW_CODE(InputError, "Failed to parse {} into Date",
                        params.ToString());
-            break;
     }
 }
 
@@ -465,6 +464,20 @@ bool Date::operator==(const Date& rhs) const noexcept {
 
 bool Date::operator!=(const Date& rhs) const noexcept {
     return days_since_epoch_ != rhs.days_since_epoch_;
+}
+
+Date Date::operator-(const Duration& duration) const {
+    date::year_month_day ymd((date::local_days((date::days(days_since_epoch_)))));
+    ymd -= date::months(duration.months);
+    return Date(date::local_days(ymd).time_since_epoch().count() - duration.days -
+                (duration.seconds * NANOS_PER_SECOND + duration.nanos) / (NANOS_PER_SECOND * SECONDS_PER_DAY));
+}
+
+Date Date::operator+(const Duration& duration) const {
+    date::year_month_day ymd((date::local_days((date::days(days_since_epoch_)))));
+    ymd += date::months(duration.months);
+    return Date(date::local_days(ymd).time_since_epoch().count() + duration.days +
+                (duration.seconds * NANOS_PER_SECOND + duration.nanos) / (NANOS_PER_SECOND * SECONDS_PER_DAY));
 }
 
 }  // namespace common

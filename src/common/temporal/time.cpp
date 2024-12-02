@@ -371,4 +371,22 @@ bool Time::operator!=(const Time& rhs) const noexcept {
     return nanoseconds_since_today_with_of_ != rhs.nanoseconds_since_today_with_of_;
 }
 
+Time Time::operator-(const Duration& duration) const {
+    auto nanos = (nanoseconds_since_today_with_of_ - duration.seconds * NANOS_PER_SECOND - duration.nanos) %
+                 (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    if (nanos < 0) {
+        nanos += NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    return Time(nanos, tz_offset_seconds_);
+}
+
+Time Time::operator+(const Duration& duration) const {
+    auto nanos = (nanoseconds_since_today_with_of_ + duration.seconds * NANOS_PER_SECOND + duration.nanos) %
+                 (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    if (nanos < 0) {
+        nanos += NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    return Time(nanos, tz_offset_seconds_);
+}
+
 }  // namespace common

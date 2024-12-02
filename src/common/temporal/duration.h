@@ -49,6 +49,7 @@ class Duration {
     int64_t days{};
     int64_t seconds{};
     int64_t nanos{};
+    Duration(const Duration& other) = default;
     explicit Duration(const Value& params);
     explicit Duration(const std::string& str);
     explicit Duration(int64_t m = 0, int64_t d = 0, int64_t s = 0, int64_t n = 0);
@@ -63,5 +64,9 @@ class Duration {
     bool operator>=(const Duration& rhs) const noexcept;
     bool operator==(const Duration& rhs) const noexcept;
     bool operator!=(const Duration& rhs) const noexcept;
+    Duration operator-(const Duration& duration) const;
+    Duration operator+(const Duration& duration) const;
+    Duration operator/(double num) const;
+    Duration operator*(double num) const;
 };
 }

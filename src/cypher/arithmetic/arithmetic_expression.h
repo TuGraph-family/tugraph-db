@@ -37,6 +37,10 @@ struct SymbolTable;
 
 static inline bool IsNumeric(const Value &x) { return x.IsInteger() || x.IsDouble(); }
 
+static inline bool IsTimeRelated(const Value &x) { return x.IsTime() || x.IsDateTime() || x.IsLocalTime() || x.IsDate() || x.IsLocalDateTime(); }
+
+static inline bool IsDuration(const Value &x) { return x.IsDuration(); }
+
 static inline void AddList(Value &ret, const Value &x) {
     if (x.IsArray())
         ret.AsArray().insert(ret.AsArray().end(), x.AsArray().begin(), x.AsArray().end());
@@ -73,36 +77,70 @@ static Value Add(const Value &x, const Value &y) {
             double y_n = y.IsInteger() ? y.AsInteger() : y.AsDouble();
             ret = Value(x_n + y_n);
         }
+    } else if ((IsTimeRelated(x) || IsDuration(x)) && IsDuration(y)) {
+        if (x.IsDate()) {
+            return Value(x.AsDate() + y.AsDuration());
+        } else if (x.IsTime()) {
+            return Value(x.AsTime() + y.AsDuration());
+        } else if (x.IsLocalTime()) {
+            return Value(x.AsLocalTime() + y.AsDuration());
+        } else if (x.IsDateTime()) {
+            return Value(x.AsDateTime() + y.AsDuration());
+        } else if (x.IsLocalDateTime()) {
+            return Value(x.AsLocalDateTime() + y.AsDuration());
+        } else if (x.IsDuration()) {
+            return Value(x.AsDuration() + y.AsDuration());
+        }
     }
     return ret;
 }
 
 [[maybe_unused]]
 static Value Sub(const Value &x, const Value &y) {
-    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
-        THROW_CODE(CypherException, "Type mismatch: expect Integer or Float in sub expr");
+    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())) && !((IsTimeRelated(x) || IsDuration(x)) && IsDuration(y)))
+        THROW_CODE(CypherException, "Type mismatch: expect Integer or Float or TimeRelated or Duration in sub expr");
     if (x.IsNull() || y.IsNull()) return {};
     Value ret;
-    if (x.IsInteger() && y.IsInteger()) {
-        ret = Value(x.AsInteger() - y.AsInteger());
+    if (IsNumeric(x) && IsNumeric(y)) {
+        if (x.IsInteger() && y.IsInteger()) {
+            ret = Value(x.AsInteger() - y.AsInteger());
+        } else {
+            double x_n = x.IsInteger() ? x.AsInteger() : x.AsDouble();
+            double y_n = y.IsInteger() ? y.AsInteger() : y.AsDouble();
+            ret = Value(x_n - y_n);
+        }
     } else {
-        double x_n = x.IsInteger() ? x.AsInteger() : x.AsDouble();
-        double y_n = y.IsInteger() ? y.AsInteger() : y.AsDouble();
-        ret = Value(x_n - y_n);
+        if (x.IsDate()) {
+            return Value(x.AsDate() - y.AsDuration());
+        } else if (x.IsTime()) {
+            return Value(x.AsTime() - y.AsDuration());
+        } else if (x.IsLocalTime()) {
+            return Value(x.AsLocalTime() - y.AsDuration());
+        } else if (x.IsDateTime()) {
+            return Value(x.AsDateTime() - y.AsDuration());
+        } else if (x.IsLocalDateTime()) {
+            return Value(x.AsLocalDateTime() - y.AsDuration());
+        } else if (x.IsDuration()) {
+            return Value(x.AsDuration() - y.AsDuration());
+        }
     }
     return ret;
 }
 
 [[maybe_unused]]
 static Value Mul(const Value &x, const Value &y) {
-    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
-        THROW_CODE(CypherException, "Type mismatch: expect Integer or Float in mul expr");
+    if (!((IsNumeric(x) || x.IsNull() || IsDuration(x)) && (IsNumeric(y) || y.IsNull())))
+        THROW_CODE(CypherException, "Type mismatch: expect Integer or Float or Duration in mul expr");
     if (x.IsNull() || y.IsNull()) return {};
     Value ret;
     if (x.IsInteger() && y.IsInteger()) {
         ret = Value(x.AsInteger() * y.AsInteger());
-    } else {
+    } else if (IsNumeric(x)) {
         double x_n = x.IsInteger() ? x.AsInteger() : x.AsDouble();
+        double y_n = y.IsInteger() ? y.AsInteger() : y.AsDouble();
+        ret = Value(x_n * y_n);
+    } else if (IsDuration(x)) {
+        auto x_n = x.AsDuration();
         double y_n = y.IsInteger() ? y.AsInteger() : y.AsDouble();
         ret = Value(x_n * y_n);
     }
@@ -111,8 +149,8 @@ static Value Mul(const Value &x, const Value &y) {
 
 [[maybe_unused]]
 static Value Div(const Value &x, const Value &y) {
-    if (!((IsNumeric(x) || x.IsNull()) && (IsNumeric(y) || y.IsNull())))
-        THROW_CODE(CypherException, "Type mismatch: expect Integer or Float in mul expr");
+    if (!((IsNumeric(x) || x.IsNull() || IsDuration(x)) && (IsNumeric(y) || y.IsNull())))
+        THROW_CODE(CypherException, "Type mismatch: expect Integer or Float or Duration in div expr");
     if (x.IsNull() || y.IsNull()) return {};
     Value ret;
     if (x.IsInteger() && y.IsInteger()) {
@@ -120,7 +158,7 @@ static Value Div(const Value &x, const Value &y) {
         int64_t y_n = y.AsInteger();
         if (y_n == 0) THROW_CODE(CypherException, "Divided by zero");
         ret = Value(x_n / y_n);
-    } else {
+    } else if (IsNumeric(x)) {
         double x_n = x.IsInteger() ? x.AsInteger() : x.AsDouble();
         double y_n = y.IsInteger() ? y.AsInteger() : y.AsDouble();
         if (y_n == 0)
@@ -131,6 +169,10 @@ static Value Div(const Value &x, const Value &y) {
             CYPHER_TODO();
         else
             ret = Value(x_n / y_n);
+    } else if (IsDuration(x)) {
+        auto x_n = x.AsDuration();
+        double y_n = y.IsInteger() ? y.AsInteger() : y.AsDouble();
+        ret = Value(x_n / y_n);
     }
     return ret;
 }

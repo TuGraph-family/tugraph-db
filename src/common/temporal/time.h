@@ -18,6 +18,7 @@
 #include <regex>
 #include <string>
 #include <unordered_map>
+#include "common/temporal/duration.h"
 
 class Value;
 
@@ -47,5 +48,7 @@ class Time {
     bool operator>=(const Time& rhs) const noexcept;
     bool operator==(const Time& rhs) const noexcept;
     bool operator!=(const Time& rhs) const noexcept;
+    Time operator-(const Duration& duration) const;
+    Time operator+(const Duration& duration) const;
 };
 }

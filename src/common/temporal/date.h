@@ -18,6 +18,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include "common/temporal/duration.h"
 
 // forword declaration to avoid include value.h here
 class Value;
@@ -66,6 +67,8 @@ class Date {
     bool operator>=(const Date& rhs) const noexcept;
     bool operator==(const Date& rhs) const noexcept;
     bool operator!=(const Date& rhs) const noexcept;
+    Date operator-(const Duration& duration) const;
+    Date operator+(const Duration& duration) const;
 };
 
 }  // namespace common

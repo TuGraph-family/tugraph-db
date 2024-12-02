@@ -139,4 +139,40 @@ bool DateTime::operator!=(const DateTime& rhs) const noexcept {
     return nanoseconds_since_epoch_ != rhs.nanoseconds_since_epoch_;
 }
 
+DateTime DateTime::operator-(const Duration& duration) const {
+    auto days = nanoseconds_since_epoch_ / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    auto nanos = nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY) - duration.seconds * NANOS_PER_SECOND - duration.nanos;
+    if (nanos < 0) {
+        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+        days -= day;
+        nanos += day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    if (nanos >= NANOS_PER_SECOND * SECONDS_PER_DAY) {
+        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+        days += day;
+        nanos -= day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    date::year_month_day ymd((date::local_days((date::days(days)))));
+    ymd -= date::months(duration.months);
+    return DateTime((date::local_days(ymd).time_since_epoch().count() - duration.days) * NANOS_PER_SECOND * SECONDS_PER_DAY + nanos, tz_offset_seconds_);
+}
+
+DateTime DateTime::operator+(const Duration& duration) const {
+    auto days = nanoseconds_since_epoch_ / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    auto nanos = nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY) + duration.seconds * NANOS_PER_SECOND + duration.nanos;
+    if (nanos < 0) {
+        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+        days -= day;
+        nanos += day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    if (nanos >= NANOS_PER_SECOND * SECONDS_PER_DAY) {
+        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+        days += day;
+        nanos -= day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    date::year_month_day ymd((date::local_days((date::days(days)))));
+    ymd += date::months(duration.months);
+    return DateTime((date::local_days(ymd).time_since_epoch().count() + duration.days) * NANOS_PER_SECOND * SECONDS_PER_DAY + nanos, tz_offset_seconds_);
+}
+
 }  // namespace common

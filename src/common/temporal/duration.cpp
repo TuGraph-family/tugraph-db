@@ -541,4 +541,21 @@ bool Duration::operator==(const Duration& rhs) const noexcept {
 bool Duration::operator!=(const Duration& rhs) const noexcept {
     return months != rhs.months || days != rhs.days || seconds != rhs.seconds || nanos != rhs.nanos;
 }
+
+Duration Duration::operator+(const Duration &duration) const {
+    return Duration(months + duration.months, days + duration.days, seconds + duration.days, nanos + duration.nanos);
+}
+
+Duration Duration::operator-(const Duration &duration) const {
+    return Duration(months - duration.months, days - duration.days, seconds - duration.days, nanos - duration.nanos);
+}
+
+Duration Duration::operator*(double num) const {
+    return Duration::approximate(months * num, days * num, seconds * num, nanos * num);
+}
+
+Duration Duration::operator/(double num) const {
+    return Duration::approximate(months / num, days / num, seconds / num, nanos / num);
+}
+
 }

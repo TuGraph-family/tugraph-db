@@ -301,4 +301,22 @@ bool LocalTime::operator!=(const LocalTime& rhs) const noexcept {
     return nanoseconds_since_today_ != rhs.nanoseconds_since_today_;
 }
 
+LocalTime LocalTime::operator-(const Duration& duration) const {
+    auto nanos = (nanoseconds_since_today_ - duration.seconds * NANOS_PER_SECOND - duration.nanos) %
+                 (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    if (nanos < 0) {
+        nanos += NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    return LocalTime(nanos);
+}
+
+LocalTime LocalTime::operator+(const Duration& duration) const {
+    auto nanos = (nanoseconds_since_today_ + duration.seconds * NANOS_PER_SECOND + duration.nanos) %
+                 (NANOS_PER_SECOND * SECONDS_PER_DAY);
+    if (nanos < 0) {
+        nanos += NANOS_PER_SECOND * SECONDS_PER_DAY;
+    }
+    return LocalTime(nanos);
+}
+
 }  // namespace common

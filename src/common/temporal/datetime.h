@@ -15,6 +15,7 @@
 #pragma once
 
 #include <string>
+#include "common/temporal/duration.h"
 
 // forword declaration to avoid include value.h here
 class Value;
@@ -59,6 +60,8 @@ class DateTime {
     bool operator>=(const DateTime& rhs) const noexcept;
     bool operator==(const DateTime& rhs) const noexcept;
     bool operator!=(const DateTime& rhs) const noexcept;
+    DateTime operator-(const Duration& duration) const;
+    DateTime operator+(const Duration& duration) const;
 };
 
 }  // namespace common
