@@ -46,6 +46,15 @@ function(add_v2procedure APP)
             LIBRARY_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
 endfunction()
 
+function(add_standalone_from_community APP)
+    add_executable(${APP}_standalone community/${APP}_core.cpp community/${APP}_standalone.cpp ${LGRAPH_API_SRC})
+    target_link_libraries(${APP}_standalone ${Boost_LIBRARIES} libstdc++fs.a libgomp.a dl)
+    set_target_properties( ${APP}_standalone PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/algo")
+    target_include_directories(${APP}_standalone PUBLIC ${CMAKE_SOURCE_DIR}/include
+                                                        ${CMAKE_SOURCE_DIR}/src)
+endfunction()
+
 add_standalone(apsp)
 add_standalone(bfs)
 add_standalone(pagerank)
@@ -81,6 +90,7 @@ add_standalone(wlpa)
 add_standalone(subgraph_isomorphism)
 add_standalone(sybilrank)
 add_standalone(leiden)
+add_standalone_from_community(khop)
 
 add_embed(apsp)
 add_embed(bfs)

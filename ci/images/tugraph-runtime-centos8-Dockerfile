@@ -3,9 +3,11 @@
 # Alibaba Image
 FROM reg.docker.alibaba-inc.com/fma/centos:8.4.2105
 
-RUN rm -rf /etc/yum.repos.d \
-    && curl -O https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/yum.repos.d.tar.gz \
-    && tar -xf yum.repos.d.tar.gz && mv yum.repos.d /etc/yum.repos.d && rm yum.repos.d.tar.gz
+RUN sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+    -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=http://mirrors.tuna.tsinghua.edu.cn/centos-vault/8.4.2105|g" \
+    -e "s|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=http://mirrors.tuna.tsinghua.edu.cn/centos-vault/8.4.2105|g" \
+    -i.bak \
+    /etc/yum.repos.d/CentOS-*.repo && yum clean all && yum makecache
 
 RUN yum update -y && yum install -y \
     git \
@@ -16,6 +18,8 @@ RUN yum update -y && yum install -y \
     bzip2 \
     unzip \
     openssl-devel.x86_64 \
+    libgfortran.x86_64 \
+    libgomp \
     libcurl-devel.x86_64 && yum clean all
 
 # install g++ 8.4.0
@@ -66,7 +70,7 @@ ARG FILEPATH
 ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME} && rpm -ivh ${FILENAME} && rm -f /${FILENAME}
 
-ENV LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH \
-    PYTHONPATH=/usr/local/lgraph/lib64:/usr/local/lib64:$PYTHONPATH
+ENV LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64/lgraph:/usr/local/lib64:$PYTHONPATH
 
 CMD lgraph_server -d run

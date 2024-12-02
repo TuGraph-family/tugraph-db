@@ -20,6 +20,7 @@
 
 namespace lgraph {
 
+
 class VectorIndex {
   friend class Schema;
   friend class LightningGraph;
@@ -66,12 +67,13 @@ class VectorIndex {
 
     // add vector to index and build index
     virtual void Add(const std::vector<std::vector<float>>& vectors,
-                 const std::vector<int64_t>& vids, int64_t num_vectors) = 0;
+                 const std::vector<int64_t>& vids) = 0;
 
-    // build index
-    virtual void Build() = 0;
+    virtual void Remove(const std::vector<int64_t>& vids) = 0;
 
-    // serialize index
+    virtual void Clear() = 0;
+
+        // serialize index
     virtual std::vector<uint8_t> Save() = 0;
 
     // load index form serialization
@@ -83,5 +85,17 @@ class VectorIndex {
 
     virtual std::vector<std::pair<int64_t, float>>
     RangeSearch(const std::vector<float>& query, float radius, int ef_search, int limit) = 0;
+
+    virtual int64_t GetElementsNum() = 0;
+    virtual int64_t GetMemoryUsage() = 0;
+    virtual int64_t GetDeletedIdsNum() = 0;
 };
+
+struct VectorIndexEntry {
+    VectorIndex* index;
+    bool add;
+    std::vector<int64_t> vids;
+    std::vector<std::vector<float>> vectors;
+};
+
 }  // namespace lgraph

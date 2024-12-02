@@ -101,13 +101,23 @@ NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-
 
 ## 6. Contact
 
-Official Website: [www.tugraph.org](https://www.tugraph.org)
+Official Website: [tugraph.tech](https://tugraph.tech)
 
 Slack (For developer quick communication):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 Contact us via dingtalk, wechat, email and telephone:
 ![contacts](./docs/images/contact-en.png)
+
+## 7. Acknowledgement
+
+Thanks to all the individual developers who have contributed to this repository, which are listed below.
+
+<a href="https://github.com/TuGraph-family/tugraph-db/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=TuGraph-family/tugraph-db" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
 
 
 

@@ -23,7 +23,7 @@ func main() {
 		panic(err)
 		return
 	}
-	_, err = session.Run(ctx, "CALL db.createVertexLabel('person', 'id' , 'id' ,INT32, false, 'name' ,STRING, false)", nil)
+	_, err = session.Run(ctx, "CALL db.createVertexLabel('person', 'id' , 'id' ,'INT32', false, 'name' ,'STRING', false)", nil)
 	if err != nil {
 		panic(err)
 		return

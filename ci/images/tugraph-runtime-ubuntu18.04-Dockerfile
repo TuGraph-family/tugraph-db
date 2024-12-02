@@ -21,7 +21,8 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     libssl-dev \
     openjdk-8-jdk \
-    unzip
+    unzip \
+    gfortran
 
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below
@@ -111,7 +112,7 @@ RUN cd /usr/local/share/lgraph/tugraph-db-browser \
     && pnpm run build
 
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre \
-    LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/:$LD_LIBRARY_PATH \
-    PYTHONPATH=/usr/local/lgraph/lib64:/usr/local/lib64:$PYTHONPATH \
+    LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server/:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64/lgraph:/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:$PATH
 

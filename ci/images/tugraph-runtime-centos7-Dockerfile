@@ -18,6 +18,8 @@ RUN yum -x filesystem update -y && yum install -y \
     bzip2 \
     unzip \
     openssl-static \
+    libgfortran5.x86_64 \
+    libgomp \
     libcurl-devel.x86_64 && yum clean all
 
 # install g++ 8.4.0
@@ -68,7 +70,7 @@ ARG FILEPATH
 ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME} && rpm -ivh ${FILENAME} && rm -f /${FILENAME}
 
-ENV LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/local/lib64:$LD_LIBRARY_PATH \
-    PYTHONPATH=/usr/local/lgraph/lib64:/usr/local/lib64:$PYTHONPATH
+ENV LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64/lgraph:/usr/local/lib64:$PYTHONPATH
 
 CMD lgraph_server -d run

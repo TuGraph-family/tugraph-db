@@ -31,7 +31,7 @@ class GQLExpr;
 class Expr : public AstNode {
 public:
     explicit Expr(AstNodeType type) : AstNode(type) {}
-    ~Expr() = default;
+    virtual ~Expr() = default;
 
     friend bool operator==(const Expr& lhs, const Expr& rhs) {
         return lhs.type() == rhs.type() && lhs.equals(rhs);

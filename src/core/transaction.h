@@ -81,6 +81,7 @@ class Transaction {
     std::vector<IteratorBase*> iterators_;
     FullTextIndex* fulltext_index_;
     std::vector<FTIndexEntry> fulltext_buffers_;
+    std::vector<VectorIndexEntry> vector_buffers_;
     std::unordered_map<LabelId, int64_t> vertex_delta_count_;
     std::unordered_map<LabelId, int64_t> edge_delta_count_;
     std::set<LabelId> vertex_label_delete_;

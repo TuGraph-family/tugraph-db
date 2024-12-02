@@ -95,13 +95,24 @@ $ make package
   </tr>
 </table>
 
-## 5. 联系我们
+## 6. 联系我们
 
-官网: [www.tugraph.org](https://www.tugraph.org)
+官网: [tugraph.tech](https://tugraph.tech)
 
 Slack (在线开发沟通):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 通过钉钉群、微信群、微信公众号、邮箱和电话联系我们:
 ![contacts](./docs/images/contact-zh.png)
+
+## 7. 致谢
+
+感谢对这个项目做过贡献的个人开发者，名单如下：
+
+<a href="https://github.com/TuGraph-family/tugraph-db/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=TuGraph-family/tugraph-db" />
+</a>
+
+生成 By [contrib.rocks](https://contrib.rocks).
+
 
