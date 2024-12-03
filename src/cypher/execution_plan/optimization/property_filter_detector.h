@@ -23,7 +23,7 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
  public:
     PropertyFilterDetector() : isValidDetector(false) {}
 
-    virtual ~PropertyFilterDetector() = default;
+    ~PropertyFilterDetector() override = default;
 
     bool Build(geax::frontend::AstNode* astNode) {
         try {
@@ -49,14 +49,33 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     std::string cur_symbol_;
     std::string cur_field_;
     std::set<lgraph::FieldData> cur_properties_;
+    bool has_and = false;
+    bool has_or = false;
 
     std::any visit(geax::frontend::BAnd* node) override {
+        if (has_or) {
+            return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+        }
+        has_and = true;
+        ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
+        ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
+        return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
+    }
+
+    std::any visit(geax::frontend::BOr* node) override {
+        if (has_and) {
+            return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+        }
+        has_or = true;
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->left());
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->right());
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
     }
 
     std::any visit(geax::frontend::GetField* node) override {
+        if (has_or && !cur_field_.empty() && cur_field_ != node->fieldName()) {
+            return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+        }
         isValidDetector = true;
         cur_field_ = node->fieldName();
         ACCEPT_AND_CHECK_WITH_PASS_MSG(node->expr());
@@ -64,6 +83,9 @@ class PropertyFilterDetector : public cypher::OptimizationFilterVisitorImpl {
     }
 
     std::any visit(geax::frontend::Ref* node) override {
+        if (has_or && !cur_symbol_.empty() && cur_symbol_ != node->name()) {
+            return geax::frontend::GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT;
+        }
         cur_symbol_ = node->name();
         return geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS;
     }

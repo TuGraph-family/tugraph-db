@@ -26,7 +26,7 @@ namespace cypher {
 
 typedef std::unordered_map<
     std::string, std::unordered_map<
-        std::string,std::set<lgraph::FieldData>>> FilterCollections;
+        std::string, std::set<lgraph::FieldData>>> FilterCollections;
 
 class ReplaceNodeScanWithIndexSeek : public OptPass {
  private:
@@ -43,7 +43,7 @@ class ReplaceNodeScanWithIndexSeek : public OptPass {
 
     bool FindNodePropFilter(OpBase *root, OpBase *&op_filter, FilterCollections &filters) {
         auto op = root;
-        if (op->type == OpType::FILTER ) {
+        if (op->type == OpType::FILTER) {
             auto filter = dynamic_cast<OpFilter *>(op);
             if (_CheckPropFilter(filter, filters)) {
                 op_filter = op;
@@ -106,6 +106,33 @@ class ReplaceNodeScanWithIndexSeek : public OptPass {
                 return;
             }
             return;
+        } else if (root->type == OpType::ALL_NODE_SCAN) {
+            auto scan = dynamic_cast<AllNodeScan *>(root);
+            auto node = scan->GetNode();
+            auto n = node->Alias();
+            if (!filter_collections.count(n)) {
+                return;
+            }
+            const auto& filters = filter_collections.at(n);
+            if (filters.size() != 1) {
+                return;
+            }
+            std::vector<lgraph::FieldData> values;
+            std::string field;
+            for (auto& [k, v] : filters) {
+                field = k;
+                for (auto &item : v) {
+                    values.push_back(item);
+                }
+                break;
+            }
+            auto parent = root->parent;
+            auto op_node_index_seek = new NodeIndexSeek(node, scan->SymTab(), field, values);
+            op_node_index_seek->parent = parent;
+            parent->RemoveChild(root);
+            OpBase::FreeStream(root);
+            parent->AddChild(op_node_index_seek);
+            return;
         }
         for (auto child : root->children) {
             Replace(child, filter_collections);
@@ -123,8 +150,9 @@ class ReplaceNodeScanWithIndexSeek : public OptPass {
         if (filters.empty()) return false;
         return true;
     }
+
  public:
-    ReplaceNodeScanWithIndexSeek(RTContext *ctx)
+    explicit ReplaceNodeScanWithIndexSeek(RTContext *ctx)
         : OptPass(typeid(ReplaceNodeScanWithIndexSeek).name()), ctx_(ctx) {}
     bool Gate() override { return true; }
     int Execute(OpBase *root) override {
@@ -141,5 +169,4 @@ class ReplaceNodeScanWithIndexSeek : public OptPass {
         return 0;
     }
 };
-
-}
+}  // namespace cypher

@@ -49,7 +49,7 @@ class PassManager {
         all_passes_.emplace_back(new ParallelTraversal());
         all_passes_.emplace_back(new ParallelTraversalV2());
         all_passes_.emplace_back(new LocateNodeByVidV2());
-        //all_passes_.emplace_back(new LocateNodeByIndexedPropV2());
+        // all_passes_.emplace_back(new LocateNodeByIndexedPropV2());
         all_passes_.emplace_back(new ReplaceNodeScanWithIndexSeek(ctx));
         all_passes_.emplace_back(new LocateNodeByPropRangeFilter());
     }
