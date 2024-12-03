@@ -28,8 +28,6 @@ namespace graphdb {
 
 namespace embedding {
 
-const static std::string delete_map_postfix = ".del";
-
 /**
  * This structure is primarily used to mark the Embedding LabelId of Persistent
  * Index Chunk as deleted.
@@ -60,7 +58,9 @@ class DeleteMap {
     /**
      * Load this data structure from a persistent file.
      */
-    void Load(const std::string& dir);
+    static std::unique_ptr<DeleteMap> Load(const std::string& dir,
+                                           const std::string& chunk_id,
+                                           uint32_t total_bit_count);
     /**
      * Flush the dirty bits to file. For Sparse format, we write a brand new
      * delete map file. For Dense format, we bookeeping the dirtied page and

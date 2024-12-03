@@ -15,7 +15,7 @@
  *      Junwang Zhao <zhaojunwang.zjw@antgroup.com>
  */
 
-#include "delete_map.h"
+#include "embedding/delete_map.h"
 
 #include <spdlog/fmt/fmt.h>
 
@@ -29,6 +29,8 @@ namespace graphdb {
 namespace embedding {
 
 namespace {
+
+const static std::string delete_map_postfix = ".del";
 
 // We expect the delete map file smaller than 8K for SPARSE format
 const size_t SPARSE_FORMAT_MAX_DELETE = 2048 - 2;
@@ -135,8 +137,12 @@ bool DeleteMap::IsDeleted(uint32_t id) {
     THROW_CODE(InvalidParameter, "illegal format {}", format_);
 }
 
-void DeleteMap::Load(const std::string& dir) {
-    auto file_path = fmt::format("{}/{}", dir, file_name_);
+std::unique_ptr<DeleteMap> DeleteMap::Load(const std::string& dir,
+                                           const std::string& chunk_id,
+                                           uint32_t total_bit_count) {
+    std::unique_ptr<DeleteMap> del_map =
+        std::make_unique<DeleteMap>(total_bit_count, chunk_id);
+    auto file_path = fmt::format("{}/{}", dir, del_map->GetFileName());
     if (!std::filesystem::exists(file_path)) {
         return;
     }
@@ -159,18 +165,18 @@ void DeleteMap::Load(const std::string& dir) {
     if (!is) {
         THROW_CODE(IOException, "del map corrupted");
     }
-    int remain = length - 2;
+    int remain = length - sizeof(uint32_t) * 2;
 
-    deleted_count_ = *(reinterpret_cast<uint32_t*>(&buf[0]) + 1);
+    del_map->deleted_count_ = *(reinterpret_cast<uint32_t*>(&buf[0]) + 1);
     switch (*reinterpret_cast<uint32_t*>(&buf[0])) {
         case SPARSE: {
-            format_ = SPARSE;
+            del_map->format_ = SPARSE;
             while (remain > PAGE_SIZE) {
                 is.read(&buf[0], PAGE_SIZE);
                 if (!is) {
                     THROW_CODE(IOException, "del map corrupted");
                 }
-                ParseSparseBuffer(buf, PAGE_SIZE, deleted_labels_);
+                ParseSparseBuffer(buf, PAGE_SIZE, del_map->deleted_labels_);
                 remain -= PAGE_SIZE;
             }
             if (remain) {
@@ -178,24 +184,25 @@ void DeleteMap::Load(const std::string& dir) {
                 if (!is) {
                     THROW_CODE(IOException, "del map corrupted");
                 }
-                ParseSparseBuffer(buf, remain, deleted_labels_);
+                ParseSparseBuffer(buf, remain, del_map->deleted_labels_);
             }
             break;
         }
         case DENSE: {
-            format_ = DENSE;
-            auto bitmap_size = BitCnt2Byte(total_bit_count_);
-            auto dirty_page_size = BitCnt2Byte(BitCnt2Page(total_bit_count_));
+            del_map->format_ = DENSE;
+            auto bitmap_size = BitCnt2Byte(total_bit_count);
+            auto dirty_page_size = BitCnt2Byte(BitCnt2Page(total_bit_count));
             int offset = 0;
 
-            bitmap_.resize(bitmap_size);
-            dirty_pages_.resize(dirty_page_size, 0);
+            del_map->bitmap_.resize(bitmap_size);
+            del_map->dirty_pages_.resize(dirty_page_size, 0);
             while (remain > PAGE_SIZE) {
                 is.read(&buf[0], PAGE_SIZE);
                 if (!is) {
                     THROW_CODE(IOException, "del map corrupted");
                 }
-                ParseDenseBuffer(buf, PAGE_SIZE, bitmap_.data() + offset);
+                ParseDenseBuffer(buf, PAGE_SIZE,
+                                 del_map->bitmap_.data() + offset);
                 remain -= PAGE_SIZE;
                 offset += PAGE_SIZE;
             }
@@ -204,13 +211,16 @@ void DeleteMap::Load(const std::string& dir) {
                 if (!is) {
                     THROW_CODE(IOException, "del map corrupted");
                 }
-                ParseDenseBuffer(buf, PAGE_SIZE, bitmap_.data() + offset);
+                ParseDenseBuffer(buf, PAGE_SIZE,
+                                 del_map->bitmap_.data() + offset);
             }
             break;
         }
         default:
             THROW_CODE(IOException, "del map corrupted");
     }
+
+    return std::move(del_map);
 }
 
 void DeleteMap::Flush(const std::string& dir) {
