@@ -81,7 +81,13 @@ Value BuiltinFunction::Type(RTContext *ctx, const Record &record,
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
     const auto& operand = args[1];
     auto r = operand.Evaluate(ctx, record);
+    if (r.IsNull()) {
+        return {};
+    }
     CHECK_RELP(r);
+    if (!r.relationship->edge_) {
+        return {};
+    }
     if (!VALIDATE_EIT(r)) return {};
     return Value::String(r.relationship->edge_->GetType());
 }
@@ -91,7 +97,13 @@ Value BuiltinFunction::Labels(RTContext *ctx, const Record &record,
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
     const auto& operand = args[1];
     auto r = operand.Evaluate(ctx, record);
+    if (r.IsNull()) {
+        return {}; // return labels(null)
+    }
     CHECK_NODE(r);
+    if (!r.node->vertex_) {
+        return {};
+    }
     auto labels = r.node->vertex_->GetLabels();
     std::vector<Value> ret;
     ret.reserve(labels.size());
