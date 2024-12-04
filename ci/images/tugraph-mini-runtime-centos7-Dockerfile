@@ -12,7 +12,9 @@ RUN sed -e "s|^mirrorlist=|#mirrorlist=|g" \
 RUN yum -x filesystem update -y && yum install -y \
     gcc \
     openssl-static \
-    wget
+    wget \
+    libgfortran5.x86_64 \
+    libgomp
 
 # install tugraph
 # specifies the path of the object storage where the installation package resides

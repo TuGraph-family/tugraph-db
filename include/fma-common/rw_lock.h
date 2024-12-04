@@ -17,6 +17,7 @@
 #include "fma-common/cache_aligned_vector.h"
 #include "fma-common/thread_id.h"
 #include "fma-common/utils.h"
+#include "fma-common/string_formatter.h"
 
 namespace fma_common {
 
@@ -29,6 +30,7 @@ enum class LockStatus {
 class InvalidThreadIdError : public std::runtime_error {
  public:
     InvalidThreadIdError() : std::runtime_error("Invalid thread id.") {}
+    explicit InvalidThreadIdError(const std::string& msg) : std::runtime_error(msg) {}
 };
 
 // RWLock using thread-local storage.
@@ -51,7 +53,10 @@ class InterruptableTLSRWLock {
     DISABLE_MOVE(InterruptableTLSRWLock);
 
     void ThrowOnInvalidTID(int tid) {
-        if (tid < 0 || tid >= FMA_MAX_THREADS) throw InvalidThreadIdError();
+        if (tid < 0 || tid >= FMA_MAX_THREADS) {
+            throw InvalidThreadIdError(FMA_FMT(
+                "Invalid thread id, tid:{}, FMA_MAX_THREADS:{}", tid, FMA_MAX_THREADS));
+        }
     }
 
     #define RETURN_IF_INTERRUPTED() \

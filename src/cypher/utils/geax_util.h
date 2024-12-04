@@ -52,9 +52,7 @@
         if (!ast) NOT_SUPPORT();                                                                  \
         auto res = std::any_cast<geax::frontend::GEAXErrorCode>(ast->accept(*this));              \
         if (res != geax::frontend::GEAXErrorCode::GEAX_OPTIMIZATION_PASS) {                       \
-            auto error_msg = fma_common::StringFormatter::Format(                                 \
-                                "visit({}) failed", std::string(#ast));                           \
-            throw lgraph::CypherException(error_msg);                                             \
+            return res;                                                                           \
         }                                                                                         \
     } while (0)
 #endif

@@ -93,7 +93,7 @@ class IOService : private boost::asio::noncopyable {
         : handler_(handler),
           acceptor_(service, tcp::endpoint(tcp::v4(), port),
                     /*reuse_addr*/true),
-          io_service_pool_(thread_num), interval_(10), timer_(service) {
+          io_service_pool_(thread_num), interval_(5), timer_(service) {
         io_service_pool_.Run();
         invoke_async_accept();
         clean_closed_conn();

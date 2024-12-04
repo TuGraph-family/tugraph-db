@@ -274,7 +274,7 @@ p
         WriteFile(file, statements);
         std::string lgraph_cli =
             "./lgraph_cli --ip 127.0.0.1 --port 7687 --graph default "
-            "--user admin --password 73@TuGraph";
+            "--user admin --password 73@TuGraph --print_time false";
         lgraph::SubProcess cli(FMA_FMT("{} < {}", lgraph_cli, file));
         cli.Wait();
         UT_EXPECT_EQ(cli.Stdout(), expected);

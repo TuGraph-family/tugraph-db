@@ -14,7 +14,7 @@
 #include "fma-common/assert.h"
 
 namespace fma_common {
-static const int FMA_MAX_THREADS = 480;
+static const int FMA_MAX_THREADS = 65000;
 
 class ThreadIdAssigner {
     static const int N = FMA_MAX_THREADS;

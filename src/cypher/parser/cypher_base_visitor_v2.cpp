@@ -133,6 +133,15 @@ void CypherBaseVisitorV2::PropertyExtractor(geax::frontend::ElementFiller *fille
         }
     }
     for (auto &label : labels) {
+        if (isVertex) {
+            if (!node_property_.count(label)) {
+                node_property_[label] = {};
+            }
+        } else {
+            if (!rel_property_.count(label)) {
+                rel_property_[label] = {};
+            }
+        }
         for (auto field : fields) {
             if (isVertex) {
                 node_property_[label].emplace(field);

@@ -250,7 +250,7 @@ void BoltConnection::WriteResponseDone(const boost::system::error_code& ec) {
 
 void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec) {
     if (ec) {
-        LOG_WARN() << FMA_FMT("ReadChunkSizeDone error: {}", ec.message());
+        // LOG_WARN() << FMA_FMT("ReadChunkSizeDone error: {}", ec.message());
         Close();
         return;
     }

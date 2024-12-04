@@ -138,6 +138,8 @@ class NodeByLabelScan : public OpBase {
 
     const std::string& GetLabel() { return label_; }
 
+    const SymbolTable * GetSymtab() {return sym_tab_;}
+
     CYPHER_DEFINE_VISITABLE()
 
     CYPHER_DEFINE_CONST_VISITABLE()

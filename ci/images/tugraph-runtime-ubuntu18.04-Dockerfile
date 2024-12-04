@@ -21,7 +21,8 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     libssl-dev \
     openjdk-8-jdk \
-    unzip
+    unzip \
+    gfortran
 
 # install g++ 8.4.0
 # if it is not accessible, replace it with the link below

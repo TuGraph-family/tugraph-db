@@ -18,6 +18,8 @@ RUN yum -x filesystem update -y && yum install -y \
     bzip2 \
     unzip \
     openssl-static \
+    libgfortran5.x86_64 \
+    libgomp \
     libcurl-devel.x86_64 && yum clean all
 
 # install g++ 8.4.0

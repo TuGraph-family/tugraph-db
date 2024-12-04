@@ -345,9 +345,9 @@ class GraphFactory {
         fma_common::OutputFmaStream stream;
         for (auto& kv : data) {
             const std::string& file_name = kv.first;
-            const std::string& data = kv.second;
+            const std::string& content = kv.second;
             stream.Open(file_name);
-            stream.Write(data.data(), data.size());
+            stream.Write(content.data(), content.size());
             stream.Close();
             UT_LOG() << file_name << " created";
         }
@@ -370,7 +370,7 @@ R"(
             "primary" : "name",
             "properties" : [
                 {"name" : "name", "type":"STRING"},
-                {"name" : "birthyear", "type":"INT16", "optional":true}
+                {"name" : "birthyear", "type":"INT16", "optional":true, "index":true, "unique":false}
             ]
         },
         {

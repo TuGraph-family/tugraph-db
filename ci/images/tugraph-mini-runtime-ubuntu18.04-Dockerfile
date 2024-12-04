@@ -12,7 +12,8 @@ RUN rm -rf /et/apt/sources.list \
 RUN apt-get update && apt-get install -y \
     gcc \
     libssl-dev \
-    wget
+    wget \
+    gfortran
 
 # install tugraph
 # specifies the path of the object storage where the installation package resides

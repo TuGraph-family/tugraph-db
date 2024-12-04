@@ -127,3 +127,13 @@ RETURN dateComponent(12345, 'year'), datetimeComponent(12345, 'month'), datetime
 RETURN datetimeComponent(1582705717, 'year'),datetimeComponent(1582705717, 'month'),datetimeComponent(1582705717, 'day');
 RETURN datetimeComponent(1582705717, 'hour'),datetimeComponent(1582705717, 'minute'),datetimeComponent(1582705717, 'second'), datetimeComponent(1582705717, 'microsecond');
 RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, 'second'), datetimeComponent(1582705717000, 'microsecond');
+RETURN toLower("TuGraph");
+RETURN toUpper("TuGraph");
+RETURN trim("  TuGraph  ");
+RETURN replace("Hello TuGraph", "TuGraph", "World");
+RETURN split("TuGraph,Graph,Database", ",");
+RETURN left("TuGraph", 3);
+RETURN right("TuGraph", 2);
+RETURN reverse("TuGraph");
+RETURN lTrim("  TuGraph  ");
+RETURN rTrim("  TuGraph  ");

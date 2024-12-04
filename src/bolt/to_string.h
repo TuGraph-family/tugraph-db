@@ -132,8 +132,9 @@ nlohmann::json ToJsonObj(const bolt::Path& path) {
         ret.append(forward ? "-" : "<-");
         ret.append(ToJsonObj(rel).get<std::string>());
         ret.append(forward ? "->" : "-");
-        ret.append(ToJsonObj(path.nodes[nodes_index.at(rel.endId)]).get<std::string>());
-        nodeId = rel.endId;
+        ret.append(ToJsonObj(path.nodes[nodes_index.at(
+                                 forward ? rel.endId : rel.startId)]).get<std::string>());
+        nodeId = forward ? rel.endId : rel.startId;
     }
     return ret;
 }
