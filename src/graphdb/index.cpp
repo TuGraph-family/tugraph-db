@@ -470,15 +470,16 @@ VsagIndex::VsagIndex(meta::VertexVectorIndex meta)
         {"max_degree", meta_.hnsw_m()},
         {"ef_construction", meta_.hnsw_ef_construction()}
     };
-    if (meta_.distance_type() != "l2" && meta_.distance_type() != "ip") {
-        THROW_CODE(VectorIndexException, "invalid metric_type: {}", meta_.distance_type());
+    if (meta_.distance_type() != meta::VectorDistanceType::L2 &&
+        meta_.distance_type() != meta::VectorDistanceType::IP) {
+        THROW_CODE(VectorIndexException, "invalid metric_type: {}",
+                   meta::VectorDistanceType_Name(meta_.distance_type()));
     }
-    nlohmann::json index_parameters {
+    nlohmann::json index_parameters{
         {"dtype", "float32"},
-        {"metric_type", meta_.distance_type()},
+        {"metric_type", meta::VectorDistanceType_Name(meta_.distance_type())},
         {"dim", meta_.dimensions()},
-        {"hnsw", hnsw_parameters}
-    };
+        {"hnsw", hnsw_parameters}};
     auto ret = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
     if (ret.has_value()) {
         index_ = std::move(ret.value());

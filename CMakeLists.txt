@@ -131,6 +131,7 @@ set(THIRD_STATIC_LIBS
 	date-tz.a
 	${FT_INDEX_LIB}
 	antlr4-runtime.a
+	faiss.a
 )
 
 if (NOT ENABLE_ASAN)

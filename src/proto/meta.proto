@@ -35,6 +35,17 @@ message VertexFullTextIndex {
     uint32 index_id              = 7;
 }
 
+enum VectorDistanceType {
+    L2 = 0; // Euclidean distance
+    IP = 1; // Inner product
+    COSINE = 2; // Cosine angle, smaller is more similar
+}
+
+enum VectorIndexType {
+    HNSW = 0;       // Hierarchical navigable small world
+    IVF_FLAT = 1;   // InVerted File Flat
+}
+
 message VertexVectorIndex {
     string name        = 1;
     string label       = 2;
@@ -43,9 +54,16 @@ message VertexVectorIndex {
     uint32 property_id = 5;
     uint32 sharding_num   = 6;
     uint32 dimensions  = 7;
-    string distance_type        = 8;
-    uint32 hnsw_m               = 9;
-    uint32 hnsw_ef_construction = 10;
+    VectorIndexType index_type = 8;
+    VectorDistanceType distance_type = 9;
+    // hnsw params
+    uint32 hnsw_m = 10;
+    uint32 hnsw_ef_construction = 11;
+    uint32 hnsw_ef_search = 12;
+
+    // ivf params
+    uint32 nlist = 13;
+    uint32 nprobe = 14;
 }
 
 message GraphDBMetaInfo {

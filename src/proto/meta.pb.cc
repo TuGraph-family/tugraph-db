@@ -126,7 +126,7 @@ void InitDefaults() {
 }
 
 ::google::protobuf::Metadata file_level_metadata[5];
-const ::google::protobuf::EnumDescriptor* file_level_enum_descriptors[1];
+const ::google::protobuf::EnumDescriptor* file_level_enum_descriptors[3];
 
 const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
@@ -165,9 +165,13 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, property_id_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, sharding_num_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, dimensions_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, index_type_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, distance_type_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, hnsw_m_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, hnsw_ef_construction_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, hnsw_ef_search_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, nlist_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::VertexVectorIndex, nprobe_),
   ~0u,  // no _has_bits_
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::meta::GraphDBMetaInfo, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -189,8 +193,8 @@ static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROT
   { 0, -1, sizeof(::meta::VertexPropertyIndex)},
   { 12, -1, sizeof(::meta::VertexFullTextIndex)},
   { 24, -1, sizeof(::meta::VertexVectorIndex)},
-  { 39, -1, sizeof(::meta::GraphDBMetaInfo)},
-  { 46, -1, sizeof(::meta::FullTextIndexUpdate)},
+  { 43, -1, sizeof(::meta::GraphDBMetaInfo)},
+  { 50, -1, sizeof(::meta::FullTextIndexUpdate)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
@@ -229,21 +233,26 @@ void AddDescriptorsImpl() {
       "\007 \001(\r\"\220\001\n\023VertexFullTextIndex\022\014\n\004name\030\001 "
       "\001(\t\022\014\n\004path\030\002 \001(\t\022\016\n\006labels\030\003 \003(\t\022\022\n\npro"
       "perties\030\004 \003(\t\022\021\n\tlabel_ids\030\005 \003(\r\022\024\n\014prop"
-      "erty_ids\030\006 \003(\r\022\020\n\010index_id\030\007 \001(\r\"\330\001\n\021Ver"
+      "erty_ids\030\006 \003(\r\022\020\n\010index_id\030\007 \001(\r\"\324\002\n\021Ver"
       "texVectorIndex\022\014\n\004name\030\001 \001(\t\022\r\n\005label\030\002 "
       "\001(\t\022\020\n\010label_id\030\003 \001(\r\022\020\n\010property\030\004 \001(\t\022"
       "\023\n\013property_id\030\005 \001(\r\022\024\n\014sharding_num\030\006 \001"
-      "(\r\022\022\n\ndimensions\030\007 \001(\r\022\025\n\rdistance_type\030"
-      "\010 \001(\t\022\016\n\006hnsw_m\030\t \001(\r\022\034\n\024hnsw_ef_constru"
-      "ction\030\n \001(\r\"7\n\017GraphDBMetaInfo\022\022\n\ngraph_"
-      "name\030\001 \001(\t\022\020\n\010graph_id\030\002 \001(\r\"a\n\023FullText"
-      "IndexUpdate\022\036\n\004type\030\001 \001(\0162\020.meta.UpdateT"
-      "ype\022\n\n\002id\030\002 \001(\003\022\016\n\006fields\030\003 \003(\t\022\016\n\006value"
-      "s\030\004 \003(\t*!\n\nUpdateType\022\007\n\003Add\020\000\022\n\n\006Delete"
-      "\020\001b\006proto3"
+      "(\r\022\022\n\ndimensions\030\007 \001(\r\022)\n\nindex_type\030\010 \001"
+      "(\0162\025.meta.VectorIndexType\022/\n\rdistance_ty"
+      "pe\030\t \001(\0162\030.meta.VectorDistanceType\022\016\n\006hn"
+      "sw_m\030\n \001(\r\022\034\n\024hnsw_ef_construction\030\013 \001(\r"
+      "\022\026\n\016hnsw_ef_search\030\014 \001(\r\022\r\n\005nlist\030\r \001(\r\022"
+      "\016\n\006nprobe\030\016 \001(\r\"7\n\017GraphDBMetaInfo\022\022\n\ngr"
+      "aph_name\030\001 \001(\t\022\020\n\010graph_id\030\002 \001(\r\"a\n\023Full"
+      "TextIndexUpdate\022\036\n\004type\030\001 \001(\0162\020.meta.Upd"
+      "ateType\022\n\n\002id\030\002 \001(\003\022\016\n\006fields\030\003 \003(\t\022\016\n\006v"
+      "alues\030\004 \003(\t*0\n\022VectorDistanceType\022\006\n\002L2\020"
+      "\000\022\006\n\002IP\020\001\022\n\n\006COSINE\020\002*)\n\017VectorIndexType"
+      "\022\010\n\004HNSW\020\000\022\014\n\010IVF_FLAT\020\001*!\n\nUpdateType\022\007"
+      "\n\003Add\020\000\022\n\n\006Delete\020\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 730);
+      descriptor, 947);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "meta.proto", &protobuf_RegisterTypes);
 }
@@ -260,9 +269,38 @@ struct StaticDescriptorInitializer {
 } static_descriptor_initializer;
 }  // namespace protobuf_meta_2eproto
 namespace meta {
-const ::google::protobuf::EnumDescriptor* UpdateType_descriptor() {
+const ::google::protobuf::EnumDescriptor* VectorDistanceType_descriptor() {
   protobuf_meta_2eproto::protobuf_AssignDescriptorsOnce();
   return protobuf_meta_2eproto::file_level_enum_descriptors[0];
+}
+bool VectorDistanceType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+const ::google::protobuf::EnumDescriptor* VectorIndexType_descriptor() {
+  protobuf_meta_2eproto::protobuf_AssignDescriptorsOnce();
+  return protobuf_meta_2eproto::file_level_enum_descriptors[1];
+}
+bool VectorIndexType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+      return true;
+    default:
+      return false;
+  }
+}
+
+const ::google::protobuf::EnumDescriptor* UpdateType_descriptor() {
+  protobuf_meta_2eproto::protobuf_AssignDescriptorsOnce();
+  return protobuf_meta_2eproto::file_level_enum_descriptors[2];
 }
 bool UpdateType_IsValid(int value) {
   switch (value) {
@@ -1363,9 +1401,13 @@ const int VertexVectorIndex::kPropertyFieldNumber;
 const int VertexVectorIndex::kPropertyIdFieldNumber;
 const int VertexVectorIndex::kShardingNumFieldNumber;
 const int VertexVectorIndex::kDimensionsFieldNumber;
+const int VertexVectorIndex::kIndexTypeFieldNumber;
 const int VertexVectorIndex::kDistanceTypeFieldNumber;
 const int VertexVectorIndex::kHnswMFieldNumber;
 const int VertexVectorIndex::kHnswEfConstructionFieldNumber;
+const int VertexVectorIndex::kHnswEfSearchFieldNumber;
+const int VertexVectorIndex::kNlistFieldNumber;
+const int VertexVectorIndex::kNprobeFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 VertexVectorIndex::VertexVectorIndex()
@@ -1391,13 +1433,9 @@ VertexVectorIndex::VertexVectorIndex(const VertexVectorIndex& from)
   if (from.property().size() > 0) {
     property_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.property_);
   }
-  distance_type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.distance_type().size() > 0) {
-    distance_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.distance_type_);
-  }
   ::memcpy(&label_id_, &from.label_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&hnsw_ef_construction_) -
-    reinterpret_cast<char*>(&label_id_)) + sizeof(hnsw_ef_construction_));
+    static_cast<size_t>(reinterpret_cast<char*>(&nprobe_) -
+    reinterpret_cast<char*>(&label_id_)) + sizeof(nprobe_));
   // @@protoc_insertion_point(copy_constructor:meta.VertexVectorIndex)
 }
 
@@ -1405,10 +1443,9 @@ void VertexVectorIndex::SharedCtor() {
   name_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   label_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   property_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  distance_type_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&label_id_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&hnsw_ef_construction_) -
-      reinterpret_cast<char*>(&label_id_)) + sizeof(hnsw_ef_construction_));
+      reinterpret_cast<char*>(&nprobe_) -
+      reinterpret_cast<char*>(&label_id_)) + sizeof(nprobe_));
 }
 
 VertexVectorIndex::~VertexVectorIndex() {
@@ -1420,7 +1457,6 @@ void VertexVectorIndex::SharedDtor() {
   name_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   label_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   property_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  distance_type_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
 
 void VertexVectorIndex::SetCachedSize(int size) const {
@@ -1446,10 +1482,9 @@ void VertexVectorIndex::Clear() {
   name_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   label_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   property_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  distance_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&label_id_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&hnsw_ef_construction_) -
-      reinterpret_cast<char*>(&label_id_)) + sizeof(hnsw_ef_construction_));
+      reinterpret_cast<char*>(&nprobe_) -
+      reinterpret_cast<char*>(&label_id_)) + sizeof(nprobe_));
   _internal_metadata_.Clear();
 }
 
@@ -1567,26 +1602,40 @@ bool VertexVectorIndex::MergePartialFromCodedStream(
         break;
       }
 
-      // string distance_type = 8;
+      // .meta.VectorIndexType index_type = 8;
       case 8: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(66u /* 66 & 0xFF */)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_distance_type()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->distance_type().data(), static_cast<int>(this->distance_type().length()),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "meta.VertexVectorIndex.distance_type"));
+            static_cast< ::google::protobuf::uint8>(64u /* 64 & 0xFF */)) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          set_index_type(static_cast< ::meta::VectorIndexType >(value));
         } else {
           goto handle_unusual;
         }
         break;
       }
 
-      // uint32 hnsw_m = 9;
+      // .meta.VectorDistanceType distance_type = 9;
       case 9: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
             static_cast< ::google::protobuf::uint8>(72u /* 72 & 0xFF */)) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          set_distance_type(static_cast< ::meta::VectorDistanceType >(value));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // uint32 hnsw_m = 10;
+      case 10: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(80u /* 80 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
@@ -1597,14 +1646,56 @@ bool VertexVectorIndex::MergePartialFromCodedStream(
         break;
       }
 
-      // uint32 hnsw_ef_construction = 10;
-      case 10: {
+      // uint32 hnsw_ef_construction = 11;
+      case 11: {
         if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(80u /* 80 & 0xFF */)) {
+            static_cast< ::google::protobuf::uint8>(88u /* 88 & 0xFF */)) {
 
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
                  input, &hnsw_ef_construction_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // uint32 hnsw_ef_search = 12;
+      case 12: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(96u /* 96 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &hnsw_ef_search_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // uint32 nlist = 13;
+      case 13: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(104u /* 104 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &nlist_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // uint32 nprobe = 14;
+      case 14: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(112u /* 112 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &nprobe_)));
         } else {
           goto handle_unusual;
         }
@@ -1687,24 +1778,41 @@ void VertexVectorIndex::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt32(7, this->dimensions(), output);
   }
 
-  // string distance_type = 8;
-  if (this->distance_type().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->distance_type().data(), static_cast<int>(this->distance_type().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "meta.VertexVectorIndex.distance_type");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      8, this->distance_type(), output);
+  // .meta.VectorIndexType index_type = 8;
+  if (this->index_type() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      8, this->index_type(), output);
   }
 
-  // uint32 hnsw_m = 9;
+  // .meta.VectorDistanceType distance_type = 9;
+  if (this->distance_type() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      9, this->distance_type(), output);
+  }
+
+  // uint32 hnsw_m = 10;
   if (this->hnsw_m() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32(9, this->hnsw_m(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(10, this->hnsw_m(), output);
   }
 
-  // uint32 hnsw_ef_construction = 10;
+  // uint32 hnsw_ef_construction = 11;
   if (this->hnsw_ef_construction() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32(10, this->hnsw_ef_construction(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(11, this->hnsw_ef_construction(), output);
+  }
+
+  // uint32 hnsw_ef_search = 12;
+  if (this->hnsw_ef_search() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(12, this->hnsw_ef_search(), output);
+  }
+
+  // uint32 nlist = 13;
+  if (this->nlist() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(13, this->nlist(), output);
+  }
+
+  // uint32 nprobe = 14;
+  if (this->nprobe() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(14, this->nprobe(), output);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -1774,25 +1882,41 @@ void VertexVectorIndex::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(7, this->dimensions(), target);
   }
 
-  // string distance_type = 8;
-  if (this->distance_type().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->distance_type().data(), static_cast<int>(this->distance_type().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "meta.VertexVectorIndex.distance_type");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        8, this->distance_type(), target);
+  // .meta.VectorIndexType index_type = 8;
+  if (this->index_type() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      8, this->index_type(), target);
   }
 
-  // uint32 hnsw_m = 9;
+  // .meta.VectorDistanceType distance_type = 9;
+  if (this->distance_type() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      9, this->distance_type(), target);
+  }
+
+  // uint32 hnsw_m = 10;
   if (this->hnsw_m() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(9, this->hnsw_m(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(10, this->hnsw_m(), target);
   }
 
-  // uint32 hnsw_ef_construction = 10;
+  // uint32 hnsw_ef_construction = 11;
   if (this->hnsw_ef_construction() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(10, this->hnsw_ef_construction(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(11, this->hnsw_ef_construction(), target);
+  }
+
+  // uint32 hnsw_ef_search = 12;
+  if (this->hnsw_ef_search() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(12, this->hnsw_ef_search(), target);
+  }
+
+  // uint32 nlist = 13;
+  if (this->nlist() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(13, this->nlist(), target);
+  }
+
+  // uint32 nprobe = 14;
+  if (this->nprobe() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(14, this->nprobe(), target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -1833,13 +1957,6 @@ size_t VertexVectorIndex::ByteSizeLong() const {
         this->property());
   }
 
-  // string distance_type = 8;
-  if (this->distance_type().size() > 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->distance_type());
-  }
-
   // uint32 label_id = 3;
   if (this->label_id() != 0) {
     total_size += 1 +
@@ -1868,18 +1985,51 @@ size_t VertexVectorIndex::ByteSizeLong() const {
         this->dimensions());
   }
 
-  // uint32 hnsw_m = 9;
+  // .meta.VectorIndexType index_type = 8;
+  if (this->index_type() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::EnumSize(this->index_type());
+  }
+
+  // .meta.VectorDistanceType distance_type = 9;
+  if (this->distance_type() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::EnumSize(this->distance_type());
+  }
+
+  // uint32 hnsw_m = 10;
   if (this->hnsw_m() != 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt32Size(
         this->hnsw_m());
   }
 
-  // uint32 hnsw_ef_construction = 10;
+  // uint32 hnsw_ef_construction = 11;
   if (this->hnsw_ef_construction() != 0) {
     total_size += 1 +
       ::google::protobuf::internal::WireFormatLite::UInt32Size(
         this->hnsw_ef_construction());
+  }
+
+  // uint32 hnsw_ef_search = 12;
+  if (this->hnsw_ef_search() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->hnsw_ef_search());
+  }
+
+  // uint32 nlist = 13;
+  if (this->nlist() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->nlist());
+  }
+
+  // uint32 nprobe = 14;
+  if (this->nprobe() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt32Size(
+        this->nprobe());
   }
 
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
@@ -1921,10 +2071,6 @@ void VertexVectorIndex::MergeFrom(const VertexVectorIndex& from) {
 
     property_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.property_);
   }
-  if (from.distance_type().size() > 0) {
-
-    distance_type_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.distance_type_);
-  }
   if (from.label_id() != 0) {
     set_label_id(from.label_id());
   }
@@ -1937,11 +2083,26 @@ void VertexVectorIndex::MergeFrom(const VertexVectorIndex& from) {
   if (from.dimensions() != 0) {
     set_dimensions(from.dimensions());
   }
+  if (from.index_type() != 0) {
+    set_index_type(from.index_type());
+  }
+  if (from.distance_type() != 0) {
+    set_distance_type(from.distance_type());
+  }
   if (from.hnsw_m() != 0) {
     set_hnsw_m(from.hnsw_m());
   }
   if (from.hnsw_ef_construction() != 0) {
     set_hnsw_ef_construction(from.hnsw_ef_construction());
+  }
+  if (from.hnsw_ef_search() != 0) {
+    set_hnsw_ef_search(from.hnsw_ef_search());
+  }
+  if (from.nlist() != 0) {
+    set_nlist(from.nlist());
+  }
+  if (from.nprobe() != 0) {
+    set_nprobe(from.nprobe());
   }
 }
 
@@ -1975,14 +2136,17 @@ void VertexVectorIndex::InternalSwap(VertexVectorIndex* other) {
     GetArenaNoVirtual());
   property_.Swap(&other->property_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
     GetArenaNoVirtual());
-  distance_type_.Swap(&other->distance_type_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-    GetArenaNoVirtual());
   swap(label_id_, other->label_id_);
   swap(property_id_, other->property_id_);
   swap(sharding_num_, other->sharding_num_);
   swap(dimensions_, other->dimensions_);
+  swap(index_type_, other->index_type_);
+  swap(distance_type_, other->distance_type_);
   swap(hnsw_m_, other->hnsw_m_);
   swap(hnsw_ef_construction_, other->hnsw_ef_construction_);
+  swap(hnsw_ef_search_, other->hnsw_ef_search_);
+  swap(nlist_, other->nlist_);
+  swap(nprobe_, other->nprobe_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
 

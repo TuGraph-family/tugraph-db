@@ -309,6 +309,16 @@ void GraphDB::AddVertexVectorIndex(
                    "Vertex vector index [label:{}, property:{}] already exists",
                    big_to_native(lid), big_to_native(pid));
     }
+    meta::VectorIndexType index_type = meta::VectorIndexType::HNSW;
+    meta::VectorDistanceType dist_type;
+    if (distance_type == "l2") {
+        dist_type = meta::VectorDistanceType::L2;
+    } else if (distance_type == "ip") {
+        dist_type = meta::VectorDistanceType::IP;
+    } else {
+        THROW_CODE(InvalidParameter, "Distance Type {} not supported",
+                   distance_type);
+    }
     meta::VertexVectorIndex meta;
     meta.set_name(index_name);
     meta.set_label(label);
@@ -317,7 +327,8 @@ void GraphDB::AddVertexVectorIndex(
     meta.set_label_id(big_to_native(lid));
     meta.set_property_id(big_to_native(pid));
     meta.set_dimensions(dimension);
-    meta.set_distance_type(std::move(distance_type));
+    meta.set_index_type(index_type);
+    meta.set_distance_type(dist_type);
     meta.set_hnsw_m(hnsw_m);
     meta.set_hnsw_ef_construction(hnsw_ef_construction);
     VertexVectorIndex vvi(db_, &graph_cf_, lid, pid, meta);

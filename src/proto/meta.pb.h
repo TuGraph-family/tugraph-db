@@ -74,6 +74,49 @@ template<> ::meta::VertexVectorIndex* Arena::CreateMaybeMessage<::meta::VertexVe
 }  // namespace google
 namespace meta {
 
+enum VectorDistanceType {
+  L2 = 0,
+  IP = 1,
+  COSINE = 2,
+  VectorDistanceType_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
+  VectorDistanceType_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
+};
+bool VectorDistanceType_IsValid(int value);
+const VectorDistanceType VectorDistanceType_MIN = L2;
+const VectorDistanceType VectorDistanceType_MAX = COSINE;
+const int VectorDistanceType_ARRAYSIZE = VectorDistanceType_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* VectorDistanceType_descriptor();
+inline const ::std::string& VectorDistanceType_Name(VectorDistanceType value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    VectorDistanceType_descriptor(), value);
+}
+inline bool VectorDistanceType_Parse(
+    const ::std::string& name, VectorDistanceType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<VectorDistanceType>(
+    VectorDistanceType_descriptor(), name, value);
+}
+enum VectorIndexType {
+  HNSW = 0,
+  IVF_FLAT = 1,
+  VectorIndexType_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
+  VectorIndexType_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
+};
+bool VectorIndexType_IsValid(int value);
+const VectorIndexType VectorIndexType_MIN = HNSW;
+const VectorIndexType VectorIndexType_MAX = IVF_FLAT;
+const int VectorIndexType_ARRAYSIZE = VectorIndexType_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* VectorIndexType_descriptor();
+inline const ::std::string& VectorIndexType_Name(VectorIndexType value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    VectorIndexType_descriptor(), value);
+}
+inline bool VectorIndexType_Parse(
+    const ::std::string& name, VectorIndexType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<VectorIndexType>(
+    VectorIndexType_descriptor(), name, value);
+}
 enum UpdateType {
   Add = 0,
   Delete = 1,
@@ -602,20 +645,6 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::std::string* release_property();
   void set_allocated_property(::std::string* property);
 
-  // string distance_type = 8;
-  void clear_distance_type();
-  static const int kDistanceTypeFieldNumber = 8;
-  const ::std::string& distance_type() const;
-  void set_distance_type(const ::std::string& value);
-  #if LANG_CXX11
-  void set_distance_type(::std::string&& value);
-  #endif
-  void set_distance_type(const char* value);
-  void set_distance_type(const char* value, size_t size);
-  ::std::string* mutable_distance_type();
-  ::std::string* release_distance_type();
-  void set_allocated_distance_type(::std::string* distance_type);
-
   // uint32 label_id = 3;
   void clear_label_id();
   static const int kLabelIdFieldNumber = 3;
@@ -640,17 +669,47 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::uint32 dimensions() const;
   void set_dimensions(::google::protobuf::uint32 value);
 
-  // uint32 hnsw_m = 9;
+  // .meta.VectorIndexType index_type = 8;
+  void clear_index_type();
+  static const int kIndexTypeFieldNumber = 8;
+  ::meta::VectorIndexType index_type() const;
+  void set_index_type(::meta::VectorIndexType value);
+
+  // .meta.VectorDistanceType distance_type = 9;
+  void clear_distance_type();
+  static const int kDistanceTypeFieldNumber = 9;
+  ::meta::VectorDistanceType distance_type() const;
+  void set_distance_type(::meta::VectorDistanceType value);
+
+  // uint32 hnsw_m = 10;
   void clear_hnsw_m();
-  static const int kHnswMFieldNumber = 9;
+  static const int kHnswMFieldNumber = 10;
   ::google::protobuf::uint32 hnsw_m() const;
   void set_hnsw_m(::google::protobuf::uint32 value);
 
-  // uint32 hnsw_ef_construction = 10;
+  // uint32 hnsw_ef_construction = 11;
   void clear_hnsw_ef_construction();
-  static const int kHnswEfConstructionFieldNumber = 10;
+  static const int kHnswEfConstructionFieldNumber = 11;
   ::google::protobuf::uint32 hnsw_ef_construction() const;
   void set_hnsw_ef_construction(::google::protobuf::uint32 value);
+
+  // uint32 hnsw_ef_search = 12;
+  void clear_hnsw_ef_search();
+  static const int kHnswEfSearchFieldNumber = 12;
+  ::google::protobuf::uint32 hnsw_ef_search() const;
+  void set_hnsw_ef_search(::google::protobuf::uint32 value);
+
+  // uint32 nlist = 13;
+  void clear_nlist();
+  static const int kNlistFieldNumber = 13;
+  ::google::protobuf::uint32 nlist() const;
+  void set_nlist(::google::protobuf::uint32 value);
+
+  // uint32 nprobe = 14;
+  void clear_nprobe();
+  static const int kNprobeFieldNumber = 14;
+  ::google::protobuf::uint32 nprobe() const;
+  void set_nprobe(::google::protobuf::uint32 value);
 
   // @@protoc_insertion_point(class_scope:meta.VertexVectorIndex)
  private:
@@ -659,13 +718,17 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::internal::ArenaStringPtr name_;
   ::google::protobuf::internal::ArenaStringPtr label_;
   ::google::protobuf::internal::ArenaStringPtr property_;
-  ::google::protobuf::internal::ArenaStringPtr distance_type_;
   ::google::protobuf::uint32 label_id_;
   ::google::protobuf::uint32 property_id_;
   ::google::protobuf::uint32 sharding_num_;
   ::google::protobuf::uint32 dimensions_;
+  int index_type_;
+  int distance_type_;
   ::google::protobuf::uint32 hnsw_m_;
   ::google::protobuf::uint32 hnsw_ef_construction_;
+  ::google::protobuf::uint32 hnsw_ef_search_;
+  ::google::protobuf::uint32 nlist_;
+  ::google::protobuf::uint32 nprobe_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
 };
@@ -1710,60 +1773,35 @@ inline void VertexVectorIndex::set_dimensions(::google::protobuf::uint32 value) 
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.dimensions)
 }
 
-// string distance_type = 8;
-inline void VertexVectorIndex::clear_distance_type() {
-  distance_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+// .meta.VectorIndexType index_type = 8;
+inline void VertexVectorIndex::clear_index_type() {
+  index_type_ = 0;
 }
-inline const ::std::string& VertexVectorIndex::distance_type() const {
-  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.distance_type)
-  return distance_type_.GetNoArena();
+inline ::meta::VectorIndexType VertexVectorIndex::index_type() const {
+  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.index_type)
+  return static_cast< ::meta::VectorIndexType >(index_type_);
 }
-inline void VertexVectorIndex::set_distance_type(const ::std::string& value) {
+inline void VertexVectorIndex::set_index_type(::meta::VectorIndexType value) {
   
-  distance_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.distance_type)
-}
-#if LANG_CXX11
-inline void VertexVectorIndex::set_distance_type(::std::string&& value) {
-  
-  distance_type_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:meta.VertexVectorIndex.distance_type)
-}
-#endif
-inline void VertexVectorIndex::set_distance_type(const char* value) {
-  GOOGLE_DCHECK(value != NULL);
-  
-  distance_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:meta.VertexVectorIndex.distance_type)
-}
-inline void VertexVectorIndex::set_distance_type(const char* value, size_t size) {
-  
-  distance_type_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:meta.VertexVectorIndex.distance_type)
-}
-inline ::std::string* VertexVectorIndex::mutable_distance_type() {
-  
-  // @@protoc_insertion_point(field_mutable:meta.VertexVectorIndex.distance_type)
-  return distance_type_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline ::std::string* VertexVectorIndex::release_distance_type() {
-  // @@protoc_insertion_point(field_release:meta.VertexVectorIndex.distance_type)
-  
-  return distance_type_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-}
-inline void VertexVectorIndex::set_allocated_distance_type(::std::string* distance_type) {
-  if (distance_type != NULL) {
-    
-  } else {
-    
-  }
-  distance_type_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), distance_type);
-  // @@protoc_insertion_point(field_set_allocated:meta.VertexVectorIndex.distance_type)
+  index_type_ = value;
+  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.index_type)
 }
 
-// uint32 hnsw_m = 9;
+// .meta.VectorDistanceType distance_type = 9;
+inline void VertexVectorIndex::clear_distance_type() {
+  distance_type_ = 0;
+}
+inline ::meta::VectorDistanceType VertexVectorIndex::distance_type() const {
+  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.distance_type)
+  return static_cast< ::meta::VectorDistanceType >(distance_type_);
+}
+inline void VertexVectorIndex::set_distance_type(::meta::VectorDistanceType value) {
+  
+  distance_type_ = value;
+  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.distance_type)
+}
+
+// uint32 hnsw_m = 10;
 inline void VertexVectorIndex::clear_hnsw_m() {
   hnsw_m_ = 0u;
 }
@@ -1777,7 +1815,7 @@ inline void VertexVectorIndex::set_hnsw_m(::google::protobuf::uint32 value) {
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.hnsw_m)
 }
 
-// uint32 hnsw_ef_construction = 10;
+// uint32 hnsw_ef_construction = 11;
 inline void VertexVectorIndex::clear_hnsw_ef_construction() {
   hnsw_ef_construction_ = 0u;
 }
@@ -1789,6 +1827,48 @@ inline void VertexVectorIndex::set_hnsw_ef_construction(::google::protobuf::uint
   
   hnsw_ef_construction_ = value;
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.hnsw_ef_construction)
+}
+
+// uint32 hnsw_ef_search = 12;
+inline void VertexVectorIndex::clear_hnsw_ef_search() {
+  hnsw_ef_search_ = 0u;
+}
+inline ::google::protobuf::uint32 VertexVectorIndex::hnsw_ef_search() const {
+  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.hnsw_ef_search)
+  return hnsw_ef_search_;
+}
+inline void VertexVectorIndex::set_hnsw_ef_search(::google::protobuf::uint32 value) {
+  
+  hnsw_ef_search_ = value;
+  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.hnsw_ef_search)
+}
+
+// uint32 nlist = 13;
+inline void VertexVectorIndex::clear_nlist() {
+  nlist_ = 0u;
+}
+inline ::google::protobuf::uint32 VertexVectorIndex::nlist() const {
+  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.nlist)
+  return nlist_;
+}
+inline void VertexVectorIndex::set_nlist(::google::protobuf::uint32 value) {
+  
+  nlist_ = value;
+  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.nlist)
+}
+
+// uint32 nprobe = 14;
+inline void VertexVectorIndex::clear_nprobe() {
+  nprobe_ = 0u;
+}
+inline ::google::protobuf::uint32 VertexVectorIndex::nprobe() const {
+  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.nprobe)
+  return nprobe_;
+}
+inline void VertexVectorIndex::set_nprobe(::google::protobuf::uint32 value) {
+  
+  nprobe_ = value;
+  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.nprobe)
 }
 
 // -------------------------------------------------------------------
@@ -2051,6 +2131,16 @@ FullTextIndexUpdate::mutable_values() {
 namespace google {
 namespace protobuf {
 
+template <> struct is_proto_enum< ::meta::VectorDistanceType> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::meta::VectorDistanceType>() {
+  return ::meta::VectorDistanceType_descriptor();
+}
+template <> struct is_proto_enum< ::meta::VectorIndexType> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::meta::VectorIndexType>() {
+  return ::meta::VectorIndexType_descriptor();
+}
 template <> struct is_proto_enum< ::meta::UpdateType> : ::std::true_type {};
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::meta::UpdateType>() {
