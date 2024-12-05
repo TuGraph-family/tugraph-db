@@ -50,7 +50,8 @@ X(InvalidParameter, "Invalid parameter.") \
 X(VectorIndexException, "Vector index exception.")        \
 X(VertexVectorIndexAlreadyExist, "Vertex vector index already exist.") \
 X(VertexFullTextIndexAlreadyExist, "Vertex fulltext index already exist.") \
-X(ConnectionDisconnected, "Connection has been disconnected.")
+X(ConnectionDisconnected, "Connection has been disconnected.")      \
+X(Unimplemented, "Unimplemented.")
 
 enum class ErrorCode {
 #define X(code, msg) code,
