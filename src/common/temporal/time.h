@@ -32,7 +32,7 @@ class Time {
 
    public:
     Time();
-    explicit Time(const std::string& str);
+    explicit Time(const std::string& str, std::optional<int64_t> days = {});
     explicit Time(const Value& params, int64_t truncate = 0);
     explicit Time(int64_t nanoseconds, int64_t tz_offset_seconds_ = 0)
         : nanoseconds_since_today_with_of_(nanoseconds), tz_offset_seconds_(tz_offset_seconds_){};

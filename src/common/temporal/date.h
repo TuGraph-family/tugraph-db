@@ -30,12 +30,17 @@ class Date {
     int64_t days_since_epoch_ = 0;
 
     void fromYearMonthDay(int year, unsigned month, unsigned day);
+    void fromYearMonthDay(const Date& base_date, std::optional<int> year,
+                          std::optional<unsigned> month, std::optional<unsigned> day);
     void fromYearWeekDow(int year, unsigned week, unsigned dow);
     void fromYearWeekDow(const Date& base_date, std::optional<int> year,
                          std::optional<unsigned> week,
                          std::optional<unsigned> dow);
     void fromYearQuarterDoq(int year, int quarter, int doq);
+    void fromYearQuarterDoq(const Date& base_date, std::optional<int> year,
+                            std::optional<int> quarter, std::optional<int> doq);
     void fromYearDoy(int year, int doy);
+    void fromYearDoy(const Date& base_date, std::optional<int> year, std::optional<int> doy);
     void fromTimeZone(std::string timezone);
 
    public:

@@ -150,6 +150,14 @@ std::string Value::Serialize() const {
             buffer.append((const char*)&offset, sizeof(offset));
             break;
         }
+        case ValueType::DATETIME: {
+            auto& v = std::any_cast<const common::DateTime&>(data);
+            int64_t nanosecond = std::get<0>(v.GetStorage());
+            int64_t offset = std::get<1>(v.GetStorage());
+            buffer.append((const char*)&nanosecond, sizeof(nanosecond));
+            buffer.append((const char*)&offset, sizeof(offset));
+            break;
+        }
         case ValueType::DURATION: {
             auto& v = std::any_cast<const common::Duration&>(data);
             int64_t months = v.months;
@@ -284,12 +292,17 @@ void Value::Deserialize(const char* p, size_t size) {
         }
         case ValueType::TIME: {
             assert(size == sizeof(int64_t) * 2);
-            data = common::Time(*(int64_t*)p, *(int64_t*)(p+1));
+            data = common::Time(*(int64_t*)p, *(int64_t*)(p+8));
+            break;
+        }
+        case ValueType::DATETIME: {
+            assert(size == sizeof(int64_t) * 2);
+            data = common::DateTime(*(int64_t*)p, *(int64_t*)(p+8));
             break;
         }
         case ValueType::DURATION: {
             assert(size == sizeof(int64_t) * 4);
-            data = common::Duration(*(int64_t*)p, *(int64_t*)(p+1), *(int64_t*)(p+2), *(int64_t*)(p+3));
+            data = common::Duration(*(int64_t*)p, *(int64_t*)(p+8), *(int64_t*)(p+16), *(int64_t*)(p+24));
             break;
         }
         default: {
@@ -398,13 +411,23 @@ std::any Value::ToBolt() const {
         }
         case ValueType::DATETIME: {
             auto s = std::any_cast<const common::DateTime&>(data);
-            return bolt::DateTime{std::get<0>(s.GetStorage()) / 1000000000,
-                                  std::get<0>(s.GetStorage()) % 1000000000,
-                                  std::get<1>(s.GetStorage())};
+            if (std::get<0>(s.GetStorage()) % 1000000000 >= 0) {
+                return bolt::DateTime{std::get<0>(s.GetStorage()) / 1000000000,
+                                      std::get<0>(s.GetStorage()) % 1000000000,
+                                      std::get<1>(s.GetStorage())};
+            } else {
+                return bolt::DateTime{std::get<0>(s.GetStorage()) / 1000000000 - 1,
+                                      std::get<0>(s.GetStorage()) % 1000000000 + 1000000000,
+                                      std::get<1>(s.GetStorage())};
+            }
         }
         case ValueType::LOCALDATETIME: {
             auto s = std::any_cast<const common::LocalDateTime&>(data).GetStorage();
-            return bolt::LocalDateTime{s / 1000000000, s % 1000000000};
+            if (s % 1000000000 >= 0) {
+                return bolt::LocalDateTime{s / 1000000000, s % 1000000000};
+            } else {
+                return bolt::LocalDateTime{s / 1000000000 - 1, s % 1000000000 + 1000000000};
+            }
         }
         case ValueType::LOCALTIME: {
             return bolt::LocalTime{std::any_cast<const common::LocalTime&>(data).GetStorage()};

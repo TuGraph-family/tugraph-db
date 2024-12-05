@@ -545,9 +545,9 @@ struct ArithOpNode {
         ae_registered_funcs.emplace("localtime.truncate", BuiltinFunction::LocalTimeTruncate);
         ae_registered_funcs.emplace("time.truncate", BuiltinFunction::TimeTruncate);
         ae_registered_funcs.emplace("duration.between", BuiltinFunction::DurationBetween);
-        ae_registered_funcs.emplace("duration.inSeconds", BuiltinFunction::DurationInSeconds);
-        ae_registered_funcs.emplace("duration.inDays", BuiltinFunction::DurationInDays);
-        ae_registered_funcs.emplace("duration.inMonths", BuiltinFunction::DurationInMonths);
+        ae_registered_funcs.emplace("duration.inseconds", BuiltinFunction::DurationInSeconds);
+        ae_registered_funcs.emplace("duration.indays", BuiltinFunction::DurationInDays);
+        ae_registered_funcs.emplace("duration.inmonths", BuiltinFunction::DurationInMonths);
         ae_registered_funcs.emplace("duration.between", BuiltinFunction::TimeTruncate);
         ae_registered_funcs.emplace("datetime.fromepoch",
                                     BuiltinFunction::DateTimeFromEpoch);

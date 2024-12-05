@@ -30,7 +30,7 @@ Time::Time() {
     nanoseconds_since_today_with_of_ = t.get_local_time().time_since_epoch().count();
 }
 
-Time::Time(const std::string& str) {
+Time::Time(const std::string& str, std::optional<int64_t> days) {
     int64_t hour = 0, minute = 0, second = 0, nanoseconds = 0;
     int64_t zoneHour = 0, zoneMinute = 0, zoneSecond = 0;
     std::smatch match;
@@ -82,11 +82,6 @@ Time::Time(const std::string& str) {
         if (match[TIME_ZONE].matched) {
             auto tmp = match[TIME_ZONE].str();
             if (tmp != "Z" && tmp != "z") {
-                if (match[TIME_ZONE_NAME].matched) {
-                    THROW_CODE(InvalidParameter, "Using a named time zone e.g. "
-                               "[UTC] is not valid for a time without a date. Instead, "
-                               "use a specific time zone string e.g. +00:00.");
-                }
                 if (match[TIME_ZONE_HOUR].matched) {
                     zoneHour = std::stoi(match[TIME_ZONE_HOUR].str());
                 }
@@ -100,6 +95,17 @@ Time::Time(const std::string& str) {
                 if (tmp[0] == '-') {
                     tz_offset_seconds_ *= -1;
                 }
+            }
+        }
+        if (match[TIME_ZONE_NAME].matched) {
+            auto tmp = match[TIME_ZONE_NAME].str();
+            std::replace(tmp.begin(), tmp.end(), ' ', '_');
+            timezone_name_ = tmp;
+            if (!days.has_value()) {
+                tz_offset_seconds_ = date::zoned_time(tmp).get_info().offset.count();
+            } else {
+                tz_offset_seconds_ = date::zoned_time(tmp, date::local_time<std::chrono::nanoseconds>(
+                                                               std::chrono::nanoseconds(NANOS_PER_SECOND * SECONDS_PER_DAY * days.value()))).get_info().offset.count();
             }
         }
         std::chrono::nanoseconds ns{hour * 60 * 60 * 1000000000 + minute * 60 * 1000000000 + second * 1000000000 + nanoseconds};
@@ -151,15 +157,27 @@ Time::Time(const Value& params, int64_t truncate) {
         } else if (parse_params_map["time"].IsTime()) {
             has_time_param = true;
             v = std::get<0>(parse_params_map["time"].AsTime().GetStorage());
-            tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsTime().GetStorage());
             timezone_name_ = parse_params_map["time"].AsTime().GetTimezoneName();
+            if (parse_params_map.count("days_for_timezone") && timezone_name_[0] != '+' && timezone_name_[0] != '-') {
+                tz_offset_seconds_ = time_param_offset_second = date::zoned_time(timezone_name_, date::local_time<std::chrono::nanoseconds>(
+                                                                          std::chrono::nanoseconds(NANOS_PER_SECOND * SECONDS_PER_DAY * parse_params_map["days_for_timezone"].AsInteger()))).get_info().offset.count();
+            } else {
+                tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsTime().GetStorage());
+            }
         } else if (parse_params_map["time"].IsLocalDateTime()) {
             v = parse_params_map["time"].AsLocalDateTime().GetStorage();
         } else if (parse_params_map["time"].IsDateTime()) {
             has_time_param = true;
             v = std::get<0>(parse_params_map["time"].AsDateTime().GetStorage());
-            tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsDateTime().GetStorage());
             timezone_name_ = parse_params_map["time"].AsDateTime().GetTimezoneName();
+            if (parse_params_map.count("days_for_timezone") && timezone_name_[0] != '+' && timezone_name_[0] != '-') {
+                tz_offset_seconds_ = time_param_offset_second = date::zoned_time(timezone_name_, date::local_time<std::chrono::nanoseconds>(
+                                                                          std::chrono::nanoseconds(NANOS_PER_SECOND * SECONDS_PER_DAY * parse_params_map["days_for_timezone"].AsInteger()))).get_info().offset.count();
+            } else {
+                tz_offset_seconds_ = time_param_offset_second = std::get<1>(parse_params_map["time"].AsDateTime().GetStorage());
+            }
+        } else {
+            THROW_CODE(InvalidParameter, "Cannot get the time of: {}", parse_params_map["time"].ToString());
         }
         nanosecond = v % 1000;
         microsecond = v / 1000 % 1000;
@@ -205,7 +223,7 @@ Time::Time(const Value& params, int64_t truncate) {
                     zoneMinute = std::stoi(match[3].str());
                 }
                 if (match[4].matched) {
-                    zoneSecond = std::stoi(match[3].str());
+                    zoneSecond = std::stoi(match[4].str());
                 }
                 tz_offset_seconds_ = zoneHour * 60 * 60 + zoneMinute * 60 + zoneSecond;
                 if (tmp[0] == '-') {

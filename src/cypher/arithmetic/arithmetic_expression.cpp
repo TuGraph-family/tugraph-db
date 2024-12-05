@@ -703,7 +703,10 @@ Value BuiltinFunction::Date(RTContext *ctx, const Record &record,
         CYPHER_THROW_ASSERT(args.size() == 2);
         // date(string) Returns a Date by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (r.IsMap()) {
+        if (r.IsNull()) {
+            return {};
+        } else if (r.IsMap() || (r.IsConstant() && (r.constant.IsDate() || r.constant.IsDateTime()
+                                             || r.constant.IsLocalDateTime()))) {
             auto dt = common::Date(r.constant);
             return Value(dt);
         } else if (r.IsString()) {
@@ -725,7 +728,9 @@ Value BuiltinFunction::LocalDateTime(RTContext *ctx, const Record &record,
         CYPHER_THROW_ASSERT(args.size() == 2);
         // datetime(string) Returns a DateTime by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (r.IsMap()) {
+        if (r.IsNull()) {
+            return {};
+        } else if (r.IsMap() || (r.IsConstant() && (r.constant.IsDateTime() || r.constant.IsLocalDateTime()))) {
             auto dt = common::LocalDateTime(r.constant);
             return Value(dt);
         } else if (r.IsString()) {
@@ -747,7 +752,9 @@ Value BuiltinFunction::DateTime(RTContext *ctx, const Record &record,
         CYPHER_THROW_ASSERT(args.size() == 2);
         // datetime(string) Returns a DateTime by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (r.IsMap()) {
+        if (r.IsNull()) {
+            return {};
+        } else if (r.IsMap() || (r.IsConstant() && (r.constant.IsDateTime() || r.constant.IsLocalDateTime()))) {
             auto dt = common::DateTime(r.constant);
             return Value(dt);
         } else if (r.IsString()) {
@@ -858,31 +865,45 @@ Value BuiltinFunction::TimeTruncate(RTContext *ctx, const Record &record, const 
 Value BuiltinFunction::DurationBetween(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
     CYPHER_THROW_ASSERT(args.size() == 3);
     auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
+    if (from.IsNull() || to.IsNull()) {
+        return {};
+    }
     return Value::Duration(common::Duration::between(from.constant, to.constant));
 }
 
 Value BuiltinFunction::DurationInSeconds(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
     CYPHER_THROW_ASSERT(args.size() == 3);
     auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
+    if (from.IsNull() || to.IsNull()) {
+        return {};
+    }
     return Value::Duration(common::Duration::between(from.constant, to.constant, "SECOND"));
 }
 
 Value BuiltinFunction::DurationInDays(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
     CYPHER_THROW_ASSERT(args.size() == 3);
     auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
+    if (from.IsNull() || to.IsNull()) {
+        return {};
+    }
     return Value::Duration(common::Duration::between(from.constant, to.constant, "DAY"));
 }
 
 Value BuiltinFunction::DurationInMonths(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
     CYPHER_THROW_ASSERT(args.size() == 3);
     auto from = args[1].Evaluate(ctx, record), to = args[2].Evaluate(ctx, record);
+    if (from.IsNull() || to.IsNull()) {
+        return {};
+    }
     return Value::Duration(common::Duration::between(from.constant, to.constant, "MONTH"));
 }
 
 Value BuiltinFunction::Duration(RTContext *ctx, const Record &record, const std::vector<ArithExprNode> &args) {
     CYPHER_THROW_ASSERT(args.size() == 2);
     auto r = args[1].Evaluate(ctx, record);
-    if (r.IsMap()) {
+    if (r.IsNull()) {
+        return {};
+    } else if (r.IsMap()) {
         auto dt = common::Duration(r.constant);
         return Value(dt);
     } else if (r.IsString()) {
