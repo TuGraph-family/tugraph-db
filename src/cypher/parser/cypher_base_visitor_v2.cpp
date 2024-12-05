@@ -18,6 +18,7 @@
 #include "cypher/parser/generated/LcypherParser.h"
 #include "cypher/utils/geax_util.h"
 #include "geax-front-end/ast/AstNodeVisitor.h"
+#include "common/logger.h"
 
 namespace parser {
 
