@@ -40,7 +40,7 @@ DateTime::DateTime(const std::string& str) {
         days_since_epoch = Date(str).GetStorage();
     } else {
         days_since_epoch = Date(str.substr(0, pos)).GetStorage();
-        auto t = Time(str.substr(pos + 1));
+        auto t = Time(str.substr(pos + 1), days_since_epoch);
         nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
         tz_offset_seconds_ = std::get<1>(t.GetStorage());
         timezone_name_ = t.GetTimezoneName();
@@ -56,6 +56,15 @@ std::string DateTime::GetTimezoneName() const {
 }
 
 DateTime::DateTime(const Value& params) {
+    if (params.IsDateTime()) {
+        nanoseconds_since_epoch_ = std::get<0>(params.AsDateTime().GetStorage());
+        tz_offset_seconds_ = std::get<1>(params.AsDateTime().GetStorage());
+        return;
+    }
+    if (params.IsLocalDateTime()) {
+        nanoseconds_since_epoch_ = params.AsLocalDateTime().GetStorage();
+        return;
+    }
     std::unordered_map<std::string, Value> dateParams;
     std::unordered_map<std::string, Value> timeParams;
     for (const auto& [key, v] : params.AsMap()) {
@@ -63,7 +72,12 @@ DateTime::DateTime(const Value& params) {
         std::transform(s.begin(), s.end(), s.begin(), ::tolower);
         // handle "timezone" in Time
         if (s != DATE_TIMEZONE && validDateFields.count(s)) {
-            dateParams.emplace(s, v);
+            if (s == DATE_DATETIME) {
+                dateParams.emplace("date", v);
+                timeParams.emplace("time", v);
+            } else {
+                dateParams.emplace(s, v);
+            }
         } else {
             timeParams.emplace(s, v);
         }
@@ -74,6 +88,9 @@ DateTime::DateTime(const Value& params) {
     days_since_epoch = Date(Value(std::move(dateParams))).GetStorage();
     if (!timeParams.empty()) {
         timeParams.emplace("days_for_timezone", days_since_epoch);
+        if (!timeParams.count("hour") && !timeParams.count("time")) {
+            timeParams["hour"] = Value::Integer(0);
+        }
         auto t = Time(Value(std::move(timeParams)));
         nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
         tz_offset_seconds_ = std::get<1>(t.GetStorage());

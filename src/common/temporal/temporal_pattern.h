@@ -53,6 +53,7 @@ enum DATE_PATTERN_GROUP {
 
 const std::string DATE_TIMEZONE = "timezone";
 const std::string DATE_DATE = "date";
+const std::string DATE_DATETIME = "datetime";
 const std::string DATE_YEAR = "year";
 const std::string DATE_MONTH = "month";
 const std::string DATE_DAY = "day";
@@ -63,7 +64,7 @@ const std::string DATE_DOQ = "dayofquarter";
 const std::string DATE_ORDINAL = "ordinalday";
 
 const std::unordered_set<std::string> validDateFields{
-    DATE_TIMEZONE, DATE_DATE, DATE_YEAR,    DATE_MONTH, DATE_DAY,
+    DATE_TIMEZONE, DATE_DATE, DATE_DATETIME, DATE_YEAR,    DATE_MONTH, DATE_DAY,
     DATE_WEEK,     DATE_DOW,  DATE_QUARTER, DATE_DOQ,   DATE_ORDINAL};
 
 const std::string OFFSET_PATTERN = "(Z|[+-]([0-9]{2})(?::?([0-9]{2}))?(?::?([0-9]{2}))?)";

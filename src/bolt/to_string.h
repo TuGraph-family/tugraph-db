@@ -62,7 +62,7 @@ nlohmann::json ToJsonObj(const std::any& item) {
     } else if (item.type() == typeid(bolt::DateTime)) {
         const auto& dateTime = std::any_cast<const bolt::DateTime&>(item);
         common::DateTime dt(
-            dateTime.seconds * 1000000000 + dateTime.nanoseconds,
+            (dateTime.seconds + dateTime.tz_offset_seconds) * 1000000000 + dateTime.nanoseconds,
             dateTime.tz_offset_seconds);
         return ToJsonObj(dt.ToString());
     } else if (item.type() == typeid(bolt::LocalDateTime)) {

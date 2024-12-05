@@ -90,7 +90,7 @@ class PackStream {
     }
     void PackDateTime(const bolt::DateTime& m) {
         packer_.StructHeader('I', 3);
-        packer_.Int64(m.seconds);
+        packer_.Int64(m.seconds - m.tz_offset_seconds);
         packer_.Int64(m.nanoseconds);
         packer_.Int64(m.tz_offset_seconds);
     }

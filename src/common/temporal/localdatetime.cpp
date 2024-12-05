@@ -50,13 +50,27 @@ LocalDateTime::LocalDateTime(const std::string& str) {
 }
 
 LocalDateTime::LocalDateTime(const Value& params) {
+    if (params.IsDateTime()) {
+        nanoseconds_since_epoch_ = std::get<0>(params.AsDateTime().GetStorage());
+        return;
+    }
+    if (params.IsLocalDateTime()) {
+        nanoseconds_since_epoch_ = params.AsLocalDateTime().GetStorage();
+        return;
+    }
+
     std::unordered_map<std::string, Value> dateParams;
     std::unordered_map<std::string, Value> timeParams;
     for (const auto& [key, v] : params.AsMap()) {
         auto s = key;
         std::transform(s.begin(), s.end(), s.begin(), ::tolower);
         if (validDateFields.count(s)) {
-            dateParams.emplace(s, v);
+            if (s == DATE_DATETIME) {
+                dateParams.emplace("date", v);
+                timeParams.emplace("time", v);
+            } else {
+                dateParams.emplace(s, v);
+            }
         } else {
             timeParams.emplace(s, v);
         }
@@ -66,6 +80,9 @@ LocalDateTime::LocalDateTime(const Value& params) {
     int64_t nanoseconds_since_begin_of_day = 0;
     days_since_epoch = Date(Value(std::move(dateParams))).GetStorage();
     if (!timeParams.empty()) {
+        if (!timeParams.count("hour") && !timeParams.count("time")) {
+            timeParams["hour"] = Value::Integer(0);
+        }
         nanoseconds_since_begin_of_day =
             LocalTime(Value(std::move(timeParams))).GetStorage();
     }

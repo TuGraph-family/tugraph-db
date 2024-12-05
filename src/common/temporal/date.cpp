@@ -61,10 +61,10 @@ void validateDateParams(
     // handle field conflict
     for (const auto& [param, _] : params_map) {
         if (fieldConflictMap.count(param)) {
-            const auto& fieldConflit = fieldConflictMap.at(param);
-            for (const auto& rhs : fieldConflit.first) {
+            const auto& fieldConflict = fieldConflictMap.at(param);
+            for (const auto& rhs : fieldConflict.first) {
                 if (params_map.count(rhs)) {
-                    THROW_CODE(InputError, fieldConflit.second.c_str(), rhs);
+                    THROW_CODE(InputError, fieldConflict.second.c_str(), rhs);
                 }
             }
         }
@@ -74,16 +74,19 @@ void validateDateParams(
     if (params_map.count(DATE_YEAR) == 0 &&
         (params_map.count(DATE_ORDINAL) == 0 &&
          params_map.count(DATE_DATE) == 0 &&
+         params_map.count(DATE_DATETIME) == 0 &&
          params_map.count(DATE_TIMEZONE) == 0)) {
         THROW_CODE(InputError, "year must be specified");
     }
 
     // handle field group
-    for (const auto& [param, _] : params_map) {
-        if (fieldGroup.count(param)) {
-            if (params_map.count(fieldGroup.at(param)) == 0) {
-                THROW_CODE(InputError, "{} can not be specified without {}",
-                           param, fieldGroup.at(param));
+    if (params_map.count(DATE_DATE) != 0 && params_map.count(DATE_DATETIME) != 0) {
+        for (const auto& [param, _] : params_map) {
+            if (fieldGroup.count(param)) {
+                if (params_map.count(fieldGroup.at(param)) == 0) {
+                    THROW_CODE(InputError, "{} can not be specified without {}",
+                               param, fieldGroup.at(param));
+                }
             }
         }
     }
@@ -98,6 +101,25 @@ void Date::fromYearMonthDay(int year, unsigned month, unsigned day) {
         date::year{year}, date::month{month}, date::day{day}};
     if (ymd.ok()) {
         auto ld = (date::local_days)ymd;
+        days_since_epoch_ = ld.time_since_epoch().count();
+    } else {
+        std::ostringstream oss;
+        oss << ymd;
+        THROW_CODE(InputError, "{}", oss.str());
+    }
+}
+
+void Date::fromYearMonthDay(const Date& base_date, std::optional<int> year,
+                            std::optional<unsigned int> month, std::optional<unsigned int> day) {
+    date::year_month_day ymd = date::year_month_day{date::local_days(date::days(base_date.days_since_epoch_))};
+    int target_year = year.has_value() ? year.value() : (int)ymd.year();
+    unsigned target_month = month.has_value() ? month.value() : (unsigned)ymd.month();
+    unsigned target_day = day.has_value() ? day.value() : (unsigned)ymd.day();
+
+    ymd = date::year_month_day(
+        date::year{target_year}, date::month{target_month},date::day{date::day{target_day}});
+    if (ymd.ok()) {
+        auto ld = date::local_days(ymd);
         days_since_epoch_ = ld.time_since_epoch().count();
     } else {
         std::ostringstream oss;
@@ -146,6 +168,54 @@ void Date::fromYearWeekDow(const Date& base_date, std::optional<int> year,
     }
 }
 
+void Date::fromYearQuarterDoq(const Date& base_date, std::optional<int> year,
+                              std::optional<int> quarter, std::optional<int> doq) {
+    date::year_month_day ymd = date::year_month_day{date::local_days(date::days(base_date.days_since_epoch_))};
+    int target_year = year.has_value() ? year.value() : (int)ymd.year();
+    if (!doq.has_value()) {
+        unsigned target_month = quarter.has_value() ? (quarter.value() - 1) * 3 + ((unsigned)ymd.month() - 1) % 3 + 1 :
+                                             (unsigned)ymd.month();
+        ymd = date::year_month_day(date::year(target_year), date::month(target_month), ymd.day());
+    } else {
+        unsigned target_quarter = quarter.has_value() ? quarter.value() : ((unsigned)ymd.month() - 1) / 3 + 1;
+        switch (target_quarter) {
+            case 1: {
+                ymd = date::year{target_year} / 1 / 1;
+                break;
+            }
+            case 2: {
+                ymd = date::year{target_year} / 4 / 1;
+                break;
+            }
+            case 3: {
+                ymd = date::year{target_year} / 7 / 1;
+                break;
+            }
+            case 4: {
+                ymd = date::year{target_year} / 10 / 1;
+                break;
+            }
+            default:
+                THROW_CODE(
+                    InputError,
+                    "Invalid value for QuarterOfYear (valid values 1 - 4): {}",
+                    target_quarter);
+        }
+        auto days = (date::local_days)ymd;
+        days += date::days(doq.value() - 1);
+        ymd = date::year_month_day(days);
+    }
+
+    if (ymd.ok()) {
+        date::local_days ld = (date::local_days)ymd;
+        days_since_epoch_ = ld.time_since_epoch().count();
+    } else {
+        std::ostringstream oss;
+        oss << ymd;
+        THROW_CODE(InputError, "{}", oss.str());
+    }
+}
+
 void Date::fromYearQuarterDoq(int year, int quarter, int doq) {
     date::year_month_day ymd;
     switch (quarter) {
@@ -175,6 +245,28 @@ void Date::fromYearQuarterDoq(int year, int quarter, int doq) {
     auto days = (date::local_days)ymd;
     days += date::days(doq - 1);
     ymd = date::year_month_day(days);
+
+    if (ymd.ok()) {
+        date::local_days ld = (date::local_days)ymd;
+        days_since_epoch_ = ld.time_since_epoch().count();
+    } else {
+        std::ostringstream oss;
+        oss << ymd;
+        THROW_CODE(InputError, "{}", oss.str());
+    }
+}
+
+void Date::fromYearDoy(const Date& base_date, std::optional<int> year, std::optional<int> doy) {
+    date::year_month_day ymd = date::year_month_day{date::local_days(date::days(base_date.days_since_epoch_))};
+    int target_year = year.has_value() ? year.value() : (int)ymd.year();
+    if (doy.has_value()) {
+        ymd = date::year_month_day{date::year{target_year}, date::month{1}, date::day{1}};
+        auto days = (date::local_days)ymd;
+        days += date::days(doy.value() - 1);
+        ymd = date::year_month_day(days);
+    } else {
+        ymd = date::year_month_day{date::year{target_year}, ymd.month(), ymd.day()};
+    }
 
     if (ymd.ok()) {
         date::local_days ld = (date::local_days)ymd;
@@ -317,12 +409,26 @@ Date::Date(const std::string& str) {
 }
 
 Date::Date(const Value& params) {
+    if (params.IsDate()) {
+        days_since_epoch_ = params.AsDate().GetStorage();
+        return;
+    }
+    if (params.IsDateTime()) {
+        days_since_epoch_ = std::get<0>(params.AsDateTime().GetStorage()) / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+        return;
+    }
+    if (params.IsLocalDateTime()) {
+        days_since_epoch_ = params.AsLocalDateTime().GetStorage() / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+        return;
+    }
+
     std::optional<int> year;
     std::optional<unsigned> week;
     std::optional<unsigned> dow;
-    int doy = 1;
-    unsigned month = 1, day = 1;
-    int quarter = 1, doq = 1;
+
+    std::optional<int> doy;
+    std::optional<unsigned> month, day;
+    std::optional<int> quarter, doq;
     std::string timezone;
 
     std::optional<Date> base_date = std::nullopt;
@@ -342,6 +448,17 @@ Date::Date(const Value& params) {
 
     DateType dt = DateType::CALENDER_DATE;
     try {
+        if (params_map.count(DATE_DATE)) {
+            if (params_map.at(DATE_DATE).IsDate()) {
+                base_date = params_map.at(DATE_DATE).AsDate();
+            } else if (params_map.at(DATE_DATE).IsDateTime()) {
+                base_date = Date(std::get<0>(params_map.at(DATE_DATE).AsDateTime().GetStorage()) / (NANOS_PER_SECOND * SECONDS_PER_DAY));
+            } else if (params_map.at(DATE_DATE).IsLocalDateTime()) {
+                base_date = Date(params_map.at(DATE_DATE).AsLocalDateTime().GetStorage() / (NANOS_PER_SECOND * SECONDS_PER_DAY));
+            } else {
+                THROW_CODE(InvalidParameter, "Cannot get the date of: {}", params_map.at(DATE_DATE).ToString());
+            }
+        }
         if (params_map.count(std::string(DATE_YEAR))) {
             year = (int)params_map.at(DATE_YEAR).AsInteger();
         }
@@ -357,6 +474,7 @@ Date::Date(const Value& params) {
         }
         if (params_map.count(DATE_DOW)) {
             dow = (unsigned)params_map.at(DATE_DOW).AsInteger();
+            dt = DateType::WEEK_DATE;
         }
         if (params_map.count(DATE_QUARTER)) {
             quarter = (int)params_map.at(DATE_QUARTER).AsInteger();
@@ -364,13 +482,11 @@ Date::Date(const Value& params) {
         }
         if (params_map.count(DATE_DOQ)) {
             doq = (int)params_map.at(DATE_DOQ).AsInteger();
+            dt = DateType::QUATER_DATE;
         }
         if (params_map.count(DATE_ORDINAL)) {
             doy = (int)params_map.at(DATE_ORDINAL).AsInteger();
             dt = DateType::ORDINAL_DATE;
-        }
-        if (params_map.count(DATE_DATE)) {
-            base_date = params_map.at(DATE_DATE).AsDate();
         }
         if (params_map.count(DATE_TIMEZONE)) {
             timezone = params_map.at(DATE_TIMEZONE).AsString();
@@ -383,7 +499,11 @@ Date::Date(const Value& params) {
 
     switch (dt) {
         case DateType::CALENDER_DATE:
-            fromYearMonthDay(year.value(), month, day);
+            if (base_date.has_value()) {
+                fromYearMonthDay(base_date.value(), year, month, day);
+            } else {
+                fromYearMonthDay(year.value(), month.value_or(1), day.value_or(1));
+            }
             break;
         case DateType::WEEK_DATE: {
             if (base_date.has_value()) {
@@ -394,10 +514,18 @@ Date::Date(const Value& params) {
             break;
         }
         case DateType::QUATER_DATE:
-            fromYearQuarterDoq(year.value(), quarter, doq);
+            if (base_date.has_value()) {
+                fromYearQuarterDoq(base_date.value(), year, quarter, doq);
+            } else {
+                fromYearQuarterDoq(year.value(), quarter.value_or(1), doq.value_or(1));
+            }
             break;
         case DateType::ORDINAL_DATE:
-            fromYearDoy(year.value(), doy);
+            if (base_date.has_value()) {
+                fromYearDoy(base_date.value(), year, doy);
+            } else {
+                fromYearDoy(year.value(), doy.value_or(1));
+            }
             break;
         case DateType::TIMEZONE_DATE:
             fromTimeZone(timezone);

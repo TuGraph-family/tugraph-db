@@ -683,7 +683,8 @@ Value BuiltinFunction::Date(RTContext *ctx, const Record &record,
         CYPHER_THROW_ASSERT(args.size() == 2);
         // date(string) Returns a Date by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (r.IsMap()) {
+        if (r.IsMap() || (r.IsConstant() && (r.constant.IsDate() || r.constant.IsDateTime()
+                                             || r.constant.IsLocalDateTime()))) {
             auto dt = common::Date(r.constant);
             return Value(dt);
         } else if (r.IsString()) {
@@ -705,7 +706,7 @@ Value BuiltinFunction::LocalDateTime(RTContext *ctx, const Record &record,
         CYPHER_THROW_ASSERT(args.size() == 2);
         // datetime(string) Returns a DateTime by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (r.IsMap()) {
+        if (r.IsMap() || (r.IsConstant() && (r.constant.IsDateTime() || r.constant.IsLocalDateTime()))) {
             auto dt = common::LocalDateTime(r.constant);
             return Value(dt);
         } else if (r.IsString()) {
@@ -727,7 +728,7 @@ Value BuiltinFunction::DateTime(RTContext *ctx, const Record &record,
         CYPHER_THROW_ASSERT(args.size() == 2);
         // datetime(string) Returns a DateTime by parsing a string.
         auto r = args[1].Evaluate(ctx, record);
-        if (r.IsMap()) {
+        if (r.IsMap() || (r.IsConstant() && (r.constant.IsDateTime() || r.constant.IsLocalDateTime()))) {
             auto dt = common::DateTime(r.constant);
             return Value(dt);
         } else if (r.IsString()) {

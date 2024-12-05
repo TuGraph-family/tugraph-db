@@ -398,13 +398,23 @@ std::any Value::ToBolt() const {
         }
         case ValueType::DATETIME: {
             auto s = std::any_cast<const common::DateTime&>(data);
-            return bolt::DateTime{std::get<0>(s.GetStorage()) / 1000000000,
-                                  std::get<0>(s.GetStorage()) % 1000000000,
-                                  std::get<1>(s.GetStorage())};
+            if (std::get<0>(s.GetStorage()) % 1000000000 >= 0) {
+                return bolt::DateTime{std::get<0>(s.GetStorage()) / 1000000000,
+                                      std::get<0>(s.GetStorage()) % 1000000000,
+                                      std::get<1>(s.GetStorage())};
+            } else {
+                return bolt::DateTime{std::get<0>(s.GetStorage()) / 1000000000 - 1,
+                                      std::get<0>(s.GetStorage()) % 1000000000 + 1000000000,
+                                      std::get<1>(s.GetStorage())};
+            }
         }
         case ValueType::LOCALDATETIME: {
             auto s = std::any_cast<const common::LocalDateTime&>(data).GetStorage();
-            return bolt::LocalDateTime{s / 1000000000, s % 1000000000};
+            if (s % 1000000000 >= 0) {
+                return bolt::LocalDateTime{s / 1000000000, s % 1000000000};
+            } else {
+                return bolt::LocalDateTime{s / 1000000000 - 1, s % 1000000000 + 1000000000};
+            }
         }
         case ValueType::LOCALTIME: {
             return bolt::LocalTime{std::any_cast<const common::LocalTime&>(data).GetStorage()};
