@@ -18,7 +18,13 @@ set(DEPS_LOCAL_LIBRARY_DIR /usr/local/lib)
 
 include_directories(SYSTEM ${DEPS_INCLUDE_DIR} ${DEPS_LOCAL_INCLUDE_DIR}) # just for IDE
 link_directories(${DEPS_LIBRARY_DIR} ${DEPS_LIBRARY64_DIR})
-if (OURSYSTEM STREQUAL "centos")
+if (OURSYSTEM MATCHES "^centos")
+    if (OURSYSTEM STREQUAL "centos9")
+        add_compile_definitions(USING_CENTOS9=1)
+    else()
+        add_compile_definitions(USING_CENTOS9=0)
+    endif()
+
     link_directories(${DEPS_LIBRARY64_DIR})
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     link_directories(${DEPS_LOCAL_LIBRARY_DIR})
