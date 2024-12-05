@@ -144,7 +144,7 @@ std::unique_ptr<DeleteMap> DeleteMap::Load(const std::string& dir,
         std::make_unique<DeleteMap>(total_bit_count, chunk_id);
     auto file_path = fmt::format("{}/{}", dir, del_map->GetFileName());
     if (!std::filesystem::exists(file_path)) {
-        return;
+        return nullptr;
     }
 
     // Open the file in read mode
