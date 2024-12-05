@@ -165,9 +165,15 @@ Value BuiltinFunction::Contains(RTContext *ctx, const Record &record,
                                             const std::vector<ArithExprNode> &args) {
     if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
     auto substr = args[1].Evaluate(ctx, record);
+    if (substr.IsNull()) {
+        return Value(false);
+    }
     std::string substr_str = substr.constant.AsString();
     auto variable = args[2].Evaluate(ctx, record);
-    std::string variable_str = variable.constant.IsNull()? "" : variable.constant.AsString();
+    if (variable.IsNull()) {
+        return Value(false);
+    }
+    std::string variable_str = variable.constant.AsString();
     bool ret = variable_str.find(substr_str) != std::string::npos;
     return Value(ret);
 }
@@ -190,32 +196,33 @@ Value BuiltinFunction::SubString(RTContext *ctx, const Record &record,
      * start    An expression that returns an integer value.
      * length   An expression that returns an integer value.
      */
-    if (args.size() != 4) CYPHER_ARGUMENT_ERROR();
+    if (args.size() != 3 && args.size() != 4) CYPHER_ARGUMENT_ERROR();
 
     auto arg1 = args[1].Evaluate(ctx, record);
     switch (arg1.type) {
         case Entry::CONSTANT:
             if (arg1.constant.IsString()) {
                 auto arg2 = args[2].Evaluate(ctx, record);
-                auto arg3 = args[3].Evaluate(ctx, record);
                 if (!arg2.IsInteger())
                     THROW_CODE(CypherException, "Argument 2 of `SUBSTRING()` expects int type: "
-                                                  + arg2.ToString());
-                if (!arg3.IsInteger())
-                    THROW_CODE(CypherException, "Argument 3 of `SUBSTRING()` expects int type: "
-                                                  + arg3.ToString());
-
+                                                    + arg2.ToString());
                 auto origin = arg1.constant.IsNull() ? "": arg1.constant.AsString();
                 auto size = static_cast<int64_t>(origin.length());
                 auto start = arg2.constant.AsInteger();
-                auto length = arg3.constant.AsInteger();
-                if (start < 1 || start > size)
+                if (start < 0 || start > size-1)
                     THROW_CODE(CypherException, "Invalid argument 2 of `SUBSTRING()`: "
                                                   + arg2.ToString());
-                if (length < 1 || start - 1 + length > size)
+                if (args.size() == 3) {
+                    return Value(origin.substr(start));
+                }
+                auto arg3 = args[3].Evaluate(ctx, record);
+                if (!arg3.IsInteger())
+                    THROW_CODE(CypherException, "Argument 3 of `SUBSTRING()` expects int type: "
+                                                    + arg3.ToString());
+                auto length = arg3.constant.AsInteger();
+                if (length < 0)
                     THROW_CODE(CypherException, "Invalid argument 3 of `SUBSTRING()`: "
                                                   + arg3.ToString());
-
                 auto result = origin.substr(start - 1, length);
                 return Value(result);
             }
@@ -566,6 +573,9 @@ Value BuiltinFunction::ToBoolean(RTContext *ctx, const Record &record,
                 const std::string& d = r.constant.AsString();
                 if (d == "True" || d == "true") return Value(true);
                 if (d == "False" || d == "false") return Value(false);
+                return {};
+            } else if (r.constant.IsNull()) {
+                return {};
             }
         default:
             break;
@@ -590,8 +600,7 @@ Value BuiltinFunction::ToFloat(RTContext *ctx, const Record &record,
                 try {
                     return Value(std::stod(r.constant.AsString()));
                 } catch (std::exception &e) {
-                    LOG_WARN(e.what());
-                    break;
+                    return {};
                 }
             }
         default:
@@ -675,8 +684,7 @@ Value BuiltinFunction::ToInteger(RTContext *ctx, const Record &record,
                     return Value(
                         static_cast<int64_t>(std::stoll(r.constant.AsString())));
                 } catch (std::exception &e) {
-                    LOG_WARN(e.what());
-                    break;
+                    return {};
                 }
             }
         default:
