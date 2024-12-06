@@ -39,7 +39,7 @@ namespace protobuf_meta_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[5];
+  static const ::google::protobuf::internal::ParseTable schema[6];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -53,6 +53,9 @@ extern FullTextIndexUpdateDefaultTypeInternal _FullTextIndexUpdate_default_insta
 class GraphDBMetaInfo;
 class GraphDBMetaInfoDefaultTypeInternal;
 extern GraphDBMetaInfoDefaultTypeInternal _GraphDBMetaInfo_default_instance_;
+class VectorIndexManifest;
+class VectorIndexManifestDefaultTypeInternal;
+extern VectorIndexManifestDefaultTypeInternal _VectorIndexManifest_default_instance_;
 class VertexFullTextIndex;
 class VertexFullTextIndexDefaultTypeInternal;
 extern VertexFullTextIndexDefaultTypeInternal _VertexFullTextIndex_default_instance_;
@@ -67,6 +70,7 @@ namespace google {
 namespace protobuf {
 template<> ::meta::FullTextIndexUpdate* Arena::CreateMaybeMessage<::meta::FullTextIndexUpdate>(Arena*);
 template<> ::meta::GraphDBMetaInfo* Arena::CreateMaybeMessage<::meta::GraphDBMetaInfo>(Arena*);
+template<> ::meta::VectorIndexManifest* Arena::CreateMaybeMessage<::meta::VectorIndexManifest>(Arena*);
 template<> ::meta::VertexFullTextIndex* Arena::CreateMaybeMessage<::meta::VertexFullTextIndex>(Arena*);
 template<> ::meta::VertexPropertyIndex* Arena::CreateMaybeMessage<::meta::VertexPropertyIndex>(Arena*);
 template<> ::meta::VertexVectorIndex* Arena::CreateMaybeMessage<::meta::VertexVectorIndex>(Arena*);
@@ -645,6 +649,20 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::std::string* release_property();
   void set_allocated_property(::std::string* property);
 
+  // string index_dir = 10;
+  void clear_index_dir();
+  static const int kIndexDirFieldNumber = 10;
+  const ::std::string& index_dir() const;
+  void set_index_dir(const ::std::string& value);
+  #if LANG_CXX11
+  void set_index_dir(::std::string&& value);
+  #endif
+  void set_index_dir(const char* value);
+  void set_index_dir(const char* value, size_t size);
+  ::std::string* mutable_index_dir();
+  ::std::string* release_index_dir();
+  void set_allocated_index_dir(::std::string* index_dir);
+
   // uint32 label_id = 3;
   void clear_label_id();
   static const int kLabelIdFieldNumber = 3;
@@ -681,35 +699,23 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::meta::VectorDistanceType distance_type() const;
   void set_distance_type(::meta::VectorDistanceType value);
 
-  // uint32 hnsw_m = 10;
+  // uint32 hnsw_m = 11;
   void clear_hnsw_m();
-  static const int kHnswMFieldNumber = 10;
+  static const int kHnswMFieldNumber = 11;
   ::google::protobuf::uint32 hnsw_m() const;
   void set_hnsw_m(::google::protobuf::uint32 value);
 
-  // uint32 hnsw_ef_construction = 11;
+  // uint32 hnsw_ef_construction = 12;
   void clear_hnsw_ef_construction();
-  static const int kHnswEfConstructionFieldNumber = 11;
+  static const int kHnswEfConstructionFieldNumber = 12;
   ::google::protobuf::uint32 hnsw_ef_construction() const;
   void set_hnsw_ef_construction(::google::protobuf::uint32 value);
 
-  // uint32 hnsw_ef_search = 12;
+  // uint32 hnsw_ef_search = 13;
   void clear_hnsw_ef_search();
-  static const int kHnswEfSearchFieldNumber = 12;
+  static const int kHnswEfSearchFieldNumber = 13;
   ::google::protobuf::uint32 hnsw_ef_search() const;
   void set_hnsw_ef_search(::google::protobuf::uint32 value);
-
-  // uint32 nlist = 13;
-  void clear_nlist();
-  static const int kNlistFieldNumber = 13;
-  ::google::protobuf::uint32 nlist() const;
-  void set_nlist(::google::protobuf::uint32 value);
-
-  // uint32 nprobe = 14;
-  void clear_nprobe();
-  static const int kNprobeFieldNumber = 14;
-  ::google::protobuf::uint32 nprobe() const;
-  void set_nprobe(::google::protobuf::uint32 value);
 
   // @@protoc_insertion_point(class_scope:meta.VertexVectorIndex)
  private:
@@ -718,6 +724,7 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::internal::ArenaStringPtr name_;
   ::google::protobuf::internal::ArenaStringPtr label_;
   ::google::protobuf::internal::ArenaStringPtr property_;
+  ::google::protobuf::internal::ArenaStringPtr index_dir_;
   ::google::protobuf::uint32 label_id_;
   ::google::protobuf::uint32 property_id_;
   ::google::protobuf::uint32 sharding_num_;
@@ -727,8 +734,125 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::uint32 hnsw_m_;
   ::google::protobuf::uint32 hnsw_ef_construction_;
   ::google::protobuf::uint32 hnsw_ef_search_;
-  ::google::protobuf::uint32 nlist_;
-  ::google::protobuf::uint32 nprobe_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  friend struct ::protobuf_meta_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class VectorIndexManifest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:meta.VectorIndexManifest) */ {
+ public:
+  VectorIndexManifest();
+  virtual ~VectorIndexManifest();
+
+  VectorIndexManifest(const VectorIndexManifest& from);
+
+  inline VectorIndexManifest& operator=(const VectorIndexManifest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  VectorIndexManifest(VectorIndexManifest&& from) noexcept
+    : VectorIndexManifest() {
+    *this = ::std::move(from);
+  }
+
+  inline VectorIndexManifest& operator=(VectorIndexManifest&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const VectorIndexManifest& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const VectorIndexManifest* internal_default_instance() {
+    return reinterpret_cast<const VectorIndexManifest*>(
+               &_VectorIndexManifest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  void Swap(VectorIndexManifest* other);
+  friend void swap(VectorIndexManifest& a, VectorIndexManifest& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline VectorIndexManifest* New() const final {
+    return CreateMaybeMessage<VectorIndexManifest>(NULL);
+  }
+
+  VectorIndexManifest* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<VectorIndexManifest>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const VectorIndexManifest& from);
+  void MergeFrom(const VectorIndexManifest& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(VectorIndexManifest* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated string chunk_ids = 1;
+  int chunk_ids_size() const;
+  void clear_chunk_ids();
+  static const int kChunkIdsFieldNumber = 1;
+  const ::std::string& chunk_ids(int index) const;
+  ::std::string* mutable_chunk_ids(int index);
+  void set_chunk_ids(int index, const ::std::string& value);
+  #if LANG_CXX11
+  void set_chunk_ids(int index, ::std::string&& value);
+  #endif
+  void set_chunk_ids(int index, const char* value);
+  void set_chunk_ids(int index, const char* value, size_t size);
+  ::std::string* add_chunk_ids();
+  void add_chunk_ids(const ::std::string& value);
+  #if LANG_CXX11
+  void add_chunk_ids(::std::string&& value);
+  #endif
+  void add_chunk_ids(const char* value);
+  void add_chunk_ids(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& chunk_ids() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_chunk_ids();
+
+  // @@protoc_insertion_point(class_scope:meta.VectorIndexManifest)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> chunk_ids_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
 };
@@ -769,7 +893,7 @@ class GraphDBMetaInfo : public ::google::protobuf::Message /* @@protoc_insertion
                &_GraphDBMetaInfo_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    4;
 
   void Swap(GraphDBMetaInfo* other);
   friend void swap(GraphDBMetaInfo& a, GraphDBMetaInfo& b) {
@@ -887,7 +1011,7 @@ class FullTextIndexUpdate : public ::google::protobuf::Message /* @@protoc_inser
                &_FullTextIndexUpdate_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    5;
 
   void Swap(FullTextIndexUpdate* other);
   friend void swap(FullTextIndexUpdate& a, FullTextIndexUpdate& b) {
@@ -1801,7 +1925,60 @@ inline void VertexVectorIndex::set_distance_type(::meta::VectorDistanceType valu
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.distance_type)
 }
 
-// uint32 hnsw_m = 10;
+// string index_dir = 10;
+inline void VertexVectorIndex::clear_index_dir() {
+  index_dir_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& VertexVectorIndex::index_dir() const {
+  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.index_dir)
+  return index_dir_.GetNoArena();
+}
+inline void VertexVectorIndex::set_index_dir(const ::std::string& value) {
+  
+  index_dir_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.index_dir)
+}
+#if LANG_CXX11
+inline void VertexVectorIndex::set_index_dir(::std::string&& value) {
+  
+  index_dir_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:meta.VertexVectorIndex.index_dir)
+}
+#endif
+inline void VertexVectorIndex::set_index_dir(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  index_dir_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:meta.VertexVectorIndex.index_dir)
+}
+inline void VertexVectorIndex::set_index_dir(const char* value, size_t size) {
+  
+  index_dir_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:meta.VertexVectorIndex.index_dir)
+}
+inline ::std::string* VertexVectorIndex::mutable_index_dir() {
+  
+  // @@protoc_insertion_point(field_mutable:meta.VertexVectorIndex.index_dir)
+  return index_dir_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* VertexVectorIndex::release_index_dir() {
+  // @@protoc_insertion_point(field_release:meta.VertexVectorIndex.index_dir)
+  
+  return index_dir_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void VertexVectorIndex::set_allocated_index_dir(::std::string* index_dir) {
+  if (index_dir != NULL) {
+    
+  } else {
+    
+  }
+  index_dir_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), index_dir);
+  // @@protoc_insertion_point(field_set_allocated:meta.VertexVectorIndex.index_dir)
+}
+
+// uint32 hnsw_m = 11;
 inline void VertexVectorIndex::clear_hnsw_m() {
   hnsw_m_ = 0u;
 }
@@ -1815,7 +1992,7 @@ inline void VertexVectorIndex::set_hnsw_m(::google::protobuf::uint32 value) {
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.hnsw_m)
 }
 
-// uint32 hnsw_ef_construction = 11;
+// uint32 hnsw_ef_construction = 12;
 inline void VertexVectorIndex::clear_hnsw_ef_construction() {
   hnsw_ef_construction_ = 0u;
 }
@@ -1829,7 +2006,7 @@ inline void VertexVectorIndex::set_hnsw_ef_construction(::google::protobuf::uint
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.hnsw_ef_construction)
 }
 
-// uint32 hnsw_ef_search = 12;
+// uint32 hnsw_ef_search = 13;
 inline void VertexVectorIndex::clear_hnsw_ef_search() {
   hnsw_ef_search_ = 0u;
 }
@@ -1843,32 +2020,77 @@ inline void VertexVectorIndex::set_hnsw_ef_search(::google::protobuf::uint32 val
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.hnsw_ef_search)
 }
 
-// uint32 nlist = 13;
-inline void VertexVectorIndex::clear_nlist() {
-  nlist_ = 0u;
-}
-inline ::google::protobuf::uint32 VertexVectorIndex::nlist() const {
-  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.nlist)
-  return nlist_;
-}
-inline void VertexVectorIndex::set_nlist(::google::protobuf::uint32 value) {
-  
-  nlist_ = value;
-  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.nlist)
-}
+// -------------------------------------------------------------------
 
-// uint32 nprobe = 14;
-inline void VertexVectorIndex::clear_nprobe() {
-  nprobe_ = 0u;
+// VectorIndexManifest
+
+// repeated string chunk_ids = 1;
+inline int VectorIndexManifest::chunk_ids_size() const {
+  return chunk_ids_.size();
 }
-inline ::google::protobuf::uint32 VertexVectorIndex::nprobe() const {
-  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.nprobe)
-  return nprobe_;
+inline void VectorIndexManifest::clear_chunk_ids() {
+  chunk_ids_.Clear();
 }
-inline void VertexVectorIndex::set_nprobe(::google::protobuf::uint32 value) {
-  
-  nprobe_ = value;
-  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.nprobe)
+inline const ::std::string& VectorIndexManifest::chunk_ids(int index) const {
+  // @@protoc_insertion_point(field_get:meta.VectorIndexManifest.chunk_ids)
+  return chunk_ids_.Get(index);
+}
+inline ::std::string* VectorIndexManifest::mutable_chunk_ids(int index) {
+  // @@protoc_insertion_point(field_mutable:meta.VectorIndexManifest.chunk_ids)
+  return chunk_ids_.Mutable(index);
+}
+inline void VectorIndexManifest::set_chunk_ids(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:meta.VectorIndexManifest.chunk_ids)
+  chunk_ids_.Mutable(index)->assign(value);
+}
+#if LANG_CXX11
+inline void VectorIndexManifest::set_chunk_ids(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:meta.VectorIndexManifest.chunk_ids)
+  chunk_ids_.Mutable(index)->assign(std::move(value));
+}
+#endif
+inline void VectorIndexManifest::set_chunk_ids(int index, const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  chunk_ids_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:meta.VectorIndexManifest.chunk_ids)
+}
+inline void VectorIndexManifest::set_chunk_ids(int index, const char* value, size_t size) {
+  chunk_ids_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:meta.VectorIndexManifest.chunk_ids)
+}
+inline ::std::string* VectorIndexManifest::add_chunk_ids() {
+  // @@protoc_insertion_point(field_add_mutable:meta.VectorIndexManifest.chunk_ids)
+  return chunk_ids_.Add();
+}
+inline void VectorIndexManifest::add_chunk_ids(const ::std::string& value) {
+  chunk_ids_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:meta.VectorIndexManifest.chunk_ids)
+}
+#if LANG_CXX11
+inline void VectorIndexManifest::add_chunk_ids(::std::string&& value) {
+  chunk_ids_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:meta.VectorIndexManifest.chunk_ids)
+}
+#endif
+inline void VectorIndexManifest::add_chunk_ids(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  chunk_ids_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:meta.VectorIndexManifest.chunk_ids)
+}
+inline void VectorIndexManifest::add_chunk_ids(const char* value, size_t size) {
+  chunk_ids_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:meta.VectorIndexManifest.chunk_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+VectorIndexManifest::chunk_ids() const {
+  // @@protoc_insertion_point(field_list:meta.VectorIndexManifest.chunk_ids)
+  return chunk_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+VectorIndexManifest::mutable_chunk_ids() {
+  // @@protoc_insertion_point(field_mutable_list:meta.VectorIndexManifest.chunk_ids)
+  return &chunk_ids_;
 }
 
 // -------------------------------------------------------------------
@@ -2115,6 +2337,8 @@ FullTextIndexUpdate::mutable_values() {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

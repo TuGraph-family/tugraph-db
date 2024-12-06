@@ -56,14 +56,15 @@ message VertexVectorIndex {
     uint32 dimensions  = 7;
     VectorIndexType index_type = 8;
     VectorDistanceType distance_type = 9;
+    string index_dir = 10;
     // hnsw params
-    uint32 hnsw_m = 10;
-    uint32 hnsw_ef_construction = 11;
-    uint32 hnsw_ef_search = 12;
+    uint32 hnsw_m = 11;
+    uint32 hnsw_ef_construction = 12;
+    uint32 hnsw_ef_search = 13;
+}
 
-    // ivf params
-    uint32 nlist = 13;
-    uint32 nprobe = 14;
+message VectorIndexManifest {
+    repeated string chunk_ids = 1;
 }
 
 message GraphDBMetaInfo {
