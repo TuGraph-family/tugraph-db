@@ -1513,6 +1513,12 @@ class AstDumper : public AstNodeVisitor {
         VISIT_PARAM_AND_CHECK_WITH_MSG(node->getOpExpression());
         return GEAXErrorCode::GEAX_SUCCEED;
     }
+    std::any visit(PredicateFunction* node) override {
+        VISIT_PARAM_AND_CHECK_WITH_MSG(node->getVariable());
+        VISIT_PARAM_AND_CHECK_WITH_MSG(node->getInExpression());
+        VISIT_PARAM_AND_CHECK_WITH_MSG(node->getWhereExpression());
+        return GEAXErrorCode::GEAX_SUCCEED;
+    }
 
  protected:
     std::any reportError() override { return GEAXErrorCode::GEAX_COMMON_NOT_SUPPORT; }

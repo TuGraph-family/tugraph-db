@@ -948,6 +948,10 @@ class AstNodeVisitorImpl : public geax::frontend::AstNodeVisitor {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
+    std::any visit(geax::frontend::PredicateFunction* ) override {
+        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+    }
+
  protected:
     std::string error_msg_;
 };

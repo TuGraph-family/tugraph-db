@@ -1187,4 +1187,14 @@ std::any PatternGraphMaker::visit(geax::frontend::ListComprehension* node) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
+std::any PatternGraphMaker::visit(geax::frontend::PredicateFunction* node) {
+    geax::frontend::Ref* ref = nullptr;
+    checkedCast(node->getVariable(), ref);
+    AddSymbol(ref->name(), cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getVariable());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getInExpression());
+    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getWhereExpression());
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
 }  // namespace cypher

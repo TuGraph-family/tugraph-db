@@ -26,6 +26,12 @@
 
 namespace parser {
 
+struct InnerExpressionAnonymousSymbol {
+    std::unordered_map<std::string, std::stack<std::string>> name_;
+    std::unordered_map<std::string, int32_t> idx_;
+    int32_t depth_ {0};
+};
+
 enum class VisitType {
     kReadingClause,
     kUpdatingClause,
@@ -47,7 +53,8 @@ enum class VisitType {
     kNodePattern,
     kRelationshipPattern,
     kUnwindClause,
-    kFunctionInvocation
+    kFunctionInvocation,
+    kPredicateFunction
 };
 
 class VisitGuard {
@@ -82,13 +89,18 @@ class CypherBaseVisitorV2 : public LcypherVisitor {
     geax::frontend::PathChain* path_chain_;
     geax::frontend::FilterStatement* filter_in_with_clause_;
     parser::CmdType cmd_type_;
-    std::unordered_map<std::string, std::stack<std::string>> list_comprehension_anonymous_symbols_;
-    std::unordered_map<std::string, int32_t> list_comprehension_anonymous_idx_;
-    int32_t list_comprehension_depth {0};
+    InnerExpressionAnonymousSymbol list_comprehension_anonymous_symbols_;
+    InnerExpressionAnonymousSymbol predicate_function_anonymous_symbols_;
+    cypher::PredicateType predicateType;
 
     std::string GenerateListComprehension(const std::string &x) {
         return std::string("LIST_COMPREHENSION@") + x + "@" +
-               std::to_string(list_comprehension_anonymous_idx_[x]++);
+               std::to_string(list_comprehension_anonymous_symbols_.idx_[x]++);
+    }
+
+    std::string GeneratePredicateFunction(const std::string &x) {
+        return std::string("PREDICATE_FUNCTION@") + x + "@" +
+               std::to_string(predicate_function_anonymous_symbols_.idx_[x]++);
     }
 
  public:

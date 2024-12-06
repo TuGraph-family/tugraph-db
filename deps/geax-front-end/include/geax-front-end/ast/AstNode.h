@@ -193,6 +193,7 @@ using StrArray = std::array<const char* const, N>;
     TYPE(ListComprehension, kListComprehension, "ListComprehension")                      \
     TYPE(UnwindStatement, kUnwindStatement, "UnwindStatement")                            \
     TYPE(InQueryProcedureCall, kInQueryProcedureCall, "InQueryProcedureCall")             \
+    TYPE(PredicateFunction, kPredicateFunction, "PredicateFunction")                      \
     TYPE(DummyNode, kNotDefined, "NotDefined")
 // This should always be the last one
 

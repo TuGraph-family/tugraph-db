@@ -1280,4 +1280,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::ListComprehension* ) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
+std::any ExecutionPlanMaker::visit(geax::frontend::PredicateFunction* ) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+}
+
 }  // namespace cypher

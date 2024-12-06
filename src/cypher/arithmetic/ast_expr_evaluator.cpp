@@ -635,4 +635,66 @@ std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
     return Entry(Value(ret_data));
 }
 
+std::any AstExprEvaluator::visit(geax::frontend::PredicateFunction* node) {
+    geax::frontend::Ref *ref = nullptr;
+    geax::frontend::Expr *in_expr = nullptr, *where_expr = nullptr;
+    checkedCast(node->getVariable(), ref);
+    checkedCast(node->getInExpression(), in_expr);
+    checkedCast(node->getWhereExpression(), where_expr);
+    auto predicateType = cypher::PredicateType(node->getPredicateType());
+    Entry in_e;
+    in_e = std::any_cast<Entry>(in_expr->accept(*this));
+    CYPHER_THROW_ASSERT(in_e.IsArray());
+    const auto& data_array = in_e.constant.AsArray();
+    std::vector<bool> ret_data;
+    auto it = sym_tab_->symbols.find(ref->name());
+    for (auto &data : data_array) {
+        const_cast<Record*>(record_)->values[it->second.id] = Entry(data);
+        Entry one_result;
+        one_result = std::any_cast<Entry>(where_expr->accept(*this));
+        ret_data.push_back(one_result.constant.AsBool());
+    }
+    bool ans = false;
+    switch (predicateType) {
+        case cypher::PredicateType::None:
+        {
+            ans = true;
+            for (const auto &r : ret_data) {
+                ans &= !r;
+            }
+            break;
+        }
+        case cypher::PredicateType::Single:
+        {
+            int count = 0;
+            for (const auto &r : ret_data) {
+                if (r) {
+                    count++;
+                }
+            }
+            ans = count == 1;
+            break;
+        }
+        case cypher::PredicateType::Any:
+        {
+            for (const auto &r : ret_data) {
+                if (r) {
+                    ans = true;
+                    break;
+                }
+            }
+            break;
+        }
+        case cypher::PredicateType::All:
+        {
+            ans = true;
+            for (const auto &r : ret_data) {
+                ans &= r;
+            }
+            break;
+        }
+    }
+    return Entry(Value(ans));
+}
+
 }  // namespace cypher

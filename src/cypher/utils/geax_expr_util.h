@@ -151,6 +151,23 @@ class AstExprToString : public geax::frontend::AstExprNodeVisitorImpl {
         return res;
     }
 
+    std::any visit(geax::frontend::PredicateFunction* node) override {
+        std::string res("{");
+        const auto & exprs = std::vector{ node->getVariable(),
+                                        node->getInExpression(), node->getWhereExpression()};
+        for (size_t idx = 0; idx < exprs.size(); ++idx) {
+            std::string temp;
+            temp = std::any_cast<std::string>(exprs[idx]->accept(*this));
+            res += temp;
+            if (idx != exprs.size() - 1) {
+                res += ", ";
+            } else {
+                res += "}";
+            }
+        }
+        return res;
+    }
+
     std::any visit(geax::frontend::MkMap* ) override {
         NOT_SUPPORT_AND_THROW();
     }
