@@ -37,7 +37,8 @@ class IdMapper {
     IdMapper(const std::string& chunk_id);
     ~IdMapper() = default;
 
-    void Add(int64_t rowId);
+    // add rowId to mapper and return position id
+    int64_t Add(int64_t rowId);
     void Seal();
 
     int64_t GetRowIdFromLabel(int64_t labelId);

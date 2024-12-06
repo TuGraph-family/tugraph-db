@@ -50,7 +50,7 @@ IdMapper::IdMapper(const std::string& chunk_id) {
     file_name_ = fmt::format("{}.{}", chunk_id, id_mapper_postfix);
 }
 
-void IdMapper::Add(int64_t rowId) {
+int64_t IdMapper::Add(int64_t rowId) {
     if (row_cnt_ == 0) {
         min_row_id_ = rowId;
         rowid_position_map_.emplace(rowId, row_cnt_);
@@ -66,7 +66,9 @@ void IdMapper::Add(int64_t rowId) {
     }
 
     max_row_id_ = rowId;
+    int64_t position = row_cnt_;
     row_cnt_++;
+    return position;
 }
 
 void IdMapper::Seal() {

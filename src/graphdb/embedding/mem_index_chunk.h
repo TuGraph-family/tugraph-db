@@ -47,7 +47,7 @@ class MemIndexChunk {
 
     void Add(const DataSet& ds, bool& chunk_full);
     // mark delete
-    void Delete(std::vector<int64_t>& vids);
+    void Delete(const DataSet& ds);
 
     void Search(const DataSet& ds);
     void RangeSearch(const DataSet& ds, const SearchParams& params);
@@ -63,7 +63,7 @@ class MemIndexChunk {
     int64_t dim_;
     meta::VectorIndexType index_type_;
     meta::VectorDistanceType distance_type_;
-    std::mutex mutex_;
+    std::shared_mutex mutex_;
 };
 
 }  // namespace embedding

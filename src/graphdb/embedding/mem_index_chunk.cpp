@@ -43,6 +43,7 @@ class MemIndexIdSelector : public IdSelector {
     ~MemIndexIdSelector() override = default;
 
     bool is_member(int64_t id) const override { return rowid_vec_[id] != -1; }
+    bool is_filtered(int64_t id) const override { return rowid_vec_[id] == -1; }
 
    private:
     const std::vector<int64_t>& rowid_vec_;
@@ -70,7 +71,7 @@ void MemIndexChunk::Add(const DataSet& ds, bool& chunk_full) {
         return;
     }
 
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock<std::shared_mutex> lock(mutex_);
     // add embedding vectors to flat index
     flat_index_->add(ds.n, reinterpret_cast<const float*>(ds.x));
 
@@ -102,13 +103,15 @@ void MemIndexChunk::Add(const DataSet& ds, bool& chunk_full) {
     }
 }
 
-void MemIndexChunk::Delete(std::vector<int64_t>& vids) {
-    if (vids.empty() || row_cnt_ == 0) {
+void MemIndexChunk::Delete(const DataSet& ds) {
+    if (ds.n == 0 || row_cnt_ == 0) {
         return;
     }
 
-    std::unique_lock<std::mutex> lock(mutex_);
-    for (auto rowid : vids) {
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+    int64_t* rowids = ds.vids;
+    for (size_t i = 0; i < ds.n; i++) {
+        auto rowid = rowids[i];
         if (rowid_labelid_map_.count(rowid)) {
             rowid_vec_[rowid_labelid_map_[rowid]] = -1;
             ++del_cnt_;
@@ -117,7 +120,7 @@ void MemIndexChunk::Delete(std::vector<int64_t>& vids) {
 }
 
 void MemIndexChunk::Search(const DataSet& ds) {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::shared_lock<std::shared_mutex> lock(mutex_);
     std::unique_ptr<faiss::SearchParameters> faiss_params =
         std::make_unique<faiss::SearchParameters>();
 
@@ -129,7 +132,7 @@ void MemIndexChunk::Search(const DataSet& ds) {
     faiss_params->sel = faiss_selector.get();
 
     try {
-        flat_index_->search(ds.n, (const float*)ds.x, ds.k,
+        flat_index_->search(ds.n, reinterpret_cast<const float*>(ds.x), ds.k,
                             (float*)ds.distances, ds.vids, faiss_params.get());
     } catch (faiss::FaissException& e) {
         THROW_CODE(VectorIndexException, "search failed with exception: {}",
@@ -138,20 +141,6 @@ void MemIndexChunk::Search(const DataSet& ds) {
 }
 
 void MemIndexChunk::RangeSearch(const DataSet& ds, const SearchParams& params) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    std::unique_ptr<faiss::SearchParameters> faiss_params =
-        std::make_unique<faiss::SearchParameters>();
-
-    MemIndexIdSelector id_selector(rowid_vec_);
-
-    float radius = params.radius.value();
-    float range_filter = params.range_filter.value();
-
-    std::unique_ptr<FaissIDSelector> faiss_selector =
-        std::make_unique<FaissIDSelector>(id_selector);
-
-    faiss_params->sel = faiss_selector.get();
-
     THROW_CODE(VectorIndexException, "TODO: implement range search later");
 }
 

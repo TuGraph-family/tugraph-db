@@ -116,7 +116,7 @@ void DeleteMap::SetDelete(uint32_t id) {
     }
 }
 
-bool DeleteMap::IsDeleted(uint32_t id) {
+bool DeleteMap::IsDeleted(uint32_t id) const {
     if (id >= total_bit_count_) {
         THROW_CODE(InvalidParameter, "overflow: id {}, capacity {}", id,
                    total_bit_count_);
@@ -220,6 +220,7 @@ std::unique_ptr<DeleteMap> DeleteMap::Load(const std::string& dir,
             THROW_CODE(IOException, "del map corrupted");
     }
 
+    is.close();
     return std::move(del_map);
 }
 

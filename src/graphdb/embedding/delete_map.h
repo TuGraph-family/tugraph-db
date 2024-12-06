@@ -53,7 +53,7 @@ class DeleteMap {
     /**
      * Is the lable id deleted?
      */
-    bool IsDeleted(uint32_t id);
+    bool IsDeleted(uint32_t id) const;
 
     /**
      * Load this data structure from a persistent file.
