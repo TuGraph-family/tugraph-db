@@ -372,27 +372,27 @@ Value Time::GetUnit(std::string unit) const {
 }
 
 bool Time::operator<(const Time& rhs) const noexcept {
-    return nanoseconds_since_today_with_of_ < rhs.nanoseconds_since_today_with_of_;
+    return nanoseconds_since_today_with_of_ - tz_offset_seconds_ * NANOS_PER_SECOND < rhs.nanoseconds_since_today_with_of_ - rhs.tz_offset_seconds_ * NANOS_PER_SECOND;
 }
 
 bool Time::operator<=(const Time& rhs) const noexcept {
-    return nanoseconds_since_today_with_of_ <= rhs.nanoseconds_since_today_with_of_;
+    return nanoseconds_since_today_with_of_ - tz_offset_seconds_ * NANOS_PER_SECOND <= rhs.nanoseconds_since_today_with_of_ - rhs.tz_offset_seconds_ * NANOS_PER_SECOND;
 }
 
 bool Time::operator>(const Time& rhs) const noexcept {
-    return nanoseconds_since_today_with_of_ > rhs.nanoseconds_since_today_with_of_;
+    return nanoseconds_since_today_with_of_ - tz_offset_seconds_ * NANOS_PER_SECOND > rhs.nanoseconds_since_today_with_of_ - rhs.tz_offset_seconds_ * NANOS_PER_SECOND;
 }
 
 bool Time::operator>=(const Time& rhs) const noexcept {
-    return nanoseconds_since_today_with_of_ >= rhs.nanoseconds_since_today_with_of_;
+    return nanoseconds_since_today_with_of_ - tz_offset_seconds_ * NANOS_PER_SECOND >= rhs.nanoseconds_since_today_with_of_ - rhs.tz_offset_seconds_ * NANOS_PER_SECOND;
 }
 
 bool Time::operator==(const Time& rhs) const noexcept {
-    return nanoseconds_since_today_with_of_ == rhs.nanoseconds_since_today_with_of_;
+    return nanoseconds_since_today_with_of_ - tz_offset_seconds_ * NANOS_PER_SECOND == rhs.nanoseconds_since_today_with_of_ - rhs.tz_offset_seconds_ * NANOS_PER_SECOND;
 }
 
 bool Time::operator!=(const Time& rhs) const noexcept {
-    return nanoseconds_since_today_with_of_ != rhs.nanoseconds_since_today_with_of_;
+    return nanoseconds_since_today_with_of_ - tz_offset_seconds_ * NANOS_PER_SECOND != rhs.nanoseconds_since_today_with_of_ - rhs.tz_offset_seconds_ * NANOS_PER_SECOND;
 }
 
 Time Time::operator-(const Duration& duration) const {
