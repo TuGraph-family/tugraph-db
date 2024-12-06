@@ -42,6 +42,7 @@ add_library(graphdb STATIC
 		src/graphdb/graph_entity.cpp
 		src/graphdb/meta_info.cpp
 		src/graphdb/index.cpp
+		src/graphdb/uuid_generator.cpp
 )
 
 add_library(common STATIC
