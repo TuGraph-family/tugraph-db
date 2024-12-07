@@ -15,7 +15,6 @@ RUN dnf update -y && dnf install -y \
     git \
     gcc \
     gcc-c++ \
-    libstdc++-devel \
     make \
     wget \
     bzip2 \
@@ -85,8 +84,9 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
 
 # install protobuf
 # if it is not accessible, replace it with the link below 
-RUN wget https://github.com/protocolbuffers/protobuf/archive/v3.8.0.tar.gz -O protobuf-3.8.0.tar.gz \
-    && tar xf protobuf-3.8.0.tar.gz && cd protobuf-3.8.0 \
+# https://github.com/protocolbuffers/protobuf/archive/v3.6.0.tar.gz -O protobuf-3.6.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/protobuf-3.6.0.tar.gz \
+    && tar xf protobuf-3.6.0.tar.gz && cd protobuf-3.6.0 \
     && ./autogen.sh && ./configure CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr/local \
     && make ${JFLAG} && make install && ldconfig && rm -rf /protobuf-*
 
