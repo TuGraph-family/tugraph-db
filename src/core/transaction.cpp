@@ -169,24 +169,6 @@ inline FieldData GetField(const Schema* s, const Value& v, const FT& field, Blob
     return s->GetField(v, field, [&](const BlobKey& bk) { return bm->Get(txn, bk); });
 }
 
-template <typename DT>
-inline void UpdateBlobField(_detail::FieldExtractorBase* fe,  // field extractor
-                            const DT& data,                   // data as string or FieldData
-                            Value& record,                    // record to be updated
-                            BlobManager* bm,                  // blob manager
-                            KvTransaction& txn) {             // transaction
-    FMA_DBG_ASSERT(fe->Type() == FieldType::BLOB);
-    // get old blob
-    Value oldv = fe->GetConstRef(record);
-    if (BlobManager::IsLargeBlob(oldv)) {
-        // existing blob is large, replace it
-        BlobKey bk = BlobManager::GetLargeBlobKey(oldv);
-        bm->Delete(txn, bk);
-    }
-    Schema::GetFieldExtractorV1(fe)->ParseAndSetBlob(
-        record, data, [&](const Value& v) { return bm->Add(txn, v); });
-}
-
 void DeleteBlobs(const Value& prop, Schema* schema, BlobManager* bm, KvTransaction& txn) {
     // delete blobs
     for (size_t i = 0; i < schema->GetNumFields(); i++) {
@@ -1196,7 +1178,15 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
     for (size_t i = 0; i < n_fields; i++) {
         auto fe = schema->GetFieldExtractor(fields[i]);
         if (fe->Type() == FieldType::BLOB) {
-            UpdateBlobField(fe, values[i], new_prop, blob_manager_, *txn_);
+            Value oldv = fe->GetConstRef(new_prop);
+            if (BlobManager::IsLargeBlob(oldv)) {
+                // existing blob is large, replace it
+                BlobKey bk = BlobManager::GetLargeBlobKey(oldv);
+                blob_manager_->Delete(*txn_, bk);
+            }
+            schema->ParseAndSetBlob(
+                new_prop, values[i], [&](const Value& v) { return blob_manager_->Add(*txn_, v); },
+                fe);
         } else {
             schema->ParseAndSet(new_prop, values[i], fe);
             // update index if there is no error

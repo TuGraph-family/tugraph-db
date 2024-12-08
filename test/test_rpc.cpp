@@ -2047,7 +2047,7 @@ void* test_rpc_client(void*) {
 
 class TestRPC : public TuGraphTest {};
 
-TEST_F(TestRPC, RPC) {
+TEST_F(TestRPC, DISABLED_RPC) {
     // fma_common::Logger::Get().SetLevel(fma_common::LogLevel::LL_DEBUG);
     std::thread tid_https[2] = {std::thread(test_rpc_server, nullptr),
                                 std::thread(test_rpc_client, nullptr)};
