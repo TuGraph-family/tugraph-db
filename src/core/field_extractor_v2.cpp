@@ -29,7 +29,7 @@ bool FieldExtractorV2::GetIsNull(const Value& record) const {
 void FieldExtractorV2::SetLabelInRecord(bool label_in_record) {
     label_in_record_ = label_in_record;
     // refresh count_offset and nullarry_offset
-    count_offset_ = sizeof(VersionId) + (label_in_record ? sizeof(LabelId) : 0);
+    count_offset_ = (label_in_record ? sizeof(LabelId) : 0);
     nullarray_offset_ = count_offset_ + sizeof(FieldId);
 }
 

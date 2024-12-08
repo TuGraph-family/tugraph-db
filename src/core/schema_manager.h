@@ -27,6 +27,7 @@
 #include "core/type_convert.h"
 
 namespace lgraph {
+
 /** Manager for vertex or edge schemas.
  *  A maximum of 2^16 labels can be created. Schemas cannot be deleted.
  */
@@ -35,10 +36,11 @@ class SchemaManager {
     std::vector<Schema> schemas_;
     std::unordered_map<std::string, size_t> name_to_idx_;
     bool label_in_record_ = true;
+    bool enable_fast_schema = true;
 
  public:
     /**
-     * Opens or creates a table to store schema information.
+     * Opens or creates a table to store schema information
      *
      * \param [in,out]  txn     The transaction.
      * \param [in,out]  store   The kv-store.

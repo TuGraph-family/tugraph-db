@@ -28,7 +28,7 @@ class TestFieldExtractorV2 : public TuGraphTest {};
 // The specified field is the second one, and the first data is an int64.
 
 static DataOffset GetFixStart(const bool label_in_record, const FieldId count) {
-    return sizeof(VersionId) + (label_in_record ? sizeof(LabelId) : 0) + sizeof(FieldId) +
+    return (label_in_record ? sizeof(LabelId) : 0) + sizeof(FieldId) +
            (count + 7) / 8 + count * sizeof(DataOffset);
 }
 

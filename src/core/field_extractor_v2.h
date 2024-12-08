@@ -39,9 +39,9 @@ class FieldExtractorV2 : public FieldExtractorBase {
     // calculations.
     bool label_in_record_ = true;
 
-    size_t count_offset_ = sizeof(VersionId) + sizeof(LabelId);
+    size_t count_offset_ = sizeof(LabelId);
 
-    size_t nullarray_offset_ = sizeof(VersionId) + sizeof(LabelId) + sizeof(FieldId);
+    size_t nullarray_offset_ = sizeof(LabelId) + sizeof(FieldId);
 
  public:
     FieldExtractorV2() : FieldExtractorBase() {}

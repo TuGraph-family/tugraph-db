@@ -518,24 +518,44 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
         Value new_prop = CreateEmptyRecord();
         for (const auto& field : name_to_idx_) {
             _detail::FieldExtractorV2* extr = GetFieldExtractorV2(GetFieldExtractor(field.first));
-            extr->SetIsNull(new_prop, false);
+            extr->SetIsNull(new_prop, extr->GetIsNull(record));
             if (extr->IsFixedType()) {
                 if (extr->GetFieldId() >= count && extr->HasInitedValue()) {
+                    if (extr->GetDefaultValue() == FieldData()) {
+                        extr->SetIsNull(new_prop, true);
+                        continue;
+                    }
                     SetFixedSizeValue(new_prop,
                                       field_data_helper::FieldDataToValueOfFieldType(
                                           extr->GetInitedValue(), extr->Type()),
                                       extr);
+                    extr->SetIsNull(new_prop, false);
                 } else if (extr->GetFieldId() < count) {
+                    if (extr->GetIsNull(record)) {
+                        extr->SetIsNull(new_prop, true);
+                        continue;
+                    }
                     SetFixedSizeValue(new_prop, extr->GetConstRef(record), extr);
+                    extr->SetIsNull(new_prop, false);
                 }
             } else {
                 if (extr->GetFieldId() >= count && extr->HasInitedValue()) {
+                    if (extr->GetDefaultValue() == FieldData()) {
+                        extr->SetIsNull(new_prop, true);
+                        continue;
+                    }
                     _SetVariableLengthValue(new_prop,
                                             field_data_helper::FieldDataToValueOfFieldType(
                                                 extr->GetInitedValue(), extr->Type()),
                                             extr);
+                    extr->SetIsNull(new_prop, false);
                 } else if (extr->GetFieldId() < count) {
+                    if (extr->GetIsNull(record)) {
+                        extr->SetIsNull(new_prop, true);
+                        continue;
+                    }
                     _SetVariableLengthValue(new_prop, extr->GetConstRef(record), extr);
+                    extr->SetIsNull(new_prop, false);
                 }
             }
         }
@@ -1072,7 +1092,7 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
     } else {
         size_t num_fields = fields_.size();
         // version - [label] - count - null_array - offset_array
-        size_t min_size = sizeof(VersionId) + (label_in_record_ ? sizeof(LabelId) : 0) +
+        size_t min_size =  (label_in_record_ ? sizeof(LabelId) : 0) +
                           sizeof(FieldId) + (num_fields + 7) / 8;
         // Fixed-value and Variable-value. Variable-value will store an offset at Fixed-value area
         // and assume the length of every variable value is 0;
@@ -1090,8 +1110,8 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
         DataOffset offset = 0;
 
         // 2. Set version id.
-        ::lgraph::_detail::UnalignedSet<VersionId>(ptr + offset, ::lgraph::_detail::SCHEMA_VERSION);
-        offset += sizeof(VersionId);
+        // ::lgraph::_detail::UnalignedSet<VersionId>(ptr + offset,
+        // ::lgraph::_detail::SCHEMA_VERSION); offset += sizeof(VersionId);
 
         // 3. Set label id.
         if (label_in_record_) {
@@ -1151,12 +1171,6 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
 }
 
 Value Schema::CreateRecordWithLabelId() const {
-    if (fast_alter_schema) {
-        Value v(sizeof(LabelId) + sizeof(VersionId));
-        ::lgraph::_detail::UnalignedSet<VersionId>(v.Data(), ::lgraph::_detail::SCHEMA_VERSION);
-        ::lgraph::_detail::UnalignedSet<LabelId>(v.Data() + sizeof(VersionId), label_id_);
-        return v;
-    }
     Value v(sizeof(LabelId));
     ::lgraph::_detail::UnalignedSet<LabelId>(v.Data(), label_id_);
     return v;
