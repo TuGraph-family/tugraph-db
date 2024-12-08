@@ -38,7 +38,7 @@ RUN dnf update -y && dnf install -y \
     langpacks-zh_CN \
     which \
     java-11-openjdk-devel \
-    openssh-server && yum clean all
+    openssh-server && dnf clean all
 # install g++ 9.4.0
 # if it is not accessible, replace it with the link below
 # http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz
@@ -53,11 +53,11 @@ RUN wget http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz \
 # if it is not accessible, replace it with the link below
 # https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
-&& tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
-&& make ${JFLAG} && make install \
-&& python3 -m pip install --upgrade pip ${PYPI} \
-&& python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 ${PYPI} \
-&& rm -rf /Python*
+    && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
+    && make ${JFLAG} && make install \
+    && python3 -m pip install --upgrade pip ${PYPI} \
+    && python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 ${PYPI} \
+    && rm -rf /Python*
 
 # install cmake
 # if it is not accessible, replace it with the link below
@@ -84,9 +84,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
 
 # install protobuf
 # if it is not accessible, replace it with the link below 
-# https://github.com/protocolbuffers/protobuf/archive/v3.6.0.tar.gz -O protobuf-3.6.0.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/protobuf-3.6.0.tar.gz \
-    && tar xf protobuf-3.6.0.tar.gz && cd protobuf-3.6.0 \
+RUN wget https://github.com/protocolbuffers/protobuf/archive/v3.8.0.tar.gz -O protobuf-3.8.0.tar.gz \
+    && tar xf protobuf-3.8.0.tar.gz && cd protobuf-3.8.0 \
     && ./autogen.sh && ./configure CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr/local \
     && make ${JFLAG} && make install && ldconfig && rm -rf /protobuf-*
 
