@@ -506,7 +506,7 @@ class Transaction {
         Schema* schema = sm.GetSchema(label);
         if (!schema)
             THROW_CODE(InputError, "Label \"{}\" does not exist.", label);
-        return schema->GetFieldSpecsAsMap();
+        return schema->GetAliveFieldSpecsAsMap();
     }
 
     const std::string& GetVertexPrimaryField(const std::string& label) {

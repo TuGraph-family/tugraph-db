@@ -65,7 +65,7 @@ TEST_F(TestAlterDetachedLabel, edge_add_field) {
         FieldSpec fs("addr", FieldType::STRING, true);
         size_t modified = 0;
         UT_EXPECT_TRUE(db.AlterEdgeLabelAddFields("Relation", {fs}, {FieldData()}, &modified));
-        UT_EXPECT_EQ(modified, check.size());
+        UT_EXPECT_EQ(modified, 0);
         txn = db.CreateReadTxn();
         for (auto& item : check) {
             auto eiter = txn.GetOutEdgeIterator(item.first);
@@ -140,7 +140,7 @@ TEST_F(TestAlterDetachedLabel, edge_del_field) {
         txn.Commit();
         size_t modified = 0;
         UT_EXPECT_TRUE(db.AlterEdgeLabelDelFields("Relation", {"int64", "str"}, &modified));
-        UT_EXPECT_EQ(modified, check.size());
+        UT_EXPECT_EQ(modified, 0);
         txn = db.CreateReadTxn();
         for (auto& item : check) {
             auto eiter = txn.GetOutEdgeIterator(item.first);
@@ -200,7 +200,7 @@ TEST_F(TestAlterDetachedLabel, edge_mod_field) {
         size_t modified = 0;
         std::vector<FieldSpec> mod{FieldSpec("int64", FieldType::INT32, true)};
         UT_EXPECT_TRUE(db.AlterEdgeLabelModFields("Relation", mod, &modified));
-        UT_EXPECT_EQ(modified, check.size());
+        UT_EXPECT_EQ(modified, 0);
         txn = db.CreateReadTxn();
         for (auto& item : check) {
             auto eiter = txn.GetOutEdgeIterator(item.first);
@@ -250,7 +250,7 @@ TEST_F(TestAlterDetachedLabel, vertex_add_field) {
         FieldSpec fs("addr", FieldType::STRING, true);
         size_t modified = 0;
         UT_EXPECT_TRUE(db.AlterVertexLabelAddFields("Person", {fs}, {FieldData()}, &modified));
-        UT_EXPECT_EQ(modified, count);
+        UT_EXPECT_EQ(modified, 0);
         txn = db.CreateReadTxn();
         for (auto& item : check) {
             auto viter = txn.GetVertexIterator(item.first);
@@ -313,7 +313,7 @@ TEST_F(TestAlterDetachedLabel, vertex_delete_field) {
         txn.Commit();
         size_t modified = 0;
         UT_EXPECT_TRUE(db.AlterVertexLabelDelFields("Person", {"int64", "str"}, &modified));
-        UT_EXPECT_EQ(modified, count);
+        UT_EXPECT_EQ(modified, 0);
         txn = db.CreateReadTxn();
         for (auto& item : check) {
             auto viter = txn.GetVertexIterator(item.first);
@@ -361,7 +361,7 @@ TEST_F(TestAlterDetachedLabel, vertex_mod_field) {
         size_t modified = 0;
         std::vector<FieldSpec> mod{FieldSpec("int64", FieldType::INT32, true)};
         UT_EXPECT_TRUE(db.AlterVertexLabelModFields("Person", mod, &modified));
-        UT_EXPECT_EQ(modified, count);
+        UT_EXPECT_EQ(modified, 0);
         txn = db.CreateReadTxn();
         for (auto& item : check) {
             auto viter = txn.GetVertexIterator(item.first);

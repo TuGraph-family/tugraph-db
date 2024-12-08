@@ -114,6 +114,10 @@
     <ClCompile Include="..\..\src\core\field_extractor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+
+    <ClCompile Include="..\..\src\core\field_extractor_base.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\data_type.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
