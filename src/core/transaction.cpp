@@ -170,11 +170,11 @@ inline FieldData GetField(const Schema* s, const Value& v, const FT& field, Blob
 }
 
 template <typename DT>
-inline void UpdateBlobField(const _detail::FieldExtractorV1* fe,  // field extractor
-                            const DT& data,                     // data as string or FieldData
-                            Value& record,                      // record to be updated
-                            BlobManager* bm,                    // blob manager
-                            KvTransaction& txn) {               // transaction
+inline void UpdateBlobField(_detail::FieldExtractorBase* fe,  // field extractor
+                            const DT& data,                   // data as string or FieldData
+                            Value& record,                    // record to be updated
+                            BlobManager* bm,                  // blob manager
+                            KvTransaction& txn) {             // transaction
     FMA_DBG_ASSERT(fe->Type() == FieldType::BLOB);
     // get old blob
     Value oldv = fe->GetConstRef(record);
@@ -183,7 +183,8 @@ inline void UpdateBlobField(const _detail::FieldExtractorV1* fe,  // field extra
         BlobKey bk = BlobManager::GetLargeBlobKey(oldv);
         bm->Delete(txn, bk);
     }
-    fe->ParseAndSetBlob(record, data, [&](const Value& v) { return bm->Add(txn, v); });
+    Schema::GetFieldExtractorV1(fe)->ParseAndSetBlob(
+        record, data, [&](const Value& v) { return bm->Add(txn, v); });
 }
 
 void DeleteBlobs(const Value& prop, Schema* schema, BlobManager* bm, KvTransaction& txn) {
@@ -1193,11 +1194,11 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
     Value new_prop;
     new_prop.Copy(old_prop);
     for (size_t i = 0; i < n_fields; i++) {
-        auto fe = Schema::GetFieldExtractorV1(schema->GetFieldExtractor(fields[i]));
+        auto fe = schema->GetFieldExtractor(fields[i]);
         if (fe->Type() == FieldType::BLOB) {
             UpdateBlobField(fe, values[i], new_prop, blob_manager_, *txn_);
         } else {
-            fe->ParseAndSet(new_prop, values[i]);
+            schema->ParseAndSet(new_prop, values[i], fe);
             // update index if there is no error
             EdgeIndex* index = fe->GetEdgeIndex();
             if (index && index->IsReady()) {

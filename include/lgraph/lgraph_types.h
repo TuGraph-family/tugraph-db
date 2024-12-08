@@ -105,7 +105,7 @@ struct LabelOptions {
     // store property data in detached model
     // Default: false
     bool detach_property = false;
-    bool fast_alter_schema = false;
+    bool fast_alter_schema = true;
     virtual std::string to_string() const = 0;
     virtual void clear() = 0;
     virtual ~LabelOptions() {}
