@@ -1,0 +1,77 @@
+# quay.io Image
+FROM quay.io/centos/centos:stream9
+# Alibaba Image
+# FROM reg.docker.alibaba-inc.com/fma/centos:9
+
+RUN sed -i 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/centos-addons.repo \
+    && sed -i 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/centos.repo
+
+RUN dnf update -y && dnf install -y \
+    git \
+    gcc \
+    gcc-c++ \
+    make \
+    wget \
+    bzip2 \
+    unzip \
+    openssl-devel.x86_64 \
+    libgfortran.x86_64 \
+    libgomp \
+    libcurl-devel.x86_64 \
+    compat-openssl11 && dnf clean all
+
+# install g++ 9.4.0
+# if it is not accessible, replace it with the link below
+# http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz
+RUN wget http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz \
+    && tar -xvf gcc-9.4.0.tar.gz && cd gcc-9.4.0 \
+    && ./contrib/download_prerequisites && mkdir build && cd build \
+    && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
+    && make -j4 && make install \
+    && cp  ./x86_64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib64/ \
+    && cd /usr/lib64 && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
+    && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
+
+# install python3
+# if it is not accessible, replace it with the link below
+# https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
+&& tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
+&& make -j4 && make install \
+&& python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+&& python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+&& rm -rf /Python*
+
+# install cmake
+# if it is not accessible, replace it with the link below
+# https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
+&& tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
+    && ./bootstrap && make -j4 && make install && rm -rf /cmake-3.*
+
+# install boost-1.68
+# if it is not accessible, replace it with the link below
+# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extensions.tar.gz \
+    && tar xf boost_1_68_0.tar.gz && tar xf geometry-extensions.tar.gz \
+    && cd boost_1_68_0 && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
+    && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
+    && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
+    && cp -r /extensions /usr/local/include/boost/geometry/ \
+    && rm -rf /boost_* /extensions /geometry-extensions.tar.gz
+
+# install tugraph
+# specifies the path of the object storage where the installation package resides
+# example "=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/tugraph-4.3.2"
+ARG FILEPATH
+# specifies installation package name for tugraph
+# example "=tugraph-4.3.2-1.el8.x86_64.rpm"
+ARG FILENAME
+
+RUN wget ${FILEPATH}/${FILENAME} && rpm -ivh ${FILENAME} && rm -f /${FILENAME}
+
+ENV LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64/lgraph:/usr/local/lib64:$PYTHONPATH
+
+CMD lgraph_server -d run
