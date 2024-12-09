@@ -1,0 +1,25 @@
+.. TuGraph documentation master file, created by
+   sphinx-quickstart on Mon Jul 16 10:29:17 2018.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Python存储过程接口
+====================================
+Version: 3.5.1
+
+Copyright (C) 2018-2022 Ant Group.
+
+
+.. toctree::
+   :maxdepth: 2
+
+介绍
+------------------
+与 SQLite 和 Noe4j 类似，TuGraph 可以在嵌入式模式下工作。 在嵌入式模式下，它就像一个库。 您可以编写自己的应用程序并调用库函数来创建、查询和修改图。 在这种情况下，应用程序和图数据库之间的所有数据交换都在同一个进程中进行。 它非常简单高效。
+
+这是 TuGraph 嵌入模式的 python API 文档。 通过嵌入式API，用户可以打开或创建数据库，然后查询或修改数据库。
+
+接口
+------------------
+.. automodule:: liblgraph_python_api
+   :members:

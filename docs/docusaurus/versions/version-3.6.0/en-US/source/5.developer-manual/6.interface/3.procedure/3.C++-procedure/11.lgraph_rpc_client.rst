@@ -1,0 +1,5 @@
+lgraph_rpc_client
+===================================
+
+.. doxygenfile:: lgraph_rpc_client.h
+   :project: cpp_procedure
