@@ -393,4 +393,11 @@ enum ExpandTowards {
     BIDIRECTIONAL,  // two way expand
 };
 
+enum PredicateType {
+    None = 1,
+    Single,
+    Any,
+    All
+};
+
 }  // namespace cypher

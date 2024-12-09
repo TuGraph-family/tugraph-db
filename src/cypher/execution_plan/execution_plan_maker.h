@@ -173,6 +173,7 @@ class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
     std::any visit(geax::frontend::Ref* node) override;
     std::any visit(geax::frontend::Param* node) override;
     std::any visit(geax::frontend::ListComprehension* node) override;
+    std::any visit(geax::frontend::PredicateFunction* node) override;
 
     // predicates
     std::any visit(geax::frontend::IsNull* node) override;

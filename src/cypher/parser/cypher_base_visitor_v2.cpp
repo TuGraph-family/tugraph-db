@@ -1512,12 +1512,16 @@ std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
         CastOrThrow(name_expr, vstr);
         std::string name = vstr->val();
         auto expr = ALLOC_GEAOBJECT(geax::frontend::Ref);
-        if (list_comprehension_depth == 0 || list_comprehension_anonymous_symbols_.find(name) ==
-                                                 list_comprehension_anonymous_symbols_.end()) {
-            expr->setName(std::move(name));
-        } else {
-            auto list_comprehension_name = list_comprehension_anonymous_symbols_[name].top();
+        if (list_comprehension_anonymous_symbols_.depth_ != 0 &&
+            list_comprehension_anonymous_symbols_.name_.find(name) != list_comprehension_anonymous_symbols_.name_.end()) {
+            auto list_comprehension_name = list_comprehension_anonymous_symbols_.name_[name].top();
             expr->setName(std::move(list_comprehension_name));
+        } else if (predicate_function_anonymous_symbols_.depth_ != 0 &&
+                   predicate_function_anonymous_symbols_.name_.find(name) != predicate_function_anonymous_symbols_.name_.end()) {
+            auto predicate_function_name = predicate_function_anonymous_symbols_.name_[name].top();
+            expr->setName(std::move(predicate_function_name));
+        } else {
+            expr->setName(std::move(name));
         }
         return (geax::frontend::Expr *)expr;
     } else if (ctx->oC_Literal()) {
@@ -1531,7 +1535,22 @@ std::any CypherBaseVisitorV2::visitOC_Atom(LcypherParser::OC_AtomContext *ctx) {
     } else if (ctx->oC_CaseExpression()) {
         return visit(ctx->oC_CaseExpression());
     } else if (ctx->oC_FilterExpression()) {
-        return visit(ctx->oC_FilterExpression());
+        predicate_function_anonymous_symbols_.depth_++;
+        VisitGuard guard(VisitType::kPredicateFunction, visit_types_);
+        if (ctx->NONE()) {
+            predicateType = cypher::PredicateType::None;
+        } else if (ctx->SINGLE()) {
+            predicateType = cypher::PredicateType::Single;
+        } else if (ctx->ANY()) {
+            predicateType = cypher::PredicateType::Any;
+        } else if (ctx->ALL()) {
+            predicateType = cypher::PredicateType::All;
+        }
+        auto expr = visit(ctx->oC_FilterExpression());
+        predicate_function_anonymous_symbols_.depth_--;
+        predicate_function_anonymous_symbols_.name_[ctx->oC_FilterExpression()->
+                                                    oC_IdInColl()->oC_Variable()->getText()].pop();
+        return expr;
     } else if (ctx->oC_ListComprehension()) {
         return visit(ctx->oC_ListComprehension());
     } else if (ctx->oC_PatternComprehension()) {
@@ -1657,26 +1676,63 @@ std::any CypherBaseVisitorV2::visitOC_RelationshipsPattern(
 
 std::any CypherBaseVisitorV2::visitOC_FilterExpression(
     LcypherParser::OC_FilterExpressionContext *ctx) {
-    return visitChildren(ctx);
+    if (VisitGuard::InClause(VisitType::kPredicateFunction, visit_types_)) {
+        auto node = ALLOC_GEAOBJECT(geax::frontend::PredicateFunction);
+        SWITCH_CONTEXT_VISIT(ctx->oC_IdInColl(), node);
+        geax::frontend::Expr *expr = nullptr;
+        AnyCastOrThrow(visit(ctx->oC_Where()->oC_Expression()), expr);
+        node->setWhereExpression(expr);
+        return (geax::frontend::Expr *)node;
+    } else {
+        visitOC_IdInColl(ctx->oC_IdInColl());
+        if (ctx->oC_Where()) {
+            geax::frontend::ListComprehension *listComprehension = nullptr;
+            CastOrThrow(node_, listComprehension);
+            geax::frontend::Expr *expr = nullptr;
+            AnyCastOrThrow(visit(ctx->oC_Where()->oC_Expression()), expr);
+            listComprehension->setWhereExpression(expr);
+        }
+        return 0;
+    }
 }
 
 std::any CypherBaseVisitorV2::visitOC_IdInColl(LcypherParser::OC_IdInCollContext *ctx) {
-    geax::frontend::ListComprehension *listComprehension = nullptr;
-    CastOrThrow(node_, listComprehension);
-    auto var = ctx->oC_Variable()->getText();
-    if (list_comprehension_anonymous_symbols_.find(var) ==
-        list_comprehension_anonymous_symbols_.end()) {
-        list_comprehension_anonymous_symbols_[var] = std::stack<std::string>();
+    if (VisitGuard::InClause(VisitType::kPredicateFunction, visit_types_)) {
+        geax::frontend::PredicateFunction *predicateFunction = nullptr;
+        CastOrThrow(node_, predicateFunction);
+        auto var = ctx->oC_Variable()->getText();
+        if (predicate_function_anonymous_symbols_.name_.find(var) ==
+            predicate_function_anonymous_symbols_.name_.end()) {
+            predicate_function_anonymous_symbols_.name_[var] = std::stack<std::string>();
+        }
+        auto anonymous_var = GeneratePredicateFunction(var);
+        predicate_function_anonymous_symbols_.name_[var].push(anonymous_var);
+        var = anonymous_var;
+        auto variable_ref = ALLOC_GEAOBJECT(geax::frontend::Ref);
+        variable_ref->setName(std::move(var));
+        predicateFunction->setVariable(variable_ref);
+        geax::frontend::Expr *in_expr;
+        AnyCastOrThrow(visit(ctx->oC_Expression()), in_expr);
+        predicateFunction->setInExpression(in_expr);
+        predicateFunction->setPredicateType(predicateType);
+    } else {
+        geax::frontend::ListComprehension *listComprehension = nullptr;
+        CastOrThrow(node_, listComprehension);
+        auto var = ctx->oC_Variable()->getText();
+        if (list_comprehension_anonymous_symbols_.name_.find(var) ==
+            list_comprehension_anonymous_symbols_.name_.end()) {
+            list_comprehension_anonymous_symbols_.name_[var] = std::stack<std::string>();
+        }
+        auto anonymous_var = GenerateListComprehension(var);
+        list_comprehension_anonymous_symbols_.name_[var].push(anonymous_var);
+        var = anonymous_var;
+        auto variable_ref = ALLOC_GEAOBJECT(geax::frontend::Ref);
+        variable_ref->setName(std::move(var));
+        listComprehension->setVariable(variable_ref);
+        geax::frontend::Expr *in_expr;
+        AnyCastOrThrow(visit(ctx->oC_Expression()), in_expr);
+        listComprehension->setInExpression(in_expr);
     }
-    auto anonymous_var = GenerateListComprehension(var);
-    list_comprehension_anonymous_symbols_[var].push(anonymous_var);
-    var = anonymous_var;
-    auto variable_ref = ALLOC_GEAOBJECT(geax::frontend::Ref);
-    variable_ref->setName(std::move(var));
-    listComprehension->setVariable(variable_ref);
-    geax::frontend::Expr *in_expr;
-    AnyCastOrThrow(visit(ctx->oC_Expression()), in_expr);
-    listComprehension->setInExpression(in_expr);
     return 0;
 }
 
@@ -1819,7 +1875,7 @@ std::any CypherBaseVisitorV2::visitOC_Namespace(LcypherParser::OC_NamespaceConte
 
 std::any CypherBaseVisitorV2::visitOC_ListComprehension(
     LcypherParser::OC_ListComprehensionContext *ctx) {
-    list_comprehension_depth++;
+    list_comprehension_anonymous_symbols_.depth_++;
     auto listComprehension = ALLOC_GEAOBJECT(geax::frontend::ListComprehension);
     SWITCH_CONTEXT_VISIT(ctx->oC_FilterExpression(), listComprehension);
     geax::frontend::Expr *op_expr;
@@ -1829,8 +1885,8 @@ std::any CypherBaseVisitorV2::visitOC_ListComprehension(
         CYPHER_TODO();
     }
     listComprehension->setOpExpression(op_expr);
-    list_comprehension_depth--;
-    list_comprehension_anonymous_symbols_[ctx->oC_FilterExpression()->
+    list_comprehension_anonymous_symbols_.depth_--;
+    list_comprehension_anonymous_symbols_.name_[ctx->oC_FilterExpression()->
                                           oC_IdInColl()->oC_Variable()->getText()].pop();
     return (geax::frontend::Expr*)listComprehension;
 }

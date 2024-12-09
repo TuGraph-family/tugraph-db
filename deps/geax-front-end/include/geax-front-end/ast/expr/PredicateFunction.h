@@ -1,5 +1,5 @@
 /**
-* Copyright 2023 AntGroup CO., Ltd.
+* Copyright 2024 AntGroup CO., Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 *         lipanpan03 <lipanpan.lpp@antgroup.com>
 */
 
-#ifndef GEAXFRONTEND_AST_EXPR_LIST_COMPREHENSION_
-#define GEAXFRONTEND_AST_EXPR_LIST_COMPREHENSION_
+#ifndef GEAXFRONTEND_AST_EXPR_PREDICATE_FUNCTION_
+#define GEAXFRONTEND_AST_EXPR_PREDICATE_FUNCTION_
 
 #include "geax-front-end/ast/expr/Expr.h"
 #include <vector>
@@ -24,40 +24,39 @@
 namespace geax {
 namespace frontend {
 
-class ListComprehension : public Expr {
+class PredicateFunction : public Expr {
 public:
-   ListComprehension() : Expr(AstNodeType::kListComprehension) {}
-   ~ListComprehension() = default;
+   PredicateFunction() : Expr(AstNodeType::kPredicateFunction) {}
+   ~PredicateFunction() = default;
    void setVariable(Expr* expr) {variable_ = expr; }
    void setInExpression(Expr* expr) {in_expression_ = expr; }
    void setWhereExpression(Expr* expr) {where_expression_ = expr; }
-   void setOpExpression(Expr* expr) {op_expression_ = expr; }
+   void setPredicateType(int type) {predicate_type_ = type; }
    Expr* getVariable() {return variable_; }
    Expr* getInExpression() {return in_expression_; }
    Expr* getWhereExpression() {return where_expression_; }
-   Expr* getOpExpression() {return op_expression_; }
+   [[nodiscard]] int getPredicateType() const {return predicate_type_; }
 
    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 
 private:
    bool equals(const Expr& other) const override;
 
-   // now (variable, in_expression, op_expression), scalable
+   // now (variable, in_expression, where_expression), scalable
    Expr* variable_;
    Expr* in_expression_;
-   Expr* where_expression_ = nullptr;
-   Expr* op_expression_;
+   Expr* where_expression_;
+   int predicate_type_;
 };  // class ListComprehension
 
-inline bool ListComprehension::equals(const Expr& other) const {
-   const auto& expr = dynamic_cast<const ListComprehension&>(other);
+inline bool PredicateFunction::equals(const Expr& other) const {
+   const auto& expr = dynamic_cast<const PredicateFunction&>(other);
    return variable_ != nullptr && expr.variable_ != nullptr &&
           variable_ == expr.variable_ && in_expression_ != nullptr &&
           expr.in_expression_ != nullptr && in_expression_ == expr.in_expression_ &&
-          where_expression_ != nullptr &&
-          expr.where_expression_ != nullptr && where_expression_ == expr.where_expression_ &&
-          op_expression_ != nullptr && expr.op_expression_ != nullptr &&
-          op_expression_ == expr.op_expression_;
+          where_expression_ != nullptr && expr.where_expression_ != nullptr &&
+          where_expression_ == expr.where_expression_ &&
+          type_ == expr.type_;
 }
 
 }  // namespace frontend

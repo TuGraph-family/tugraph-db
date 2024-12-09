@@ -87,5 +87,6 @@
 #include "geax-front-end/ast/expr/VString.h"
 #include "geax-front-end/ast/expr/VTime.h"
 #include "geax-front-end/ast/expr/Windowing.h"
+#include "geax-front-end/ast/expr/PredicateFunction.h"
 
 #endif  // GEAXFRONTEND_AST_EXPR_EXPRNODEFWD_H_
