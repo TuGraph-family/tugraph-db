@@ -388,9 +388,17 @@ Value BuiltinFunction::Reverse(RTContext *ctx, const Record &record,
                                            const std::vector<ArithExprNode> &args) {
     if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
     auto arg1_entry = args[1].Evaluate(ctx, record);
-    std::string arg1 = arg1_entry.constant.AsString();
-    std::reverse(arg1.begin(), arg1.end());
-    return Value(std::move(arg1));
+    if (arg1_entry.IsString()) {
+        std::string arg1 = arg1_entry.constant.AsString();
+        std::reverse(arg1.begin(), arg1.end());
+        return Value(std::move(arg1));
+    } else if (arg1_entry.IsArray()) {
+        auto array = arg1_entry.constant.AsArray();
+        std::reverse(array.begin(), array.end());
+        return Value(std::move(array));
+    } else {
+        THROW_CODE(InvalidParameter, "reverse can be used in string or array");
+    }
 }
 
 Value BuiltinFunction::Mask(RTContext *ctx, const Record &record,

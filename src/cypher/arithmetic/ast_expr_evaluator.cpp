@@ -142,8 +142,8 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::VSome* node) { NOT_SUPP
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BEqual* node) {
     auto lef = std::any_cast<Entry>(node->left()->accept(*this));
     auto rig = std::any_cast<Entry>(node->right()->accept(*this));
-    if (lef.EqualNull() && rig.EqualNull()) {
-        return Entry(Value(true));
+    if (lef.EqualNull() || rig.EqualNull()) {
+        return Entry(Value());
     }
     return Entry(Value(lef == rig));
 }
@@ -151,8 +151,8 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BEqual* node) {
 std::any cypher::AstExprEvaluator::visit(geax::frontend::BNotEqual* node) {
     auto lef = std::any_cast<Entry>(node->left()->accept(*this));
     auto rig = std::any_cast<Entry>(node->right()->accept(*this));
-    if (lef.EqualNull() && rig.EqualNull()) {
-        return Entry(Value(false));
+    if (lef.EqualNull() || rig.EqualNull()) {
+        return Entry(Value());
     }
     return Entry(Value(lef != rig));
 }
@@ -164,6 +164,9 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BGreaterThan* node) {
         rig.type != Entry::RecordEntryType::CONSTANT) {
         NOT_SUPPORT_AND_THROW();
     }
+    if (lef.EqualNull() || rig.EqualNull()) {
+        return Entry(Value());
+    }
     return Entry(Value(lef > rig));
 }
 
@@ -173,6 +176,9 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BNotSmallerThan* node) 
     if (lef.type != Entry::RecordEntryType::CONSTANT ||
         rig.type != Entry::RecordEntryType::CONSTANT) {
         NOT_SUPPORT_AND_THROW();
+    }
+    if (lef.EqualNull() || rig.EqualNull()) {
+        return Entry(Value());
     }
     return Entry(Value(!(lef < rig)));
 }
@@ -184,6 +190,9 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BSmallerThan* node) {
         rig.type != Entry::RecordEntryType::CONSTANT) {
         NOT_SUPPORT_AND_THROW();
     }
+    if (lef.EqualNull() || rig.EqualNull()) {
+        return Entry(Value());
+    }
     return Entry(Value(lef < rig));
 }
 
@@ -193,6 +202,9 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::BNotGreaterThan* node) 
     if (lef.type != Entry::RecordEntryType::CONSTANT ||
         rig.type != Entry::RecordEntryType::CONSTANT) {
         NOT_SUPPORT_AND_THROW();
+    }
+    if (lef.EqualNull() || rig.EqualNull()) {
+        return Entry(Value());
     }
     return Entry(Value(!(lef > rig)));
 }
@@ -577,7 +589,8 @@ std::any cypher::AstExprEvaluator::visit(geax::frontend::IsLabeled* node) {
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::IsNull* node) {
     Value ret;
-    return Entry(ret);
+    auto ans = std::any_cast<Entry>(node->expr()->accept(*this));
+    return Entry(Value::Bool(ans.constant.IsNull()));
 }
 
 std::any cypher::AstExprEvaluator::visit(geax::frontend::Exists* node) {
@@ -644,57 +657,85 @@ std::any AstExprEvaluator::visit(geax::frontend::PredicateFunction* node) {
     auto predicateType = cypher::PredicateType(node->getPredicateType());
     Entry in_e;
     in_e = std::any_cast<Entry>(in_expr->accept(*this));
-    CYPHER_THROW_ASSERT(in_e.IsArray());
+    CYPHER_THROW_ASSERT(in_e.IsArray() || in_e.IsNull());
+    if (in_e.IsNull()) {
+        return Entry(Value());
+    }
     const auto& data_array = in_e.constant.AsArray();
-    std::vector<bool> ret_data;
+    std::vector<Value> ret_data;
     auto it = sym_tab_->symbols.find(ref->name());
     for (auto &data : data_array) {
         const_cast<Record*>(record_)->values[it->second.id] = Entry(data);
         Entry one_result;
         one_result = std::any_cast<Entry>(where_expr->accept(*this));
-        ret_data.push_back(one_result.constant.AsBool());
+        ret_data.push_back(one_result.constant);
     }
-    bool ans = false;
     switch (predicateType) {
         case cypher::PredicateType::None:
         {
-            ans = true;
+            bool ans = true, isnull = false;
             for (const auto &r : ret_data) {
-                ans &= !r;
+                if (r.IsNull()) {
+                    isnull = true;
+                } else {
+                    ans &= !r.AsBool();
+                }
             }
-            break;
+            if (isnull && ans) {
+                return Entry(Value());
+            }
+            return Entry(Value(ans));
         }
         case cypher::PredicateType::Single:
         {
             int count = 0;
+            bool isnull = false;
             for (const auto &r : ret_data) {
-                if (r) {
+                if (r.IsNull()) {
+                    isnull = true;
+                } else if (r.IsBool()) {
                     count++;
                 }
             }
-            ans = count == 1;
+            if (isnull && count == 0) {
+                return Entry(Value());
+            } else {
+                return Entry(Value(count == 1));
+            }
             break;
         }
         case cypher::PredicateType::Any:
         {
+            bool ans = false, isnull = false;
             for (const auto &r : ret_data) {
-                if (r) {
+                if (r.IsNull()) {
+                    isnull = true;
+                } else {
                     ans = true;
-                    break;
                 }
             }
-            break;
+            if (isnull && !ans) {
+                return Entry(Value());
+            }
+            return Entry(Value(ans));
         }
         case cypher::PredicateType::All:
         {
-            ans = true;
+            bool ans = true, isnull = false;
             for (const auto &r : ret_data) {
-                ans &= r;
+                if (r.IsNull()) {
+                    isnull = true;
+                } else {
+                    ans &= r.AsBool();
+                }
             }
-            break;
+            if (isnull && ans) {
+                return Entry(Value());
+            }
+            return Entry(Value(ans));
         }
     }
-    return Entry(Value(ans));
+    return Entry();
 }
 
 }  // namespace cypher
