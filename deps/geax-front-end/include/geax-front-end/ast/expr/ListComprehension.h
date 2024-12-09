@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 *
 *  Author:
-*         lili <lipanpan.lpp@antgroup.com>
+*         lipanpan03 <lipanpan.lpp@antgroup.com>
 */
 
 #ifndef GEAXFRONTEND_AST_EXPR_LIST_COMPREHENSION_

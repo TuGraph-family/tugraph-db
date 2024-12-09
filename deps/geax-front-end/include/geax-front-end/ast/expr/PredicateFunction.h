@@ -1,5 +1,5 @@
 /**
-* Copyright 2023 AntGroup CO., Ltd.
+* Copyright 2024 AntGroup CO., Ltd.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 *
 *  Author:
-*         lili <lipanpan.lpp@antgroup.com>
+*         lipanpan03 <lipanpan.lpp@antgroup.com>
 */
 
 #ifndef GEAXFRONTEND_AST_EXPR_PREDICATE_FUNCTION_
