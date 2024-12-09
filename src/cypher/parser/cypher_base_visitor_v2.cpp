@@ -786,12 +786,6 @@ std::any CypherBaseVisitorV2::visitOC_Where(LcypherParser::OC_WhereContext *ctx)
         geax::frontend::Expr *expr = nullptr;
         AnyCastOrThrow(visit(ctx->oC_Expression()), expr);
         yield_fields->setPredicate(expr);
-    } else if (VisitGuard::InClause(VisitType::kPredicateFunction, visit_types_)) {
-        geax::frontend::PredicateFunction *predicateFunction = nullptr;
-        CastOrThrow(node_, predicateFunction);
-        geax::frontend::Expr *expr = nullptr;
-        AnyCastOrThrow(visit(ctx->oC_Expression()), expr);
-        predicateFunction->setWhereExpression(expr);
     } else {
         geax::frontend::GraphPattern *node = nullptr;
         CastOrThrow(node_, node);
@@ -1685,10 +1679,20 @@ std::any CypherBaseVisitorV2::visitOC_FilterExpression(
     if (VisitGuard::InClause(VisitType::kPredicateFunction, visit_types_)) {
         auto node = ALLOC_GEAOBJECT(geax::frontend::PredicateFunction);
         SWITCH_CONTEXT_VISIT(ctx->oC_IdInColl(), node);
-        SWITCH_CONTEXT_VISIT(ctx->oC_Where(), node);
+        geax::frontend::Expr *expr = nullptr;
+        AnyCastOrThrow(visit(ctx->oC_Where()->oC_Expression()), expr);
+        node->setWhereExpression(expr);
         return (geax::frontend::Expr *)node;
     } else {
-        return visitChildren(ctx);
+        visitOC_IdInColl(ctx->oC_IdInColl());
+        if (ctx->oC_Where()) {
+            geax::frontend::ListComprehension *listComprehension = nullptr;
+            CastOrThrow(node_, listComprehension);
+            geax::frontend::Expr *expr = nullptr;
+            AnyCastOrThrow(visit(ctx->oC_Where()->oC_Expression()), expr);
+            listComprehension->setWhereExpression(expr);
+        }
+        return 0;
     }
 }
 

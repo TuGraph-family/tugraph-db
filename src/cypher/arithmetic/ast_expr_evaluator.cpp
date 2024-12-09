@@ -629,9 +629,12 @@ std::any cypher::AstExprEvaluator::reportError() { return error_msg_; }
 
 std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
     geax::frontend::Ref *ref = nullptr;
-    geax::frontend::Expr *in_expr = nullptr, *op_expr = nullptr;
+    geax::frontend::Expr *in_expr = nullptr, *op_expr = nullptr, *where_expr = nullptr;
     checkedCast(node->getVariable(), ref);
     checkedCast(node->getInExpression(), in_expr);
+    if (node->getWhereExpression() != nullptr) {
+        checkedCast(node->getWhereExpression(), where_expr);
+    }
     checkedCast(node->getOpExpression(), op_expr);
     Entry in_e;
     in_e = std::any_cast<Entry>(in_expr->accept(*this));
@@ -643,6 +646,12 @@ std::any AstExprEvaluator::visit(geax::frontend::ListComprehension* node) {
         const_cast<Record*>(record_)->values[it->second.id] = Entry(data);
         Entry one_result;
         one_result = std::any_cast<Entry>(op_expr->accept(*this));
+        if (where_expr != nullptr) {
+            auto where = std::any_cast<Entry>(where_expr->accept(*this));
+            if (!where.constant.AsBool()) {
+                continue;
+            }
+        }
         ret_data.push_back(one_result.constant);
     }
     return Entry(Value(ret_data));

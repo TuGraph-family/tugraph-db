@@ -35,7 +35,7 @@ public:
    Expr* getVariable() {return variable_; }
    Expr* getInExpression() {return in_expression_; }
    Expr* getWhereExpression() {return where_expression_; }
-   int getPredicateType() {return predicate_type_; }
+   [[nodiscard]] int getPredicateType() const {return predicate_type_; }
 
    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
 

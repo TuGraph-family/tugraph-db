@@ -30,9 +30,11 @@ public:
    ~ListComprehension() = default;
    void setVariable(Expr* expr) {variable_ = expr; }
    void setInExpression(Expr* expr) {in_expression_ = expr; }
+   void setWhereExpression(Expr* expr) {where_expression_ = expr; }
    void setOpExpression(Expr* expr) {op_expression_ = expr; }
    Expr* getVariable() {return variable_; }
    Expr* getInExpression() {return in_expression_; }
+   Expr* getWhereExpression() {return where_expression_; }
    Expr* getOpExpression() {return op_expression_; }
 
    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
@@ -43,6 +45,7 @@ private:
    // now (variable, in_expression, op_expression), scalable
    Expr* variable_;
    Expr* in_expression_;
+   Expr* where_expression_ = nullptr;
    Expr* op_expression_;
 };  // class ListComprehension
 
@@ -51,6 +54,8 @@ inline bool ListComprehension::equals(const Expr& other) const {
    return variable_ != nullptr && expr.variable_ != nullptr &&
           variable_ == expr.variable_ && in_expression_ != nullptr &&
           expr.in_expression_ != nullptr && in_expression_ == expr.in_expression_ &&
+          where_expression_ != nullptr &&
+          expr.where_expression_ != nullptr && where_expression_ == expr.where_expression_ &&
           op_expression_ != nullptr && expr.op_expression_ != nullptr &&
           op_expression_ == expr.op_expression_;
 }

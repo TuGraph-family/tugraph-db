@@ -1183,6 +1183,9 @@ std::any PatternGraphMaker::visit(geax::frontend::ListComprehension* node) {
     AddSymbol(ref->name(), cypher::SymbolNode::CONSTANT, cypher::SymbolNode::LOCAL);
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getVariable());
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getInExpression());
+    if (node->getWhereExpression() != nullptr) {
+        ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getWhereExpression());
+    }
     ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->getOpExpression());
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
