@@ -27,12 +27,19 @@
 #include <unordered_set>
 #include <vector>
 
+
+
 #include "fma-common/type_traits.h"
 #include "fma-common/utils.h"
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4800)  // disable warning C4800: force value to bool
 #endif
+namespace lgraph_api {
+struct FieldData;
+class Date;
+class DateTime;
+}
 
 namespace fma_common {
 DEFINE_HAS_MEM_FUNC_TEMPLATE(Serialize, _has_serialize_);
