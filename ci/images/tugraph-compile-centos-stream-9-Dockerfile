@@ -38,7 +38,8 @@ RUN dnf update -y && dnf install -y \
     langpacks-zh_CN \
     which \
     java-11-openjdk-devel \
-    openssh-server && dnf clean all
+    openssh-server \
+    compat-openssl11 && dnf clean all
 # install g++ 9.4.0
 # if it is not accessible, replace it with the link below
 # http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz
