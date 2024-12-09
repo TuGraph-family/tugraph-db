@@ -66,7 +66,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
 # example "=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/tugraph-4.3.2"
 ARG FILEPATH
 # specifies installation package name for tugraph
-# example "==tugraph-4.3.2-1.el8.x86_64.rpm"
+# example "=tugraph-4.3.2-1.el8.x86_64.rpm"
 ARG FILENAME
 
 RUN wget ${FILEPATH}/${FILENAME} && rpm -ivh ${FILENAME} && rm -f /${FILENAME}
