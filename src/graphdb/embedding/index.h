@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <optional>
 
+#include "graphdb/graph_cf.h"
+#include "graphdb/uuid_generator.h"
 #include "index_chunk.h"
 #include "mem_index_chunk.h"
 #include "proto/meta.pb.h"
@@ -99,7 +101,9 @@ class IdSelector {
 
 class Index {
    public:
-    Index(meta::VertexVectorIndex& meta) : meta_(meta) {}
+    Index(rocksdb::TransactionDB* db, GraphCF* graph_cf, uint32_t lid,
+          uint32_t pid, meta::VertexVectorIndex& meta)
+        : db_(db), graph_cf_(graph_cf), lid_(lid), pid_(pid), meta_(meta) {}
 
     int64_t GetElementsNum();
     int64_t GetMemoryUsage();
@@ -111,8 +115,20 @@ class Index {
     void Search(const DataSet& ds, const SearchParams& params);
     void RangeSearch(const DataSet& ds, const SearchParams& params);
 
-    // load persistent vector index from disk
+    /**
+     * load persistent vector index from disk
+     */
     void Load(const meta::VectorIndexManifest& manifest);
+
+    /**
+     * pick any adjacent chunks and do the compaction
+     */
+    void Compaction();
+
+    /**
+     * purge stale data, implement this later
+     */
+    void Purge();
 
     std::vector<std::shared_ptr<IndexChunk>>& GetPersistentChunks() {
         return persist_chunks_;
@@ -126,12 +142,17 @@ class Index {
     IndexChunk* GetTargetPersistIndexChunk(int64_t vid);
 
    private:
+    rocksdb::TransactionDB* db_{nullptr};
+    GraphCF* graph_cf_{nullptr};
+    uint32_t lid_;
+    uint32_t pid_;
     meta::VertexVectorIndex& meta_;
     std::vector<std::string> chunk_ids_;
     std::shared_ptr<MemIndexChunk> ingest_chunk_;
     std::vector<std::shared_ptr<MemIndexChunk>> mem_chunks_;
     std::vector<std::shared_ptr<IndexChunk>> persist_chunks_;
     std::shared_mutex mutex_;
+    graphdb::UUIDGenerator uuid_gen_;
 };
 
 }  // namespace embedding

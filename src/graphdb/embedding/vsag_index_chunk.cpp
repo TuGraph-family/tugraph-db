@@ -88,6 +88,8 @@ class VsagHNSWIndexChunk : public IndexChunk {
 
     void WriteToFile() override;
 
+    void Seal() override;
+
     static std::unique_ptr<VsagHNSWIndexChunk> Load(
         const std::string& dir, const std::string chunk_id, int64_t dim,
         meta::VectorDistanceType distance_type, const std::string& parameters);
@@ -124,10 +126,10 @@ void VsagHNSWIndexChunk::AddBatch(const DataSet& ds) {
     std::vector<int64_t> labels;
     labels.reserve(ds.n);
 
-    int64_t* rowids = ds.vids;
+    int64_t* vids = ds.vids;
     for (size_t i = 0; i < ds.n; i++) {
-        auto rowid = rowids[i];
-        labels.push_back(mapper_->Add(rowid));
+        auto vid = vids[i];
+        labels.push_back(mapper_->Add(vid));
     }
 
     auto dataset = vsag::Dataset::Make();
@@ -227,6 +229,13 @@ void VsagHNSWIndexChunk::WriteToFile() {
     tmpFile.close();
 
     std::filesystem::rename(tempFilePath, target_path);
+}
+
+void VsagHNSWIndexChunk::Seal() {
+    WriteToFile();
+    mapper_->WriteToFile(index_dir_);
+
+    // apply WAL
 }
 
 std::unique_ptr<VsagHNSWIndexChunk> VsagHNSWIndexChunk::Load(

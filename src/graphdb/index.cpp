@@ -365,7 +365,7 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
       lid_(lid),
       pid_(pid),
       meta_(std::move(meta)) {
-    index_ = std::make_unique<embedding::Index>(meta_);
+    index_ = std::make_unique<embedding::Index>(db, graph_cf, lid, pid, meta_);
 }
 
 int64_t VertexVectorIndex::GetElementsNum() { return index_->GetElementsNum(); }
@@ -531,7 +531,7 @@ void VertexVectorIndex::LoadFromDisk(
             }
         }
 
-        // Change to Batch add later
+        // Change to batch add later
         Add(vid, std::move(copy));
 
         count++;
