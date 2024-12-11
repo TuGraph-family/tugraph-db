@@ -65,7 +65,8 @@
 
 .menu__link {
   font-size: 14px !important;
-  color: #424e66 !important;
+  color: #545762 !important;
+  font-weight: 400;
 }
 
 .menu__list-item-collapsible,
@@ -82,7 +83,7 @@
   background: #0e0b3b0d;
   border-radius: 8px;
   font-size: 14px;
-  color: #1a1b25e0;
+  color: #292d3b !important;
   line-height: 22px;
   font-weight: 500;
 }
