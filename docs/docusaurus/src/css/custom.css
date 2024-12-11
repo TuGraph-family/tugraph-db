@@ -1,0 +1,272 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #1650ff;
+  --ifm-color-primary-dark: #003ef9;
+  --ifm-color-primary-darker: #003beb;
+  --ifm-color-primary-darkest: #0030c2;
+  --ifm-color-primary-light: #3265ff;
+  --ifm-color-primary-lighter: #406fff;
+  --ifm-color-primary-lightest: #698eff;
+  --ifm-code-font-size: 95%;
+  --ifm-navbar-height: 0px;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+:root {
+  --doc-sidebar-width: 208px !important;
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme="dark"] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+.navbar {
+  display: none;
+}
+
+#__docusaurus {
+  padding: 0 120px;
+  background-color: transparent;
+  cursor: pointer !important;
+}
+
+.headerlink {
+  display: none;
+}
+
+/* Sidebar Style */
+.thin-scrollbar {
+  padding: 0 !important;
+}
+
+.menu__link--sublist-caret:after {
+  transform: rotate(180deg) !important;
+  background-size: 1rem 1rem;
+}
+
+.theme-doc-sidebar-container {
+  margin-right: 20px;
+  border: none !important;
+}
+
+.menu__link {
+  font-size: 14px !important;
+  color: #545762 !important;
+  font-weight: 400;
+}
+
+.menu__list-item-collapsible,
+.menu__list-item {
+  border-radius: 8px;
+}
+
+.menu__list-item-collapsible > a,
+.menu__list-item > a {
+  line-height: 22px;
+}
+
+.menu__link--active {
+  background: #0e0b3b0d;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #292d3b !important;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.clean-btn::before {
+  background-size: 1rem 1rem;
+}
+
+.sidebarViewport_aRkj::-webkit-scrollbar {
+  display: none; /* 隐藏滚动条 */
+}
+.sidebarViewport_aRkj {
+  -ms-overflow-style: none; /* IE 和 Edge */
+  scrollbar-width: none; /* Firefox */
+  overflow-y: auto !important; /* 保持内容可滚动 */
+}
+
+/* Docs container Style */
+.container {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px 32px;
+  font-size: 14px !important;
+}
+
+.markdown > h2,
+.markdown > h3,
+.markdown > h4,
+.markdown > h5 {
+  color: #292d3b !important;
+  font-weight: 600 !important;
+}
+
+.markdown h1:first-child {
+  font-size: 26px !important;
+  color: #292d3b !important;
+  font-weight: 600 !important;
+}
+
+.markdown > h2 {
+  font-size: 20px !important;
+  margin-top: 28px !important;
+}
+
+.markdown > h3 {
+  font-size: 18px !important;
+}
+.markdown > h4 {
+  font-size: 16px !important;
+}
+.markdown > h5 {
+  font-size: 14px !important;
+}
+
+.markdown > a {
+  font-size: 14px !important;
+  color: #2e5dfe !important;
+}
+
+.breadcrumbs__item:not(:last-child):after {
+  content: "/";
+  background: none;
+  margin: 0 0 0 5px !important;
+  font-size: 14px !important;
+}
+
+.breadcrumbs__link {
+  background-color: transparent !important;
+  font-size: 12px !important;
+  color: #0a0a0ae1 !important;
+  line-height: 20px;
+  padding: 0;
+}
+
+.markdown p,
+.markdown th,
+.markdown td,
+.markdown li,
+.markdown span {
+  font-size: 14px !important;
+  color: #1a1b25e0 !important;
+  line-height: 22px !important;
+}
+
+.table-of-contents li > a {
+  font-size: 14px;
+  color: #768191;
+}
+
+.table-of-contents > li > .table-of-contents__link--active {
+  font-size: 14px;
+  color: #2e5dfe;
+  font-weight: 500;
+}
+
+/* Cascader style */
+
+.ant-cascader-menu {
+  height: fit-content !important;
+}
+.itemWrapper {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.titleText {
+  color: #31333d;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.downIcon {
+  flex-shrink: 0;
+  margin-left: 8px;
+  border: 4px solid transparent;
+  border-color: transparent transparent #4e5969 #4e5969;
+  transform: translateY(-2px) rotate(-45deg);
+  border-radius: 2px;
+}
+
+.contentArea {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 5px;
+  margin-left: 2px;
+}
+
+#engineDescription {
+  color: #788495 !important;
+  font-size: 14px;
+}
+
+.versionLabel {
+  margin-left: 8px;
+  white-space: nowrap;
+  color: #788495;
+  font-size: 14px;
+}
+
+/* Search Style */
+.searchWrapper {
+  margin-top: 5px;
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.searchWrapper:hover {
+  background: #0e0b3b0d;
+}
+
+.DocSearch-Button {
+  align-items: flex-start !important;
+  background: transparent !important;
+  padding: 0 !important;
+  height: fit-content !important;
+}
+
+.DocSearch-Button:hover {
+  box-shadow: none !important;
+  border: transparent;
+}
+
+.DocSearch-Button-Placeholder,
+.DocSearch-Button-Keys {
+  display: none !important;
+}
+
+.DocSearch-Search-Icon {
+  width: 13px !important;
+  height: 12px !important;
+}
