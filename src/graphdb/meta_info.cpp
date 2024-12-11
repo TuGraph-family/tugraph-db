@@ -1,27 +1,29 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*/
+ * Copyright 2024 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 //
 // Created by botu.wzy
 //
 
 #include "meta_info.h"
+
 #include <boost/endian/conversion.hpp>
 #include <filesystem>
+
 #include "common/exceptions.h"
-#include "proto/meta.pb.h"
 #include "common/logger.h"
+#include "proto/meta.pb.h"
 using namespace boost::endian;
 namespace graphdb {
 std::unordered_map<std::string, std::unique_ptr<VertexFullTextIndex>> &
@@ -55,8 +57,8 @@ VertexPropertyIndex *MetaInfo::GetVertexPropertyIndex(uint32_t lid,
 }
 
 VertexPropertyIndex *MetaInfo::GetVertexPropertyIndex(
-    const std::string& index_name) {
-    for (auto& [_, index] : vertex_property_indexes) {
+    const std::string &index_name) {
+    for (auto &[_, index] : vertex_property_indexes) {
         if (index.meta().name() == index_name) {
             return &index;
         }
@@ -65,12 +67,11 @@ VertexPropertyIndex *MetaInfo::GetVertexPropertyIndex(
 }
 
 std::unordered_map<uint64_t, VertexPropertyIndex> &
-    MetaInfo::GetVertexPropertyIndex() {
+MetaInfo::GetVertexPropertyIndex() {
     return vertex_property_indexes;
 }
 
-VertexVectorIndex *MetaInfo::GetVertexVectorIndex(uint32_t lid,
-                                                      uint32_t pid) {
+VertexVectorIndex *MetaInfo::GetVertexVectorIndex(uint32_t lid, uint32_t pid) {
     uint64_t index_key =
         (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
     auto iter = vertex_vector_indexes.find(index_key);
@@ -81,12 +82,13 @@ VertexVectorIndex *MetaInfo::GetVertexVectorIndex(uint32_t lid,
     }
 }
 
-std::unordered_map<uint64_t, VertexVectorIndex> &MetaInfo::GetVertexVectorIndex() {
+std::unordered_map<uint64_t, VertexVectorIndex> &
+MetaInfo::GetVertexVectorIndex() {
     return vertex_vector_indexes;
 }
 
-VertexVectorIndex *MetaInfo::GetVertexVectorIndex(const std::string& name) {
-    for (auto& [_, index] : vertex_vector_indexes) {
+VertexVectorIndex *MetaInfo::GetVertexVectorIndex(const std::string &name) {
+    for (auto &[_, index] : vertex_vector_indexes) {
         if (index.meta().name() == name) {
             return &index;
         }
@@ -95,7 +97,8 @@ VertexVectorIndex *MetaInfo::GetVertexVectorIndex(const std::string& name) {
 }
 
 void MetaInfo::DeleteVertexVectorIndex(const std::string &name) {
-    for (auto iter = vertex_vector_indexes.begin(); iter != vertex_vector_indexes.end(); iter++) {
+    for (auto iter = vertex_vector_indexes.begin();
+         iter != vertex_vector_indexes.end(); iter++) {
         if (iter->second.meta().name() == name) {
             vertex_vector_indexes.erase(iter);
             break;
@@ -104,8 +107,8 @@ void MetaInfo::DeleteVertexVectorIndex(const std::string &name) {
 }
 
 bool MetaInfo::AddVertexPropertyIndex(graphdb::VertexPropertyIndex &&vpi) {
-    uint64_t index_key =
-        (static_cast<uint64_t>(vpi.lid()) << 32) | static_cast<uint64_t>(vpi.pid());
+    uint64_t index_key = (static_cast<uint64_t>(vpi.lid()) << 32) |
+                         static_cast<uint64_t>(vpi.pid());
     if (vertex_property_indexes.count(index_key)) {
         return false;
     } else {
@@ -143,9 +146,8 @@ void MetaInfo::AddVertexVectorIndex(VertexVectorIndex &&vvi) {
 }
 
 void MetaInfo::Init(rocksdb::TransactionDB *db,
-                    boost::asio::io_service &service,
-                    GraphCF *graph_cf,
-                    IdGenerator* id_generator, size_t ft_commit_interval) {
+                    boost::asio::io_service &service, GraphCF *graph_cf,
+                    IdGenerator *id_generator, size_t ft_commit_interval) {
     rocksdb::ReadOptions ro;
     std::unique_ptr<rocksdb::Iterator> iter(
         db->NewIterator(ro, graph_cf->meta_info));
@@ -162,7 +164,8 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
         uint32_t pid = native_to_big(meta.property_id());
         uint32_t index_id = native_to_big(meta.index_id());
         VertexPropertyIndex vi(meta, graph_cf->index, index_id, lid, pid);
-        uint64_t index_key = (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
+        uint64_t index_key =
+            (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
         vertex_property_indexes.emplace(index_key, std::move(vi));
     }
     prefix.clear();
@@ -175,10 +178,10 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
         assert(ret);
         LOG_INFO("vertex fulltext index: [{}]", meta.ShortDebugString());
         std::unordered_set<uint32_t> lids, pids;
-        for(auto id : meta.label_ids()) {
+        for (auto id : meta.label_ids()) {
             lids.insert(native_to_big(id));
         }
-        for(auto id : meta.property_ids()) {
+        for (auto id : meta.property_ids()) {
             pids.insert(native_to_big(id));
         }
         auto v_ft_index = std::make_unique<VertexFullTextIndex>(
@@ -192,14 +195,30 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
          iter->Next()) {
         auto val = iter->value();
         meta::VertexVectorIndex meta;
+        meta::VectorIndexManifest manifest;
         bool ret = meta.ParseFromString(val.ToString());
         assert(ret);
         LOG_INFO("vertex vector index: [{}]", meta.ShortDebugString());
-        VertexVectorIndex index(
-            db, graph_cf, native_to_big(meta.label_id()),
-            native_to_big(meta.property_id()), meta);
-        index.Load();
+        VertexVectorIndex index(db, graph_cf, native_to_big(meta.label_id()),
+                                native_to_big(meta.property_id()), meta);
+        // use index dir, which is an uuid, as the key of manifest
+        std::string index_dir = meta.index_dir();
+        std::string manifest_val;
+        auto s = db->Get(ro, graph_cf->vector_index_manifest, index_dir,
+                         &manifest_val);
+        if (!s.ok()) {
+            THROW_CODE(StorageEngineError, s.ToString());
+        }
+
+        if (s.IsNotFound()) {
+            index.Load();
+        } else {
+            ret = manifest.ParseFromString(manifest_val);
+            assert(ret);
+            index.LoadFromDisk(manifest);
+        }
+
         AddVertexVectorIndex(std::move(index));
     }
 }
-}
+}  // namespace graphdb

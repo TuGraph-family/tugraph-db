@@ -15,7 +15,7 @@
  *      Junwang Zhao <zhaojunwang.zjw@antgroup.com>
  */
 
-#include "embedding/delta.h"
+#include "delta.h"
 
 #include <faiss/index_factory.h>
 #include <spdlog/fmt/fmt.h>
@@ -24,8 +24,8 @@
 #include <fstream>
 
 #include "common/exceptions.h"
-#include "embedding/faiss_internal.h"
-#include "embedding/index.h"
+#include "faiss_internal.h"
+#include "index.h"
 
 namespace graphdb {
 
@@ -33,6 +33,21 @@ namespace embedding {
 
 namespace {
 const static std::string delta_postfix = "delta";
+
+faiss::MetricType DistanceTypeToFaissMetricType(
+    meta::VectorDistanceType distance_type) {
+    switch (distance_type) {
+        case meta::VectorDistanceType::L2:
+            return faiss::MetricType::METRIC_L2;
+        // cosine can be converted to IP, so faiss do not have COSINE metric
+        case meta::VectorDistanceType::IP:
+        case meta::VectorDistanceType::COSINE:
+            return faiss::MetricType::METRIC_INNER_PRODUCT;
+        default:
+            THROW_CODE(VectorIndexException, "index type {} not supported",
+                       meta::VectorDistanceType_Name(distance_type));
+    }
+}
 }
 
 Delta::Delta(int64_t dim, meta::VectorDistanceType distance_type,
@@ -43,40 +58,35 @@ Delta::Delta(int64_t dim, meta::VectorDistanceType distance_type,
 }
 
 void Delta::Delete(const DataSet& ds) {
-    if (ds.n == 0 || row_cnt_ == 0) {
-        return;
+    assert(ds.n == 1);
+    int64_t vid = ds.vids[0];
+    if (vid_labelid_map_.count(vid) == 0 ||
+        vid_vec_[vid_labelid_map_[vid]] == -1) {
+        THROW_CODE(InvalidParameter, "vid {} doesn't exist", vid);
     }
 
-    int64_t* rowids = ds.vids;
-    for (size_t i = 0; i < ds.n; i++) {
-        auto rowid = rowids[i];
-        if (rowid_labelid_map_.count(rowid)) {
-            rowid_vec_[rowid_labelid_map_[rowid]] = -1;
-        }
-    }
+    vid_vec_[vid_labelid_map_[vid]] = -1;
 }
 
-void Delta::Update(const DataSet& ds) {
-    if (ds.n == 0) {
-        return;
+void Delta::Add(const DataSet& ds) {
+    assert(ds.n == 1);
+    delta_->add(ds.n, reinterpret_cast<const float*>(ds.x));
+    int64_t vid = ds.vids[0];
+
+    if (vid_labelid_map_.count(vid)) {
+        if (vid_vec_[vid_labelid_map_[vid]] != -1) {
+            THROW_CODE(InvalidParameter, "vid {} already exists", vid);
+        }
+    } else {
+        updated_vid_vec_.push_back(vid);
     }
 
-    delta_->add(ds.n, reinterpret_cast<const float*>(ds.x));
-    int64_t* rowids = ds.vids;
-    for (size_t i = 0; i < ds.n; i++) {
-        auto rowid = rowids[i];
-        if (rowid_labelid_map_.count(rowid)) {
-            rowid_vec_[rowid_labelid_map_[rowid]] = -1;
-        } else {
-            updated_rowid_vec_.push_back(rowid);
-        }
-        rowid_vec_.push_back(rowid);
-        rowid_labelid_map_[rowid] = row_cnt_++;
-    }
+    vid_vec_.push_back(vid);
+    vid_labelid_map_[vid] = vid_cnt_++;
 }
 
 void Delta::Flush(const std::string& dir) {
-    if (flushed_cnt_ == updated_rowid_vec_.size()) {
+    if (flushed_cnt_ == updated_vid_vec_.size()) {
         return;
     }
 
@@ -85,14 +95,15 @@ void Delta::Flush(const std::string& dir) {
         THROW_CODE(IOException, "Delta file not exists");
     }
 
+    // append to end of file
     std::ofstream deltaFile(delta_path, std::ios::binary | std::ios::app);
     if (!deltaFile) {
         THROW_CODE(IOException, "Failed to open deltaFile");
     }
 
     deltaFile.write(
-        reinterpret_cast<const char*>(updated_rowid_vec_.data() + flushed_cnt_),
-        (updated_rowid_vec_.size() - flushed_cnt_) * sizeof(int64_t));
+        reinterpret_cast<const char*>(updated_vid_vec_.data() + flushed_cnt_),
+        (updated_vid_vec_.size() - flushed_cnt_) * sizeof(int64_t));
 
     deltaFile.flush();
     deltaFile.close();
@@ -104,14 +115,14 @@ void Delta::Populate(const DataSet& ds) {
     }
 
     delta_->add(ds.n, reinterpret_cast<const float*>(ds.x));
-    int64_t* rowids = ds.vids;
+    int64_t* vids = ds.vids;
     for (size_t i = 0; i < ds.n; i++) {
-        auto rowid = rowids[i];
-        if (rowid_labelid_map_.count(rowid)) {
-            THROW_CODE(InputError, "rowid {} should not exists", rowid);
+        auto vid = vids[i];
+        if (vid_labelid_map_.count(vid)) {
+            THROW_CODE(InvalidParameter, "vid {} should not exists", vid);
         }
-        rowid_vec_.push_back(rowid);
-        rowid_labelid_map_[rowid] = row_cnt_++;
+        vid_vec_.push_back(vid);
+        vid_labelid_map_[vid] = vid_cnt_++;
     }
 }
 
@@ -138,14 +149,14 @@ std::unique_ptr<Delta> Delta::Load(const std::string& dir, int64_t dim,
     is.seekg(0, is.beg);
 
     delta->flushed_cnt_ = length / sizeof(int64_t);
-    delta->updated_rowid_vec_.reserve(delta->flushed_cnt_);
+    delta->updated_vid_vec_.reserve(delta->flushed_cnt_);
 
     int64_t rowid;
     while (is.read(reinterpret_cast<char*>(&rowid), sizeof(int64_t))) {
-        delta->updated_rowid_vec_.push_back(rowid);
+        delta->updated_vid_vec_.push_back(rowid);
     }
 
-    return std::move(delta);
+    return delta;
 }
 
 }  // namespace embedding

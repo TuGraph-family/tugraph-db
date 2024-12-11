@@ -24,6 +24,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <shared_mutex>
 
 #include "proto/meta.pb.h"
 
@@ -36,29 +37,32 @@ class SearchParams;
 
 class MemIndexChunk {
    public:
-    MemIndexChunk(int64_t min_row_id, int64_t dim,
+    MemIndexChunk(int64_t min_vid, int64_t dim,
                   meta::VectorIndexType index_type,
                   meta::VectorDistanceType distance_type);
     ~MemIndexChunk() = default;
 
-    int64_t GetElementsCount() { return row_cnt_; }
+    int64_t GetElementsNum() { return vid_cnt_; }
+    int64_t GetMemoryUsage();
+    int64_t GetDeleteIdsNum() { return del_cnt_; }
 
-    int64_t GetEstimatedMemoryUsage();
-
-    void Add(const DataSet& ds, bool& chunk_full);
+    void Add(const DataSet& ds, bool* chunk_full);
     // mark delete
     void Delete(const DataSet& ds);
 
     void Search(const DataSet& ds);
     void RangeSearch(const DataSet& ds, const SearchParams& params);
 
+    int64_t GetMinVId() { return min_vid_; }
+    int64_t GetMaxVId() { return max_vid_; }
+
    private:
-    int64_t min_row_id_;
-    int64_t max_row_id_;
-    int64_t row_cnt_{0};
+    int64_t min_vid_;
+    int64_t max_vid_;
+    int64_t vid_cnt_{0};
     int64_t del_cnt_{0};
-    std::vector<int64_t> rowid_vec_;
-    std::unordered_map<int64_t, int64_t> rowid_labelid_map_;
+    std::vector<int64_t> vid_vec_;
+    std::unordered_map<int64_t, int64_t> vid_labelid_map_;
     std::unique_ptr<faiss::Index> flat_index_{nullptr};
     int64_t dim_;
     meta::VectorIndexType index_type_;

@@ -15,7 +15,7 @@
  *      Junwang Zhao <zhaojunwang.zjw@antgroup.com>
  */
 
-#include "embedding/id_mapper.h"
+#include "id_mapper.h"
 
 #include <spdlog/fmt/fmt.h>
 
@@ -35,13 +35,12 @@ const static std::string id_mapper_postfix = "mapper";
 // 4K
 const size_t PAGE_SIZE = 4096;
 
-inline void ParseIdMapperBuffer(
-    const std::string& buf, int length,
-    std::map<int64_t, int64_t>& rowid_position_map) {
+inline void ParseIdMapperBuffer(const std::string& buf, size_t length,
+                                std::map<int64_t, int64_t>& vid_position_map) {
     const int64_t* start = reinterpret_cast<const int64_t*>(&buf[0]);
     length = length / 8;
     for (size_t i = 0; i < length; i += 2) {
-        rowid_position_map.emplace(start[i], start[i + 1]);
+        vid_position_map.emplace(start[i], start[i + 1]);
     }
 }
 }  // namespace
@@ -50,81 +49,82 @@ IdMapper::IdMapper(const std::string& chunk_id) {
     file_name_ = fmt::format("{}.{}", chunk_id, id_mapper_postfix);
 }
 
-int64_t IdMapper::Add(int64_t rowId) {
-    if (row_cnt_ == 0) {
-        min_row_id_ = rowId;
-        rowid_position_map_.emplace(rowId, row_cnt_);
+int64_t IdMapper::Add(int64_t vid) {
+    if (vid_cnt_ == 0) {
+        min_vid_ = vid;
+        vid_position_map_.emplace(vid, vid_cnt_);
     } else {
-        if (rowId <= max_row_id_) {
+        if (vid <= max_vid_) {
             THROW_CODE(InvalidParameter,
-                       "row id must be strictly incremental, previous rowid "
-                       "{}, current rowid {}",
-                       max_row_id_, rowId);
-        } else if (rowId > max_row_id_ + 1) {
-            rowid_position_map_.emplace(rowId, row_cnt_);
+                       "vid must be strictly incremental, previous vid "
+                       "{}, current vid {}",
+                       max_vid_, vid);
+        } else if (vid > max_vid_ + 1) {
+            // not consecutive, add a new entry
+            vid_position_map_.emplace(vid, vid_cnt_);
         }
     }
 
-    max_row_id_ = rowId;
-    int64_t position = row_cnt_;
-    row_cnt_++;
+    max_vid_ = vid;
+    int64_t position = vid_cnt_;
+    vid_cnt_++;
     return position;
 }
 
 void IdMapper::Seal() {
-    // Construct position_rowid_map_
-    for (auto& [rowid, position] : rowid_position_map_) {
-        position_rowid_map_.emplace(position, rowid);
+    // Construct position_vid_map_
+    for (auto& [vid, position] : vid_position_map_) {
+        position_vid_map_.emplace(position, vid);
     }
 }
 
-int64_t IdMapper::GetRowIdFromLabel(int64_t labelId) {
-    if (labelId < 0 || labelId >= row_cnt_) {
+int64_t IdMapper::GetVIdFromLabel(int64_t labelId) {
+    if (labelId < 0 || labelId >= vid_cnt_) {
         THROW_CODE(InvalidParameter,
                    "labelId {} not valid, should between [0, {}]", labelId,
-                   row_cnt_);
+                   vid_cnt_);
     }
 
-    auto it = position_rowid_map_.lower_bound(labelId);
-    if (it != position_rowid_map_.end()) {
+    auto it = position_vid_map_.lower_bound(labelId);
+    if (it != position_vid_map_.end()) {
         if (it->first == labelId) {
             return it->second;
         } else {
-            // go to previous record and calculate the rowid
+            // go to previous record and calculate the vid
             it--;
             return it->second + (labelId - it->first);
         }
     } else {
-        auto last = position_rowid_map_.rbegin();
+        auto last = position_vid_map_.rbegin();
         return last->second + (labelId - last->first);
     }
 }
 
-int64_t IdMapper::GetLabelFromRowId(int64_t rowId) {
-    if (rowId < min_row_id_ || rowId > max_row_id_) {
-        THROW_CODE(OutOfRange, "row id {} should between [{}, {}]", rowId,
-                   min_row_id_, max_row_id_);
+int64_t IdMapper::GetLabelFromVId(int64_t vid) {
+    if (vid < min_vid_ || vid > max_vid_) {
+        THROW_CODE(OutOfRange, "vid {} should between [{}, {}]", vid, min_vid_,
+                   max_vid_);
     }
 
-    auto it = rowid_position_map_.lower_bound(rowId);
-    if (it != rowid_position_map_.end()) {
-        if (it->first == rowId) {
+    auto it = vid_position_map_.lower_bound(vid);
+    if (it != vid_position_map_.end()) {
+        if (it->first == vid) {
             return it->second;
         } else {
             auto ubound = it->second;
             // go to previous record and calculate the position
             it--;
-            auto labelId = it->second + (rowId - it->first);
+            auto labelId = it->second + (vid - it->first);
             if (labelId >= ubound) {
-                THROW_CODE(InvalidParameter, "row id not exists");
+                THROW_CODE(InvalidParameter, "vid not exists");
             }
             return labelId;
         }
     } else {
-        auto last = rowid_position_map_.rbegin();
-        auto labelId = last->second + (rowId - last->first);
-        if (labelId >= row_cnt_) {
-            THROW_CODE(InvalidParameter, "row id not exists");
+        auto last = vid_position_map_.rbegin();
+        auto labelId = last->second + (vid - last->first);
+        if (labelId >= vid_cnt_) {
+            THROW_CODE(InvalidParameter, "vid not exists");
         }
         return labelId;
     }
@@ -134,9 +134,12 @@ int64_t IdMapper::GetLabelFromRowId(int64_t rowId) {
 void IdMapper::WriteToFile(const std::string& dir) {
     std::filesystem::path filePath = fmt::format("{}/{}", dir, file_name_);
     std::string buf;
-    buf.append(reinterpret_cast<const char*>(&row_cnt_), sizeof(int64_t));
-    for (auto& [rowid, position] : rowid_position_map_) {
-        buf.append(reinterpret_cast<const char*>(&rowid), sizeof(int64_t));
+    buf.append(reinterpret_cast<const char*>(&vid_cnt_), sizeof(int64_t));
+    buf.append(reinterpret_cast<const char*>(&min_vid_), sizeof(int64_t));
+    buf.append(reinterpret_cast<const char*>(&max_vid_), sizeof(int64_t));
+
+    for (auto& [vid, position] : vid_position_map_) {
+        buf.append(reinterpret_cast<const char*>(&vid), sizeof(int64_t));
         buf.append(reinterpret_cast<const char*>(&position), sizeof(int64_t));
     }
 
@@ -165,7 +168,7 @@ std::unique_ptr<IdMapper> IdMapper::Load(const std::string& dir,
 
     auto file_path = fmt::format("{}/{}", dir, mapper->GetFileName());
     if (!std::filesystem::exists(file_path)) {
-        return;
+        return nullptr;
     }
 
     // Open the file in read mode
@@ -181,24 +184,27 @@ std::unique_ptr<IdMapper> IdMapper::Load(const std::string& dir,
 
     std::string buf(PAGE_SIZE, '\0');
 
-    // read row_cnt_
-    is.read(&buf[0], sizeof(int64_t));
+    // read vid_cnt_
+    is.read(&buf[0], sizeof(int64_t) * 3);
     if (!is) {
         THROW_CODE(IOException, "id mapper corrupted");
     }
-    mapper->row_cnt_ = *(reinterpret_cast<int64_t*>(&buf[0]));
+    mapper->vid_cnt_ = *(reinterpret_cast<int64_t*>(&buf[0]));
+    mapper->min_vid_ = *(reinterpret_cast<int64_t*>(&buf[0]) + sizeof(int64_t));
+    mapper->max_vid_ =
+        *(reinterpret_cast<int64_t*>(&buf[0]) + sizeof(int64_t) * 2);
 
-    int remain = length - sizeof(int64_t);
+    size_t remain = length - sizeof(int64_t) * 3;
     while (remain > PAGE_SIZE) {
         is.read(&buf[0], PAGE_SIZE);
         if (!is) {
             THROW_CODE(IOException, "id mapper corrupted");
         }
-        ParseIdMapperBuffer(buf, PAGE_SIZE, mapper->rowid_position_map_);
+        ParseIdMapperBuffer(buf, PAGE_SIZE, mapper->vid_position_map_);
         remain -= PAGE_SIZE;
     }
     if (remain) {
-        // must be <rowid, position> pair
+        // must be <vid, position> pair
         if (remain < sizeof(int64_t) * 2) {
             THROW_CODE(IOException, "id mapper corrupted");
         }
@@ -206,12 +212,12 @@ std::unique_ptr<IdMapper> IdMapper::Load(const std::string& dir,
         if (!is) {
             THROW_CODE(IOException, "id mapper corrupted");
         }
-        ParseIdMapperBuffer(buf, remain, mapper->rowid_position_map_);
+        ParseIdMapperBuffer(buf, remain, mapper->vid_position_map_);
     }
 
     mapper->Seal();
 
-    return std::move(mapper);
+    return mapper;
 }
 
 }  // namespace embedding

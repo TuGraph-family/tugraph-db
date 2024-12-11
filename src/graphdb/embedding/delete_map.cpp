@@ -15,7 +15,7 @@
  *      Junwang Zhao <zhaojunwang.zjw@antgroup.com>
  */
 
-#include "embedding/delete_map.h"
+#include "delete_map.h"
 
 #include <spdlog/fmt/fmt.h>
 
@@ -58,7 +58,7 @@ inline bool BitmapTest(const std::vector<uint8_t>& bitmap, size_t id) {
     return bitmap[Bit2Byte(id)] & (1 << (id & 7));
 }
 
-inline void ParseSparseBuffer(const std::string& buf, int length,
+inline void ParseSparseBuffer(const std::string& buf, size_t length,
                               std::unordered_set<uint32_t>& deleted_labels) {
     const uint32_t* start = reinterpret_cast<const uint32_t*>(&buf[0]);
     length = length / 4;
@@ -110,6 +110,7 @@ void DeleteMap::SetDelete(uint32_t id) {
         }
         BitmapSet(bitmap_, id);
         dirty_ = true;
+        deleted_count_++;
         if (!switch_format_) {
             BitmapSet(dirty_pages_, Bit2Page(id));
         }
@@ -134,7 +135,7 @@ bool DeleteMap::IsDeleted(uint32_t id) const {
         return BitmapTest(bitmap_, id);
     }
 
-    THROW_CODE(InvalidParameter, "illegal format {}", format_);
+    THROW_CODE(InvalidParameter, "illegal format {}", (uint32_t)format_);
 }
 
 std::unique_ptr<DeleteMap> DeleteMap::Load(const std::string& dir,
@@ -165,7 +166,7 @@ std::unique_ptr<DeleteMap> DeleteMap::Load(const std::string& dir,
     if (!is) {
         THROW_CODE(IOException, "del map corrupted");
     }
-    int remain = length - sizeof(uint32_t) * 2;
+    size_t remain = length - sizeof(uint32_t) * 2;
 
     del_map->deleted_count_ = *(reinterpret_cast<uint32_t*>(&buf[0]) + 1);
     switch (*reinterpret_cast<uint32_t*>(&buf[0])) {
@@ -221,7 +222,7 @@ std::unique_ptr<DeleteMap> DeleteMap::Load(const std::string& dir,
     }
 
     is.close();
-    return std::move(del_map);
+    return del_map;
 }
 
 void DeleteMap::Flush(const std::string& dir) {

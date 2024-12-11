@@ -84,6 +84,7 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     graph_db->graph_cf_.meta_info = cf_handles[7];
     graph_db->graph_cf_.index = cf_handles[8];
     graph_db->graph_cf_.wal = cf_handles[9];
+    graph_db->graph_cf_.vector_index_manifest = cf_handles[10];
     graph_db->cf_handles_ = std::move(cf_handles);
     graph_db->options_ = graph_options;
     graph_db->service_threads_.emplace_back([&graph_db](){
@@ -319,6 +320,8 @@ void GraphDB::AddVertexVectorIndex(
         THROW_CODE(InvalidParameter, "Distance Type {} not supported",
                    distance_type);
     }
+    auto index_dir = uuid_generator_.Next();
+    std::filesystem::create_directories(fmt::format("{}/{}", path_, index_dir));
     meta::VertexVectorIndex meta;
     meta.set_name(index_name);
     meta.set_label(label);
@@ -331,6 +334,7 @@ void GraphDB::AddVertexVectorIndex(
     meta.set_distance_type(dist_type);
     meta.set_hnsw_m(hnsw_m);
     meta.set_hnsw_ef_construction(hnsw_ef_construction);
+    meta.set_index_dir(index_dir);
     VertexVectorIndex vvi(db_, &graph_cf_, lid, pid, meta);
     vvi.Load();
     // write meta info

@@ -15,8 +15,8 @@
  *      Junwang Zhao <zhaojunwang.zjw@antgroup.com>
  */
 
-#include "embedding/faiss_internal.h"
-#include "embedding/index.h"
+#include "faiss_internal.h"
+#include "index.h"
 
 namespace graphdb {
 

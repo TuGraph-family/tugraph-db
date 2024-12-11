@@ -28,25 +28,25 @@ namespace graphdb {
 namespace embedding {
 
 /*
- * Index Chunks' row ids are scaned from rocksdb, thus sorted
+ * Index Chunks' vids are scaned from rocksdb, thus sorted
  * with punching holes.
- * This structure should be persisted.
+ * This structure should be persisted to file.
  */
 class IdMapper {
    public:
     IdMapper(const std::string& chunk_id);
     ~IdMapper() = default;
 
-    // add rowId to mapper and return position id
-    int64_t Add(int64_t rowId);
+    // add vid to mapper and return position id
+    int64_t Add(int64_t vid);
     void Seal();
 
-    int64_t GetRowIdFromLabel(int64_t labelId);
-    int64_t GetLabelFromRowId(int64_t rowId);
+    int64_t GetVIdFromLabel(int64_t labelId);
+    int64_t GetLabelFromVId(int64_t vid);
 
-    int64_t GetMinRowId() const { return min_row_id_; }
-    int64_t GetMaxRowId() const { return max_row_id_; }
-    int64_t GetRowCnt() const { return row_cnt_; }
+    int64_t GetMinVId() const { return min_vid_; }
+    int64_t GetMaxVId() const { return max_vid_; }
+    int64_t GetVIdCnt() const { return vid_cnt_; }
     const std::string& GetFileName() const { return file_name_; }
 
     /* Write this data structure to a persistent file */
@@ -56,11 +56,11 @@ class IdMapper {
                                           const std::string& chunk_id);
 
    private:
-    int64_t min_row_id_;
-    int64_t max_row_id_;
-    int64_t row_cnt_{0};
-    std::map<int64_t, int64_t> rowid_position_map_;
-    std::map<int64_t, int64_t> position_rowid_map_;
+    int64_t min_vid_;
+    int64_t max_vid_;
+    int64_t vid_cnt_{0};
+    std::map<int64_t, int64_t> vid_position_map_;
+    std::map<int64_t, int64_t> position_vid_map_;
     std::string file_name_;
 };
 

@@ -44,10 +44,10 @@ class Delta {
           const std::string& chunk_id);
     ~Delta() = default;
 
-    void Update(const DataSet& ds);
+    void Add(const DataSet& ds);
     void Delete(const DataSet& ds);
 
-    /* Flush the updated rowids to persistent file */
+    /* Flush the updated vids to persistent file */
     void Flush(const std::string& dir);
 
     /**
@@ -64,15 +64,15 @@ class Delta {
                                        meta::VectorDistanceType distance_type,
                                        const std::string& chunk_id);
 
-    const std::vector<int64_t>& GetUpdatedVids() { return updated_rowid_vec_; }
+    const std::vector<int64_t>& GetUpdatedVids() { return updated_vid_vec_; }
 
    private:
-    int64_t row_cnt_{0};
-    std::vector<int64_t> rowid_vec_;
-    std::unordered_map<int64_t, int64_t> rowid_labelid_map_;
+    int64_t vid_cnt_{0};
+    std::vector<int64_t> vid_vec_;
+    std::unordered_map<int64_t, int64_t> vid_labelid_map_;
     std::unique_ptr<faiss::Index> delta_;
-    std::vector<int64_t> updated_rowid_vec_;
-    int32_t flushed_cnt_;
+    std::vector<int64_t> updated_vid_vec_;
+    size_t flushed_cnt_;
     std::string file_name_;
 };
 

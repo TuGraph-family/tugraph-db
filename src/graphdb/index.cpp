@@ -1,27 +1,30 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*/
+ * Copyright 2024 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 //
 // Created by botu.wzy
 //
 
 #include "index.h"
-#include "transaction/transaction.h"
-#include "ftindex/include/lib.rs.h"
-#include "common/logger.h"
+
 #include <rocksdb/utilities/write_batch_with_index.h>
+
 #include <nlohmann/json.hpp>
+
+#include "common/logger.h"
+#include "ftindex/include/lib.rs.h"
+#include "transaction/transaction.h"
 
 using namespace txn;
 using namespace boost::endian;
@@ -63,8 +66,7 @@ void VertexPropertyIndex::UpdateIndex(Transaction* txn, int64_t vid,
         if (old_value) {
             // lock index
             std::string key = IndexKey(*old_value);
-            s = txn->dbtxn()->GetForUpdate(ro, cf_, key,
-                                           (std::string*)nullptr);
+            s = txn->dbtxn()->GetForUpdate(ro, cf_, key, (std::string*)nullptr);
             if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
             s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, key);
             if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -86,8 +88,8 @@ void VertexPropertyIndex::DeleteIndex(Transaction* txn, rocksdb::Slice value) {
         rocksdb::ReadOptions ro;
         // lock index
         std::string index_key = IndexKey(value.ToString());
-        auto s =
-            txn->dbtxn()->GetForUpdate(ro, cf_, index_key, (std::string*)nullptr);
+        auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key,
+                                            (std::string*)nullptr);
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
         s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, index_key);
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -106,16 +108,14 @@ void VertexFullTextIndex::StartTimer() {
     });
 }
 
-VertexFullTextIndex::VertexFullTextIndex(rocksdb::TransactionDB* db,
-                                         boost::asio::io_service &service,
-                                         GraphCF* graph_cf,
-                                         IdGenerator* id_generator,
-                                         meta::VertexFullTextIndex meta,
-                                         uint32_t index_id,
-                                         const std::unordered_set<uint32_t>& lids,
-                                         const std::unordered_set<uint32_t>& pids,
-                                         size_t commit_interval)
-    : db_(db), graph_cf_(graph_cf),
+VertexFullTextIndex::VertexFullTextIndex(
+    rocksdb::TransactionDB* db, boost::asio::io_service& service,
+    GraphCF* graph_cf, IdGenerator* id_generator,
+    meta::VertexFullTextIndex meta, uint32_t index_id,
+    const std::unordered_set<uint32_t>& lids,
+    const std::unordered_set<uint32_t>& pids, size_t commit_interval)
+    : db_(db),
+      graph_cf_(graph_cf),
       id_generator_(id_generator),
       meta_(std::move(meta)),
       index_id_(index_id),
@@ -127,8 +127,8 @@ VertexFullTextIndex::VertexFullTextIndex(rocksdb::TransactionDB* db,
     for (auto& prop : meta_.properties()) {
         fields.push_back(prop);
     }
-    instance_ =
-        std::make_unique<::rust::Box<::FTIndex>>(new_ftindex(meta_.path(), fields));
+    instance_ = std::make_unique<::rust::Box<::FTIndex>>(
+        new_ftindex(meta_.path(), fields));
     ft_index_ = instance_->operator->();
     auto payload = ft_get_payload(*ft_index_);
     if (!payload.empty()) {
@@ -138,7 +138,8 @@ VertexFullTextIndex::VertexFullTextIndex(rocksdb::TransactionDB* db,
     std::string prefix((const char*)&index_id_, sizeof(index_id_));
     prefix.append(8, 0xFF);
     rocksdb::ReadOptions ro;
-    std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
+    std::unique_ptr<rocksdb::Iterator> iter(
+        db_->NewIterator(ro, graph_cf_->wal));
     iter->SeekForPrev(prefix);
     if (iter->Valid()) {
         auto key = iter->key();
@@ -152,17 +153,23 @@ VertexFullTextIndex::VertexFullTextIndex(rocksdb::TransactionDB* db,
     StartTimer();
 }
 
-void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid, const meta::FullTextIndexUpdate& wal) {
-    auto s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->index, IndexKey(vid), {});
+void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid,
+                                   const meta::FullTextIndexUpdate& wal) {
+    auto s =
+        txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->index, IndexKey(vid), {});
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(), wal.SerializeAsString());
+    s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(),
+                                           wal.SerializeAsString());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }
 
-void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid, const meta::FullTextIndexUpdate& wal) {
-    auto s = txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, IndexKey(vid));
+void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid,
+                                      const meta::FullTextIndexUpdate& wal) {
+    auto s =
+        txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, IndexKey(vid));
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(), wal.SerializeAsString());
+    s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(),
+                                           wal.SerializeAsString());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }
 
@@ -291,8 +298,10 @@ void VertexFullTextIndex::ApplyWAL() {
     rocksdb::WriteBatch delete_batch;
     rocksdb::ReadOptions ro;
     rocksdb::WriteOptions wo;
-    std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
-    for (iter->Seek(start_key); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
+    std::unique_ptr<rocksdb::Iterator> iter(
+        db_->NewIterator(ro, graph_cf_->wal));
+    for (iter->Seek(start_key);
+         iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         auto key = iter->key();
         delete_batch.Delete(graph_cf_->wal, key.ToString());
 
@@ -304,11 +313,12 @@ void VertexFullTextIndex::ApplyWAL() {
         auto ret = update.ParseFromArray(val.data(), val.size());
         assert(ret);
         if (update.type() == meta::UpdateType::Add) {
-            AddVertex(update.id(),
-                      {std::make_move_iterator(update.mutable_fields()->begin()),
-                       std::make_move_iterator(update.mutable_fields()->end())},
-                      {std::make_move_iterator(update.mutable_values()->begin()),
-                       std::make_move_iterator(update.mutable_values()->end())});
+            AddVertex(
+                update.id(),
+                {std::make_move_iterator(update.mutable_fields()->begin()),
+                 std::make_move_iterator(update.mutable_fields()->end())},
+                {std::make_move_iterator(update.mutable_values()->begin()),
+                 std::make_move_iterator(update.mutable_values()->end())});
         } else {
             DeleteVertex(update.id());
         }
@@ -348,52 +358,47 @@ void VertexFullTextIndex::ApplyWAL() {
 }
 
 VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
-                                     graphdb::GraphCF* graph_cf,
-                                     uint32_t lid, uint32_t pid,
-                                     meta::VertexVectorIndex meta)
-    : db_(db), graph_cf_(graph_cf), lid_(lid), pid_(pid), meta_(std::move(meta)) {
-    sharding_num_ = meta_.sharding_num();
-    for (int i = 0; i < sharding_num_; i++) {
-        indexes_.emplace_back(std::make_unique<VsagIndex>(meta_));
-    }
+                                     graphdb::GraphCF* graph_cf, uint32_t lid,
+                                     uint32_t pid, meta::VertexVectorIndex meta)
+    : db_(db),
+      graph_cf_(graph_cf),
+      lid_(lid),
+      pid_(pid),
+      meta_(std::move(meta)) {
+    index_ = std::make_unique<embedding::Index>(meta_);
 }
 
-int64_t VertexVectorIndex::GetElementsNum() {
-    int64_t ret = 0;
-    for (auto& index : indexes_) {
-        ret += index->GetElementsNum();
-    }
-    return ret;
-}
+int64_t VertexVectorIndex::GetElementsNum() { return index_->GetElementsNum(); }
 
-int64_t VertexVectorIndex::GetMemoryUsage() {
-    int64_t ret = 0;
-    for (auto& index : indexes_) {
-        ret += index->GetMemoryUsage();
-    }
-    return ret;
-}
+int64_t VertexVectorIndex::GetMemoryUsage() { return index_->GetMemoryUsage(); }
 
 int64_t VertexVectorIndex::GetDeletedIdsNum() {
-    int64_t ret = 0;
-    for (auto& index : indexes_) {
-        ret += index->GetDeletedIdsNum();
-    }
-    return ret;
+    return index_->GetDeleteIdsNum();
 }
 
 std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
     const float* query, int top_k, int ef_search) {
     std::vector<std::pair<int64_t, float>> ret;
-    for (auto& index : indexes_) {
-        auto tmp = index->KnnSearch(query, top_k, ef_search);
-        ret.insert(ret.end(), tmp.begin(), tmp.end());
-    }
-    std::sort(ret.begin(), ret.end(), [](auto& a, auto& b){
-        return a.second < b.second;
-    });
-    if ((int)ret.size() > top_k) {
-        ret.resize(top_k);
+
+    std::vector<int64_t> vids(top_k, -1);
+    std::vector<float> distances(top_k);
+    embedding::SearchParams params;
+    embedding::DataSet ds;
+    ds.NumElements(1)
+        .K(top_k)
+        .Data(query)
+        .Vids(vids.data())
+        .Distances(distances.data());
+    params.ef_search = ef_search;
+
+    index_->Search(ds, params);
+
+    for (int i = 0; i < top_k; i++) {
+        if (vids[i] >= 0) {
+            ret.push_back({vids[i], distances[i]});
+        } else {
+            break;
+        }
     }
     return ret;
 }
@@ -401,13 +406,17 @@ std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
 void VertexVectorIndex::RemoveIfExists(int64_t vid) {
     auto native_id = big_to_native(vid);
     assert(native_id >= 0);
-    indexes_[native_id % sharding_num_]->RemoveIfExists(vid);
+    embedding::DataSet ds;
+    ds.Vids(&native_id).NumElements(1);
+    index_->Delete(ds);
 }
 
 void VertexVectorIndex::Add(int64_t vid, std::unique_ptr<float[]> embedding) {
     auto native_id = big_to_native(vid);
     assert(native_id >= 0);
-    indexes_[native_id % sharding_num_]->Add(vid, std::move(embedding));
+    embedding::DataSet ds;
+    ds.Vids(&native_id).NumElements(1).Data(embedding.get());
+    index_->Add(ds);
 }
 
 void VertexVectorIndex::Load() {
@@ -417,7 +426,6 @@ void VertexVectorIndex::Load() {
     SPDLOG_INFO("Begin to load vector index: {}", meta_.name());
     int count = 0;
     rocksdb::Slice prefix((const char*)&lid_, sizeof(lid_));
-    boost::asio::thread_pool pool(sharding_num_);
     for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
          iter->Next()) {
         auto key = iter->key();
@@ -426,7 +434,8 @@ void VertexVectorIndex::Load() {
         std::string property_key = key.ToString();
         property_key.append((const char*)&pid_, sizeof(pid_));
         std::string property_val;
-        auto s = db_->Get(ro, graph_cf_->vertex_property, property_key, &property_val);
+        auto s = db_->Get(ro, graph_cf_->vertex_property, property_key,
+                          &property_val);
         if (s.IsNotFound()) {
             continue;
         } else if (!s.ok()) {
@@ -452,99 +461,86 @@ void VertexVectorIndex::Load() {
                 copy[i] = array[i].AsFloat();
             }
         }
-        boost::asio::post(pool, [this, vid, copy = std::move(copy)]() mutable {
-            Add(vid, std::move(copy));
-        });
+
+        // Change to Batch add later
+        Add(vid, std::move(copy));
+
         count++;
         if (count % 10000 == 0) {
             SPDLOG_INFO("{} vector indexes have been load", count);
         }
     }
-    pool.join();
-    SPDLOG_INFO("End to load vector index: {}, index num: {}", meta_.name(), count);
+    SPDLOG_INFO("End to load vector index: {}, index num: {}", meta_.name(),
+                count);
 }
 
-VsagIndex::VsagIndex(meta::VertexVectorIndex meta)
-    : meta_(std::move(meta)) {
-    nlohmann::json hnsw_parameters {
-        {"max_degree", meta_.hnsw_m()},
-        {"ef_construction", meta_.hnsw_ef_construction()}
-    };
-    if (meta_.distance_type() != meta::VectorDistanceType::L2 &&
-        meta_.distance_type() != meta::VectorDistanceType::IP) {
-        THROW_CODE(VectorIndexException, "invalid metric_type: {}",
-                   meta::VectorDistanceType_Name(meta_.distance_type()));
+void VertexVectorIndex::LoadFromDisk(
+    const meta::VectorIndexManifest& manifest) {
+    index_->Load(manifest);
+    rocksdb::ReadOptions ro;
+    std::unique_ptr<rocksdb::Iterator> iter(
+        db_->NewIterator(ro, graph_cf_->vertex_label_vid));
+    if (index_->GetPersistentChunks().empty()) {
+        return Load();
     }
-    nlohmann::json index_parameters{
-        {"dtype", "float32"},
-        {"metric_type", meta::VectorDistanceType_Name(meta_.distance_type())},
-        {"dim", meta_.dimensions()},
-        {"hnsw", hnsw_parameters}};
-    auto ret = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
-    if (ret.has_value()) {
-        index_ = std::move(ret.value());
-    } else {
-        THROW_CODE(VectorIndexException, "Failed to create vector index");
-    }
-}
-
-void VsagIndex::Add(int64_t vid, std::unique_ptr<float[]> embedding) {
-    std::unique_lock write_lock(mutex_);
-    if (vid_vectorId_.count(vid)) {
-        THROW_CODE(VectorIndexException, "vid {} already exists", vid);
-    }
-    auto* id = new int64_t[1];
-    vectorId_++;
-    id[0] = vectorId_;
-    vid_vectorId_[vid] = vectorId_;
-    vectorId_vid_[vectorId_] = {false, vid};
-    auto dataset = vsag::Dataset::Make();
-    dataset->Dim(meta_.dimensions())->NumElements(1)
-        ->Ids(id)->Float32Vectors(embedding.release());
-    auto result = index_->Add(dataset);
-    if (result.has_value()) {
-        if (!result.value().empty()) {
-            THROW_CODE(VectorIndexException, "failed to insert {} ids into vector index", result.value().size());
+    SPDLOG_INFO("Begin to load remaining vector index: {}", meta_.name());
+    int count = 0;
+    // the last persistant chunk hold the largest persisted vid
+    int64_t start_vid =
+        native_to_big(index_->GetPersistentChunks().back()->GetMaxVId() + 1);
+    std::string prefix((const char*)&lid_, sizeof(lid_));
+    prefix.append((const char*)&start_vid, sizeof(start_vid));
+    for (iter->Seek(prefix); iter->Valid(); iter->Next()) {
+        auto key = iter->key();
+        // scan until we get a different lid prefix
+        uint32_t lid = *(uint32_t*)key.data();
+        if (lid != lid_) {
+            break;
         }
-    } else {
-        THROW_CODE(VectorIndexException, result.error().message);
-    }
-}
-
-void VsagIndex::RemoveIfExists(int64_t vid) {
-    std::unique_lock write_lock(mutex_);
-    auto iter = vid_vectorId_.find(vid);
-    if (iter != vid_vectorId_.end()) {
-        vectorId_vid_.at(iter->second) = { true, -1};
-        vid_vectorId_.erase(iter);
-        deleted_vids_num_++;
-    }
-}
-
-std::vector<std::pair<int64_t, float>> VsagIndex::KnnSearch(
-    const float* query, int top_k, int ef_search) {
-    auto dataset = vsag::Dataset::Make();
-    dataset->Dim(meta_.dimensions())
-        ->NumElements(1)
-        ->Float32Vectors(query)
-        ->Owner(false);
-    nlohmann::json parameters{
-        {"hnsw", {{"ef_search", ef_search}}},
-    };
-    std::vector<std::pair<int64_t, float>> ret;
-    std::shared_lock read_lock(mutex_);
-    auto result = index_->KnnSearch(dataset, top_k, parameters.dump(), [this](int64_t id)->bool {
-        return vectorId_vid_.at(id).first;
-    });
-    if (result.has_value()) {
-        for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
-            auto vectorId = result.value()->GetIds()[i];
-            ret.emplace_back(vectorId_vid_.at(vectorId).second, result.value()->GetDistances()[i]);
+        key.remove_prefix(sizeof(uint32_t));
+        int64_t vid = *(int64_t*)key.data();
+        std::string property_key = key.ToString();
+        property_key.append((const char*)&pid_, sizeof(pid_));
+        std::string property_val;
+        auto s = db_->Get(ro, graph_cf_->vertex_property, property_key,
+                          &property_val);
+        if (s.IsNotFound()) {
+            continue;
+        } else if (!s.ok()) {
+            THROW_CODE(StorageEngineError, s.ToString());
         }
-    } else {
-        THROW_CODE(VectorIndexException, result.error().message);
-    }
-    return ret;
-}
+        Value pv;
+        pv.Deserialize(property_val.data(), property_val.size());
+        if (!pv.IsArray()) {
+            continue;
+        }
+        auto& array = pv.AsArray();
+        if (array.empty() || array.size() != meta_.dimensions()) {
+            continue;
+        }
+        if (!array[0].IsDouble() && !array[0].IsFloat()) {
+            continue;
+        }
 
+        std::unique_ptr<float[]> copy(new float[array.size()]);
+        for (size_t i = 0; i < array.size(); i++) {
+            if (array[i].IsDouble()) {
+                copy[i] = static_cast<float>(array[i].AsDouble());
+            } else {
+                copy[i] = array[i].AsFloat();
+            }
+        }
+
+        // Change to Batch add later
+        Add(vid, std::move(copy));
+
+        count++;
+        if (count % 10000 == 0) {
+            SPDLOG_INFO("{} vector indexes have been load", count);
+        }
+    }
+
+    SPDLOG_INFO("End to load remaining vector index: {}, index num: {}",
+                meta_.name(), count);
 }
+}  // namespace graphdb

@@ -20,13 +20,16 @@
 #include <rocksdb/convenience.h>
 #include <rocksdb/db.h>
 #include <rocksdb/utilities/transaction_db.h>
-#include <string>
+
 #include <boost/asio.hpp>
+#include <string>
+
 #include "common/value.h"
 #include "graph_cf.h"
 #include "id_generator.h"
 #include "meta_info.h"
 #include "proto/meta.pb.h"
+#include "uuid_generator.h"
 
 namespace txn {
 class Transaction;
@@ -82,6 +85,7 @@ class GraphDB {
     boost::asio::io_service assistant_;
     GraphCF graph_cf_;
     IdGenerator id_generator_;
+    UUIDGenerator uuid_generator_;
     MetaInfo meta_info_;
     BusyIndex busy_index_;
     meta::GraphDBMetaInfo db_meta_;
