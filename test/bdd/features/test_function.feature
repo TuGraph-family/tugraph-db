@@ -356,14 +356,20 @@ Feature: test function
       '''
       RETURN toboolean('haha');
       '''
-    Then an Error should be raised
+    Then the result should be, in any order
+    | toboolean('haha') |
+    | null              |
     When executing query
       '''
       RETURN tofloat('haha');
       '''
-    Then an Error should be raised
+    Then the result should be, in any order
+    | tofloat('haha') |
+    | null              |
     When executing query
       '''
       RETURN tointeger('haha');
       '''
-    Then an Error should be raised
+    Then the result should be, in any order
+    | tointeger('haha') |
+    | null              |

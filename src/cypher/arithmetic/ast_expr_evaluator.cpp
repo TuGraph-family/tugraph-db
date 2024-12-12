@@ -76,6 +76,15 @@ static Value And(const Value& x, const Value& y) {
         ret = Value(x.AsBool() && y.AsBool());
         return ret;
     }
+    if (x.IsNull() && y.IsBool()) {
+        return !y.AsBool() ? Value::Bool(false) : Value();
+    }
+    if (x.IsBool() && y.IsNull()) {
+        return !x.AsBool() ? Value::Bool(false) : Value();
+    }
+    if (x.IsNull() && y.IsNull()) {
+        return {};
+    }
     THROW_CODE(ParserException, "Type error");
 }
 
@@ -84,6 +93,15 @@ static Value Or(const Value& x, const Value& y) {
     if (x.IsBool() && y.IsBool()) {
         ret = Value(x.AsBool() || y.AsBool());
         return ret;
+    }
+    if (x.IsNull() && y.IsBool()) {
+        return y.AsBool() ? Value::Bool(true) : Value();
+    }
+    if (x.IsBool() && y.IsNull()) {
+        return x.AsBool() ? Value::Bool(true) : Value();
+    }
+    if (x.IsNull() && y.IsNull()) {
+        return {};
     }
     THROW_CODE(ParserException, "Type error");
 }
@@ -94,6 +112,9 @@ static Value Xor(const Value& x, const Value& y) {
         ret = Value(!x.AsBool() != !y.AsBool());
         return ret;
     }
+    if ((x.IsBool() && y.IsNull()) || (x.IsNull() && y.IsBool()) || (x.IsNull() && y.IsNull())) {
+        return {};
+    }
     THROW_CODE(ParserException, "Type error");
 }
 
@@ -102,6 +123,9 @@ static Value Not(const Value& x) {
     if (x.IsBool()) {
         ret = Value(!x.AsBool());
         return ret;
+    }
+    if (x.IsNull()) {
+        return {};
     }
     THROW_CODE(ParserException, "Type error");
 }

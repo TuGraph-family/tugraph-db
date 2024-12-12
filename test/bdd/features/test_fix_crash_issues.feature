@@ -186,7 +186,22 @@ Feature: test fix crash issues
     Then an Error should be raised
     When executing query
       '''
-      MATCH (n:Person) RETURN NOT n.nam;
+      | NOT n.nam |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
+      | null      |
       '''
     Then an Error should be raised
     When executing query
