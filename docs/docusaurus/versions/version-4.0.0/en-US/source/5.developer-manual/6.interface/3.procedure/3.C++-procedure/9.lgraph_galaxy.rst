@@ -1,5 +1,0 @@
-lgraph_galaxy
-===================================
-
-.. doxygenfile:: lgraph_galaxy.h
-   :project: cpp_procedure
