@@ -13,6 +13,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <gflags/gflags.h>
+#include <omp.h>
 #include <filesystem>
 #include <utility>
 #include "common/logger.h"
@@ -22,6 +24,10 @@
 namespace fs = std::filesystem;
 static std::string testdb = "testdb";
 using namespace graphdb;
+
+DECLARE_int32(num);
+DECLARE_int32(thread);
+DECLARE_int32(depth);
 
 static inline double GetTime() {
     using namespace std::chrono;
@@ -141,6 +147,28 @@ class BenchmarkLightningGraph {
         }
         return GetTime() - time_start;
     }
+    double test_write_vertex_mt(size_t count, size_t num_threads) {
+        omp_set_num_threads(num_threads);
+        size_t local_count = std::ceil(1.0 * count / num_threads);
+        double throughput = 0;
+#pragma omp parallel
+        {
+            double time_start = GetTime();
+            int thread_id = omp_get_thread_num();
+            auto start = local_count * thread_id, end = std::min(local_count * (thread_id + 1), count);
+            for (size_t i = start; i < end; i++) {
+                std::string no = encode_no(i);
+                std::string name = random_name();
+                write_vertex(no, name);
+            }
+            double time_taken = GetTime() - time_start;
+            double local_throughput = (end - start) / time_taken;
+#pragma omp atomic
+            throughput += local_throughput;
+        }
+        vertices += count;
+        return throughput;
+    }
     double test_write_edge(size_t count) {
         double time_start = GetTime();
         for (size_t i = 0; i < count; i++) {
@@ -149,6 +177,27 @@ class BenchmarkLightningGraph {
             write_edge(no_from, no_to);
         }
         return GetTime() - time_start;
+    }
+    double test_write_edge_mt(size_t count, size_t num_threads) {
+        omp_set_num_threads(num_threads);
+        size_t local_count = std::ceil(1.0 * count / num_threads);
+        double throughput = 0;
+#pragma omp parallel
+        {
+            double time_start = GetTime();
+            int thread_id = omp_get_thread_num();
+            auto start = local_count * thread_id, end = std::min(local_count * (thread_id + 1), count);
+            for (size_t i = start; i < end; i++) {
+                std::string no_from = random_no();
+                std::string no_to = random_no();
+                write_edge(no_from, no_to);
+            }
+            double time_taken = GetTime() - time_start;
+            double local_throughput = (end - start) / time_taken;
+#pragma omp atomic
+            throughput += local_throughput;
+        }
+        return throughput;
     }
     double test_read_neighbour(size_t count, int depth) {
         double time_start = GetTime();
@@ -160,18 +209,48 @@ class BenchmarkLightningGraph {
         std::cout << "checksum: " << checksum << std::endl;
         return GetTime() - time_start;
     }
+    double test_read_neighbour_mt(size_t count, int depth, size_t num_threads) {
+        omp_set_num_threads(num_threads);
+        size_t local_count = count / num_threads;
+        double throughput = 0;
+#pragma omp parallel
+        {
+            int thread_id = omp_get_thread_num();
+            RandomNumberGenerator rng(thread_id);
+            double time_start = GetTime();
+            size_t checksum = 0;
+            for (size_t i = 0; i < local_count; i++) {
+                std::string no = encode_no(rng.next() % vertices);
+                checksum += read_neighbour(no, depth);
+            }
+            assert(checksum != 0);
+            double time_taken = GetTime() - time_start;
+            double local_throughput = local_count / time_taken;
+#pragma omp atomic
+            throughput += local_throughput;
+        }
+        return throughput;
+    }
 };
 
 TEST(Benchmark, khop) {
-    size_t n = 10000;
+    int n = FLAGS_num, thread = FLAGS_thread, depth = FLAGS_depth;
     fs::remove_all(testdb);
     auto graphDB = GraphDB::Open(testdb, {});
     graphDB->AddVertexPropertyIndex("person_id", true, "Person", "no");
     BenchmarkLightningGraph bm(*graphDB, 0);
 
-    LOG_INFO("The time of {} vertexes insertion is {}s", n, bm.test_write_vertex(n));
-    LOG_INFO("The time of {} edges insertion is {}s", n * 10, bm.test_write_edge(n * 10));
-    LOG_INFO("The time of {} vertexes 1-hop is {}s", n, bm.test_read_neighbour(n, 1));
-    LOG_INFO("The time of {} vertexes 2-hop is {}s", n, bm.test_read_neighbour(n, 2));
-    LOG_INFO("The time of {} vertexes 3-hop is {}s", n, bm.test_read_neighbour(n, 3));
+    if (thread > 1) {
+        LOG_INFO("The throughput of {} vertexes insertion is {} op/s ({} threads)", n, bm.test_write_vertex_mt(n, thread), thread);
+        LOG_INFO("The throughput of {} edges insertion is {} op/s ({} threads)", n * 10, bm.test_write_edge_mt(n * 10, thread), thread);
+        for (int i = 1; i <= depth; ++i) {
+            LOG_INFO("The throughput of {} vertexes {}-hop is {} op/s ({} threads)", n, i, bm.test_read_neighbour_mt(n, i, thread), thread);
+        }
+    } else {
+        LOG_INFO("The time of {} vertexes insertion is {}s", n, bm.test_write_vertex(n));
+        LOG_INFO("The time of {} edges insertion is {}s", n * 10, bm.test_write_edge(n * 10));
+        for (int i = 1; i <= depth; ++i) {
+            LOG_INFO("The time of {} vertexes {}-hop is {}s", n, i, bm.test_read_neighbour(n, i));
+        }
+    }
 }
