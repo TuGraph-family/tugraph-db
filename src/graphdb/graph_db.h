@@ -36,8 +36,8 @@ namespace graphdb {
 struct GraphDBOptions {
     std::shared_ptr<rocksdb::Cache> block_cache;
     std::shared_ptr<rocksdb::RowCache> row_cache;
-    size_t ft_commit_interval_ = 3;
-    size_t vt_commit_interval_ = 3;
+    size_t ft_apply_interval_ = 3;
+    size_t vt_apply_interval_ = 3;
 };
 
 class GraphDB {

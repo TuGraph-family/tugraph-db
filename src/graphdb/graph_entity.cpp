@@ -250,7 +250,7 @@ int Vertex::Delete() {
                 if (ft->IsIndexed(txn_, id_)) {
                     meta::FullTextIndexUpdate del;
                     del.set_type(meta::UpdateType::Delete);
-                    del.set_id(id_);
+                    del.set_vid(id_);
                     ft->DeleteIndex(txn_, id_, del);
                 }
             }
@@ -371,7 +371,7 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
             continue;
         }
         meta::FullTextIndexUpdate add;
-        add.set_id(id_);
+        add.set_vid(id_);
         add.set_type(meta::UpdateType::Add);
         for (auto pid : ft->PropertyIds()) {
             auto prop_val = GetProperty(pid);
@@ -463,7 +463,7 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
         if (ft->IsIndexed(txn_, id_)) {
             meta::FullTextIndexUpdate del;
             del.set_type(meta::UpdateType::Delete);
-            del.set_id(id_);
+            del.set_vid(id_);
             ft->DeleteIndex(txn_, id_, del);
         }
     }
@@ -597,11 +597,11 @@ void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values)
         if (index->IsIndexed(txn_, id_)) {
             meta::FullTextIndexUpdate del;
             del.set_type(meta::UpdateType::Delete);
-            del.set_id(id_);
+            del.set_vid(id_);
             index->DeleteIndex(txn_, id_, del);
         }
         meta::FullTextIndexUpdate add;
-        add.set_id(id_);
+        add.set_vid(id_);
         add.set_type(meta::UpdateType::Add);
         for (auto prop_id : index->PropertyIds()) {
             std::optional<std::string> text;
@@ -701,7 +701,7 @@ void Vertex::RemoveAllProperty() {
         }
         if (ft->IsIndexed(txn_, id_)) {
             meta::FullTextIndexUpdate del;
-            del.set_id(id_);
+            del.set_vid(id_);
             del.set_type(meta::UpdateType::Delete);
             ft->DeleteIndex(txn_, id_, del);
         }
@@ -759,14 +759,14 @@ void Vertex::RemoveProperty(const std::string &name) {
         }
         if (ft->IsIndexed(txn_, id_)) {
             meta::FullTextIndexUpdate del;
-            del.set_id(id_);
+            del.set_vid(id_);
             del.set_type(meta::UpdateType::Delete);
             ft->DeleteIndex(txn_, id_, del);
         }
 
         meta::FullTextIndexUpdate add;
         add.set_type(meta::UpdateType::Add);
-        add.set_id(id_);
+        add.set_vid(id_);
         for (auto prop_id : ft->PropertyIds()) {
             if (prop_id == pid) {
                 continue;

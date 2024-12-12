@@ -84,7 +84,7 @@ Vertex Transaction::CreateVertex(
         }
         meta::FullTextIndexUpdate add;
         add.set_type(meta::UpdateType::Add);
-        add.set_id(vid);
+        add.set_vid(vid);
         for (const auto& [pid, prop] : pid_values) {
             if (prop->IsString() && !prop->AsString().empty() && ft->PropertyIds().count(pid)) {
                 add.add_fields(db_->id_generator().GetPropertyName(pid).value());

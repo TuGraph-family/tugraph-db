@@ -711,7 +711,6 @@ void BuiltinProcedure::DbShowIndexes(
                 std::unordered_map<std::string, Value> info;
                 info["elementsNum"] = Value(index->GetElementsNum());
                 info["deletedIdsNum"] = Value(index->GetDeletedIdsNum());
-                info["shardingNum"] = Value((int64_t)index->meta().sharding_num());
                 r.emplace_back(Value(std::move(info)));
             }
         }

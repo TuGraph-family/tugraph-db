@@ -308,13 +308,13 @@ void VertexFullTextIndex::ApplyWAL() {
         auto ret = update.ParseFromArray(val.data(), val.size());
         assert(ret);
         if (update.type() == meta::UpdateType::Add) {
-            AddVertex(update.id(),
+            AddVertex(update.vid(),
                       {std::make_move_iterator(update.mutable_fields()->begin()),
                        std::make_move_iterator(update.mutable_fields()->end())},
                       {std::make_move_iterator(update.mutable_values()->begin()),
                        std::make_move_iterator(update.mutable_values()->end())});
         } else {
-            DeleteVertex(update.id());
+            DeleteVertex(update.vid());
         }
         if (++count == 1000) {
             auto payload = std::to_string(big_to_native(consumed_wal_id));
@@ -600,23 +600,29 @@ void VertexVectorIndex::ApplyWAL() {
         vectorid_vid_.emplace(update.vector_id(), update.vid());
         if (vsag_index_->GetNumElements() % 100000 == 0) {
             if (auto bs = vsag_index_->Serialize(); bs.has_value()) {
+                LOG_INFO("Vector Index {} begin serialization", meta_.name());
                 auto keys = bs->GetKeys();
                 for (const auto& meta_key : keys) {
                     vsag::Binary b = bs->Get(meta_key);
-                    std::ofstream file(meta_.path() + "/hnsw.index." + meta_key, std::ios::binary);
+                    std::string path = meta_.path() + "/hnsw.index." + meta_key;
+                    std::ofstream file(path, std::ios::binary);
                     file.write((const char*)b.data.get(), b.size);
                     file.close();
+                    LOG_INFO("write file: {}", path);
                 }
+                uint64_t apply_id = boost::endian::big_to_native(consumed_wal_id);
                 nlohmann::json meta_info {
                     {"keys", keys},
-                    {"apply_id", boost::endian::big_to_native(consumed_wal_id)}
+                    {"apply_id", apply_id}
                 };
-                std::ofstream metafile(meta_.path() + "/hnsw.index._meta", std::ios::out);
+                std::string path = meta_.path() + "/hnsw.index._meta";
+                std::ofstream metafile(path, std::ios::out);
                 metafile << meta_info.dump();
                 metafile.close();
-                LOG_INFO("Vector Index {} Serialize, num:{}", meta_.name(), vsag_index_->GetNumElements());
+                LOG_INFO("write file: {}", path);
+                LOG_INFO("Vector Index {} finish serialization, num:{}, apply_id: {}", meta_.name(), vsag_index_->GetNumElements(), apply_id);
             } else if (bs.error().type == vsag::ErrorType::NO_ENOUGH_MEMORY) {
-                std::cerr << "no enough memory to serialize index" << std::endl;
+                LOG_ERROR("no enough memory to serialize index {}", meta_.name());
             }
         }
     }
@@ -706,20 +712,25 @@ void VertexVectorIndex::Load() {
         return;
     }
     if (auto bs = vsag_index_->Serialize(); bs.has_value()) {
+        LOG_INFO("Vector Index {} begin serialization", meta_.name());
         auto keys = bs->GetKeys();
         for (const auto& meta_key : keys) {
             vsag::Binary b = bs->Get(meta_key);
-            std::ofstream file(meta_.path() + "/hnsw.index." + meta_key, std::ios::binary);
+            std::string path = meta_.path() + "/hnsw.index." + meta_key;
+            std::ofstream file(path, std::ios::binary);
             file.write((const char*)b.data.get(), b.size);
             file.close();
+            LOG_INFO("write file: {}", path);
         }
         nlohmann::json meta_info {
             {"keys", keys},
             {"apply_id", 0}
         };
-        std::ofstream metafile(meta_.path() + "/hnsw.index._meta", std::ios::out);
+        std::string path = meta_.path() + "/hnsw.index._meta";
+        std::ofstream metafile(path, std::ios::out);
         metafile << meta_info.dump();
         metafile.close();
+        LOG_INFO("write file: {}", path);
         SPDLOG_INFO("Vector Index {} Serialize, num:{}", meta_.name(), vsag_index_->GetNumElements());
     } else if (bs.error().type == vsag::ErrorType::NO_ENOUGH_MEMORY) {
         std::cerr << "no enough memory to serialize index" << std::endl;

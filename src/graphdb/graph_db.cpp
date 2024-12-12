@@ -93,8 +93,8 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     });
     graph_db->meta_info_.Init(
         graph_db->db_, graph_db->assistant_, &graph_db->graph_cf_,
-        &graph_db->id_generator_, graph_db->options_.ft_commit_interval_,
-        graph_db->options_.vt_commit_interval_);
+        &graph_db->id_generator_, graph_db->options_.ft_apply_interval_,
+        graph_db->options_.vt_apply_interval_);
     graph_db->id_generator_.Init(graph_db->db_, &graph_db->graph_cf_);
 
     return graph_db;
@@ -262,7 +262,7 @@ void GraphDB::AddVertexFullTextIndex(
     *meta.mutable_property_ids() = {native_pids.begin(), native_pids.end()};
     auto v_ft_index = std::make_unique<VertexFullTextIndex>(
         db_, assistant_, &graph_cf_, &id_generator_, meta, index_id, lids, pids,
-        options_.ft_commit_interval_);
+        options_.ft_apply_interval_);
     v_ft_index->Load();
     rocksdb::WriteOptions wo;
     auto s = db_->Put(wo, graph_cf_.meta_info, meta_key,
@@ -328,7 +328,7 @@ void GraphDB::AddVertexVectorIndex(
     meta.set_hnsw_ef_construction(hnsw_ef_construction);
     auto vvi = std::make_unique<VertexVectorIndex>(db_, assistant_,
                                                    &graph_cf_, index_id, lid, pid, meta,
-                                                   options_.vt_commit_interval_);
+                                                   options_.vt_apply_interval_);
     vvi->Load();
     // write meta info
     std::string meta_key;
@@ -347,6 +347,7 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
         THROW_CODE(VectorIndexNotFound,
                    "No such vertex vector index [{}]", index_name);
     }
+    auto path = meta_info_.GetVertexVectorIndex(index_name)->meta().path();
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexVectorIndex));
     meta_key.append(index_name);
@@ -354,6 +355,12 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
     auto s = db_->Delete(wo, graph_cf_.meta_info, meta_key);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     meta_info_.DeleteVertexVectorIndex(index_name);
+    try {
+        std::filesystem::remove_all(path);
+        LOG_INFO("remove vector index data {}", path);
+    } catch (const std::exception& e) {
+        LOG_ERROR("[DeleteVertexVectorIndex] remove_all {} meet error: {}", path, e.what());
+    }
 }
 
 }

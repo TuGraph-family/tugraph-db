@@ -606,9 +606,9 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::std::string* release_property();
   void set_allocated_property(::std::string* property);
 
-  // string distance_type = 8;
+  // string distance_type = 7;
   void clear_distance_type();
-  static const int kDistanceTypeFieldNumber = 8;
+  static const int kDistanceTypeFieldNumber = 7;
   const ::std::string& distance_type() const;
   void set_distance_type(const ::std::string& value);
   #if LANG_CXX11
@@ -620,9 +620,9 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::std::string* release_distance_type();
   void set_allocated_distance_type(::std::string* distance_type);
 
-  // string path = 12;
+  // string path = 11;
   void clear_path();
-  static const int kPathFieldNumber = 12;
+  static const int kPathFieldNumber = 11;
   const ::std::string& path() const;
   void set_path(const ::std::string& value);
   #if LANG_CXX11
@@ -646,33 +646,27 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::uint32 property_id() const;
   void set_property_id(::google::protobuf::uint32 value);
 
-  // uint32 sharding_num = 6;
-  void clear_sharding_num();
-  static const int kShardingNumFieldNumber = 6;
-  ::google::protobuf::uint32 sharding_num() const;
-  void set_sharding_num(::google::protobuf::uint32 value);
-
-  // uint32 dimensions = 7;
+  // uint32 dimensions = 6;
   void clear_dimensions();
-  static const int kDimensionsFieldNumber = 7;
+  static const int kDimensionsFieldNumber = 6;
   ::google::protobuf::uint32 dimensions() const;
   void set_dimensions(::google::protobuf::uint32 value);
 
-  // uint32 hnsw_m = 9;
+  // uint32 hnsw_m = 8;
   void clear_hnsw_m();
-  static const int kHnswMFieldNumber = 9;
+  static const int kHnswMFieldNumber = 8;
   ::google::protobuf::uint32 hnsw_m() const;
   void set_hnsw_m(::google::protobuf::uint32 value);
 
-  // uint32 hnsw_ef_construction = 10;
+  // uint32 hnsw_ef_construction = 9;
   void clear_hnsw_ef_construction();
-  static const int kHnswEfConstructionFieldNumber = 10;
+  static const int kHnswEfConstructionFieldNumber = 9;
   ::google::protobuf::uint32 hnsw_ef_construction() const;
   void set_hnsw_ef_construction(::google::protobuf::uint32 value);
 
-  // uint32 index_id = 11;
+  // uint32 index_id = 10;
   void clear_index_id();
-  static const int kIndexIdFieldNumber = 11;
+  static const int kIndexIdFieldNumber = 10;
   ::google::protobuf::uint32 index_id() const;
   void set_index_id(::google::protobuf::uint32 value);
 
@@ -687,7 +681,6 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
   ::google::protobuf::internal::ArenaStringPtr path_;
   ::google::protobuf::uint32 label_id_;
   ::google::protobuf::uint32 property_id_;
-  ::google::protobuf::uint32 sharding_num_;
   ::google::protobuf::uint32 dimensions_;
   ::google::protobuf::uint32 hnsw_m_;
   ::google::protobuf::uint32 hnsw_ef_construction_;
@@ -946,11 +939,11 @@ class FullTextIndexUpdate : public ::google::protobuf::Message /* @@protoc_inser
   const ::google::protobuf::RepeatedPtrField< ::std::string>& values() const;
   ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_values();
 
-  // int64 id = 2;
-  void clear_id();
-  static const int kIdFieldNumber = 2;
-  ::google::protobuf::int64 id() const;
-  void set_id(::google::protobuf::int64 value);
+  // int64 vid = 2;
+  void clear_vid();
+  static const int kVidFieldNumber = 2;
+  ::google::protobuf::int64 vid() const;
+  void set_vid(::google::protobuf::int64 value);
 
   // .meta.UpdateType type = 1;
   void clear_type();
@@ -964,7 +957,7 @@ class FullTextIndexUpdate : public ::google::protobuf::Message /* @@protoc_inser
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
   ::google::protobuf::RepeatedPtrField< ::std::string> fields_;
   ::google::protobuf::RepeatedPtrField< ::std::string> values_;
-  ::google::protobuf::int64 id_;
+  ::google::protobuf::int64 vid_;
   int type_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
@@ -1839,21 +1832,7 @@ inline void VertexVectorIndex::set_property_id(::google::protobuf::uint32 value)
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.property_id)
 }
 
-// uint32 sharding_num = 6;
-inline void VertexVectorIndex::clear_sharding_num() {
-  sharding_num_ = 0u;
-}
-inline ::google::protobuf::uint32 VertexVectorIndex::sharding_num() const {
-  // @@protoc_insertion_point(field_get:meta.VertexVectorIndex.sharding_num)
-  return sharding_num_;
-}
-inline void VertexVectorIndex::set_sharding_num(::google::protobuf::uint32 value) {
-  
-  sharding_num_ = value;
-  // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.sharding_num)
-}
-
-// uint32 dimensions = 7;
+// uint32 dimensions = 6;
 inline void VertexVectorIndex::clear_dimensions() {
   dimensions_ = 0u;
 }
@@ -1867,7 +1846,7 @@ inline void VertexVectorIndex::set_dimensions(::google::protobuf::uint32 value) 
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.dimensions)
 }
 
-// string distance_type = 8;
+// string distance_type = 7;
 inline void VertexVectorIndex::clear_distance_type() {
   distance_type_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -1920,7 +1899,7 @@ inline void VertexVectorIndex::set_allocated_distance_type(::std::string* distan
   // @@protoc_insertion_point(field_set_allocated:meta.VertexVectorIndex.distance_type)
 }
 
-// uint32 hnsw_m = 9;
+// uint32 hnsw_m = 8;
 inline void VertexVectorIndex::clear_hnsw_m() {
   hnsw_m_ = 0u;
 }
@@ -1934,7 +1913,7 @@ inline void VertexVectorIndex::set_hnsw_m(::google::protobuf::uint32 value) {
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.hnsw_m)
 }
 
-// uint32 hnsw_ef_construction = 10;
+// uint32 hnsw_ef_construction = 9;
 inline void VertexVectorIndex::clear_hnsw_ef_construction() {
   hnsw_ef_construction_ = 0u;
 }
@@ -1948,7 +1927,7 @@ inline void VertexVectorIndex::set_hnsw_ef_construction(::google::protobuf::uint
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.hnsw_ef_construction)
 }
 
-// uint32 index_id = 11;
+// uint32 index_id = 10;
 inline void VertexVectorIndex::clear_index_id() {
   index_id_ = 0u;
 }
@@ -1962,7 +1941,7 @@ inline void VertexVectorIndex::set_index_id(::google::protobuf::uint32 value) {
   // @@protoc_insertion_point(field_set:meta.VertexVectorIndex.index_id)
 }
 
-// string path = 12;
+// string path = 11;
 inline void VertexVectorIndex::clear_path() {
   path_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
 }
@@ -2104,18 +2083,18 @@ inline void FullTextIndexUpdate::set_type(::meta::UpdateType value) {
   // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.type)
 }
 
-// int64 id = 2;
-inline void FullTextIndexUpdate::clear_id() {
-  id_ = GOOGLE_LONGLONG(0);
+// int64 vid = 2;
+inline void FullTextIndexUpdate::clear_vid() {
+  vid_ = GOOGLE_LONGLONG(0);
 }
-inline ::google::protobuf::int64 FullTextIndexUpdate::id() const {
-  // @@protoc_insertion_point(field_get:meta.FullTextIndexUpdate.id)
-  return id_;
+inline ::google::protobuf::int64 FullTextIndexUpdate::vid() const {
+  // @@protoc_insertion_point(field_get:meta.FullTextIndexUpdate.vid)
+  return vid_;
 }
-inline void FullTextIndexUpdate::set_id(::google::protobuf::int64 value) {
+inline void FullTextIndexUpdate::set_vid(::google::protobuf::int64 value) {
   
-  id_ = value;
-  // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.id)
+  vid_ = value;
+  // @@protoc_insertion_point(field_set:meta.FullTextIndexUpdate.vid)
 }
 
 // repeated string fields = 3;
