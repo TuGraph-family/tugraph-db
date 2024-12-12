@@ -180,7 +180,8 @@ class LGraphDaemon : public Service {
             g_galaxy = Galaxy::Open(FLAGS_data_path,
                                     {.block_cache_size = FLAGS_block_cache,
                                      .row_cache_size = FLAGS_row_cache,
-                                     .ft_commit_interval = FLAGS_ft_commit_interval});
+                                     .ft_commit_interval = FLAGS_ft_commit_interval,
+                                     .vt_commit_interval = FLAGS_ft_commit_interval});
             BoltServer::Instance().Start(
                 FLAGS_bolt_port, FLAGS_bolt_io_thread_num, g_bolt_handler);
             g_galaxy.reset();

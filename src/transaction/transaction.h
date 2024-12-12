@@ -69,14 +69,11 @@ class Transaction {
     void Rollback();
     graphdb::GraphDB* db() { return db_; }
     rocksdb::Transaction* dbtxn() { return txn_; };
-    std::vector<graphdb::VectorIndexUpdate>& vector_updates() { return vector_updates_; };
     void SetConn(const std::shared_ptr<bolt::BoltConnection>& conn) {conn_ = conn;}
     std::shared_ptr<bolt::BoltConnection>& conn() {return conn_;}
    private:
-    void CommitVectorIndex();
     rocksdb::Transaction* txn_;
     graphdb::GraphDB* db_;
-    std::vector<graphdb::VectorIndexUpdate> vector_updates_;
     std::shared_ptr<bolt::BoltConnection> conn_;
 };
 

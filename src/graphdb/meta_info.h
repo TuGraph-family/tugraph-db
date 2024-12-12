@@ -32,14 +32,15 @@ enum class MetaDataType : char {
 
 struct MetaInfo {
     std::unordered_map<uint64_t, VertexPropertyIndex> vertex_property_indexes;
-    std::unordered_map<uint64_t, VertexVectorIndex> vertex_vector_indexes;
+    std::unordered_map<uint64_t, std::unique_ptr<VertexVectorIndex>> vertex_vector_indexes;
     std::unordered_map<std::string, std::unique_ptr<VertexFullTextIndex>> vertex_ft_indexes;
 
     // property index
     void Init(rocksdb::TransactionDB* db,
               boost::asio::io_service &service,
               GraphCF* graph_cf, IdGenerator* id_generator,
-              size_t ft_commit_interval);
+              size_t ft_commit_interval,
+              size_t vt_commit_interval);
     VertexPropertyIndex* GetVertexPropertyIndex(uint32_t lid, uint32_t pid);
     VertexPropertyIndex* GetVertexPropertyIndex(const std::string& index_name);
     std::unordered_map<uint64_t, VertexPropertyIndex>& GetVertexPropertyIndex();
@@ -55,8 +56,8 @@ struct MetaInfo {
 
     // vector index
     VertexVectorIndex* GetVertexVectorIndex(uint32_t lid, uint32_t pid);
-    void AddVertexVectorIndex(VertexVectorIndex&& vvi);
-    std::unordered_map<uint64_t, VertexVectorIndex>&
+    void AddVertexVectorIndex(std::unique_ptr<VertexVectorIndex> vvi);
+    std::unordered_map<uint64_t, std::unique_ptr<VertexVectorIndex>>&
     GetVertexVectorIndex();
     VertexVectorIndex* GetVertexVectorIndex(const std::string& index_name);
     void DeleteVertexVectorIndex(const std::string& name);

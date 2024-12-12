@@ -17,11 +17,15 @@
 //
 
 #include "index.h"
-#include "transaction/transaction.h"
-#include "ftindex/include/lib.rs.h"
-#include "common/logger.h"
+
 #include <rocksdb/utilities/write_batch_with_index.h>
+
+#include <fstream>
 #include <nlohmann/json.hpp>
+
+#include "common/logger.h"
+#include "ftindex/include/lib.rs.h"
+#include "transaction/transaction.h"
 
 using namespace txn;
 using namespace boost::endian;
@@ -348,66 +352,290 @@ void VertexFullTextIndex::ApplyWAL() {
 }
 
 VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
+                                     boost::asio::io_service &service,
                                      graphdb::GraphCF* graph_cf,
+                                     uint32_t index_id,
                                      uint32_t lid, uint32_t pid,
-                                     meta::VertexVectorIndex meta)
-    : db_(db), graph_cf_(graph_cf), lid_(lid), pid_(pid), meta_(std::move(meta)) {
-    sharding_num_ = meta_.sharding_num();
-    for (int i = 0; i < sharding_num_; i++) {
-        indexes_.emplace_back(std::make_unique<VsagIndex>(meta_));
+                                     meta::VertexVectorIndex meta,
+                                     size_t commit_interval)
+    : db_(db), graph_cf_(graph_cf), index_id_(index_id),
+      lid_(lid), pid_(pid), meta_(std::move(meta)),
+      interval_(commit_interval), timer_(service) {
+
+    nlohmann::json hnsw_parameters {
+        {"max_degree", meta_.hnsw_m()},
+        {"ef_construction", meta_.hnsw_ef_construction()}
+    };
+    if (meta_.distance_type() != "l2" && meta_.distance_type() != "ip") {
+        THROW_CODE(VectorIndexException, "invalid metric_type: {}", meta_.distance_type());
     }
+    nlohmann::json index_parameters {
+        {"dtype", "float32"},
+        {"metric_type", meta_.distance_type()},
+        {"dim", meta_.dimensions()},
+        {"hnsw", hnsw_parameters}
+    };
+    auto ret = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
+    if (ret.has_value()) {
+        vsag_index_ = std::move(ret.value());
+    } else {
+        THROW_CODE(VectorIndexException, "Failed to create vector index");
+    }
+
+    {
+        std::ifstream metafile(meta_.path() + "/hnsw.index._meta", std::ios::in);
+        if (metafile) {
+            nlohmann::json meta_info;
+            metafile >> meta_info;
+            metafile.close();
+            vsag::BinarySet bs;
+            std::vector<std::string> keys = meta_info["keys"];
+            for (const auto& key : keys) {
+                std::ifstream file(meta_.path() + "/hnsw.index." + key, std::ios::in);
+                file.seekg(0, std::ios::end);
+                vsag::Binary b;
+                b.size = file.tellg();
+                b.data.reset(new int8_t[b.size]);
+                file.seekg(0, std::ios::beg);
+                file.read((char*)b.data.get(), b.size);
+                bs.Set(key, b);
+            }
+            vsag_index_->Deserialize(bs);
+            apply_id_ = meta_info["apply_id"];
+            LOG_INFO("Vector Index {} Deserialize, num:{}", meta_.name(), vsag_index_->GetNumElements());
+        }
+    }
+
+    {
+        std::string prefix((const char*)&index_id_, sizeof(index_id_));
+        prefix.append(8, 0xFF);
+        rocksdb::ReadOptions ro;
+        std::unique_ptr<rocksdb::Iterator> iter(
+            db_->NewIterator(ro, graph_cf_->wal));
+        iter->SeekForPrev(prefix);
+        if (iter->Valid()) {
+            auto key = iter->key();
+            if (key.starts_with({(const char*)&index_id_, sizeof(index_id_)})) {
+                key.remove_prefix(sizeof(index_id_));
+                assert(key.size() == sizeof(uint64_t));
+                uint64_t wal_id = *(uint64_t*)key.data();
+                next_wal_id_ = big_to_native(wal_id) + 1;
+            }
+        }
+    }
+    {
+        int64_t max_vector_id = -1;
+        std::string prefix((const char*)&index_id_, sizeof(index_id_));
+        rocksdb::ReadOptions ro;
+        std::unique_ptr<rocksdb::Iterator> iter(
+            db_->NewIterator(ro, graph_cf_->index));
+        for (iter->Seek(prefix);
+             iter->Valid() && iter->key().starts_with(prefix);
+             iter->Next()) {
+            auto key = iter->key();
+            auto val = iter->value();
+            key.remove_prefix(sizeof(index_id_));
+            char flag = *key.data();
+            key.remove_prefix(1);
+            if (flag == 0) {
+                assert(key.size() == sizeof(int64_t));
+                assert(val.size() == sizeof(int64_t));
+                auto vid = *(int64_t*)key.data();
+                auto vector_id = *(int64_t*)val.data();
+                max_vector_id = std::max(max_vector_id, vector_id);
+                vectorid_vid_.emplace(vector_id, vid);
+            } else {
+                assert(flag == 1);
+                assert(key.size() == sizeof(int64_t));
+                assert(val.size() == 0);
+                auto vector_id = *(int64_t*)key.data();
+                max_vector_id = std::max(max_vector_id, vector_id);
+                deleted_vector_ids_.emplace(vector_id);
+            }
+        }
+        if (max_vector_id != -1) {
+            next_vector_id_ = max_vector_id + 1;
+        }
+    }
+    StartTimer();
+}
+
+void VertexVectorIndex::StartTimer() {
+    timer_.expires_after(std::chrono::seconds(interval_));
+    timer_.async_wait([this](const boost::system::error_code& e) {
+        if (e) {
+            LOG_ERROR("timer async_wait error: {}", e.message());
+            return;
+        }
+        ApplyWAL();
+        StartTimer();
+    });
 }
 
 int64_t VertexVectorIndex::GetElementsNum() {
-    int64_t ret = 0;
-    for (auto& index : indexes_) {
-        ret += index->GetElementsNum();
-    }
-    return ret;
+    return vsag_index_->GetNumElements();
 }
 
 int64_t VertexVectorIndex::GetMemoryUsage() {
-    int64_t ret = 0;
-    for (auto& index : indexes_) {
-        ret += index->GetMemoryUsage();
-    }
-    return ret;
+    return vsag_index_->GetMemoryUsage();
 }
 
 int64_t VertexVectorIndex::GetDeletedIdsNum() {
-    int64_t ret = 0;
-    for (auto& index : indexes_) {
-        ret += index->GetDeletedIdsNum();
-    }
-    return ret;
+    return 0;
 }
 
 std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
     const float* query, int top_k, int ef_search) {
+    auto dataset = vsag::Dataset::Make();
+    dataset->Dim(meta_.dimensions())
+        ->NumElements(1)
+        ->Float32Vectors(query)
+        ->Owner(false);
+    nlohmann::json parameters{
+        {"hnsw", {{"ef_search", ef_search}}},
+    };
     std::vector<std::pair<int64_t, float>> ret;
-    for (auto& index : indexes_) {
-        auto tmp = index->KnnSearch(query, top_k, ef_search);
-        ret.insert(ret.end(), tmp.begin(), tmp.end());
-    }
-    std::sort(ret.begin(), ret.end(), [](auto& a, auto& b){
-        return a.second < b.second;
+    auto result = vsag_index_->KnnSearch(dataset, top_k, parameters.dump(), [this](int64_t id)->bool {
+        return deleted_vector_ids_.count(id) > 0;
     });
-    if ((int)ret.size() > top_k) {
-        ret.resize(top_k);
+    if (result.has_value()) {
+        for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
+            auto vectorId = result.value()->GetIds()[i];
+            ret.emplace_back(vectorid_vid_.at(vectorId), result.value()->GetDistances()[i]);
+        }
+    } else {
+        THROW_CODE(VectorIndexException, result.error().message);
     }
     return ret;
 }
 
-void VertexVectorIndex::RemoveIfExists(int64_t vid) {
-    auto native_id = big_to_native(vid);
-    assert(native_id >= 0);
-    indexes_[native_id % sharding_num_]->RemoveIfExists(vid);
+void  VertexVectorIndex::TryDeleteIndex(txn::Transaction* txn, int64_t vid) {
+    std::string index_key = IndexKey(vid);
+    std::string val;
+    auto s = txn->dbtxn()->Get({}, graph_cf_->index, index_key, &val);
+    if (s.ok()) {
+        assert(val.size() == sizeof(int64_t));
+        auto vector_id = *(int64_t*)val.data();
+        s = txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, index_key);
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+        s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->index, DeleteMarkKey(vector_id), {});
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+        meta::VectorIndexUpdate wal;
+        wal.set_type(meta::UpdateType::Delete);
+        wal.set_vector_id(vector_id);
+        s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(), wal.SerializeAsString());
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    } else if (!s.IsNotFound()) {
+        THROW_CODE(StorageEngineError, s.ToString());
+    }
 }
 
-void VertexVectorIndex::Add(int64_t vid, std::unique_ptr<float[]> embedding) {
-    auto native_id = big_to_native(vid);
-    assert(native_id >= 0);
-    indexes_[native_id % sharding_num_]->Add(vid, std::move(embedding));
+std::string VertexVectorIndex::NextWALKey() {
+    std::string ret((const char*)&index_id_, sizeof(index_id_));
+    uint64_t wal_id = native_to_big(next_wal_id_++);
+    ret.append((const char*)&wal_id, sizeof(wal_id));
+    return ret;
+}
+
+std::string VertexVectorIndex::IndexKey(int64_t vid) {
+    char flag = 0;
+    std::string ret((const char*)&index_id_, sizeof(index_id_));
+    ret.append(1, flag);
+    ret.append((const char*)&vid, sizeof(vid));
+    return ret;
+}
+
+std::string VertexVectorIndex::DeleteMarkKey(int64_t vector_id) {
+    char flag = 1;
+    std::string ret((const char*)&index_id_, sizeof(index_id_));
+    ret.append(1, flag);
+    ret.append((const char*)&vector_id, sizeof(vector_id));
+    return ret;
+}
+
+void VertexVectorIndex::ApplyWAL() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    std::string prefix((const char*)&index_id_, sizeof(index_id_));
+    std::string start_key(prefix);
+    uint64_t next = big_to_native(apply_id_) + 1;
+    native_to_big_inplace(next);
+    start_key.append((const char*)&next, sizeof(next));
+    uint64_t consumed_wal_id = 0;
+    rocksdb::WriteBatch delete_batch;
+    rocksdb::ReadOptions ro;
+    std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
+    for (iter->Seek(start_key); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
+        auto key = iter->key();
+        delete_batch.Delete(graph_cf_->wal, key.ToString());
+
+        key.remove_prefix(sizeof(index_id_));
+        assert(key.size() == sizeof(apply_id_));
+        consumed_wal_id = *(uint64_t*)key.data();
+        meta::VectorIndexUpdate update;
+        auto val = iter->value();
+        auto ret = update.ParseFromArray(val.data(), val.size());
+        assert(ret);
+        if (update.type() == meta::UpdateType::Delete) {
+            deleted_vector_ids_.emplace(update.vector_id());
+            continue;
+        }
+        assert(update.type() == meta::UpdateType::Add);
+        std::unique_ptr<float[]> embedding(new float[update.vector_size()]);
+        for (int i = 0; i < update.vector_size(); i++) {
+            embedding[i] = update.vector(i);
+        }
+        auto* id = new int64_t[1];
+        id[0] = update.vector_id();
+        auto dataset = vsag::Dataset::Make();
+        dataset->Dim(meta_.dimensions())->NumElements(1)
+            ->Ids(id)->Float32Vectors(embedding.release());
+        auto result = vsag_index_->Add(dataset);
+        if (result.has_value()) {
+            if (!result.value().empty()) {
+                THROW_CODE(VectorIndexException, "failed to insert {} ids into vector index", result.value().size());
+            }
+        } else {
+            THROW_CODE(VectorIndexException, result.error().message);
+        }
+        vectorid_vid_.emplace(update.vector_id(), update.vid());
+        if (vsag_index_->GetNumElements() % 100000 == 0) {
+            if (auto bs = vsag_index_->Serialize(); bs.has_value()) {
+                auto keys = bs->GetKeys();
+                for (const auto& meta_key : keys) {
+                    vsag::Binary b = bs->Get(meta_key);
+                    std::ofstream file(meta_.path() + "/hnsw.index." + meta_key, std::ios::binary);
+                    file.write((const char*)b.data.get(), b.size);
+                    file.close();
+                }
+                nlohmann::json meta_info {
+                    {"keys", keys},
+                    {"apply_id", boost::endian::big_to_native(consumed_wal_id)}
+                };
+                std::ofstream metafile(meta_.path() + "/hnsw.index._meta", std::ios::out);
+                metafile << meta_info.dump();
+                metafile.close();
+                LOG_INFO("Vector Index {} Serialize, num:{}", meta_.name(), vsag_index_->GetNumElements());
+            } else if (bs.error().type == vsag::ErrorType::NO_ENOUGH_MEMORY) {
+                std::cerr << "no enough memory to serialize index" << std::endl;
+            }
+        }
+    }
+    if (consumed_wal_id != 0) {
+        apply_id_ = consumed_wal_id;
+    }
+}
+
+void VertexVectorIndex::AddIndex(txn::Transaction* txn, int64_t vid,
+                                 meta::VectorIndexUpdate& wal) {
+    // vid -> vector id
+    auto vector_id = next_vector_id_++;
+    auto s = txn->dbtxn()->GetWriteBatch()->Put(
+        graph_cf_->index, IndexKey(vid), rocksdb::Slice((const char*)&vector_id, sizeof(vector_id)));
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    wal.set_vid(vid);
+    wal.set_vector_id(vector_id);
+    s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(), wal.SerializeAsString());
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }
 
 void VertexVectorIndex::Load() {
@@ -417,7 +645,6 @@ void VertexVectorIndex::Load() {
     SPDLOG_INFO("Begin to load vector index: {}", meta_.name());
     int count = 0;
     rocksdb::Slice prefix((const char*)&lid_, sizeof(lid_));
-    boost::asio::thread_pool pool(sharding_num_);
     for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
          iter->Next()) {
         auto key = iter->key();
@@ -444,106 +671,59 @@ void VertexVectorIndex::Load() {
         if (!array[0].IsDouble() && !array[0].IsFloat()) {
             continue;
         }
-        std::unique_ptr<float[]> copy(new float[array.size()]);
+        std::unique_ptr<float[]> embedding(new float[array.size()]);
         for (size_t i = 0; i < array.size(); i++) {
             if (array[i].IsDouble()) {
-                copy[i] = static_cast<float>(array[i].AsDouble());
+                embedding[i] = static_cast<float>(array[i].AsDouble());
             } else {
-                copy[i] = array[i].AsFloat();
+                embedding[i] = array[i].AsFloat();
             }
         }
-        boost::asio::post(pool, [this, vid, copy = std::move(copy)]() mutable {
-            Add(vid, std::move(copy));
-        });
+        auto vector_id = next_vector_id_++;
+        s = db_->Put({}, graph_cf_->index, IndexKey(vid), rocksdb::Slice((const char*)&vector_id, sizeof(vector_id)));
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+        vectorid_vid_.emplace(vector_id, vid);
+        auto* id = new int64_t[1];
+        id[0] = vector_id;
+        auto dataset = vsag::Dataset::Make();
+        dataset->Dim(meta_.dimensions())->NumElements(1)
+            ->Ids(id)->Float32Vectors(embedding.release());
+        auto result = vsag_index_->Add(dataset);
+        if (result.has_value()) {
+            if (!result.value().empty()) {
+                THROW_CODE(VectorIndexException, "failed to insert {} ids into vector index", result.value().size());
+            }
+        } else {
+            THROW_CODE(VectorIndexException, result.error().message);
+        }
         count++;
         if (count % 10000 == 0) {
             SPDLOG_INFO("{} vector indexes have been load", count);
         }
     }
-    pool.join();
     SPDLOG_INFO("End to load vector index: {}, index num: {}", meta_.name(), count);
-}
-
-VsagIndex::VsagIndex(meta::VertexVectorIndex meta)
-    : meta_(std::move(meta)) {
-    nlohmann::json hnsw_parameters {
-        {"max_degree", meta_.hnsw_m()},
-        {"ef_construction", meta_.hnsw_ef_construction()}
-    };
-    if (meta_.distance_type() != "l2" && meta_.distance_type() != "ip") {
-        THROW_CODE(VectorIndexException, "invalid metric_type: {}", meta_.distance_type());
+    if (vsag_index_->GetNumElements() == 0) {
+        return;
     }
-    nlohmann::json index_parameters {
-        {"dtype", "float32"},
-        {"metric_type", meta_.distance_type()},
-        {"dim", meta_.dimensions()},
-        {"hnsw", hnsw_parameters}
-    };
-    auto ret = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
-    if (ret.has_value()) {
-        index_ = std::move(ret.value());
-    } else {
-        THROW_CODE(VectorIndexException, "Failed to create vector index");
-    }
-}
-
-void VsagIndex::Add(int64_t vid, std::unique_ptr<float[]> embedding) {
-    std::unique_lock write_lock(mutex_);
-    if (vid_vectorId_.count(vid)) {
-        THROW_CODE(VectorIndexException, "vid {} already exists", vid);
-    }
-    auto* id = new int64_t[1];
-    vectorId_++;
-    id[0] = vectorId_;
-    vid_vectorId_[vid] = vectorId_;
-    vectorId_vid_[vectorId_] = {false, vid};
-    auto dataset = vsag::Dataset::Make();
-    dataset->Dim(meta_.dimensions())->NumElements(1)
-        ->Ids(id)->Float32Vectors(embedding.release());
-    auto result = index_->Add(dataset);
-    if (result.has_value()) {
-        if (!result.value().empty()) {
-            THROW_CODE(VectorIndexException, "failed to insert {} ids into vector index", result.value().size());
+    if (auto bs = vsag_index_->Serialize(); bs.has_value()) {
+        auto keys = bs->GetKeys();
+        for (const auto& meta_key : keys) {
+            vsag::Binary b = bs->Get(meta_key);
+            std::ofstream file(meta_.path() + "/hnsw.index." + meta_key, std::ios::binary);
+            file.write((const char*)b.data.get(), b.size);
+            file.close();
         }
-    } else {
-        THROW_CODE(VectorIndexException, result.error().message);
+        nlohmann::json meta_info {
+            {"keys", keys},
+            {"apply_id", 0}
+        };
+        std::ofstream metafile(meta_.path() + "/hnsw.index._meta", std::ios::out);
+        metafile << meta_info.dump();
+        metafile.close();
+        SPDLOG_INFO("Vector Index {} Serialize, num:{}", meta_.name(), vsag_index_->GetNumElements());
+    } else if (bs.error().type == vsag::ErrorType::NO_ENOUGH_MEMORY) {
+        std::cerr << "no enough memory to serialize index" << std::endl;
     }
-}
-
-void VsagIndex::RemoveIfExists(int64_t vid) {
-    std::unique_lock write_lock(mutex_);
-    auto iter = vid_vectorId_.find(vid);
-    if (iter != vid_vectorId_.end()) {
-        vectorId_vid_.at(iter->second) = { true, -1};
-        vid_vectorId_.erase(iter);
-        deleted_vids_num_++;
-    }
-}
-
-std::vector<std::pair<int64_t, float>> VsagIndex::KnnSearch(
-    const float* query, int top_k, int ef_search) {
-    auto dataset = vsag::Dataset::Make();
-    dataset->Dim(meta_.dimensions())
-        ->NumElements(1)
-        ->Float32Vectors(query)
-        ->Owner(false);
-    nlohmann::json parameters{
-        {"hnsw", {{"ef_search", ef_search}}},
-    };
-    std::vector<std::pair<int64_t, float>> ret;
-    std::shared_lock read_lock(mutex_);
-    auto result = index_->KnnSearch(dataset, top_k, parameters.dump(), [this](int64_t id)->bool {
-        return vectorId_vid_.at(id).first;
-    });
-    if (result.has_value()) {
-        for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
-            auto vectorId = result.value()->GetIds()[i];
-            ret.emplace_back(vectorId_vid_.at(vectorId).second, result.value()->GetDistances()[i]);
-        }
-    } else {
-        THROW_CODE(VectorIndexException, result.error().message);
-    }
-    return ret;
 }
 
 }

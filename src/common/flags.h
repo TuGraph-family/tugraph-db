@@ -42,3 +42,4 @@ DECLARE_uint32(bolt_io_thread_num);
 DECLARE_uint64(block_cache);
 DECLARE_uint64(row_cache);
 DECLARE_uint64(ft_commit_interval);
+DECLARE_uint64(vt_commit_interval);

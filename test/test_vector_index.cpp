@@ -41,7 +41,7 @@ TEST(VectorIndex, build) {
                       {{"id", Value::Integer(4)},
                        {"embedding", Value::DoubleArray({4.0,4.0,4.0,4.0})}});
     txn->Commit();
-    graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 10, 4, "l2", 16, 100);
+    graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 4, "l2", 16, 100);
     txn = graphDB->BeginTransaction();
     int count = 0;
     for (auto viter = txn->QueryVertexByKnnSearch(index_name, {1.0, 2.0, 3.0, 4.0}, 10, 100);
@@ -62,7 +62,7 @@ TEST_P(VectorIndexParamTest, dim) {
     auto graphDB = GraphDB::Open(testdb, {});
     std::string index_name = "vector_index";
     int dim = GetParam();
-    graphDB->AddVertexVectorIndex(index_name, "person", "embedding", 10, dim, "l2", 16, 100);
+    graphDB->AddVertexVectorIndex(index_name, "person", "embedding", dim, "l2", 16, 100);
     auto txn = graphDB->BeginTransaction();
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -97,7 +97,7 @@ TEST(VectorIndex, del) {
     fs::remove_all(testdb);
     auto graphDB = GraphDB::Open(testdb, {});
     std::string index_name = "vector_index";
-    graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 10, 4, "l2", 16, 100);
+    graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 4, "l2", 16, 100);
     auto txn = graphDB->BeginTransaction();
     txn->CreateVertex({"label1"},
                       {{"id", Value::Integer(1)},
@@ -112,6 +112,9 @@ TEST(VectorIndex, del) {
                       {{"id", Value::Integer(4)},
                        {"embedding", Value::DoubleArray({4.0,4.0,4.0,4.0})}});
     txn->Commit();
+    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+        index->ApplyWAL();
+    }
     txn = graphDB->BeginTransaction();
     std::set<int64_t> ids, expect;
     for (auto viter = txn->QueryVertexByKnnSearch(index_name, {1.0, 2.0, 3.0, 4.0}, 10, 100);
@@ -124,6 +127,9 @@ TEST(VectorIndex, del) {
     cypher::RTContext rtx;
     txn->Execute(&rtx, "match(n {id:1}) delete n")->Consume();
     txn->Commit();
+    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+        index->ApplyWAL();
+    }
     txn = graphDB->BeginTransaction();
     ids.clear();
     for (auto viter = txn->QueryVertexByKnnSearch(index_name, {1.0, 2.0, 3.0, 4.0}, 10, 100);
@@ -148,7 +154,7 @@ TEST(VectorIndex, restart) {
     std::string index_name = "vector_index";
     {
         auto graphDB = GraphDB::Open(testdb, {});
-        graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 5,
+        graphDB->AddVertexVectorIndex(index_name, "label1", "embedding",
                                       4, "l2", 16, 100);
         auto txn = graphDB->BeginTransaction();
         txn->CreateVertex(
@@ -171,6 +177,9 @@ TEST(VectorIndex, restart) {
     }
     {
         auto graphDB = GraphDB::Open(testdb, {});
+        for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+            index->ApplyWAL();
+        }
         auto txn = graphDB->BeginTransaction();
         std::set<int64_t> ids, expect;
         for (auto viter = txn->QueryVertexByKnnSearch(index_name, {1.0, 2.0, 3.0, 4.0}, 10, 100);

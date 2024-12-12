@@ -122,6 +122,11 @@ std::vector<Procedure> global_procedures = {
         Procedure::SIG_SPEC{{"node", {0, ProcedureResultType::Node}},
                             {"distance", {1, ProcedureResultType::Value}}}),
     Procedure(
+        "db.index.vector.applyWal", BuiltinProcedure::DbIndexVectorApplyWal,
+        Procedure::SIG_SPEC{},
+        Procedure::SIG_SPEC{}
+        ),
+    Procedure(
         "db.index.vector.deleteIndex", BuiltinProcedure::DbIndexVectorDeleteIndex,
         Procedure::SIG_SPEC{{"index_name", {0, ProcedureResultType::Value}}},
         Procedure::SIG_SPEC{}),
@@ -434,15 +439,9 @@ void BuiltinProcedure::DbIndexVectorCreateNodeIndex(
     }
     CYPHER_ARG_CHECK((hnsw_ef_construction <= 1000 && hnsw_ef_construction >= hnsw_m),
                      "hnsw.efConstruction should be an integer in the range [hnsw.m,1000]");
-    int sharding_num = 10;
-    if (parameter.count("sharding_num")) {
-        sharding_num = (int)parameter.at("sharding_num").AsInteger();
-    }
-    CYPHER_ARG_CHECK((sharding_num <= 100 && sharding_num >= 1),
-                     "sharding_num should be an integer in the range [1, 100]");
     LOG_INFO("Create node vector index, name:{}, label:{}, property:{}, parameter:{}",
              index_name, label, property, parameter);
-    ctx->txn_->db()->AddVertexVectorIndex(index_name, label, property, sharding_num,
+    ctx->txn_->db()->AddVertexVectorIndex(index_name, label, property,
                                           dimension, distance_type, hnsw_m, hnsw_ef_construction);
 }
 
@@ -481,6 +480,21 @@ void BuiltinProcedure::DbIndexVectorKnnSearchNodes(cypher::RTContext *ctx, const
             }
         }
         records->emplace_back(std::move(r));
+    }
+}
+
+void BuiltinProcedure::DbIndexVectorApplyWal(
+    RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    const VEC_STR &yield_items,
+    std::vector<std::vector<ProcedureResult>> *records) {
+    CYPHER_ARG_CHECK(args.empty(), fmt::format("Function requires 0 arguments, but {} are "
+                                               "given. Usage: db.index.vector.applyWal",
+                                               args.size()))
+    std::string name = ctx->txn_->db()->db_meta().graph_name();
+    auto graphdb = server::g_galaxy->OpenGraph(name);
+    for (auto& [_, index] : graphdb->meta_info().GetVertexVectorIndex()) {
+        LOG_INFO("Manually apply WAL for Vector index {}", index->meta().name());
+        index->ApplyWAL();
     }
 }
 
@@ -684,20 +698,20 @@ void BuiltinProcedure::DbShowIndexes(
         std::vector<ProcedureResult> r;
         for (auto& yield : yield_items) {
             if (yield == "name") {
-                r.emplace_back(Value::String(index.meta().name()));
+                r.emplace_back(Value::String(index->meta().name()));
             } else if (yield == "type") {
                 r.emplace_back(Value::String("Vector"));
             } else if (yield == "entityType") {
                 r.emplace_back(Value::String("NODE"));
             } else if (yield == "labelsOrTypes") {
-                r.emplace_back(Value::StringArray({index.meta().label()}));
+                r.emplace_back(Value::StringArray({index->meta().label()}));
             } else if (yield == "properties") {
-                r.emplace_back(Value::StringArray({index.meta().property()}));
+                r.emplace_back(Value::StringArray({index->meta().property()}));
             } else if (yield == "otherInfo") {
                 std::unordered_map<std::string, Value> info;
-                info["elementsNum"] = Value(index.GetElementsNum());
-                info["deletedIdsNum"] = Value(index.GetDeletedIdsNum());
-                info["shardingNum"] = Value((int64_t)index.meta().sharding_num());
+                info["elementsNum"] = Value(index->GetElementsNum());
+                info["deletedIdsNum"] = Value(index->GetDeletedIdsNum());
+                info["shardingNum"] = Value((int64_t)index->meta().sharding_num());
                 r.emplace_back(Value(std::move(info)));
             }
         }

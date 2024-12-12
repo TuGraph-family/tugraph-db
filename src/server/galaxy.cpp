@@ -88,7 +88,7 @@ std::unique_ptr<Galaxy> Galaxy::Open(const std::string &path, const GalaxyOption
         auto graph_db = GraphDB::Open(
             graph_path, {.block_cache = galaxy->block_cache_,
                          .row_cache = galaxy->row_cache_,
-                         .ft_commit_interval_ = galaxy->options_.ft_commit_interval});
+                         .ft_commit_interval_ = galaxy->options_.ft_commit_interval, .vt_commit_interval_ = galaxy->options_.vt_commit_interval});
         graph_db->db_meta() = meta;
         galaxy->graphs_.emplace(meta.graph_name(), std::move(graph_db));
     }

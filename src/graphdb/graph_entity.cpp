@@ -256,17 +256,13 @@ int Vertex::Delete() {
             }
             // vector index
             for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
-                if (!labelIds.count(vvi.lid())) {
+                if (!labelIds.count(vvi->lid())) {
                     continue;
                 }
-                if (!pids.count(vvi.pid())) {
+                if (!pids.count(vvi->pid())) {
                     continue;
                 }
-                VectorIndexUpdate del;
-                del.type = UpdateType::Delete;
-                del.index_name = index_name;
-                del.vid = id_;
-                txn_->vector_updates().emplace_back(std::move(del));
+                vvi->TryDeleteIndex(txn_, id_);
             }
             auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
                 txn_->db()->graph_cf().graph_topology, key);
@@ -391,10 +387,10 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
     }
     // vector index
     for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
-        if (!new_lids.count(vvi.lid())) {
+        if (!new_lids.count(vvi->lid())) {
             continue;
         }
-        auto p_val = GetProperty(vvi.pid());
+        auto p_val = GetProperty(vvi->pid());
         if (!p_val.IsArray()) {
             continue;
         }
@@ -402,15 +398,19 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
         if (array.empty() || (!array[0].IsDouble() && !array[0].IsFloat())) {
             continue;
         }
-        if (array.size() != vvi.meta().dimensions()) {
+        if (array.size() != vvi->meta().dimensions()) {
             continue;
         }
-        VectorIndexUpdate add;
-        add.type = UpdateType::Add;
-        add.index_name = index_name;
-        add.vid = id_;
-        add.vectors = array;
-        txn_->vector_updates().emplace_back(std::move(add));
+        meta::VectorIndexUpdate add;
+        add.set_type(meta::UpdateType::Add);
+        for (auto& item : array) {
+            if (item.IsFloat()) {
+                add.add_vector(item.AsFloat());
+            } else {
+                add.add_vector((float)item.AsDouble());
+            }
+        }
+        vvi->AddIndex(txn_, id_, add);
     }
 
     labelIds.insert(new_lids.begin(), new_lids.end());
@@ -469,18 +469,10 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
     }
     // vector index
     for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
-        if (remove_lids.count(vvi.lid())) {
+        if (remove_lids.count(vvi->lid())) {
             continue;
         }
-        auto p_val = GetProperty(vvi.pid());
-        if (p_val.IsNull()) {
-            continue;
-        }
-        VectorIndexUpdate del;
-        del.type = UpdateType::Delete;
-        del.index_name = index_name;
-        del.vid = id_;
-        txn_->vector_updates().emplace_back(std::move(del));
+        vvi->TryDeleteIndex(txn_, id_);
     }
     for (auto id : remove_lids) {
         labelIds.erase(id);
@@ -635,15 +627,11 @@ void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values)
     }
     // vector index
     for (auto& [name, index] : txn_->db()->meta_info().GetVertexVectorIndex()) {
-        if (!pids.count(index.pid()) || !lids.count(index.lid())) {
+        if (!pids.count(index->pid()) || !lids.count(index->lid())) {
             continue;
         }
-        VectorIndexUpdate del;
-        del.type = UpdateType::Delete;
-        del.index_name = name;
-        del.vid = id_;
-        txn_->vector_updates().emplace_back(std::move(del));
-        auto value = original.at(index.pid());
+        index->TryDeleteIndex(txn_, id_);
+        auto value = original.at(index->pid());
         if (!value->IsArray()) {
             continue;
         }
@@ -651,15 +639,19 @@ void Vertex::SetProperties(const std::unordered_map<std::string, Value>& values)
         if (array.empty() || (!array[0].IsDouble() && !array[0].IsFloat())) {
             continue;
         }
-        if (array.size() != index.meta().dimensions()) {
+        if (array.size() != index->meta().dimensions()) {
             continue;
         }
-        VectorIndexUpdate add;
-        add.type = UpdateType::Add;
-        add.index_name = name;
-        add.vid = id_;
-        add.vectors = array;
-        txn_->vector_updates().emplace_back(std::move(add));
+        meta::VectorIndexUpdate add;
+        add.set_type(meta::UpdateType::Add);
+        for (auto& item : array) {
+            if (item.IsFloat()) {
+                add.add_vector(item.AsFloat());
+            } else {
+                add.add_vector((float)item.AsDouble());
+            }
+        }
+        index->AddIndex(txn_, id_, add);
     }
     for (auto& [pid, pval] : serialized) {
         std::string pkey((const char *)&id_, sizeof(id_));
@@ -716,14 +708,10 @@ void Vertex::RemoveAllProperty() {
     }
     // vector index
     for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
-        if (!pids.count(vvi.pid()) || !lids.count(vvi.lid())) {
+        if (!pids.count(vvi->pid()) || !lids.count(vvi->lid())) {
             continue;
         }
-        VectorIndexUpdate del;
-        del.type = UpdateType::Delete;
-        del.index_name = index_name;
-        del.vid = id_;
-        txn_->vector_updates().emplace_back(std::move(del));
+        vvi->TryDeleteIndex(txn_, id_);
     }
     for (auto& key : prop_keys) {
         auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
@@ -798,14 +786,10 @@ void Vertex::RemoveProperty(const std::string &name) {
     }
     // vector index
     for (auto& [index_name, vvi] : txn_->db()->meta_info().GetVertexVectorIndex()) {
-        if (pid != vvi.pid() || !lids.count(vvi.lid())) {
+        if (pid != vvi->pid() || !lids.count(vvi->lid())) {
             continue;
         }
-        VectorIndexUpdate del;
-        del.type = UpdateType::Delete;
-        del.index_name = index_name;
-        del.vid = id_;
-        txn_->vector_updates().emplace_back(std::move(del));
+        vvi->TryDeleteIndex(txn_, id_);
     }
     auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
         txn_->db()->graph_cf().vertex_property, pkey);
