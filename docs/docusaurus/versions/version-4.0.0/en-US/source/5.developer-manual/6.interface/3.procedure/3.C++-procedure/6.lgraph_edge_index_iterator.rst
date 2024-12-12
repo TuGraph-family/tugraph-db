@@ -1,5 +1,0 @@
-lgraph_edge_index_iterator
-===================================
-
-.. doxygenfile:: lgraph_edge_index_iterator.h
-   :project: cpp_procedure

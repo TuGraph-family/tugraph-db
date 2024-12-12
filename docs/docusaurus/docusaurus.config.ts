@@ -47,10 +47,10 @@ const config: Config = {
         //   routeBasePath: "zh/latest",
         // },
         docs: {
-          id: "4-5-0_zh",
-          sidebarPath: "./versions_sidebars/version-4.5.0_zh.ts",
-          path: "./versions/version-4.5.0/zh-CN/source",
-          routeBasePath: "zh/4.5.0",
+          id: "4-5-1_zh",
+          sidebarPath: "./versions_sidebars/version-4.5.1_zh.ts",
+          path: "./versions/version-4.5.1/zh-CN/source",
+          routeBasePath: "zh/4.5.1",
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -72,10 +72,10 @@ const config: Config = {
     [
       "content-docs",
       {
-        id: "4-5-0_en",
-        sidebarPath: "./versions_sidebars/version-4.5.0_en.ts",
-        path: "./versions/version-4.5.0/en-US/source",
-        routeBasePath: "en/4.5.0",
+        id: "4-5-1_en",
+        sidebarPath: "./versions_sidebars/version-4.5.1_en.ts",
+        path: "./versions/version-4.5.1/en-US/source",
+        routeBasePath: "en/4.5.1",
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
@@ -199,26 +199,7 @@ const config: Config = {
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
-    [
-      "content-docs",
-      {
-        id: "4-0-0_en",
-        sidebarPath: "./versions_sidebars/version-4.0.0_en.ts",
-        path: "./versions/version-4.0.0/en-US/source",
-        routeBasePath: "en/4.0.0",
-        editCurrentVersion: false,
-      } satisfies DocsOptions,
-    ],
-    [
-      "content-docs",
-      {
-        id: "4-0-0_zh",
-        sidebarPath: "./versions_sidebars/version-4.0.0_zh.ts",
-        path: "./versions/version-4.0.0/zh-CN/source",
-        routeBasePath: "zh/4.0.0",
-        editCurrentVersion: false,
-      } satisfies DocsOptions,
-    ],
+
     [
       "content-docs",
       {
@@ -259,26 +240,6 @@ const config: Config = {
         editCurrentVersion: false,
       } satisfies DocsOptions,
     ],
-    [
-      "content-docs",
-      {
-        id: "3-5-0_en",
-        sidebarPath: "./versions_sidebars/version-3.5.0_en.ts",
-        path: "./versions/version-3.5.0/en-US/source",
-        routeBasePath: "en/3.5.0",
-        editCurrentVersion: false,
-      } satisfies DocsOptions,
-    ],
-    [
-      "content-docs",
-      {
-        id: "3-5-0_zh",
-        sidebarPath: "./versions_sidebars/version-3.5.0_zh.ts",
-        path: "./versions/version-3.5.0/zh-CN/source",
-        routeBasePath: "zh/3.5.0",
-        editCurrentVersion: false,
-      } satisfies DocsOptions,
-    ],
   ],
 
   themeConfig: {
@@ -313,12 +274,12 @@ const config: Config = {
 
   headTags: [
     {
-      tagName: 'meta',
+      tagName: "meta",
       attributes: {
-        name: 'algolia-site-verification',
-        content: 'FC204AA054194DE3',
+        name: "algolia-site-verification",
+        content: "FC204AA054194DE3",
       },
-    }
+    },
   ],
 };
 

@@ -21,17 +21,15 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   const { pathname } = location;
   const languages = ["en", "zh"];
   const versions = [
-    "4.5.0",
+    "4.5.1",
     "4.3.2",
     "4.3.1",
     "4.3.0",
     "4.2.0",
     "4.1.0",
     "4.0.1",
-    "4.0.0",
     "3.6.0",
     "3.5.1",
-    "3.5.0",
   ];
 
   const getCurrentLanguage = () => {
@@ -50,7 +48,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     ) {
       return { label: segments[versionIndex], value: segments[versionIndex] };
     }
-    return { label: "4.5.0", value: "4.5.0" };
+    return { label: "4.5.1", value: "4.5.1" };
   };
 
   const formatDocSearchVersion = (tag: string) => {
@@ -94,12 +92,6 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     // 构造新路径
     const newPath = `${basePath}/${version}/guide`;
     history.push(newPath);
-  };
-
-  const getCurrentType = () => {
-    return pathname.includes("/olap&procedure/learn")
-      ? "TuGraph_Learn"
-      : "TuGraph_DB";
   };
 
   const navigator = useRef({
@@ -153,21 +145,10 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const getDescByLanguage = (lang: string) => {
-    const type = getCurrentType();
-    const desc =
-      type === "TuGraph_Learn"
-        ? {
-            zh: "图学习引擎",
-            en: "Graph Learning Engine",
-          }
-        : {
-            zh: "社区版",
-            en: "Community",
-          };
     if (lang === "zh") {
-      return desc.zh;
+      return "社区版";
     }
-    return desc.en;
+    return "Community";
   };
 
   const getOptions = (lang: string) => {
@@ -214,12 +195,6 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     };
   }, []);
 
-  const getCascaderTitle = () => {
-    const type = getCurrentType();
-
-    return type === "TuGraph_Learn" ? "TuGraph Learn" : "TuGraph DB";
-  };
-
   return (
     <div
       className="docsearch-wrapper"
@@ -238,13 +213,13 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
       >
         <Cascader
           allowClear={false}
-          value={[getCurrentType(), getCurrentVersion()?.label]}
+          value={["TuGraph_DB", getCurrentVersion()?.label]}
           options={getOptions(getCurrentLanguage())}
           onChange={onVersionChange}
         >
           <div className="itemWrapper">
             <div className="titleBlock">
-              <span className="titleText">{getCascaderTitle()}</span>
+              <span className="titleText">TuGraph DB</span>
               <div className="downIcon" />
             </div>
             <div className="contentArea">
@@ -258,7 +233,10 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
           </div>
         </Cascader>
 
-        <Tooltip title={getPlaceholderByLanguage(getCurrentLanguage())} trigger={['hover', 'click']} >
+        <Tooltip
+          title={getPlaceholderByLanguage(getCurrentLanguage())}
+          trigger={["hover", "click"]}
+        >
           <div className="searchWrapper">
             <DocSearch
               {...{

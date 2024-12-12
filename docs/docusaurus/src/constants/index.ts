@@ -107,17 +107,15 @@ const ZH_NOT_FOUND_CONFIG = {
 };
 
 const versions = [
-  "4.5.0",
+  "4.5.1",
   "4.3.2",
   "4.3.1",
   "4.3.0",
   "4.2.0",
   "4.1.0",
   "4.0.1",
-  "4.0.0",
   "3.6.0",
   "3.5.1",
-  "3.5.0",
 ];
 
 const EN_DOC_OPTIONS = [
@@ -130,11 +128,6 @@ const EN_DOC_OPTIONS = [
     label: "TuGraph Analytics Streaming Graph Computing Engine",
     value: "TuGraph_Analytics",
   },
-  {
-    label: "TuGraph Learn Graph Learning Engine",
-    value: "TuGraph_Learn",
-    children: versions.slice(0, 5).map((item) => ({ value: item, label: item })),
-  },
 ];
 
 const ZH_DOC_OPTIONS = [
@@ -146,11 +139,6 @@ const ZH_DOC_OPTIONS = [
   {
     label: "TuGraph Analytics 实时图计算引擎",
     value: "TuGraph_Analytics",
-  },
-  {
-    label: "TuGraph Learn 图学习引擎",
-    value: "TuGraph_Learn",
-    children: versions.slice(0, 5).map((item) => ({ value: item, label: item })),
   },
 ];
 
