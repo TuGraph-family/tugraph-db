@@ -26,6 +26,7 @@
 #include "common/logger.h"
 #include "ftindex/include/lib.rs.h"
 #include "transaction/transaction.h"
+#include "spdlog/stopwatch.h"
 
 using namespace txn;
 using namespace boost::endian;
@@ -385,6 +386,7 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
     {
         std::ifstream metafile(meta_.path() + "/hnsw.index._meta", std::ios::in);
         if (metafile) {
+            LOG_INFO("Begin load vector index {} from data file", meta_.name());
             nlohmann::json meta_info;
             metafile >> meta_info;
             metafile.close();
@@ -402,10 +404,10 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
             }
             vsag_index_->Deserialize(bs);
             apply_id_ = meta_info["apply_id"];
-            LOG_INFO("Vector Index {} Deserialize, num:{}", meta_.name(), vsag_index_->GetNumElements());
+            LOG_INFO("End load vector index {} from data file, num:{}", meta_.name(), vsag_index_->GetNumElements());
         }
+        LOG_INFO("vector index {}, apply_id:{}", meta_.name(), apply_id_);
     }
-
     {
         std::string prefix((const char*)&index_id_, sizeof(index_id_));
         prefix.append(8, 0xFF);
@@ -422,8 +424,10 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
                 next_wal_id_ = big_to_native(wal_id) + 1;
             }
         }
+        LOG_INFO("vector index {}, next_wal_id: {}", meta_.name(), next_wal_id_.load());
     }
     {
+        spdlog::stopwatch sw;
         int64_t max_vector_id = -1;
         std::string prefix((const char*)&index_id_, sizeof(index_id_));
         rocksdb::ReadOptions ro;
@@ -456,6 +460,8 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
         if (max_vector_id != -1) {
             next_vector_id_ = max_vector_id + 1;
         }
+        LOG_INFO("vector index {}, vectorid_vid size:{}, deleted_vector_ids size:{}, elapsed:{}",
+                 meta_.name(), vectorid_vid_.size(), deleted_vector_ids_.size(), sw);
     }
     StartTimer();
 }
