@@ -310,6 +310,9 @@ class GeaxExprFilter : public Filter {
         if (res.IsBool()) {
             return res.constant.AsBool();
         }
+        if (res.IsNull()) {
+            return false;
+        }
         NOT_SUPPORT_AND_THROW();
     }
 
