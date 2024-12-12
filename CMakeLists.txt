@@ -173,7 +173,7 @@ add_executable(test_case
 	test/test_var_len.cpp
 	test/test_plan.cpp
 	test/test_temporal.cpp
-)
+        test/test_benchmark.cpp)
 target_compile_definitions(test_case PUBLIC FOLLY_SANITIZE)
 target_link_libraries(test_case PRIVATE
 		vsag
