@@ -244,13 +244,15 @@ TEST(Benchmark, khop) {
         LOG_INFO("The throughput of {} vertexes insertion is {} op/s ({} threads)", n, bm.test_write_vertex_mt(n, thread), thread);
         LOG_INFO("The throughput of {} edges insertion is {} op/s ({} threads)", n * 10, bm.test_write_edge_mt(n * 10, thread), thread);
         for (int i = 1; i <= depth; ++i) {
-            LOG_INFO("The throughput of {} vertexes {}-hop is {} op/s ({} threads)", n, i, bm.test_read_neighbour_mt(n, i, thread), thread);
+            auto query = std::max(int(n / std::pow(10, i - 1)), 100);
+            LOG_INFO("The throughput of {} vertexes {}-hop is {} op/s ({} threads)", query, i, bm.test_read_neighbour_mt(query, i, thread), thread);
         }
     } else {
         LOG_INFO("The time of {} vertexes insertion is {}s", n, bm.test_write_vertex(n));
         LOG_INFO("The time of {} edges insertion is {}s", n * 10, bm.test_write_edge(n * 10));
         for (int i = 1; i <= depth; ++i) {
-            LOG_INFO("The time of {} vertexes {}-hop is {}s", n, i, bm.test_read_neighbour(n, i));
+            auto query = std::max(int(n / std::pow(10, i - 1)), 100);
+            LOG_INFO("The time of {} vertexes {}-hop is {}s", query, i, bm.test_read_neighbour(query, i));
         }
     }
 }
