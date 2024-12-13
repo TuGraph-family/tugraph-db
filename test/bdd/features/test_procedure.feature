@@ -111,7 +111,7 @@ Feature: test procedure
       | name | type | entityType | labelsOrTypes | properties |otherInfo                           |
       | 'person_id' | 'Unique' | 'NODE' | ['person'] | ['id'] |null                                |
       | 'namesAndTeams' | 'FullText' | 'NODE' | ['Employee','Manager'] | ['name','team'] |null                                |
-      | 'person_embedding' | 'Vector' | 'NODE' | ['person'] | ['embedding'] | {deletedIdsNum:0, elementsNum:0, shardingNum:10} |
+      | 'person_embedding' | 'Vector' | 'NODE' | ['person'] | ['embedding'] | {deletedIdsNum:0, elementsNum:0} |
 
   Scenario: case08
     Given yago graph

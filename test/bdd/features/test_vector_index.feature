@@ -130,6 +130,7 @@ Feature: test vector index
       MATCH(n:person {id:1}) set n.embedding = toFloat32List([1.0,1.0,1.0,1.0]);
       MATCH(n:person {id:2}) set n.embedding = toFloat32List([2.0,2.0,2.0,2.0]);
       MATCH(n:person {id:3}) set n.embedding = toFloat32List([3.0,3.0,3.0,3.0]);
+      CALL db.index.vector.applyWal();
       """
     When executing query
       """

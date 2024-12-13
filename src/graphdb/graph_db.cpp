@@ -93,7 +93,8 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     });
     graph_db->meta_info_.Init(
         graph_db->db_, graph_db->assistant_, &graph_db->graph_cf_,
-        &graph_db->id_generator_, graph_db->options_.ft_commit_interval_);
+        &graph_db->id_generator_, graph_db->options_.ft_apply_interval_,
+        graph_db->options_.vt_apply_interval_);
     graph_db->id_generator_.Init(graph_db->db_, &graph_db->graph_cf_);
 
     return graph_db;
@@ -252,6 +253,7 @@ void GraphDB::AddVertexFullTextIndex(
     meta_key.append(1, static_cast<char>(MetaDataType::VertexFullTextIndex));
     meta_key.append(index_name);
     meta::VertexFullTextIndex meta;
+    meta.set_index_id(big_to_native(index_id));
     meta.set_name(index_name);
     meta.set_path(ft_index_pth);
     *meta.mutable_labels() = {labels.begin(), labels.end()};
@@ -260,7 +262,7 @@ void GraphDB::AddVertexFullTextIndex(
     *meta.mutable_property_ids() = {native_pids.begin(), native_pids.end()};
     auto v_ft_index = std::make_unique<VertexFullTextIndex>(
         db_, assistant_, &graph_cf_, &id_generator_, meta, index_id, lids, pids,
-        options_.ft_commit_interval_);
+        options_.ft_apply_interval_);
     v_ft_index->Load();
     rocksdb::WriteOptions wo;
     auto s = db_->Put(wo, graph_cf_.meta_info, meta_key,
@@ -293,7 +295,7 @@ void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
 
 void GraphDB::AddVertexVectorIndex(
     const std::string& index_name, const std::string& label,
-    const std::string& property, int sharding_num, int dimension,
+    const std::string& property, int dimension,
     std::string distance_type, int hnsw_m, int hnsw_ef_construction) {
     if (index_name.empty() || label.empty() || property.empty()) {
         THROW_CODE(InvalidParameter);
@@ -309,19 +311,25 @@ void GraphDB::AddVertexVectorIndex(
                    "Vertex vector index [label:{}, property:{}] already exists",
                    big_to_native(lid), big_to_native(pid));
     }
+    std::string vt_index_pth = path_ + "/vt/" + index_name;
+    std::filesystem::create_directories(vt_index_pth);
+    uint32_t index_id = id_generator_.GetNextIndexId();
     meta::VertexVectorIndex meta;
+    meta.set_index_id(big_to_native(index_id));
+    meta.set_path(vt_index_pth);
     meta.set_name(index_name);
     meta.set_label(label);
     meta.set_property(property);
-    meta.set_sharding_num(sharding_num);
     meta.set_label_id(big_to_native(lid));
     meta.set_property_id(big_to_native(pid));
     meta.set_dimensions(dimension);
     meta.set_distance_type(std::move(distance_type));
     meta.set_hnsw_m(hnsw_m);
     meta.set_hnsw_ef_construction(hnsw_ef_construction);
-    VertexVectorIndex vvi(db_, &graph_cf_, lid, pid, meta);
-    vvi.Load();
+    auto vvi = std::make_unique<VertexVectorIndex>(db_, assistant_,
+                                                   &graph_cf_, index_id, lid, pid, meta,
+                                                   options_.vt_apply_interval_);
+    vvi->Load();
     // write meta info
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexVectorIndex));
@@ -339,6 +347,7 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
         THROW_CODE(VectorIndexNotFound,
                    "No such vertex vector index [{}]", index_name);
     }
+    auto path = meta_info_.GetVertexVectorIndex(index_name)->meta().path();
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexVectorIndex));
     meta_key.append(index_name);
@@ -346,6 +355,12 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
     auto s = db_->Delete(wo, graph_cf_.meta_info, meta_key);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     meta_info_.DeleteVertexVectorIndex(index_name);
+    try {
+        std::filesystem::remove_all(path);
+        LOG_INFO("remove vector index data {}", path);
+    } catch (const std::exception& e) {
+        LOG_ERROR("[DeleteVertexVectorIndex] remove_all {} meet error: {}", path, e.what());
+    }
 }
 
 }

@@ -36,7 +36,8 @@ namespace graphdb {
 struct GraphDBOptions {
     std::shared_ptr<rocksdb::Cache> block_cache;
     std::shared_ptr<rocksdb::RowCache> row_cache;
-    size_t ft_commit_interval_ = 3;
+    size_t ft_apply_interval_ = 3;
+    size_t vt_apply_interval_ = 3;
 };
 
 class GraphDB {
@@ -60,7 +61,6 @@ class GraphDB {
     void AddVertexVectorIndex(const std::string& index_name,
                                 const std::string& label,
                                 const std::string& property,
-                              int sharding_num,
                               int dimension, std::string distance_type,
                               int hnsw_m, int hnsw_ef_construction);
     void DeleteVertexVectorIndex(const std::string& index_name);

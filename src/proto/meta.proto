@@ -41,11 +41,12 @@ message VertexVectorIndex {
     uint32 label_id    = 3;
     string property    = 4;
     uint32 property_id = 5;
-    uint32 sharding_num   = 6;
-    uint32 dimensions  = 7;
-    string distance_type        = 8;
-    uint32 hnsw_m               = 9;
-    uint32 hnsw_ef_construction = 10;
+    uint32 dimensions  = 6;
+    string distance_type        = 7;
+    uint32 hnsw_m               = 8;
+    uint32 hnsw_ef_construction = 9;
+    uint32 index_id             = 10;
+    string path                 = 11;
 }
 
 message GraphDBMetaInfo {
@@ -59,8 +60,15 @@ enum UpdateType {
 };
 
 message FullTextIndexUpdate {
-    UpdateType type        = 1;
-    int64 id               = 2;
+    UpdateType type         = 1;
+    int64 vid               = 2;
     repeated string fields = 3;
     repeated string values = 4;
+}
+
+message VectorIndexUpdate {
+    UpdateType type        = 1;
+    int64 vid              = 2;
+    int64 vector_id        = 3;
+    repeated float vector  = 4;
 }

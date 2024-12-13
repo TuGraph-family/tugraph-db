@@ -75,20 +75,20 @@ VertexVectorIndex *MetaInfo::GetVertexVectorIndex(uint32_t lid,
         (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
     auto iter = vertex_vector_indexes.find(index_key);
     if (iter != vertex_vector_indexes.end()) {
-        return &iter->second;
+        return iter->second.get();
     } else {
         return nullptr;
     }
 }
 
-std::unordered_map<uint64_t, VertexVectorIndex> &MetaInfo::GetVertexVectorIndex() {
+std::unordered_map<uint64_t, std::unique_ptr<VertexVectorIndex>> &MetaInfo::GetVertexVectorIndex() {
     return vertex_vector_indexes;
 }
 
 VertexVectorIndex *MetaInfo::GetVertexVectorIndex(const std::string& name) {
     for (auto& [_, index] : vertex_vector_indexes) {
-        if (index.meta().name() == name) {
-            return &index;
+        if (index->meta().name() == name) {
+            return index.get();
         }
     }
     return nullptr;
@@ -96,7 +96,7 @@ VertexVectorIndex *MetaInfo::GetVertexVectorIndex(const std::string& name) {
 
 void MetaInfo::DeleteVertexVectorIndex(const std::string &name) {
     for (auto iter = vertex_vector_indexes.begin(); iter != vertex_vector_indexes.end(); iter++) {
-        if (iter->second.meta().name() == name) {
+        if (iter->second->meta().name() == name) {
             vertex_vector_indexes.erase(iter);
             break;
         }
@@ -134,9 +134,9 @@ bool MetaInfo::AddVertexFullTextIndex(std::unique_ptr<VertexFullTextIndex> ft) {
     }
 }
 
-void MetaInfo::AddVertexVectorIndex(VertexVectorIndex &&vvi) {
-    uint32_t lid = vvi.lid();
-    uint32_t pid = vvi.pid();
+void MetaInfo::AddVertexVectorIndex(std::unique_ptr<VertexVectorIndex> vvi) {
+    uint32_t lid = vvi->lid();
+    uint32_t pid = vvi->pid();
     uint64_t index_key =
         (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
     vertex_vector_indexes.emplace(index_key, std::move(vvi));
@@ -145,7 +145,9 @@ void MetaInfo::AddVertexVectorIndex(VertexVectorIndex &&vvi) {
 void MetaInfo::Init(rocksdb::TransactionDB *db,
                     boost::asio::io_service &service,
                     GraphCF *graph_cf,
-                    IdGenerator* id_generator, size_t ft_commit_interval) {
+                    IdGenerator* id_generator,
+                    size_t ft_commit_interval,
+                    size_t vt_commit_interval) {
     rocksdb::ReadOptions ro;
     std::unique_ptr<rocksdb::Iterator> iter(
         db->NewIterator(ro, graph_cf->meta_info));
@@ -195,10 +197,9 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
         bool ret = meta.ParseFromString(val.ToString());
         assert(ret);
         LOG_INFO("vertex vector index: [{}]", meta.ShortDebugString());
-        VertexVectorIndex index(
-            db, graph_cf, native_to_big(meta.label_id()),
-            native_to_big(meta.property_id()), meta);
-        index.Load();
+        auto index = std::make_unique<VertexVectorIndex>(
+            db, service, graph_cf, native_to_big(meta.index_id()), native_to_big(meta.label_id()),
+            native_to_big(meta.property_id()), meta, vt_commit_interval);
         AddVertexVectorIndex(std::move(index));
     }
 }

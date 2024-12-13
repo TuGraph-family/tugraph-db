@@ -84,7 +84,7 @@ Vertex Transaction::CreateVertex(
         }
         meta::FullTextIndexUpdate add;
         add.set_type(meta::UpdateType::Add);
-        add.set_id(vid);
+        add.set_vid(vid);
         for (const auto& [pid, prop] : pid_values) {
             if (prop->IsString() && !prop->AsString().empty() && ft->PropertyIds().count(pid)) {
                 add.add_fields(db_->id_generator().GetPropertyName(pid).value());
@@ -97,10 +97,10 @@ Vertex Transaction::CreateVertex(
     }
     // vector index
     for (auto& [index_name, vvi] : db_->meta_info().GetVertexVectorIndex()) {
-        if (!lids.count(vvi.lid())) {
+        if (!lids.count(vvi->lid())) {
             continue;
         }
-        auto iter = pid_values.find(vvi.pid());
+        auto iter = pid_values.find(vvi->pid());
         if (iter == pid_values.end()) {
             continue;
         }
@@ -112,15 +112,19 @@ Vertex Transaction::CreateVertex(
         if (array.empty() || (!array[0].IsDouble() && !array[0].IsFloat())) {
             continue;
         }
-        if (array.size() != vvi.meta().dimensions()) {
+        if (array.size() != vvi->meta().dimensions()) {
             continue;
         }
-        VectorIndexUpdate add;
-        add.type = UpdateType::Add;
-        add.index_name = index_name;
-        add.vid = vid;
-        add.vectors = array;
-        vector_updates_.emplace_back(std::move(add));
+        meta::VectorIndexUpdate add;
+        add.set_type(meta::UpdateType::Add);
+        for (auto& item : array) {
+            if (item.IsFloat()) {
+                add.add_vector(item.AsFloat());
+            } else {
+                add.add_vector((float)item.AsDouble());
+            }
+        }
+        vvi->AddIndex(this, vid, add);
     }
     return {this, vid};
 }
@@ -341,35 +345,7 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
     }
 }
 
-void Transaction::CommitVectorIndex() {
-    if (vector_updates_.empty()) {
-        return;
-    }
-    auto& vvis = db_->meta_info().GetVertexVectorIndex();
-    for (auto& update : vector_updates_) {
-        switch (update.type) {
-            case UpdateType::Add: {
-                std::unique_ptr<float[]> d(new float[update.vectors.size()]);
-                for (size_t i = 0; i < update.vectors.size(); i++) {
-                    if (update.vectors[i].IsDouble()) {
-                        d[i] = (float)update.vectors[i].AsDouble();
-                    } else {
-                        d[i] = update.vectors[i].AsFloat();
-                    }
-                }
-                vvis.at(update.index_name).Add(update.vid, std::move(d));
-                break;
-            }
-            case UpdateType::Delete: {
-                vvis.at(update.index_name).RemoveIfExists(update.vid);
-                break;
-            }
-        }
-    }
-}
-
 void Transaction::Commit() {
-    CommitVectorIndex();
     auto s = txn_->Commit();
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }

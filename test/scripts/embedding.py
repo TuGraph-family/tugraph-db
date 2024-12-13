@@ -29,11 +29,11 @@ def create_vertex(i):
     auth_token = basic_auth("admin", "73@TuGraph")
     driver = GraphDatabase.driver(url, auth=auth_token, encrypted=False)
     session = driver.session(database="default")
-    filename = '/root/tugraph-db-pro/ldbc/chunk-' + "{:02}".format(i)
+    filename = './chunk_' + str(i) + ".txt"
     with open(filename, 'r', encoding='utf-8') as file:
         for line in file:
             line = line.strip()
-            session.run(line, embeding=np.random.rand(1000).tolist())
+            session.run(line, embedding=np.random.rand(1000).tolist())
 
 def create_vertexes():
     res_list=[]

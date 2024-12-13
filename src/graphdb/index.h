@@ -56,11 +56,6 @@ struct VertexPropertyIndex {
     uint32_t pid_;
 };
 
-enum UpdateType {
-    Add,
-    Delete,
-};
-
 class VertexFullTextIndex {
    public:
     VertexFullTextIndex(rocksdb::TransactionDB* db,
@@ -152,48 +147,14 @@ struct BusyIndex {
     }
 };
 
-struct VectorIndexUpdate {
-    uint64_t index_name;
-    UpdateType type;
-    int64_t vid;
-    std::vector<Value> vectors;
-};
-
-class VsagIndex {
-   public:
-    explicit VsagIndex(meta::VertexVectorIndex meta);
-    void Add(int64_t vid, std::unique_ptr<float[]> embedding);
-    void RemoveIfExists(int64_t vid);
-    std::vector<std::pair<int64_t, float>> KnnSearch(
-        const float* query, int top_k, int ef_search);
-    int64_t GetElementsNum() {
-        std::shared_lock read_lock(mutex_);
-        return index_->GetNumElements();
-    }
-    int64_t GetMemoryUsage() {
-        std::shared_lock read_lock(mutex_);
-        return index_->GetMemoryUsage();
-    }
-    int64_t GetDeletedIdsNum() {
-        std::shared_lock read_lock(mutex_);
-        return deleted_vids_num_;
-    }
-   private:
-    meta::VertexVectorIndex meta_;
-    std::shared_ptr<vsag::Index> index_;
-    int64_t deleted_vids_num_ = 0;
-    int64_t vectorId_ = 0;
-    std::unordered_map<int64_t, int64_t> vid_vectorId_;
-    std::unordered_map<int64_t, std::pair<bool, int64_t>> vectorId_vid_;
-    std::shared_mutex mutex_;
-};
-
 class VertexVectorIndex {
    public:
-    VertexVectorIndex(rocksdb::TransactionDB* db, GraphCF* graph_cf,
-                      uint32_t lid, uint32_t pid, meta::VertexVectorIndex meta);
-    void Add(int64_t vid, std::unique_ptr<float[]> embedding);
-    void RemoveIfExists(int64_t vid);
+    VertexVectorIndex(rocksdb::TransactionDB* db,
+                      boost::asio::io_service &service,
+                      GraphCF* graph_cf,
+                      uint32_t index_id,
+                      uint32_t lid, uint32_t pid,
+                      meta::VertexVectorIndex meta, size_t commit_interval);
     std::vector<std::pair<int64_t, float>> KnnSearch(
         const float* query, int top_k, int ef_search);
     int64_t GetElementsNum();
@@ -203,14 +164,30 @@ class VertexVectorIndex {
     uint32_t lid() const {return lid_;}
     uint32_t pid() const {return pid_;}
     void Load();
+    void TryDeleteIndex(txn::Transaction* txn, int64_t vid);
+    std::string NextWALKey();
+    std::string IndexKey(int64_t vid);
+    std::string DeleteMarkKey(int64_t vector_id);
+    void AddIndex(txn::Transaction* txn, int64_t vid, meta::VectorIndexUpdate& wal);
+    void ApplyWAL();
    private:
+    void StartTimer();
     rocksdb::TransactionDB* db_ = nullptr;
     GraphCF* graph_cf_ = nullptr;
+    uint32_t index_id_;
     uint32_t lid_;
     uint32_t pid_;
     meta::VertexVectorIndex meta_;
-    int sharding_num_ = 10;
-    std::vector<std::unique_ptr<VsagIndex>> indexes_;
+    std::shared_ptr<vsag::Index> vsag_index_;
+    //std::unique_ptr<VsagIndex> vsag_index_;
+    std::atomic<int64_t> next_vector_id_ = 1;
+    std::atomic<uint64_t> next_wal_id_ = 1;
+    uint64_t apply_id_ = 0;
+    std::mutex mutex_;
+    size_t interval_ = 5;
+    boost::asio::steady_timer timer_;
+    std::unordered_set<int64_t> deleted_vector_ids_;
+    std::unordered_map<int64_t, int64_t> vectorid_vid_;
 };
 
 

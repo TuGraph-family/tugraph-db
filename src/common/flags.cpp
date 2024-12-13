@@ -45,7 +45,8 @@ DEFINE_uint32(bolt_io_thread_num, 2, "Number of Bolt io thread");
 
 DEFINE_uint64(block_cache, (uint64_t)8*1024*1024*1024, "Block data cache size, in bytes.");
 DEFINE_uint64(row_cache, (uint64_t)8*1024*1024*1024, "Row data cache size, in bytes.");
-DEFINE_uint64(ft_commit_interval, (uint64_t)3, "Fulltext index auto commit interval, in seconds.");
+DEFINE_uint64(ft_apply_interval, (uint64_t)3, "Fulltext index WAL auto apply interval, in seconds.");
+DEFINE_uint64(vt_apply_interval, (uint64_t)3, "Vector index WAL auto apply interval, in seconds.");
 
 bool validate_mode(const char* flagname, const std::string& mode) {
     std::set<std::string> vals = {"run", "start", "restart", "stop"};

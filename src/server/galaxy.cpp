@@ -88,7 +88,7 @@ std::unique_ptr<Galaxy> Galaxy::Open(const std::string &path, const GalaxyOption
         auto graph_db = GraphDB::Open(
             graph_path, {.block_cache = galaxy->block_cache_,
                          .row_cache = galaxy->row_cache_,
-                         .ft_commit_interval_ = galaxy->options_.ft_commit_interval});
+                         .ft_apply_interval_ = galaxy->options_.ft_apply_interval, .vt_apply_interval_ = galaxy->options_.vt_apply_interval});
         graph_db->db_meta() = meta;
         galaxy->graphs_.emplace(meta.graph_name(), std::move(graph_db));
     }
@@ -122,7 +122,8 @@ GraphDB *Galaxy::CreateGraph(const std::string &name) {
     auto graph_db = GraphDB::Open(
         graph_path, {.block_cache = block_cache_,
                      .row_cache = row_cache_,
-                     .ft_commit_interval_ = options_.ft_commit_interval});
+                     .ft_apply_interval_ = options_.ft_apply_interval,
+                     .vt_apply_interval_ = options_.vt_apply_interval});
     rocksdb::WriteOptions wo;
     rocksdb::WriteBatch wb;
     std::string key;
