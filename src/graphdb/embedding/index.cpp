@@ -85,6 +85,7 @@ void Index::Add(const DataSet& ds) {
     }
 
     std::shared_lock lock(mutex_);
+    ds.timestamp = timestamp_++;
 
     auto vid = ds.vids[0];
     if (vid >= ingest_chunk_->GetMinVId()) {
@@ -127,6 +128,7 @@ void Index::Delete(const DataSet& ds) {
     }
 
     std::shared_lock lock(mutex_);
+    ds.timestamp = timestamp_++;
 
     auto vid = ds.vids[0];
     if (vid >= ingest_chunk_->GetMaxVId()) {
@@ -226,7 +228,12 @@ void Index::Load(const meta::VectorIndexManifest& manifest) {
     for (auto& chunk_id : manifest.chunk_ids()) {
         chunk_ids_.push_back(chunk_id);
         // adapt other vector lib later
-        auto p_chunk = LoadVsagIndexChunk(meta_, chunk_id);
+        int64_t timestamp = 0;
+        auto p_chunk =
+            LoadVsagIndexChunk(db_, graph_cf_, meta_, chunk_id, timestamp);
+        if (timestamp > timestamp_) {
+            timestamp_ = timestamp;
+        }
         if (!persist_chunks_.empty()) {
             if (p_chunk->GetMinVId() <= persist_chunks_.back()->GetMaxVId()) {
                 THROW_CODE(VectorIndexException, "Manifest corrupted");
@@ -234,6 +241,7 @@ void Index::Load(const meta::VectorIndexManifest& manifest) {
         }
         persist_chunks_.push_back(std::move(p_chunk));
     }
+    timestamp_++;
 
     // create a new mem index chunk for data ingestion
     ingest_chunk_ = std::make_shared<MemIndexChunk>(
@@ -242,7 +250,7 @@ void Index::Load(const meta::VectorIndexManifest& manifest) {
 }
 
 void Index::Compaction() {
-    std::shared_lock lock(mutex_);
+    std::unique_lock lock(mutex_);
 
     /**
      * only compact single mem chunk for now, consider persistent chunk
@@ -255,11 +263,14 @@ void Index::Compaction() {
     int64_t start_vid = mem_chunks_.front()->GetMinVId();
     int64_t end_vid = mem_chunks_.front()->GetMaxVId();
 
+    // defer the seal option to compaction
+    mem_chunks_.front()->Seal();
+
     lock.unlock();
 
     // construct a new IndexChunk
     auto chunk_id = uuid_gen_.NextNoLock();
-    auto p_chunk = CreateVsagIndexChunk(meta_, chunk_id);
+    auto p_chunk = CreateVsagIndexChunk(db_, graph_cf_, meta_, chunk_id);
 
     rocksdb::ReadOptions ro;
     std::unique_ptr<rocksdb::Iterator> iter(
@@ -268,6 +279,8 @@ void Index::Compaction() {
     SPDLOG_INFO("Begin to compact chunk: {}, [{}, {}]", chunk_id, start_vid,
                 end_vid);
     int count = 0;
+    DataSet ds;
+    ds.NumElements(1);
     std::string prefix((const char*)&lid_, sizeof(lid_));
     prefix.append((const char*)&start_vid, sizeof(start_vid));
     for (iter->Seek(prefix); iter->Valid(); iter->Next()) {
@@ -315,9 +328,8 @@ void Index::Compaction() {
         }
 
         // Change to batch add later
-        DataSet ds;
         int64_t native_vid = big_to_native(vid);
-        ds.NumElements(1).Vids(&native_vid).Data(copy.get());
+        ds.Vids(&native_vid).Data(copy.get());
         p_chunk->AddBatch(ds);
 
         count++;
@@ -331,6 +343,56 @@ void Index::Compaction() {
 
     std::unique_lock u_lock(mutex_);
     chunk_ids_.push_back(chunk_id);
+
+    // apply the wal to persistent chunk
+    auto delta = mem_chunks_.front()->GetDelta();
+    if (delta != nullptr && delta->GetVIdCnt() > 0) {
+        auto& vid_vec = delta->GetVIdVec();
+        rocksdb::ReadOptions ro;
+        std::string property_key;
+        std::string property_val;
+        for (auto vid : vid_vec) {
+            property_key.clear();
+            property_val.clear();
+            property_key.append((const char*)&vid, sizeof(vid));
+            property_key.append((const char*)&pid_, sizeof(pid_));
+            auto s = db_->Get(ro, graph_cf_->vertex_property, property_key,
+                              &property_val);
+            if (s.IsNotFound()) {
+                continue;
+            } else if (!s.ok()) {
+                THROW_CODE(StorageEngineError, s.ToString());
+            }
+
+            Value pv;
+            pv.Deserialize(property_val.data(), property_val.size());
+            if (!pv.IsArray()) {
+                continue;
+            }
+            auto& array = pv.AsArray();
+            if (array.empty() || array.size() != meta_.dimensions()) {
+                continue;
+            }
+            if (!array[0].IsDouble() && !array[0].IsFloat()) {
+                continue;
+            }
+
+            std::unique_ptr<float[]> copy(new float[array.size()]);
+            for (size_t i = 0; i < array.size(); i++) {
+                if (array[i].IsDouble()) {
+                    copy[i] = static_cast<float>(array[i].AsDouble());
+                } else {
+                    copy[i] = array[i].AsFloat();
+                }
+            }
+
+            int64_t native_vid = big_to_native(vid);
+            ds.Vids(&native_vid).Data(copy.get());
+            p_chunk->Delete(ds);
+            p_chunk->Add(ds);
+        }
+    }
+
     mem_chunks_.erase(mem_chunks_.begin());
     persist_chunks_.emplace_back(p_chunk.release());
 

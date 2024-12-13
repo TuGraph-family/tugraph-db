@@ -22,6 +22,7 @@
 #include <faiss/index_factory.h>
 
 #include "common/exceptions.h"
+#include "delta.h"
 #include "faiss_internal.h"
 #include "index.h"
 
@@ -85,30 +86,35 @@ void MemIndexChunk::Add(const DataSet& ds, bool* chunk_full) {
     assert(ds.n == 1);
 
     std::unique_lock lock(mutex_);
-    // add embedding vectors to flat index
-    flat_index_->add(ds.n, reinterpret_cast<const float*>(ds.x));
 
-    auto vid = ds.vids[0];
-    if (vid < min_vid_) {
-        THROW_CODE(OutOfRange, "vid {} should not smaller than min_vid {}", vid,
-                   min_vid_);
-    }
+    if (!sealed) {
+        // add embedding vectors to flat index
+        flat_index_->add(ds.n, reinterpret_cast<const float*>(ds.x));
 
-    vid_vec_.push_back(vid);
-    if (vid_labelid_map_.count(vid)) {
-        auto labelId = vid_labelid_map_[vid];
-        if (vid_vec_[labelId] != -1) {
-            THROW_CODE(InvalidParameter, "vid {} already exists", vid);
+        auto vid = ds.vids[0];
+        if (vid < min_vid_) {
+            THROW_CODE(OutOfRange, "vid {} should not smaller than min_vid {}",
+                       vid, min_vid_);
         }
-    }
-    vid_labelid_map_[vid] = vid_cnt_++;
 
-    if (vid > max_vid_) {
-        max_vid_ = vid;
-    }
+        vid_vec_.push_back(vid);
+        if (vid_labelid_map_.count(vid)) {
+            auto labelId = vid_labelid_map_[vid];
+            if (vid_vec_[labelId] != -1) {
+                THROW_CODE(InvalidParameter, "vid {} already exists", vid);
+            }
+        }
+        vid_labelid_map_[vid] = vid_cnt_++;
 
-    if (chunk_full != nullptr && vid_cnt_ > MAX_MEM_CHUNK_ITEM_CNT) {
-        *chunk_full = true;
+        if (vid > max_vid_) {
+            max_vid_ = vid;
+        }
+
+        if (chunk_full != nullptr && vid_cnt_ > MAX_MEM_CHUNK_ITEM_CNT) {
+            *chunk_full = true;
+        }
+    } else {
+        delta_->Add(ds);
     }
 }
 
@@ -125,6 +131,10 @@ void MemIndexChunk::Delete(const DataSet& ds) {
     if (vid_labelid_map_.count(vid)) {
         vid_vec_[vid_labelid_map_[vid]] = -1;
         ++del_cnt_;
+    }
+
+    if (sealed) {
+        delta_->Delete(ds);
     }
 }
 
@@ -154,10 +164,53 @@ void MemIndexChunk::Search(const DataSet& ds) {
             ds.vids[i] = vid_vec_[ds.vids[i]];
         }
     }
+
+    if (sealed && delta_->GetVIdCnt() > 0) {
+        // search delta_
+        std::vector<int64_t> vids(ds.k, -1);
+        std::vector<float> distances(ds.k);
+        DataSet delta_ds = ds;
+        delta_ds.Vids(vids.data()).Distances(distances.data());
+        delta_->Search(delta_ds);
+
+        // merge the result
+        std::vector<std::pair<int64_t, float>> res;
+        for (size_t i = 0; i < delta_ds.k; i++) {
+            if (vids[i] != -1) {
+                res.emplace_back(vids[i], distances[i]);
+            }
+        }
+        if (res.empty()) {
+            return;
+        }
+        for (size_t i = 0; i < ds.k; i++) {
+            if (ds.vids[i] != -1) {
+                res.emplace_back(ds.vids[i],
+                                 reinterpret_cast<float*>(ds.distances)[i]);
+            }
+        }
+
+        std::sort(res.begin(), res.end(),
+                  [](auto& a, auto& b) { return a.second < b.second; });
+
+        // fill back the results
+        for (size_t i = 0; i < std::min(res.size(), (size_t)ds.k); i++) {
+            ds.vids[i] = res[i].first;
+            reinterpret_cast<float*>(ds.distances)[i] = res[i].second;
+        }
+    }
 }
 
 void MemIndexChunk::RangeSearch(const DataSet& ds, const SearchParams& params) {
     THROW_CODE(VectorIndexException, "TODO: implement range search later");
+}
+
+void MemIndexChunk::Seal() {
+    if (sealed) {
+        return;
+    }
+    delta_ = std::make_unique<Delta>(dim_, distance_type_);
+    sealed = true;
 }
 
 }  // namespace embedding

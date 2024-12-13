@@ -31,13 +31,9 @@ class SearchParams;
 
 class IndexChunk {
    public:
-    IndexChunk(const std::string& index_dir, int64_t dim,
-               meta::VectorIndexType index_type,
-               meta::VectorDistanceType distance_type)
-        : index_dir_(index_dir),
-          dim_(dim),
-          index_type_(index_type),
-          distance_type_(distance_type) {}
+    IndexChunk(rocksdb::TransactionDB* db, GraphCF* graph_cf,
+               const meta::VertexVectorIndex& meta)
+        : db_(db), graph_cf_(graph_cf), meta_(meta) {}
 
     virtual ~IndexChunk() = default;
 
@@ -57,7 +53,7 @@ class IndexChunk {
     virtual void Delete(const DataSet& ds) = 0;
 
     // after seal, the updated data should go to delta_
-    virtual void Seal() { sealed_ = true; };
+    virtual void Seal() = 0;
 
     virtual void Search(const DataSet& ds, const SearchParams& params) = 0;
     virtual void RangeSearch(const DataSet& ds, const SearchParams& params) = 0;
@@ -67,21 +63,25 @@ class IndexChunk {
 
     virtual void WriteToFile() = 0;
 
+    // apply wal and return the max timestamp
+    virtual int64_t ApplyDelta() = 0;
+
    protected:
-    const std::string& index_dir_;
-    int64_t dim_;
-    meta::VectorIndexType index_type_;
-    meta::VectorDistanceType distance_type_;
-    bool sealed_{false};
+    rocksdb::TransactionDB* db_{nullptr};
+    GraphCF* graph_cf_{nullptr};
+    const meta::VertexVectorIndex& meta_;
     std::unique_ptr<IdMapper> mapper_{nullptr};
     std::unique_ptr<DeleteMap> del_map_{nullptr};
     std::unique_ptr<Delta> delta_{nullptr};
 };
 
 extern std::unique_ptr<IndexChunk> CreateVsagIndexChunk(
+    rocksdb::TransactionDB* db, GraphCF* graph_cf,
     const meta::VertexVectorIndex& meta, const std::string& chunk_id);
 extern std::unique_ptr<IndexChunk> LoadVsagIndexChunk(
-    const meta::VertexVectorIndex& meta, const std::string& chunk_id);
+    rocksdb::TransactionDB* db, GraphCF* graph_cf,
+    const meta::VertexVectorIndex& meta, const std::string& chunk_id,
+    int64_t& timestamp);
 
 }  // namespace embedding
 

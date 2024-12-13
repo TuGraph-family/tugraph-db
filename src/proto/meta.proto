@@ -83,3 +83,8 @@ message FullTextIndexUpdate {
     repeated string fields = 3;
     repeated string values = 4;
 }
+
+message VectorIndexUpdate {
+    UpdateType type     = 1;
+    repeated int64 ids  = 2;
+}

@@ -17,17 +17,21 @@
 
 #include <vsag/vsag.h>
 
+#include <boost/endian/conversion.hpp>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
 #include "common/exceptions.h"
+#include "graphdb/graph_cf.h"
 #include "index.h"
 #include "index_chunk.h"
+#include "transaction/transaction.h"
 
 namespace graphdb {
-
 namespace embedding {
+
+using namespace boost::endian;
 
 namespace {
 const static std::string vsag_hnsw_index_postfix = "vsag.hnsw";
@@ -53,11 +57,10 @@ class VsagIdSelector : public IdSelector {
 
 class VsagHNSWIndexChunk : public IndexChunk {
    public:
-    VsagHNSWIndexChunk(const std::string& index_dir, std::string chunk_id,
-                       int64_t dim, meta::VectorDistanceType distance_type,
-                       const std::string& parameters)
-        : IndexChunk(index_dir, dim, meta::HNSW, distance_type),
-          chunk_id_(std::move(chunk_id)) {
+    VsagHNSWIndexChunk(rocksdb::TransactionDB* db, GraphCF* graph_cf,
+                       const meta::VertexVectorIndex& meta,
+                       std::string chunk_id, const std::string& parameters)
+        : IndexChunk(db, graph_cf, meta), chunk_id_(std::move(chunk_id)) {
         mapper_ = std::make_unique<IdMapper>(chunk_id);
 
         auto ret = vsag::Factory::CreateIndex("hnsw", parameters);
@@ -90,9 +93,12 @@ class VsagHNSWIndexChunk : public IndexChunk {
 
     void Seal() override;
 
+    int64_t ApplyDelta() override;
+
     static std::unique_ptr<VsagHNSWIndexChunk> Load(
-        const std::string& dir, const std::string chunk_id, int64_t dim,
-        meta::VectorDistanceType distance_type, const std::string& parameters);
+        rocksdb::TransactionDB* db, GraphCF* graph_cf,
+        const meta::VertexVectorIndex& meta, const std::string& chunk_id,
+        const std::string& parameters, int64_t& timestamp);
 
     int64_t GetMemoryUsage() override { return index_->GetMemoryUsage(); }
 
@@ -109,11 +115,22 @@ void VsagHNSWIndexChunk::Add(const DataSet& ds) {
 
     std::unique_lock<std::shared_mutex> lock(mutex_);
     if (delta_ == nullptr) {
-        delta_ = std::make_unique<Delta>(dim_, distance_type_, chunk_id_);
+        delta_ =
+            std::make_unique<Delta>(meta_.dimensions(), meta_.distance_type());
     }
 
     delta_->Add(ds);
-    delta_->Flush(index_dir_);
+
+    // refactor later using batch write
+    rocksdb::WriteOptions wo;
+    std::string key = chunk_id_;
+    int64_t bigendian_tm = native_to_big(ds.timestamp);
+    key.append((const char*)&bigendian_tm, sizeof(int64_t));
+    meta::VectorIndexUpdate update;
+    update.set_type(meta::UpdateType::Add);
+    update.add_ids(ds.vids[0]);
+    auto s = db_->Put(wo, graph_cf_->vector_index_delta, key,
+                      update.SerializeAsString());
 }
 
 void VsagHNSWIndexChunk::AddBatch(const DataSet& ds) {
@@ -134,7 +151,7 @@ void VsagHNSWIndexChunk::AddBatch(const DataSet& ds) {
 
     auto dataset = vsag::Dataset::Make();
 
-    dataset->Dim(dim_)
+    dataset->Dim(meta_.dimensions())
         ->NumElements(ds.n)
         ->Ids(labels.data())
         ->Float32Vectors(reinterpret_cast<const float*>(ds.x));
@@ -155,6 +172,7 @@ void VsagHNSWIndexChunk::Delete(const DataSet& ds) {
     if (ds.n != 1) {
         THROW_CODE(InvalidParameter, "Add one item at a time: {}", ds.n);
     }
+    assert(ds.timestamp > 0);
 
     std::unique_lock<std::shared_mutex> lock(mutex_);
 
@@ -163,14 +181,25 @@ void VsagHNSWIndexChunk::Delete(const DataSet& ds) {
     }
 
     if (del_map_ == nullptr) {
-        del_map_ = std::make_unique<DeleteMap>(GetElementsNum(), chunk_id_);
+        del_map_ = std::make_unique<DeleteMap>(GetElementsNum());
     }
 
     int64_t vid = ds.vids[0];
     auto position = mapper_->GetLabelFromVId(vid);
-    del_map_->SetDelete(position);
+    if (!del_map_->SetDelete(position)) {
+        delta_->Delete(ds);
+    }
 
-    del_map_->Flush(index_dir_);
+    // refactor later using batch write
+    rocksdb::WriteOptions wo;
+    std::string key = chunk_id_;
+    int64_t bigendian_tm = native_to_big(ds.timestamp);
+    key.append((const char*)&bigendian_tm, sizeof(int64_t));
+    meta::VectorIndexUpdate update;
+    update.set_type(meta::UpdateType::Delete);
+    update.add_ids(vid);
+    auto s = db_->Put(wo, graph_cf_->vector_index_delta, key,
+                      update.SerializeAsString());
 }
 
 void VsagHNSWIndexChunk::Search(const DataSet& ds, const SearchParams& params) {
@@ -179,7 +208,7 @@ void VsagHNSWIndexChunk::Search(const DataSet& ds, const SearchParams& params) {
     }
 
     auto dataset = vsag::Dataset::Make();
-    dataset->Dim(dim_)->NumElements(1)->Owner(false);
+    dataset->Dim(meta_.dimensions())->NumElements(1)->Owner(false);
     auto parameters =
         nlohmann::json{{"hnsw", {{"ef_search", params.ef_search.value()}}}}
             .dump();
@@ -188,7 +217,8 @@ void VsagHNSWIndexChunk::Search(const DataSet& ds, const SearchParams& params) {
     VsagIdSelector id_selector(del_map_.get());
 
     for (size_t i = 0; i < ds.n; i++) {
-        const float* query = reinterpret_cast<const float*>(ds.x) + dim_ * i;
+        const float* query =
+            reinterpret_cast<const float*>(ds.x) + meta_.dimensions() * i;
         auto distances = reinterpret_cast<float*>(ds.distances) + ds.k * i;
         auto vids = ds.vids + ds.k * i;
         dataset->Float32Vectors(query);
@@ -215,8 +245,8 @@ void VsagHNSWIndexChunk::RangeSearch(const DataSet& ds,
 }
 
 void VsagHNSWIndexChunk::WriteToFile() {
-    std::filesystem::path target_path =
-        fmt::format("{}/{}.{}", index_dir_, chunk_id_, vsag_hnsw_index_postfix);
+    std::filesystem::path target_path = fmt::format(
+        "{}/{}.{}", meta_.index_dir(), chunk_id_, vsag_hnsw_index_postfix);
 
     std::filesystem::path tempFilePath =
         std::filesystem::temp_directory_path() /
@@ -233,20 +263,126 @@ void VsagHNSWIndexChunk::WriteToFile() {
 
 void VsagHNSWIndexChunk::Seal() {
     WriteToFile();
-    mapper_->WriteToFile(index_dir_);
+    mapper_->WriteToFile(meta_.index_dir());
+}
 
-    // apply WAL
+int64_t VsagHNSWIndexChunk::ApplyDelta() {
+    if (del_map_ == nullptr) {
+        del_map_ = std::make_unique<DeleteMap>(mapper_->GetVIdCnt());
+    }
+    if (delta_ == nullptr) {
+        delta_ =
+            std::make_unique<Delta>(meta_.dimensions(), meta_.distance_type());
+    }
+    int64_t max_timestamp = 0;
+    int64_t timestamp;
+    rocksdb::ReadOptions ro;
+    std::unique_ptr<rocksdb::Iterator> iter(
+        db_->NewIterator(ro, graph_cf_->vector_index_delta));
+    std::set<int64_t> deletes;
+    std::set<int64_t> updates;
+    for (iter->Seek(chunk_id_);
+         iter->Valid() && iter->key().starts_with(chunk_id_); iter->Next()) {
+        auto key = iter->key();
+        key.remove_prefix(chunk_id_.size());
+        assert(key.size() == sizeof(int64_t));
+        timestamp = *(int64_t*)key.data();
+        if (timestamp > max_timestamp) {
+            max_timestamp = timestamp;
+        }
+        auto val = iter->value();
+        meta::VectorIndexUpdate update;
+        auto ret = update.ParseFromArray(val.data(), val.size());
+        assert(ret);
+        if (update.type() == meta::UpdateType::Add) {
+            for (auto vid : update.ids()) {
+                updates.insert(vid);
+            }
+        } else {
+            for (auto vid : update.ids()) {
+                deletes.insert(vid);
+            }
+        }
+    }
+
+    if (!deletes.empty()) {
+        for (auto vid : deletes) {
+            del_map_->SetDelete(mapper_->GetLabelFromVId(vid));
+        }
+    }
+
+    // the vid in updates can already been deleted
+    if (!updates.empty()) {
+        std::vector<int64_t> vids;
+        vids.reserve(updates.size());
+        DataSet ds;
+        std::vector<float> embeddings;
+        embeddings.reserve(updates.size() * meta_.dimensions());
+
+        rocksdb::ReadOptions ro;
+        std::string property_key;
+        std::string property_val;
+        int64_t bigendian_vid;
+        uint32_t bigendian_pid = native_to_big(meta_.property_id());
+        for (auto vid : updates) {
+            bigendian_vid = native_to_big(vid);
+            property_key.clear();
+            property_val.clear();
+            property_key.append((const char*)&bigendian_vid,
+                                sizeof(bigendian_vid));
+            property_key.append((const char*)&bigendian_pid,
+                                sizeof(bigendian_pid));
+            auto s = db_->Get(ro, graph_cf_->vertex_property, property_key,
+                              &property_val);
+            if (s.IsNotFound()) {
+                continue;
+            } else if (!s.ok()) {
+                THROW_CODE(StorageEngineError, s.ToString());
+            }
+            Value pv;
+            pv.Deserialize(property_val.data(), property_val.size());
+            if (!pv.IsArray()) {
+                continue;
+            }
+            auto& array = pv.AsArray();
+            if (array.empty() || array.size() != meta_.dimensions()) {
+                continue;
+            }
+
+            if (!array[0].IsDouble() && !array[0].IsFloat()) {
+                continue;
+            }
+
+            for (size_t i = 0; i < array.size(); i++) {
+                if (array[i].IsDouble()) {
+                    embeddings.push_back(
+                        static_cast<float>(array[i].AsDouble()));
+                } else {
+                    embeddings.push_back(array[i].AsFloat());
+                }
+            }
+            ds.n++;
+            vids.push_back(vid);
+        }
+
+        ds.Vids(vids.data()).Data(embeddings.data());
+
+        delta_->AddBatch(ds);
+    }
+
+    return max_timestamp;
 }
 
 std::unique_ptr<VsagHNSWIndexChunk> VsagHNSWIndexChunk::Load(
-    const std::string& dir, const std::string chunk_id, int64_t dim,
-    meta::VectorDistanceType distance_type, const std::string& parameters) {
+    rocksdb::TransactionDB* db, GraphCF* graph_cf,
+    const meta::VertexVectorIndex& meta, const std::string& chunk_id,
+    const std::string& parameters, int64_t& timestamp) {
     std::unique_ptr<VsagHNSWIndexChunk> index_chunk =
-        std::make_unique<VsagHNSWIndexChunk>(dir, chunk_id, dim, distance_type,
+        std::make_unique<VsagHNSWIndexChunk>(db, graph_cf, meta, chunk_id,
                                              parameters);
 
-    auto file_path =
-        fmt::format("{}/{}.{}", dir, chunk_id, vsag_hnsw_index_postfix);
+    auto file_path = fmt::format("{}/{}.{}", meta.index_dir(), chunk_id,
+                                 vsag_hnsw_index_postfix);
     if (!std::filesystem::exists(file_path)) {
         THROW_CODE(InvalidParameter, "index file for chunk id {} not exists",
                    chunk_id);
@@ -264,29 +400,22 @@ std::unique_ptr<VsagHNSWIndexChunk> VsagHNSWIndexChunk::Load(
 
     is.close();
 
-    std::unique_ptr<IdMapper> mapper = IdMapper::Load(dir, chunk_id);
+    std::unique_ptr<IdMapper> mapper =
+        IdMapper::Load(meta.index_dir(), chunk_id);
     if (mapper == nullptr) {
         THROW_CODE(InvalidParameter, "IdMapper for chunk id {} not exists",
                    chunk_id);
     }
     index_chunk->mapper_.reset(mapper.release());
 
-    std::unique_ptr<DeleteMap> del_map =
-        DeleteMap::Load(dir, chunk_id, index_chunk->mapper_->GetVIdCnt());
-    if (del_map != nullptr) {
-        index_chunk->del_map_.reset(del_map.release());
-    }
-
-    std::unique_ptr<Delta> delta =
-        Delta::Load(dir, dim, distance_type, chunk_id);
-    if (delta != nullptr) {
-        index_chunk->delta_.reset(delta.release());
-    }
+    // construct DeletaMap and Delta from rocksdb
+    timestamp = index_chunk->ApplyDelta();
 
     return index_chunk;
 }
 
 std::unique_ptr<IndexChunk> CreateVsagIndexChunk(
+    rocksdb::TransactionDB* db, GraphCF* graph_cf,
     const meta::VertexVectorIndex& meta, const std::string& chunk_id) {
     switch (meta.index_type()) {
         case meta::VectorIndexType::HNSW: {
@@ -303,8 +432,7 @@ std::unique_ptr<IndexChunk> CreateVsagIndexChunk(
                                         {"dim", meta.dimensions()},
                                         {"hnsw", hnsw_params}};
             return std::make_unique<VsagHNSWIndexChunk>(
-                meta.index_dir(), chunk_id, meta.dimensions(),
-                meta.distance_type(), index_params.dump());
+                db, graph_cf, meta, chunk_id, index_params.dump());
         }
         default:
             THROW_CODE(VectorIndexException, "index type {} not supported",
@@ -313,7 +441,9 @@ std::unique_ptr<IndexChunk> CreateVsagIndexChunk(
 }
 
 std::unique_ptr<IndexChunk> LoadVsagIndexChunk(
-    const meta::VertexVectorIndex& meta, const std::string& chunk_id) {
+    rocksdb::TransactionDB* db, GraphCF* graph_cf,
+    const meta::VertexVectorIndex& meta, const std::string& chunk_id,
+    int64_t& timestamp) {
     switch (meta.index_type()) {
         case meta::VectorIndexType::HNSW: {
             nlohmann::json hnsw_params{
@@ -329,9 +459,8 @@ std::unique_ptr<IndexChunk> LoadVsagIndexChunk(
                                         {"dim", meta.dimensions()},
                                         {"hnsw", hnsw_params}};
 
-            return VsagHNSWIndexChunk::Load(
-                meta.index_dir(), chunk_id, meta.dimensions(),
-                meta.distance_type(), index_params.dump());
+            return VsagHNSWIndexChunk::Load(db, graph_cf, meta, chunk_id,
+                                            index_params.dump(), timestamp);
         }
         default:
             THROW_CODE(VectorIndexException, "index type {} not supported",

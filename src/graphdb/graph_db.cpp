@@ -1,30 +1,33 @@
 /**
-* Copyright 2024 AntGroup CO., Ltd.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*/
+ * Copyright 2024 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
 
 //
 // Created by botu.wzy
 //
 #include "graph_db.h"
-#include "meta_info.h"
-#include "common/logger.h"
+
 #include <filesystem>
+
+#include "common/logger.h"
+#include "meta_info.h"
 #include "proto/meta.pb.h"
 #include "transaction/transaction.h"
 namespace fs = std::filesystem;
 using namespace boost::endian;
 namespace graphdb {
-std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOptions& graph_options) {
+std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
+                                       const GraphDBOptions& graph_options) {
     std::string rocksdb_path = path + "/data";
     std::filesystem::create_directories(rocksdb_path);
     rocksdb::Options options;
@@ -36,12 +39,16 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     if (graph_options.block_cache) {
         table_options.block_cache = graph_options.block_cache;
     } else {
-        table_options.block_cache = rocksdb::NewLRUCache(1 * 1024 * 1024 * 1024L);
+        table_options.block_cache =
+            rocksdb::NewLRUCache(1 * 1024 * 1024 * 1024L);
     }
-    table_options.data_block_index_type = rocksdb::BlockBasedTableOptions::kDataBlockBinaryAndHash;
+    table_options.data_block_index_type =
+        rocksdb::BlockBasedTableOptions::kDataBlockBinaryAndHash;
     table_options.partition_filters = true;
-    table_options.index_type = rocksdb::BlockBasedTableOptions::IndexType::kTwoLevelIndexSearch;
-    options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(table_options));
+    table_options.index_type =
+        rocksdb::BlockBasedTableOptions::IndexType::kTwoLevelIndexSearch;
+    options.table_factory.reset(
+        rocksdb::NewBlockBasedTableFactory(table_options));
     if (graph_options.row_cache) {
         options.row_cache = graph_options.row_cache;
     } else {
@@ -60,7 +67,9 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
                                              "name_id",
                                              "meta_info",
                                              "index",
-                                             "wal"};
+                                             "wal",
+                                             "vector_index_manifest",
+                                             "vector_index_delta"};
     std::vector<rocksdb::ColumnFamilyDescriptor> cfs;
     cfs.reserve(built_in_cfs.size());
     for (const auto& name : built_in_cfs) {
@@ -85,16 +94,17 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     graph_db->graph_cf_.index = cf_handles[8];
     graph_db->graph_cf_.wal = cf_handles[9];
     graph_db->graph_cf_.vector_index_manifest = cf_handles[10];
+    graph_db->graph_cf_.vector_index_delta = cf_handles[11];
     graph_db->cf_handles_ = std::move(cf_handles);
     graph_db->options_ = graph_options;
-    graph_db->service_threads_.emplace_back([&graph_db](){
+    graph_db->service_threads_.emplace_back([&graph_db]() {
         pthread_setname_np(pthread_self(), "assistant");
         boost::asio::io_service::work holder(graph_db->assistant_);
         graph_db->assistant_.run();
     });
-    graph_db->meta_info_.Init(
-        graph_db->db_, graph_db->assistant_, &graph_db->graph_cf_,
-        &graph_db->id_generator_, graph_db->options_.ft_commit_interval_);
+    graph_db->meta_info_.Init(graph_db->db_, graph_db->assistant_,
+                              &graph_db->graph_cf_, &graph_db->id_generator_,
+                              graph_db->options_.ft_commit_interval_);
     graph_db->id_generator_.Init(graph_db->db_, &graph_db->graph_cf_);
 
     return graph_db;
@@ -165,7 +175,7 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
         property_key.append((const char*)&pid, sizeof(pid));
         std::string property_val;
         auto s = db_->Get(ro, graph_cf_.vertex_property, property_key,
-                     &property_val);
+                          &property_val);
         if (s.IsNotFound()) {
             continue;
         } else if (!s.ok()) {
@@ -198,10 +208,10 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
     meta_val.set_property_id(big_to_native(pid));
     meta_val.set_index_id(big_to_native(index_id));
     auto s = db_->Put(wo, graph_cf_.meta_info, meta_key,
-                 meta_val.SerializeAsString());
+                      meta_val.SerializeAsString());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     LOG_INFO("Add vertex index: [lid:{}, pid:{}, is_unique:{}]",
-                 big_to_native(lid), big_to_native(pid), true);
+             big_to_native(lid), big_to_native(pid), true);
     VertexPropertyIndex vpi(meta_val, graph_cf_.index, index_id, lid, pid);
     auto ret = meta_info_.AddVertexPropertyIndex(std::move(vpi));
     assert(ret);
@@ -264,17 +274,18 @@ void GraphDB::AddVertexFullTextIndex(
         options_.ft_commit_interval_);
     v_ft_index->Load();
     rocksdb::WriteOptions wo;
-    auto s = db_->Put(wo, graph_cf_.meta_info, meta_key,
-                      meta.SerializeAsString());
+    auto s =
+        db_->Put(wo, graph_cf_.meta_info, meta_key, meta.SerializeAsString());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    LOG_INFO("Add vertex full text index: [lids:{}, pids:{}]",native_lids, native_pids);
+    LOG_INFO("Add vertex full text index: [lids:{}, pids:{}]", native_lids,
+             native_pids);
     meta_info_.AddVertexFullTextIndex(std::move(v_ft_index));
 }
 
 void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
     if (!meta_info_.GetVertexFullTextIndex(index_name)) {
-        THROW_CODE(FullTextIndexNotFound,
-                   "No such vertex fulltext index [{}]", index_name);
+        THROW_CODE(FullTextIndexNotFound, "No such vertex fulltext index [{}]",
+                   index_name);
     }
     auto path = meta_info_.GetVertexFullTextIndex(index_name)->meta().path();
     std::string meta_key;
@@ -288,14 +299,17 @@ void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
         std::filesystem::remove_all(path);
         LOG_INFO("remove fulltext index data {}", path);
     } catch (const std::exception& e) {
-        LOG_ERROR("[DeleteVertexFullTextIndex] remove_all {} meet error: {}", path, e.what());
+        LOG_ERROR("[DeleteVertexFullTextIndex] remove_all {} meet error: {}",
+                  path, e.what());
     }
 }
 
-void GraphDB::AddVertexVectorIndex(
-    const std::string& index_name, const std::string& label,
-    const std::string& property, int sharding_num, int dimension,
-    std::string distance_type, int hnsw_m, int hnsw_ef_construction) {
+void GraphDB::AddVertexVectorIndex(const std::string& index_name,
+                                   const std::string& label,
+                                   const std::string& property,
+                                   int sharding_num, int dimension,
+                                   std::string distance_type, int hnsw_m,
+                                   int hnsw_ef_construction) {
     if (index_name.empty() || label.empty() || property.empty()) {
         THROW_CODE(InvalidParameter);
     }
@@ -341,18 +355,18 @@ void GraphDB::AddVertexVectorIndex(
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexVectorIndex));
     meta_key.append(index_name);
-    auto s = db_->Put({}, graph_cf_.meta_info, meta_key,
-                      meta.SerializeAsString());
+    auto s =
+        db_->Put({}, graph_cf_.meta_info, meta_key, meta.SerializeAsString());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    LOG_INFO("Add vertex vector index: [lid:{}, pid:{}]",
-                big_to_native(lid), big_to_native(pid));
+    LOG_INFO("Add vertex vector index: [lid:{}, pid:{}]", big_to_native(lid),
+             big_to_native(pid));
     meta_info_.AddVertexVectorIndex(std::move(vvi));
 }
 
 void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
     if (!meta_info_.GetVertexVectorIndex(index_name)) {
-        THROW_CODE(VectorIndexNotFound,
-                   "No such vertex vector index [{}]", index_name);
+        THROW_CODE(VectorIndexNotFound, "No such vertex vector index [{}]",
+                   index_name);
     }
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexVectorIndex));
@@ -363,4 +377,4 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
     meta_info_.DeleteVertexVectorIndex(index_name);
 }
 
-}
+}  // namespace graphdb

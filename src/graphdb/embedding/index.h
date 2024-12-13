@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <optional>
 
@@ -38,12 +39,13 @@ class DataSet {
     DataSet() = default;
     ~DataSet() = default;
 
-    size_t d{0};               // dimension
-    size_t n{0};               // number of vector elements
-    size_t k{0};               // number of extacted vectors
-    const void* x{nullptr};    // input: vectors to add or search
-    int64_t* vids{nullptr};    // input/output: size n or n * k
-    void* distances{nullptr};  // output: pairwise distances, size n * k
+    size_t d{0};                   // dimension
+    size_t n{0};                   // number of vector elements
+    size_t k{0};                   // number of extacted vectors
+    const void* x{nullptr};        // input: vectors to add or search
+    int64_t* vids{nullptr};        // input/output: size n or n * k
+    void* distances{nullptr};      // output: pairwise distances, size n * k
+    mutable int64_t timestamp{0};  // set when doing update operation
 
     DataSet& Dim(int64_t dim) {
         this->d = dim;
@@ -96,7 +98,7 @@ class IdSelector {
     virtual ~IdSelector() = default;
 
     virtual bool is_member(int64_t id) const = 0;
-    virtual bool is_filtered(int64_t id) const = 0;
+    virtual bool is_filtered(int64_t id) const { return !is_member(id); }
 };
 
 class Index {
@@ -128,7 +130,7 @@ class Index {
     /**
      * purge stale data, implement this later
      */
-    void Purge();
+    void Purge() {}
 
     std::vector<std::shared_ptr<IndexChunk>>& GetPersistentChunks() {
         return persist_chunks_;
@@ -146,6 +148,7 @@ class Index {
     GraphCF* graph_cf_{nullptr};
     uint32_t lid_;
     uint32_t pid_;
+    std::atomic<int64_t> timestamp_{1};
     meta::VertexVectorIndex& meta_;
     std::vector<std::string> chunk_ids_;
     std::shared_ptr<MemIndexChunk> ingest_chunk_;

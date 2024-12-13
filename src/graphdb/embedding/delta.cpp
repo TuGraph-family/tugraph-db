@@ -17,8 +17,8 @@
 
 #include "delta.h"
 
+#include <faiss/impl/FaissException.h>
 #include <faiss/index_factory.h>
-#include <spdlog/fmt/fmt.h>
 
 #include <filesystem>
 #include <fstream>
@@ -32,7 +32,6 @@ namespace graphdb {
 namespace embedding {
 
 namespace {
-const static std::string delta_postfix = "delta";
 
 faiss::MetricType DistanceTypeToFaissMetricType(
     meta::VectorDistanceType distance_type) {
@@ -48,13 +47,48 @@ faiss::MetricType DistanceTypeToFaissMetricType(
                        meta::VectorDistanceType_Name(distance_type));
     }
 }
-}
 
-Delta::Delta(int64_t dim, meta::VectorDistanceType distance_type,
-             const std::string& chunk_id) {
-    file_name_ = fmt::format("{}.{}", chunk_id, delta_postfix);
+class DeltaIdSelector : public IdSelector {
+   public:
+    DeltaIdSelector(const std::vector<int64_t>& vid_vec) : vid_vec_(vid_vec) {}
+    ~DeltaIdSelector() override = default;
+
+    bool is_member(int64_t id) const override { return vid_vec_[id] != -1; }
+
+   private:
+    const std::vector<int64_t>& vid_vec_;
+};
+
+}  // namespace
+
+Delta::Delta(int64_t dim, meta::VectorDistanceType distance_type) {
     delta_.reset(faiss::index_factory(
         dim, "Flat", DistanceTypeToFaissMetricType(distance_type)));
+}
+
+void Delta::Add(const DataSet& ds) {
+    assert(ds.n == 1);
+    delta_->add(ds.n, reinterpret_cast<const float*>(ds.x));
+    int64_t vid = ds.vids[0];
+
+    if (vid_labelid_map_.count(vid)) {
+        if (vid_vec_[vid_labelid_map_[vid]] != -1) {
+            THROW_CODE(InvalidParameter, "vid {} already exists", vid);
+        }
+    }
+    vid_vec_.push_back(vid);
+    vid_labelid_map_[vid] = vid_cnt_++;
+}
+
+void Delta::AddBatch(const DataSet& ds) {
+    delta_->add(ds.n, reinterpret_cast<const float*>(ds.x));
+    int64_t* vids = ds.vids;
+
+    for (size_t i = 0; i < ds.n; i++) {
+        int64_t vid = vids[i];
+        vid_vec_.push_back(vid);
+        vid_labelid_map_[vid] = vid_cnt_++;
+    }
 }
 
 void Delta::Delete(const DataSet& ds) {
@@ -68,95 +102,35 @@ void Delta::Delete(const DataSet& ds) {
     vid_vec_[vid_labelid_map_[vid]] = -1;
 }
 
-void Delta::Add(const DataSet& ds) {
+void Delta::Search(const DataSet& ds) {
     assert(ds.n == 1);
-    delta_->add(ds.n, reinterpret_cast<const float*>(ds.x));
-    int64_t vid = ds.vids[0];
+    std::unique_ptr<faiss::SearchParameters> faiss_params =
+        std::make_unique<faiss::SearchParameters>();
 
-    if (vid_labelid_map_.count(vid)) {
-        if (vid_vec_[vid_labelid_map_[vid]] != -1) {
-            THROW_CODE(InvalidParameter, "vid {} already exists", vid);
+    DeltaIdSelector id_selector(vid_vec_);
+    std::unique_ptr<FaissIDSelector> faiss_selector =
+        std::make_unique<FaissIDSelector>(id_selector);
+
+    faiss_params->sel = faiss_selector.get();
+
+    try {
+        delta_->search(ds.n, reinterpret_cast<const float*>(ds.x), ds.k,
+                       (float*)ds.distances, ds.vids, faiss_params.get());
+    } catch (faiss::FaissException& e) {
+        THROW_CODE(VectorIndexException, "search failed with exception: {}",
+                   e.msg);
+    }
+
+    // convert labelid to vid
+    for (size_t i = 0; i < ds.n * ds.k; i++) {
+        if (ds.vids[i] >= 0) {
+            ds.vids[i] = vid_vec_[ds.vids[i]];
         }
-    } else {
-        updated_vid_vec_.push_back(vid);
-    }
-
-    vid_vec_.push_back(vid);
-    vid_labelid_map_[vid] = vid_cnt_++;
-}
-
-void Delta::Flush(const std::string& dir) {
-    if (flushed_cnt_ == updated_vid_vec_.size()) {
-        return;
-    }
-
-    std::filesystem::path delta_path = fmt::format("{}/{}", dir, file_name_);
-    if (flushed_cnt_ > 0 && !std::filesystem::exists(delta_path)) {
-        THROW_CODE(IOException, "Delta file not exists");
-    }
-
-    // append to end of file
-    std::ofstream deltaFile(delta_path, std::ios::binary | std::ios::app);
-    if (!deltaFile) {
-        THROW_CODE(IOException, "Failed to open deltaFile");
-    }
-
-    deltaFile.write(
-        reinterpret_cast<const char*>(updated_vid_vec_.data() + flushed_cnt_),
-        (updated_vid_vec_.size() - flushed_cnt_) * sizeof(int64_t));
-
-    deltaFile.flush();
-    deltaFile.close();
-}
-
-void Delta::Populate(const DataSet& ds) {
-    if (ds.n == 0) {
-        return;
-    }
-
-    delta_->add(ds.n, reinterpret_cast<const float*>(ds.x));
-    int64_t* vids = ds.vids;
-    for (size_t i = 0; i < ds.n; i++) {
-        auto vid = vids[i];
-        if (vid_labelid_map_.count(vid)) {
-            THROW_CODE(InvalidParameter, "vid {} should not exists", vid);
-        }
-        vid_vec_.push_back(vid);
-        vid_labelid_map_[vid] = vid_cnt_++;
     }
 }
 
-std::unique_ptr<Delta> Delta::Load(const std::string& dir, int64_t dim,
-                                   meta::VectorDistanceType distance_type,
-                                   const std::string& chunk_id) {
-    std::unique_ptr<Delta> delta =
-        std::make_unique<Delta>(dim, distance_type, chunk_id);
-
-    auto delta_path = fmt::format("{}/{}", dir, delta->file_name_);
-    if (!std::filesystem::exists(delta_path)) {
-        return nullptr;
-    }
-
-    // Open the file in read mode
-    std::ifstream is(delta_path, std::ios::binary);
-    if (!is.is_open()) {
-        THROW_CODE(IOException, "Failed to open the file: {}", delta_path);
-    }
-
-    // get lenght of file
-    is.seekg(0, is.end);
-    int length = is.tellg();
-    is.seekg(0, is.beg);
-
-    delta->flushed_cnt_ = length / sizeof(int64_t);
-    delta->updated_vid_vec_.reserve(delta->flushed_cnt_);
-
-    int64_t rowid;
-    while (is.read(reinterpret_cast<char*>(&rowid), sizeof(int64_t))) {
-        delta->updated_vid_vec_.push_back(rowid);
-    }
-
-    return delta;
+void Delta::RangeSearch(const DataSet& ds) {
+    THROW_CODE(VectorIndexException, "TODO: implement range search later");
 }
 
 }  // namespace embedding

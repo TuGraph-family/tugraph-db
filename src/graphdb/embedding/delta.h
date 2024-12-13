@@ -35,45 +35,30 @@ class DataSet;
 class MemIndexChunk;
 
 /**
- * This structure is mainly used for Persistent Index Chunks'
- * update operation.
+ * This structure is mainly used for record updated data after Chunks'
+ * Seal operation.
  */
 class Delta {
    public:
-    Delta(int64_t dim, meta::VectorDistanceType distance_type,
-          const std::string& chunk_id);
+    Delta(int64_t dim, meta::VectorDistanceType distance_type);
     ~Delta() = default;
 
     void Add(const DataSet& ds);
+    void AddBatch(const DataSet& ds);
     void Delete(const DataSet& ds);
 
-    /* Flush the updated vids to persistent file */
-    void Flush(const std::string& dir);
+    void Search(const DataSet& ds);
+    void RangeSearch(const DataSet& ds);
 
-    /**
-     * This is called after Load interface, read the updated
-     * vids from rocksdb and add to Delta.
-     */
-    void Populate(const DataSet& ds);
+    int64_t GetVIdCnt() { return vid_cnt_; }
 
-    /**
-     * Load this data structure from persistent file, Populate need
-     * to be called after this.
-     */
-    static std::unique_ptr<Delta> Load(const std::string& dir, int64_t dim,
-                                       meta::VectorDistanceType distance_type,
-                                       const std::string& chunk_id);
-
-    const std::vector<int64_t>& GetUpdatedVids() { return updated_vid_vec_; }
+    std::vector<int64_t>& GetVIdVec() { return vid_vec_; }
 
    private:
     int64_t vid_cnt_{0};
     std::vector<int64_t> vid_vec_;
     std::unordered_map<int64_t, int64_t> vid_labelid_map_;
     std::unique_ptr<faiss::Index> delta_;
-    std::vector<int64_t> updated_vid_vec_;
-    size_t flushed_cnt_;
-    std::string file_name_;
 };
 
 }  // namespace embedding

@@ -39,7 +39,7 @@ namespace protobuf_meta_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[6];
+  static const ::google::protobuf::internal::ParseTable schema[7];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -56,6 +56,9 @@ extern GraphDBMetaInfoDefaultTypeInternal _GraphDBMetaInfo_default_instance_;
 class VectorIndexManifest;
 class VectorIndexManifestDefaultTypeInternal;
 extern VectorIndexManifestDefaultTypeInternal _VectorIndexManifest_default_instance_;
+class VectorIndexUpdate;
+class VectorIndexUpdateDefaultTypeInternal;
+extern VectorIndexUpdateDefaultTypeInternal _VectorIndexUpdate_default_instance_;
 class VertexFullTextIndex;
 class VertexFullTextIndexDefaultTypeInternal;
 extern VertexFullTextIndexDefaultTypeInternal _VertexFullTextIndex_default_instance_;
@@ -71,6 +74,7 @@ namespace protobuf {
 template<> ::meta::FullTextIndexUpdate* Arena::CreateMaybeMessage<::meta::FullTextIndexUpdate>(Arena*);
 template<> ::meta::GraphDBMetaInfo* Arena::CreateMaybeMessage<::meta::GraphDBMetaInfo>(Arena*);
 template<> ::meta::VectorIndexManifest* Arena::CreateMaybeMessage<::meta::VectorIndexManifest>(Arena*);
+template<> ::meta::VectorIndexUpdate* Arena::CreateMaybeMessage<::meta::VectorIndexUpdate>(Arena*);
 template<> ::meta::VertexFullTextIndex* Arena::CreateMaybeMessage<::meta::VertexFullTextIndex>(Arena*);
 template<> ::meta::VertexPropertyIndex* Arena::CreateMaybeMessage<::meta::VertexPropertyIndex>(Arena*);
 template<> ::meta::VertexVectorIndex* Arena::CreateMaybeMessage<::meta::VertexVectorIndex>(Arena*);
@@ -1126,6 +1130,123 @@ class FullTextIndexUpdate : public ::google::protobuf::Message /* @@protoc_inser
   ::google::protobuf::RepeatedPtrField< ::std::string> fields_;
   ::google::protobuf::RepeatedPtrField< ::std::string> values_;
   ::google::protobuf::int64 id_;
+  int type_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  friend struct ::protobuf_meta_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class VectorIndexUpdate : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:meta.VectorIndexUpdate) */ {
+ public:
+  VectorIndexUpdate();
+  virtual ~VectorIndexUpdate();
+
+  VectorIndexUpdate(const VectorIndexUpdate& from);
+
+  inline VectorIndexUpdate& operator=(const VectorIndexUpdate& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  VectorIndexUpdate(VectorIndexUpdate&& from) noexcept
+    : VectorIndexUpdate() {
+    *this = ::std::move(from);
+  }
+
+  inline VectorIndexUpdate& operator=(VectorIndexUpdate&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const VectorIndexUpdate& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const VectorIndexUpdate* internal_default_instance() {
+    return reinterpret_cast<const VectorIndexUpdate*>(
+               &_VectorIndexUpdate_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  void Swap(VectorIndexUpdate* other);
+  friend void swap(VectorIndexUpdate& a, VectorIndexUpdate& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline VectorIndexUpdate* New() const final {
+    return CreateMaybeMessage<VectorIndexUpdate>(NULL);
+  }
+
+  VectorIndexUpdate* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<VectorIndexUpdate>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const VectorIndexUpdate& from);
+  void MergeFrom(const VectorIndexUpdate& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(VectorIndexUpdate* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated int64 ids = 2;
+  int ids_size() const;
+  void clear_ids();
+  static const int kIdsFieldNumber = 2;
+  ::google::protobuf::int64 ids(int index) const;
+  void set_ids(int index, ::google::protobuf::int64 value);
+  void add_ids(::google::protobuf::int64 value);
+  const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >&
+      ids() const;
+  ::google::protobuf::RepeatedField< ::google::protobuf::int64 >*
+      mutable_ids();
+
+  // .meta.UpdateType type = 1;
+  void clear_type();
+  static const int kTypeFieldNumber = 1;
+  ::meta::UpdateType type() const;
+  void set_type(::meta::UpdateType value);
+
+  // @@protoc_insertion_point(class_scope:meta.VectorIndexUpdate)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::int64 > ids_;
+  mutable int _ids_cached_byte_size_;
   int type_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
@@ -2334,9 +2455,59 @@ FullTextIndexUpdate::mutable_values() {
   return &values_;
 }
 
+// -------------------------------------------------------------------
+
+// VectorIndexUpdate
+
+// .meta.UpdateType type = 1;
+inline void VectorIndexUpdate::clear_type() {
+  type_ = 0;
+}
+inline ::meta::UpdateType VectorIndexUpdate::type() const {
+  // @@protoc_insertion_point(field_get:meta.VectorIndexUpdate.type)
+  return static_cast< ::meta::UpdateType >(type_);
+}
+inline void VectorIndexUpdate::set_type(::meta::UpdateType value) {
+  
+  type_ = value;
+  // @@protoc_insertion_point(field_set:meta.VectorIndexUpdate.type)
+}
+
+// repeated int64 ids = 2;
+inline int VectorIndexUpdate::ids_size() const {
+  return ids_.size();
+}
+inline void VectorIndexUpdate::clear_ids() {
+  ids_.Clear();
+}
+inline ::google::protobuf::int64 VectorIndexUpdate::ids(int index) const {
+  // @@protoc_insertion_point(field_get:meta.VectorIndexUpdate.ids)
+  return ids_.Get(index);
+}
+inline void VectorIndexUpdate::set_ids(int index, ::google::protobuf::int64 value) {
+  ids_.Set(index, value);
+  // @@protoc_insertion_point(field_set:meta.VectorIndexUpdate.ids)
+}
+inline void VectorIndexUpdate::add_ids(::google::protobuf::int64 value) {
+  ids_.Add(value);
+  // @@protoc_insertion_point(field_add:meta.VectorIndexUpdate.ids)
+}
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >&
+VectorIndexUpdate::ids() const {
+  // @@protoc_insertion_point(field_list:meta.VectorIndexUpdate.ids)
+  return ids_;
+}
+inline ::google::protobuf::RepeatedField< ::google::protobuf::int64 >*
+VectorIndexUpdate::mutable_ids() {
+  // @@protoc_insertion_point(field_mutable_list:meta.VectorIndexUpdate.ids)
+  return &ids_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

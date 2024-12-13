@@ -22,9 +22,9 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 #include <vector>
-#include <shared_mutex>
 
 #include "proto/meta.pb.h"
 
@@ -34,6 +34,7 @@ namespace embedding {
 
 class DataSet;
 class SearchParams;
+class Delta;
 
 class MemIndexChunk {
    public:
@@ -56,6 +57,10 @@ class MemIndexChunk {
     int64_t GetMinVId() { return min_vid_; }
     int64_t GetMaxVId() { return max_vid_; }
 
+    // after seal, updated goes to delta
+    void Seal();
+    Delta* GetDelta() { return delta_.get(); }
+
    private:
     int64_t min_vid_;
     int64_t max_vid_;
@@ -64,6 +69,8 @@ class MemIndexChunk {
     std::vector<int64_t> vid_vec_;
     std::unordered_map<int64_t, int64_t> vid_labelid_map_;
     std::unique_ptr<faiss::Index> flat_index_{nullptr};
+    std::unique_ptr<Delta> delta_{nullptr};
+    bool sealed{false};
     int64_t dim_;
     meta::VectorIndexType index_type_;
     meta::VectorDistanceType distance_type_;
