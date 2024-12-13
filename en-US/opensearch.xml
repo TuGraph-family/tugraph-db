@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+                       xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>TuGraph 文档中心</ShortName>
+  <Description>Search TuGraph 文档中心</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="16" height="16" type="image/x-icon">https://tugraph.tech/tugraph-db/en-US/https://mdn.alipayobjects.com/huamei_qcdryc/afts/img/A*AbamQ5lxv0IAAAAAAAAAAAAADgOBAQ/original</Image>
+  <Url type="text/html" method="get" template="https://tugraph.tech/tugraph-db/en-US/search?q={searchTerms}"/>
+  <Url type="application/opensearchdescription+xml" rel="self" template="https://tugraph.tech/tugraph-db/en-US/opensearch.xml" />
+  <moz:SearchForm>https://tugraph.tech/tugraph-db/en-US/</moz:SearchForm>
+</OpenSearchDescription>
