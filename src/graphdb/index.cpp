@@ -24,6 +24,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/logger.h"
+#include "common/flags.h"
 #include "ftindex/include/lib.rs.h"
 #include "transaction/transaction.h"
 #include "spdlog/stopwatch.h"
@@ -362,7 +363,6 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
     : db_(db), graph_cf_(graph_cf), index_id_(index_id),
       lid_(lid), pid_(pid), meta_(std::move(meta)),
       interval_(commit_interval), timer_(service) {
-
     nlohmann::json hnsw_parameters {
         {"max_degree", meta_.hnsw_m()},
         {"ef_construction", meta_.hnsw_ef_construction()}
@@ -403,10 +403,11 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
                 bs.Set(key, b);
             }
             vsag_index_->Deserialize(bs);
-            apply_id_ = meta_info["apply_id"];
+            uint64_t apply_id = meta_info["apply_id"];
+            apply_id_ = native_to_big(apply_id);
             LOG_INFO("End load vector index {} from data file, num:{}", meta_.name(), vsag_index_->GetNumElements());
         }
-        LOG_INFO("vector index {}, apply_id:{}", meta_.name(), apply_id_);
+        LOG_INFO("vector index {}, apply_id:{}", meta_.name(), big_to_native(apply_id_));
     }
     {
         std::string prefix((const char*)&index_id_, sizeof(index_id_));
@@ -501,6 +502,7 @@ std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
         {"hnsw", {{"ef_search", ef_search}}},
     };
     std::vector<std::pair<int64_t, float>> ret;
+    std::shared_lock read(mutex_);
     auto result = vsag_index_->KnnSearch(dataset, top_k, parameters.dump(), [this](int64_t id)->bool {
         return deleted_vector_ids_.count(id) > 0;
     });
@@ -560,20 +562,16 @@ std::string VertexVectorIndex::DeleteMarkKey(int64_t vector_id) {
 }
 
 void VertexVectorIndex::ApplyWAL() {
-    std::lock_guard<std::mutex> lock(mutex_);
     std::string prefix((const char*)&index_id_, sizeof(index_id_));
     std::string start_key(prefix);
     uint64_t next = big_to_native(apply_id_) + 1;
     native_to_big_inplace(next);
     start_key.append((const char*)&next, sizeof(next));
     uint64_t consumed_wal_id = 0;
-    rocksdb::WriteBatch delete_batch;
     rocksdb::ReadOptions ro;
     std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
     for (iter->Seek(start_key); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         auto key = iter->key();
-        delete_batch.Delete(graph_cf_->wal, key.ToString());
-
         key.remove_prefix(sizeof(index_id_));
         assert(key.size() == sizeof(apply_id_));
         consumed_wal_id = *(uint64_t*)key.data();
@@ -582,6 +580,7 @@ void VertexVectorIndex::ApplyWAL() {
         auto ret = update.ParseFromArray(val.data(), val.size());
         assert(ret);
         if (update.type() == meta::UpdateType::Delete) {
+            std::unique_lock write(mutex_);
             deleted_vector_ids_.emplace(update.vector_id());
             continue;
         }
@@ -595,16 +594,21 @@ void VertexVectorIndex::ApplyWAL() {
         auto dataset = vsag::Dataset::Make();
         dataset->Dim(meta_.dimensions())->NumElements(1)
             ->Ids(id)->Float32Vectors(embedding.release());
-        auto result = vsag_index_->Add(dataset);
-        if (result.has_value()) {
-            if (!result.value().empty()) {
-                THROW_CODE(VectorIndexException, "failed to insert {} ids into vector index", result.value().size());
+        {
+            std::unique_lock write(mutex_);
+            auto result = vsag_index_->Add(dataset);
+            if (result.has_value()) {
+                if (!result.value().empty()) {
+                    THROW_CODE(VectorIndexException,
+                               "failed to insert {} ids into vector index",
+                               result.value().size());
+                }
+            } else {
+                THROW_CODE(VectorIndexException, result.error().message);
             }
-        } else {
-            THROW_CODE(VectorIndexException, result.error().message);
+            vectorid_vid_.emplace(update.vector_id(), update.vid());
         }
-        vectorid_vid_.emplace(update.vector_id(), update.vid());
-        if (vsag_index_->GetNumElements() % 100000 == 0) {
+        if (vsag_index_->GetNumElements() % FLAGS_vt_serialize_interval == 0) {
             if (auto bs = vsag_index_->Serialize(); bs.has_value()) {
                 LOG_INFO("Vector Index {} begin serialization", meta_.name());
                 auto keys = bs->GetKeys();
@@ -627,6 +631,10 @@ void VertexVectorIndex::ApplyWAL() {
                 metafile.close();
                 LOG_INFO("write file: {}", path);
                 LOG_INFO("Vector Index {} finish serialization, num:{}, apply_id: {}", meta_.name(), vsag_index_->GetNumElements(), apply_id);
+                /*auto s = db_->DeleteRange({}, graph_cf_->wal, prefix, key);
+                if (!s.ok()) {
+                    LOG_ERROR("db DeleteRange error: {}", s.ToString());
+                }*/
             } else if (bs.error().type == vsag::ErrorType::NO_ENOUGH_MEMORY) {
                 LOG_ERROR("no enough memory to serialize index {}", meta_.name());
             }

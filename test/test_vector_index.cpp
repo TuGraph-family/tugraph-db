@@ -17,6 +17,7 @@
 #include "test_util.h"
 #include "common/logger.h"
 #include "common/value.h"
+#include "common/flags.h"
 #include "graphdb/graph_db.h"
 #include "transaction/transaction.h"
 #include "cypher/execution_plan/result_iterator.h"
@@ -176,6 +177,54 @@ TEST(VectorIndex, restart) {
         txn->Commit();
     }
     {
+        auto graphDB = GraphDB::Open(testdb, {});
+        for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+            index->ApplyWAL();
+        }
+        auto txn = graphDB->BeginTransaction();
+        std::set<int64_t> ids, expect;
+        for (auto viter = txn->QueryVertexByKnnSearch(index_name, {1.0, 2.0, 3.0, 4.0}, 10, 100);
+             viter->Valid(); viter->Next()) {
+            auto id = viter->GetVertexScore().vertex.GetProperty("id").AsInteger();
+            ids.insert(id);
+        }
+        expect = {1,2,3,4};
+        EXPECT_EQ(ids, expect);
+    }
+}
+
+TEST(VectorIndex, serialize) {
+    fs::remove_all(testdb);
+    std::string index_name = "vector_index";
+    FLAGS_vt_serialize_interval = 3;
+    {
+        auto graphDB = GraphDB::Open(testdb, {});
+        graphDB->AddVertexVectorIndex(index_name, "label1", "embedding",
+                                      4, "l2", 16, 100);
+        auto txn = graphDB->BeginTransaction();
+        txn->CreateVertex(
+            {"label1"},
+            {{"id", Value::Integer(1)},
+             {"embedding", Value::DoubleArray({1.0, 1.0, 1.0, 1.0})}});
+        txn->CreateVertex(
+            {"label1"},
+            {{"id", Value::Integer(2)},
+             {"embedding", Value::DoubleArray({2.0, 2.0, 2.0, 2.0})}});
+        txn->CreateVertex(
+            {"label1"},
+            {{"id", Value::Integer(3)},
+             {"embedding", Value::DoubleArray({3.0, 3.0, 3.0, 3.0})}});
+        txn->CreateVertex(
+            {"label1"},
+            {{"id", Value::Integer(4)},
+             {"embedding", Value::DoubleArray({4.0, 4.0, 4.0, 4.0})}});
+        txn->Commit();
+        for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+            index->ApplyWAL();
+        }
+    }
+    {
+        LOG_INFO("restart graphdb");
         auto graphDB = GraphDB::Open(testdb, {});
         for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
             index->ApplyWAL();
