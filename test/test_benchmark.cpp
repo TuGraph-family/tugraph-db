@@ -25,9 +25,9 @@ namespace fs = std::filesystem;
 static std::string testdb = "testdb";
 using namespace graphdb;
 
-DECLARE_int32(num);
-DECLARE_int32(thread);
-DECLARE_int32(depth);
+DEFINE_int32(num, 10000, "The number of inserted vertexes, the number of edges is ten times the number of points");
+DEFINE_int32(thread, 16, "The number of threads that perform benchmark read and write operations");
+DEFINE_int32(depth, 3, "Depth of k hop");
 
 static inline double GetTime() {
     using namespace std::chrono;
@@ -236,7 +236,12 @@ class BenchmarkLightningGraph {
 TEST(Benchmark, khop) {
     int n = FLAGS_num, thread = FLAGS_thread, depth = FLAGS_depth;
     fs::remove_all(testdb);
-    auto graphDB = GraphDB::Open(testdb, {});
+    GraphDBOptions options;
+    options.block_cache = rocksdb::NewLRUCache(10 * 1024 * 1024 * 1024L);
+    rocksdb::LRUCacheOptions cache_options;
+    cache_options.capacity = 10 * 1024 * 1024 * 1024L;
+    options.row_cache = cache_options.MakeSharedRowCache();
+    auto graphDB = GraphDB::Open(testdb, options);
     graphDB->AddVertexPropertyIndex("person_id", true, "Person", "no");
     BenchmarkLightningGraph bm(*graphDB, 0);
 

@@ -43,3 +43,4 @@ DECLARE_uint64(block_cache);
 DECLARE_uint64(row_cache);
 DECLARE_uint64(ft_apply_interval);
 DECLARE_uint64(vt_apply_interval);
+DECLARE_uint64(vt_serialize_interval);

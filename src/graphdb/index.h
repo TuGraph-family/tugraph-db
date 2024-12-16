@@ -183,7 +183,7 @@ class VertexVectorIndex {
     std::atomic<int64_t> next_vector_id_ = 1;
     std::atomic<uint64_t> next_wal_id_ = 1;
     uint64_t apply_id_ = 0;
-    std::mutex mutex_;
+    std::shared_mutex mutex_;
     size_t interval_ = 5;
     boost::asio::steady_timer timer_;
     std::unordered_set<int64_t> deleted_vector_ids_;
