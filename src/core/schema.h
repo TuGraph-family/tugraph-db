@@ -118,7 +118,7 @@ class Schema {
     std::unordered_set<size_t> fulltext_fields_;
     std::unordered_map<LabelId, std::unordered_set<LabelId>> edge_constraints_lids_;
     bool detach_property_ = false;
-    bool fast_alter_schema = false;
+    bool fast_alter_schema = true;
     std::shared_ptr<KvTable> property_table_;
     std::unordered_map<std::string, std::shared_ptr<CompositeIndex>> composite_index_map;
     std::unordered_set<size_t> vector_index_fields_;
