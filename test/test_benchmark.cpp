@@ -236,12 +236,7 @@ class BenchmarkLightningGraph {
 TEST(Benchmark, khop) {
     int n = FLAGS_num, thread = FLAGS_thread, depth = FLAGS_depth;
     fs::remove_all(testdb);
-    GraphDBOptions options;
-    options.block_cache = rocksdb::NewLRUCache(10 * 1024 * 1024 * 1024L);
-    rocksdb::LRUCacheOptions cache_options;
-    cache_options.capacity = 10 * 1024 * 1024 * 1024L;
-    options.row_cache = cache_options.MakeSharedRowCache();
-    auto graphDB = GraphDB::Open(testdb, options);
+    auto graphDB = GraphDB::Open(testdb, {});
     graphDB->AddVertexPropertyIndex("person_id", true, "Person", "no");
     BenchmarkLightningGraph bm(*graphDB, 0);
 
