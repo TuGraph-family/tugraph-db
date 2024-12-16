@@ -60,9 +60,7 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
                                              "name_id",
                                              "meta_info",
                                              "index",
-                                             "wal",
-                                             "vector_index_manifest",
-                                             "vector_index_delta"};
+                                             "wal"};
     std::vector<rocksdb::ColumnFamilyDescriptor> cfs;
     cfs.reserve(built_in_cfs.size());
     for (const auto& name : built_in_cfs) {
@@ -86,8 +84,8 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     graph_db->graph_cf_.meta_info = cf_handles[7];
     graph_db->graph_cf_.index = cf_handles[8];
     graph_db->graph_cf_.wal = cf_handles[9];
-    graph_db->graph_cf_.vector_index_manifest = cf_handles[10];
-    graph_db->graph_cf_.vector_index_delta = cf_handles[11];
+    graph_db->graph_cf_.vector_index_manifest = nullptr;
+    graph_db->graph_cf_.vector_index_delta = nullptr;
     graph_db->cf_handles_ = std::move(cf_handles);
     graph_db->options_ = graph_options;
     graph_db->service_threads_.emplace_back([&graph_db](){
