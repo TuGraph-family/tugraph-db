@@ -42,6 +42,14 @@ add_library(graphdb STATIC
 		src/graphdb/graph_entity.cpp
 		src/graphdb/meta_info.cpp
 		src/graphdb/index.cpp
+		src/graphdb/uuid_generator.cpp
+		src/graphdb/embedding/delete_map.cpp
+		src/graphdb/embedding/delta.cpp
+		src/graphdb/embedding/faiss_index_chunk.cpp
+		src/graphdb/embedding/id_mapper.cpp
+		src/graphdb/embedding/index.cpp
+		src/graphdb/embedding/mem_index_chunk.cpp
+		src/graphdb/embedding/vsag_index_chunk.cpp
 )
 
 add_library(common STATIC
@@ -131,6 +139,10 @@ set(THIRD_STATIC_LIBS
 	date-tz.a
 	${FT_INDEX_LIB}
 	antlr4-runtime.a
+	faiss.a
+	openblas.a
+	gomp
+	gfortran
 )
 
 if (NOT ENABLE_ASAN)
@@ -226,5 +238,7 @@ install(FILES
 		/usr/local/lib64/libvsag.so
 		/lib64/libgfortran.so.5
 		/lib64/libgfortran.so.5.0.0
+		/lib64/libgomp.so.1
+		/lib64/libgomp.so.1.0.0
 		DESTINATION lib64/lgraph)
 
