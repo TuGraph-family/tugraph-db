@@ -17,7 +17,7 @@ import time
 import lgraph_db_python
 
 @cython.cclass
-class RandomWalkSample:
+class Node2VecSample:
     g: cython.pointer(OlapOnDB[Empty])
     db: cython.pointer(GraphDB)
     feature_num: size_t
@@ -177,7 +177,7 @@ class RandomWalkSample:
         self.local_dst_list = np.zeros((self.num_threads, len(sample_node) * (step)), dtype=np.intp)
         cost = time.time()
         worker = Worker.SharedWorker()
-        worker.get().DelegateCompute[RandomWalkSample](self.Compute, self)
+        worker.get().DelegateCompute[Node2VecSample](self.Compute, self)
         sample_cost = time.time()
         sample_node_num = cython.declare(ssize_t, 0)
         sample_edge_num = cython.declare(ssize_t, 0)
@@ -196,7 +196,7 @@ class RandomWalkSample:
         self.MergeList()
 
         NodeInfo.append(np.asarray(self.node))
-        NodeInfo.append(np.asarray(self.feature)) # embedding
+        NodeInfo.append(np.asarray(self.feature))
         NodeInfo.append(np.asarray(self.label))
         NodeInfo.append(np.asarray(self.vertex_type_string))
         EdgeInfo.append(np.asarray(self.src_list))
@@ -211,5 +211,5 @@ class RandomWalkSample:
 def Process(db_: lgraph_db_python.PyGraphDB, olapondb:lgraph_db_python.PyOlapOnDB, feature_num: size_t, sample_node: list, step: size_t, NodeInfo: list, EdgeInfo: list):
     addr = cython.declare(cython.Py_ssize_t, db_.get_pointer())
     olapondb_addr = cython.declare(cython.Py_ssize_t, olapondb.get_pointer())
-    a = RandomWalkSample()
+    a = Node2VecSample()
     a.run(cython.cast(cython.pointer(GraphDB), addr), cython.cast(cython.pointer(OlapOnDB[Empty]), olapondb_addr), feature_num, sample_node, step, NodeInfo, EdgeInfo)
