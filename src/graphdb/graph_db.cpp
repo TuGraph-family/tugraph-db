@@ -60,7 +60,9 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
                                              "name_id",
                                              "meta_info",
                                              "index",
-                                             "wal"};
+                                             "wal",
+                                             "vector_index_manifest",
+                                             "vector_index_delta"};
     std::vector<rocksdb::ColumnFamilyDescriptor> cfs;
     cfs.reserve(built_in_cfs.size());
     for (const auto& name : built_in_cfs) {
@@ -84,6 +86,8 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     graph_db->graph_cf_.meta_info = cf_handles[7];
     graph_db->graph_cf_.index = cf_handles[8];
     graph_db->graph_cf_.wal = cf_handles[9];
+    graph_db->graph_cf_.vector_index_manifest = cf_handles[10];
+    graph_db->graph_cf_.vector_index_delta = cf_handles[11];
     graph_db->cf_handles_ = std::move(cf_handles);
     graph_db->options_ = graph_options;
     graph_db->service_threads_.emplace_back([&graph_db](){
@@ -165,7 +169,7 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
         property_key.append((const char*)&pid, sizeof(pid));
         std::string property_val;
         auto s = db_->Get(ro, graph_cf_.vertex_property, property_key,
-                     &property_val);
+                          &property_val);
         if (s.IsNotFound()) {
             continue;
         } else if (!s.ok()) {
@@ -314,6 +318,16 @@ void GraphDB::AddVertexVectorIndex(
     std::string vt_index_pth = path_ + "/vt/" + index_name;
     std::filesystem::create_directories(vt_index_pth);
     uint32_t index_id = id_generator_.GetNextIndexId();
+    meta::VectorIndexType index_type = meta::VectorIndexType::HNSW;
+    meta::VectorDistanceType dist_type;
+    if (distance_type == "l2") {
+        dist_type = meta::VectorDistanceType::L2;
+    } else if (distance_type == "ip") {
+        dist_type = meta::VectorDistanceType::IP;
+    } else {
+        THROW_CODE(InvalidParameter, "Distance Type {} not supported",
+                   distance_type);
+    }
     meta::VertexVectorIndex meta;
     meta.set_index_id(big_to_native(index_id));
     meta.set_path(vt_index_pth);
@@ -323,7 +337,8 @@ void GraphDB::AddVertexVectorIndex(
     meta.set_label_id(big_to_native(lid));
     meta.set_property_id(big_to_native(pid));
     meta.set_dimensions(dimension);
-    meta.set_distance_type(std::move(distance_type));
+    meta.set_index_type(index_type);
+    meta.set_distance_type(dist_type);
     meta.set_hnsw_m(hnsw_m);
     meta.set_hnsw_ef_construction(hnsw_ef_construction);
     auto vvi = std::make_unique<VertexVectorIndex>(db_, assistant_,
