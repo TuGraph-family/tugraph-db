@@ -48,6 +48,7 @@ struct VertexPropertyIndex {
     rocksdb::ColumnFamilyHandle* cf() {return cf_;}
     uint32_t lid() const {return lid_;}
     uint32_t pid() const {return pid_;}
+    uint32_t index_id() const {return index_id_;}
    private:
     meta::VertexPropertyIndex meta_;
     rocksdb::ColumnFamilyHandle* cf_;
@@ -83,6 +84,7 @@ class VertexFullTextIndex {
     }
     [[nodiscard]] const std::string& Name() const { return meta_.name(); }
     const meta::VertexFullTextIndex& meta() const {return meta_;}
+    uint32_t index_id() const {return index_id_;}
     void Load();
     std::string IndexKey(int64_t vid);
     std::string NextWALKey();
@@ -163,6 +165,7 @@ class VertexVectorIndex {
     const meta::VertexVectorIndex& meta() {return meta_;}
     uint32_t lid() const {return lid_;}
     uint32_t pid() const {return pid_;}
+    uint32_t index_id() const {return index_id_;}
     void Load();
     void TryDeleteIndex(txn::Transaction* txn, int64_t vid);
     std::string NextWALKey();

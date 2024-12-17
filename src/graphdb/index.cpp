@@ -372,9 +372,15 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
         THROW_CODE(VectorIndexException, "invalid metric_type: {}",
                    meta::VectorDistanceType_Name(meta_.distance_type()));
     }
+    std::string metric_type;
+    if (meta_.distance_type() == meta::VectorDistanceType::L2) {
+        metric_type = "l2";
+    } else {
+        metric_type = "ip";
+    }
     nlohmann::json index_parameters {
         {"dtype", "float32"},
-        {"metric_type", meta_.distance_type()},
+        {"metric_type", metric_type},
         {"dim", meta_.dimensions()},
         {"hnsw", hnsw_parameters}
     };
@@ -633,10 +639,16 @@ void VertexVectorIndex::ApplyWAL() {
                 metafile.close();
                 LOG_INFO("write file: {}", path);
                 LOG_INFO("Vector Index {} finish serialization, num:{}, apply_id: {}", meta_.name(), vsag_index_->GetNumElements(), apply_id);
-                /*auto s = db_->DeleteRange({}, graph_cf_->wal, prefix, key);
+                rocksdb::WriteOptions wo;
+                rocksdb::TransactionDBWriteOptimizations two;
+                two.skip_concurrency_control = true;
+                two.skip_duplicate_key_check = true;
+                rocksdb::WriteBatch batch;
+                batch.DeleteRange(graph_cf_->wal, prefix, key);
+                auto s = db_->Write(wo, two, &batch);
                 if (!s.ok()) {
-                    LOG_ERROR("db DeleteRange error: {}", s.ToString());
-                }*/
+                    LOG_ERROR("VertexVectorIndex db DeleteRange error: {}", s.ToString());
+                }
             } else if (bs.error().type == vsag::ErrorType::NO_ENOUGH_MEMORY) {
                 LOG_ERROR("no enough memory to serialize index {}", meta_.name());
             }

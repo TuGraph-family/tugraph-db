@@ -42,13 +42,13 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path, const GraphDBOpt
     table_options.partition_filters = true;
     table_options.index_type = rocksdb::BlockBasedTableOptions::IndexType::kTwoLevelIndexSearch;
     options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(table_options));
-    if (graph_options.row_cache) {
+    /*if (graph_options.row_cache) {
         options.row_cache = graph_options.row_cache;
     } else {
         rocksdb::LRUCacheOptions cache_options;
         cache_options.capacity = 1 * 1024 * 1024 * 1024L;
         options.row_cache = cache_options.MakeSharedRowCache();
-    }
+    }*/
     options.IncreaseParallelism();
     options.OptimizeLevelStyleCompaction();
     std::vector<std::string> built_in_cfs = {rocksdb::kDefaultColumnFamilyName,
@@ -211,16 +211,30 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
 }
 
 void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
-    if (!meta_info_.GetVertexPropertyIndex(index_name)) {
+    auto index = meta_info_.GetVertexPropertyIndex(index_name);
+    if (!index) {
         THROW_CODE(VertexUniqueIndexNotFound,
                    "No such vertex unique index [{}]", index_name);
     }
+    uint32_t index_id = index->index_id();
     meta_info_.DeleteVertexPropertyIndex(index_name);
+
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexPropertyIndex));
     meta_key.append(index_name);
     rocksdb::WriteOptions wo;
-    auto s = db_->Delete(wo, graph_cf_.meta_info, meta_key);
+    rocksdb::WriteBatch wb;
+    wb.Delete(graph_cf_.meta_info, meta_key);
+
+    std::string start_key((const char*)&index_id, sizeof(index_id));
+    std::string end_key((const char*)&index_id, sizeof(index_id));
+    end_key.append(128, static_cast<char>(0xff));
+    wb.DeleteRange(graph_cf_.index, start_key, end_key);
+
+    rocksdb::TransactionDBWriteOptimizations two;
+    two.skip_concurrency_control = true;
+    two.skip_duplicate_key_check = true;
+    auto s = db_->Write(wo, two, &wb);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     LOG_INFO("Delete vertex unique index: {}", index_name);
 }
@@ -279,14 +293,30 @@ void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
         THROW_CODE(FullTextIndexNotFound,
                    "No such vertex fulltext index [{}]", index_name);
     }
-    auto path = meta_info_.GetVertexFullTextIndex(index_name)->meta().path();
+    auto ft_index = meta_info_.GetVertexFullTextIndex(index_name);
+    std::string path = ft_index->meta().path();
+    uint32_t index_id = ft_index->index_id();
+    meta_info_.DeleteVertexFullTextIndex(index_name);
+
+    rocksdb::WriteBatch wb;
+    rocksdb::WriteOptions wo;
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexFullTextIndex));
     meta_key.append(index_name);
-    rocksdb::WriteOptions wo;
-    auto s = db_->Delete(wo, graph_cf_.meta_info, meta_key);
+    wb.Delete(graph_cf_.meta_info, meta_key);
+
+    std::string start_key((const char*)&index_id, sizeof(index_id));
+    start_key.append(sizeof(int64_t), static_cast<char>(0x00));
+    std::string end_key((const char*)&index_id, sizeof(index_id));
+    end_key.append(sizeof(int64_t), static_cast<char>(0xff));
+    wb.DeleteRange(graph_cf_.index, start_key, end_key);
+    wb.DeleteRange(graph_cf_.wal, start_key, end_key);
+
+    rocksdb::TransactionDBWriteOptimizations two;
+    two.skip_concurrency_control = true;
+    two.skip_duplicate_key_check = true;
+    auto s = db_->Write(wo, two, &wb);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    meta_info_.DeleteVertexFullTextIndex(index_name);
     try {
         std::filesystem::remove_all(path);
         LOG_INFO("remove fulltext index data {}", path);
@@ -360,14 +390,30 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
         THROW_CODE(VectorIndexNotFound,
                    "No such vertex vector index [{}]", index_name);
     }
-    auto path = meta_info_.GetVertexVectorIndex(index_name)->meta().path();
+    auto index = meta_info_.GetVertexVectorIndex(index_name);
+    auto path = index->meta().path();
+    uint32_t index_id = index->index_id();
+    meta_info_.DeleteVertexVectorIndex(index_name);
+    rocksdb::WriteBatch wb;
+    rocksdb::WriteOptions wo;
     std::string meta_key;
     meta_key.append(1, static_cast<char>(MetaDataType::VertexVectorIndex));
     meta_key.append(index_name);
-    rocksdb::WriteOptions wo;
-    auto s = db_->Delete(wo, graph_cf_.meta_info, meta_key);
+    wb.Delete(graph_cf_.meta_info, meta_key);
+
+    std::string start_key((const char*)&index_id, sizeof(index_id));
+    start_key.append(sizeof(int64_t), static_cast<char>(0x00));
+    std::string end_key((const char*)&index_id, sizeof(index_id));
+    end_key.append(sizeof(int64_t), static_cast<char>(0xff));
+    wb.DeleteRange(graph_cf_.index, start_key, end_key);
+    wb.DeleteRange(graph_cf_.wal, start_key, end_key);
+
+    rocksdb::TransactionDBWriteOptimizations two;
+    two.skip_concurrency_control = true;
+    two.skip_duplicate_key_check = true;
+    auto s = db_->Write(wo, two, &wb);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    meta_info_.DeleteVertexVectorIndex(index_name);
+
     try {
         std::filesystem::remove_all(path);
         LOG_INFO("remove vector index data {}", path);
