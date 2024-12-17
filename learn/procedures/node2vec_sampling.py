@@ -20,10 +20,11 @@ import lgraph_db_python
 class Node2VecSample:
     g: cython.pointer(OlapOnDB[Empty])
     db: cython.pointer(GraphDB)
-    feature_num: size_t
+    feature_num: size_t # dimensions of result vec
     txn: Transaction
-    sample_node: size_t[:]
-    step: size_t
+    p:size_t
+    q:size_t
+    directed: bool
     node: ssize_t[:]
     num_threads: cython.int
     flag: size_t[:]
@@ -63,92 +64,12 @@ class Node2VecSample:
             memcpy(cython.address(self.vertex_type_string[self.index[thread_id]]), cython.address(self.local_vertex_type[thread_id, 0]), self.local_node_num[thread_id] * cython.sizeof(ssize_t))
             for i in range(self.local_node_num[thread_id]):
                 memcpy(cython.address(self.feature[self.index[thread_id] + i, 0]), cython.address(self.local_feature[thread_id, i, 0]), self.feature_num * cython.sizeof(cython.float))
-            memcpy(cython.address(self.src_list[self.edge_index[thread_id]]), cython.address(self.local_src_list[thread_id, 0]), self.local_edge_num[thread_id] * cython.sizeof(ssize_t))
-            memcpy(cython.address(self.dst_list[self.edge_index[thread_id]]), cython.address(self.local_dst_list[thread_id, 0]), self.local_edge_num[thread_id] * cython.sizeof(ssize_t))
-            memcpy(cython.address(self.edge_type_string[self.edge_index[thread_id]]), cython.address(self.local_edge_type[thread_id, 0]), self.local_edge_num[thread_id] * cython.sizeof(ssize_t))
 
     @cython.cfunc
     @cython.exceptval(check=False)
     def Compute(self) -> cython.void:
-        dst: size_t
-        k: size_t
-        i: cython.int
-        l: size_t
-        label_string: int64_t
-        feat_string: string
-        vertex_type: size_t
-        edge_type: size_t
-        feature_list: cython.p_float
-        thread_id = cython.declare(cython.int)
-        begin = cython.declare(cython.int)
-        end = cython.declare(cython.int)
-
-        dev = cython.declare(random_device)
-        rng = mt19937(dev())
-        with cython.nogil, parallel():
-            thread_id = omp_get_thread_num()
-            begin = cython.cast(int, self.sample_node.shape[0] / self.num_threads) * thread_id
-            end = cython.cast(int, self.sample_node.shape[0] / self.num_threads) * (thread_id + 1)
-            if thread_id == self.num_threads - 1:
-                end = self.sample_node.shape[0]
-            for i in range(begin, end):
-                degree = cython.declare(size_t,  self.g.OutDegree(self.sample_node[i]))
-                if degree == 0:
-                    continue
-                local_txn = self.db.ForkTxn(self.txn)
-                vit = local_txn.GetVertexIterator(self.g.OriginalVid(self.sample_node[i]))
-                eit = vit.GetOutEdgeIterator()
-                if self.flag[self.sample_node[i]] == 0:
-                    self.g.AcquireVertexLock(self.sample_node[i])
-                    if self.flag[self.sample_node[i]] == 0:
-                        for l in range(self.txn.GetVertexSchema(vit.GetLabel()).size()):
-                            if self.txn.GetVertexSchema(vit.GetLabel())[l].name == self.feature_key:
-                                feat_string = vit.GetField(self.feature_key).ToString()
-                                feature_list = cython.cast(cython.p_float, feat_string.c_str())
-                                label_string = vit.GetField(self.label_key).AsInt64()
-                                memcpy(cython.address(self.local_feature[thread_id, self.local_node_num[thread_id], 0]), feature_list, self.feature_num * cython.sizeof(cython.float))
-                                self.local_label[thread_id, self.local_node_num[thread_id]] = label_string
-                        vertex_type = vit.GetLabelId()
-                        self.local_vertex_type[thread_id, self.local_node_num[thread_id]] = vertex_type
-                        self.local_node[thread_id, self.local_node_num[thread_id]] = self.sample_node[i]
-                        self.local_node_num[thread_id] += 1
-                        self.flag[self.sample_node[i]] = -1
-                    self.g.ReleaseVertexLock(self.sample_node[i])
-                dst = self.sample_node[i]
-                for k in range(self.step):
-                    dst_degree = cython.declare(size_t,  self.g.OutDegree(dst))
-                    dst_edges = cython.declare(AdjList[Empty], self.g.OutEdges(dst))
-                    if dst_degree == 0:
-                        break
-                    self.local_src_list[thread_id, self.local_edge_num[thread_id]] = dst
-                    dis = uniform_int_distribution[int](0, dst_degree)
-                    dst = dst_edges[dis(rng)].neighbour
-                    if self.flag[dst] == 0:
-                        self.g.AcquireVertexLock(dst)
-                        if self.flag[dst] == 0:
-                            vit.Goto(self.g.OriginalVid(dst))
-                            for l in range(self.txn.GetVertexSchema(vit.GetLabel()).size()):
-                                if self.txn.GetVertexSchema(vit.GetLabel())[l].name == self.feature_key:
-                                    feat_string = vit.GetField(self.feature_key).ToString()
-                                    feature_list = cython.cast(cython.p_float, feat_string.c_str())
-                                    label_string = vit.GetField(self.label_key).AsInt64()
-                                    memcpy(cython.address(self.local_feature[thread_id, self.local_node_num[thread_id], 0]), feature_list, self.feature_num * cython.sizeof(cython.float))
-                                    self.local_label[thread_id, self.local_node_num[thread_id]] = label_string
-                            vertex_type = vit.GetLabelId()
-                            self.local_vertex_type[thread_id, self.local_node_num[thread_id]] = vertex_type
-                            self.local_node[thread_id, self.local_node_num[thread_id]] = dst
-                            self.local_node_num[thread_id] += 1
-                            self.flag[dst] = -1
-                        self.g.ReleaseVertexLock(dst)
-                    while eit.IsValid():
-                        if eit.GetDst() == self.g.OriginalVid(dst):
-                            edge_type = eit.GetLabelId()
-                            self.local_edge_type[thread_id, self.local_edge_num[thread_id]] = edge_type
-                            break
-                        eit.Next()
-                    self.local_dst_list[thread_id, self.local_edge_num[thread_id]] = dst
-                    self.local_edge_num[thread_id] += 1
-                local_txn.Abort()
+        # 1. pre-processing
+        
 
 
     @cython.cfunc
@@ -160,7 +81,9 @@ class Node2VecSample:
         self.db = db
         self.feature_num = cython.cast(size_t, feature_num)
         self.step = cython.cast(size_t, step)
-        self.sample_node = array.array('L', sample_node)
+        self.p = cython.cast(size_t, p)
+        self.q = cython.cast(size_t, q)
+        self.directed = cython.cast(bool, directed)
         with cython.nogil, parallel():
             self.num_threads = omp_get_num_threads()
         self.local_node_num = np.zeros((self.num_threads,), dtype=np.uintp)
