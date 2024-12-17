@@ -1,0 +1,357 @@
+# quay.io Image
+FROM quay.io/centos/centos:stream9
+
+# Alibaba Image
+# FROM reg.docker.alibaba-inc.com/fma/centos:???
+
+ARG JFLAG=-j16
+# ARG PYPI="-i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com"
+
+RUN sed -i 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/centos-addons.repo \
+    && sed -i 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/centos.repo
+
+
+RUN dnf update -y && dnf install -y \
+    git \
+    gcc \
+    gcc-c++ \
+    make \
+    wget \
+    bzip2 \
+    bzip2-devel \
+    zlib-devel.x86_64 \
+    libtool \
+    libtool-ltdl \
+    libtool-ltdl-devel \
+    openssl-devel.x86_64 \
+    unzip \
+    byacc \
+    libuuid-devel \
+    rpm-build \
+    rpmdevtools \
+    autoconf \
+    automake \
+    perl-Digest-MD5 \
+    perl.x86_64 \
+    libcurl-devel.x86_64 \
+    glibc-common \
+    langpacks-zh_CN \
+    which \
+    java-11-openjdk-devel \
+    openssh-server \
+    compat-openssl11 && dnf clean all
+# install g++ 9.4.0
+# if it is not accessible, replace it with the link below
+# http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz
+RUN wget http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz \
+    && tar -xvf gcc-9.4.0.tar.gz && cd gcc-9.4.0 \
+    && ./contrib/download_prerequisites && mkdir build && cd build \
+    && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
+    && make ${JFLAG} && make install \
+    && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
+
+# install python3
+# if it is not accessible, replace it with the link below
+# https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
+    && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
+    && make ${JFLAG} && make install \
+    && python3 -m pip install --upgrade pip ${PYPI} \
+    && python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 dgl==1.0.0 ogb pandas==0.24.2 ${PYPI} \
+    && rm -rf /Python*
+
+# install cmake
+# if it is not accessible, replace it with the link below
+# https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
+&& tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
+&& ./bootstrap && make ${JFLAG} && make install && rm -rf /cmake-3.*
+
+# 1. Install boost-1.68 and the geometry extensions
+# 2. Revise the macro INVALID_INDEX in geometry module to avoid macro conflict error with Antlr4
+# 3. Copy the boost geometry extensions to the boost-1.68 include directory(headers only)
+# if boost-1.68 is not accessible, replace it with the link below
+# - https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+# Geometry extensions is the `include/boost/geometry/extensions` directory in the repository and commit id below.
+# - Commit 5fbd2a11027f658decda5e43af73935e98a84ee5 @ https://github.com/boostorg/geometry.git
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extensions.tar.gz \
+    && tar xf boost_1_68_0.tar.gz && tar xf geometry-extensions.tar.gz \
+    && cd boost_1_68_0 && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
+    && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
+    && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
+    && cp -r /extensions /usr/local/include/boost/geometry/ \
+    && rm -rf /boost_* /extensions /geometry-extensions.tar.gz
+
+# install protobuf
+# if it is not accessible, replace it with the link below 
+RUN wget https://github.com/protocolbuffers/protobuf/archive/v3.8.0.tar.gz -O protobuf-3.8.0.tar.gz \
+    && tar xf protobuf-3.8.0.tar.gz && cd protobuf-3.8.0 \
+    && ./autogen.sh && ./configure CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr/local \
+    && make ${JFLAG} && make install && ldconfig && rm -rf /protobuf-*
+
+# install snappy
+# if it is not accessible, replace it with the link below
+# https://github.com/google/snappy/archive/refs/tags/1.1.9.zip
+# https://github.com/google/googletest/archive/refs/heads/v1.10.x.zip
+# https://github.com/google/benchmark/archive/bf585a2789e30585b4e3ce6baf11ef2750b54677.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/snappy-1.1.9.zip \
+    && unzip snappy-1.1.9.zip && mv snappy-1.1.9 snapppy && cd snapppy/third_party/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest-v1.10.x.zip \
+    && unzip googletest-v1.10.x.zip && rm -rf googletest && mv googletest-1.10.x googletest \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/benchmark.zip \
+    && unzip benchmark.zip && rm -rf benchmark && mv benchmark-bf585a2789e30585b4e3ce6baf11ef2750b54677 benchmark \
+    && cd .. && mkdir build && cd build \
+    && cmake -DCMAKE_CXX_FLAGS=-fPIC .. && make ${JFLAG} && make install && rm -rf /snappy*
+
+    # install gflags
+# if it is not accessible, replace it with the link below
+# https://github.com/gflags/gflags/archive/v2.2.1.tar.gz -O gflags-2.2.1.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gflags-2.2.1.tar.gz \
+    && tar xf gflags-2.2.1.tar.gz && cd gflags-2.2.1 \
+    && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS=-fPIC .. \
+    && make ${JFLAG} && make install && rm -rf /gflags-*
+
+# install leveldb
+# if it is not accessible, replace it with the link below
+# https://github.com/google/leveldb/archive/refs/tags/v1.20.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/leveldb-v1.20.zip \
+    && unzip leveldb-v1.20.zip && mv leveldb-1.20 leveldb \
+    && cd leveldb && CFLAGS="-fPIC" CXXFLAGS="-fPIC" make ${JFLAG} \
+    && cp -r ./include/leveldb/ /usr/local/include/ \
+    && cp ./out-shared/libleveldb.so.1.20 /usr/local/lib/ \
+    && cp ./out-static/libleveldb.a /usr/local/lib/ \
+    && ln -s /usr/local/lib/libleveldb.so.1.20 /usr/local/lib/libleveldb.so.1 \
+    && ln -s /usr/local/lib/libleveldb.so.1.20 /usr/local/lib/libleveldb.so \
+    && rm -rf /leveldb*
+
+    # install node.js
+# if it is not accessible, replace it with the link below
+# https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.20.0-linux-x64.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.20.0-linux-x64.tar.gz \
+    && tar xvf node-v16.20.0-linux-x64.tar.gz && cd node-v16.20.0-linux-x64/ \
+    && ln -s /node-v16.20.0-linux-x64/bin/npm /usr/local/bin/ \
+    && ln -s /node-v16.20.0-linux-x64/bin/node /usr/local/bin/ \
+    && npm config set registry https://registry.npmmirror.com \
+    && rm -rf /node-v16.20.0-linux-x64.tar.gz \
+    && npm install --global yarn \
+    && ln -s /node-v16.20.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
+    && yarn config set registry https://registry.npmmirror.com
+
+# install lcov
+# if it is not accessible, replace it with the link below
+# https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14-1.noarch.rpm
+# install lcov
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/lcov-1.14-1.noarch.rpm \
+    && rpm -ivh lcov-1.14-1.noarch.rpm \
+    && rm lcov-1.14-1.noarch.rpm
+
+#install maven
+# if it is not accessible, replace it with the link below
+# https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz
+RUN cd opt \
+    && wget --no-check-certificate https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/apache-maven-3.8.7-bin.tar.gz \
+    && tar xf apache-maven-3.8.7-bin.tar.gz \
+    && rm apache-maven-*.tar.gz
+
+ARG CMAKE_OPT="-DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=0 -DBUILD_TESTS=0 -DBUILD_SAMPLES=0 -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++"
+
+# brpc
+# if it is not accessible, replace it with the link below
+# wget https://github.com/apache/incubator-brpc/archive/refs/heads/release-1.3.zip
+RUN wget https://github.com/apache/brpc/archive/refs/tags/1.3.0.zip -O brpc-1.3.0.zip \
+    && unzip brpc-1.3.0.zip && mv brpc-1.3.0 brpc && cd /brpc && mkdir build && cd build \
+    && cmake $CMAKE_OPT -DBUILD_UNIT_TESTS=0 .. && make ${JFLAG} && make install \
+    && rm -rf /brpc*
+
+# cpprestsdk
+# if it is not accessible, replace it with the link below
+# https://github.com/microsoft/cpprestsdk/archive/refs/tags/v2.10.18.zip
+# https://github.com/zaphoyd/websocketpp/archive/56123c87598f8b1dd471be83ca841ceae07f95ba.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cpprestsdk-v2.10.18.zip \
+    && unzip cpprestsdk-v2.10.18.zip && mv cpprestsdk-2.10.18 cpprestsdk && cd /cpprestsdk/Release/libs/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/websocketpp.zip \
+    && unzip websocketpp.zip && rm -rf websocketpp && mv websocketpp-56123c87598f8b1dd471be83ca841ceae07f95ba websocketpp \
+    && cd .. && mkdir build && cd build \
+    && cmake $CMAKE_OPT -DCMAKE_CXX_FLAGS=-fPIC -Wno-error=unused-parameter -DBoost_USE_STATIC_LIBS=1 .. && make ${JFLAG} && make install \
+    && rm -rf /cpprestsdk*
+
+# googletest
+# if it is not accessible, replace it with the link below
+# https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest-release-1.12.1.zip \
+    && unzip googletest-release-1.12.1.zip && mv googletest-release-1.12.1 googletest && cd /googletest && mkdir build && cd build \
+    && cmake $CMAKE_OPT .. && make ${JFLAG} && make install \
+    && rm -rf /googletest*
+
+# jwt-cpp
+# if it is not accessible, replace it with the link below
+# https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.6.0.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jwt-v0.6.0.zip \
+    && unzip jwt-v0.6.0.zip && mv jwt-cpp-0.6.0 jwt-cpp && cd /jwt-cpp && cp -r include/jwt-cpp/ /usr/local/include \
+    && cp -r include/picojson/ /usr/local/include \
+    && rm -rf /jwt-cpp*
+
+# prometheus-cpp-client
+# if it is not accessible, replace it with the link below
+# https://github.com/jupp0r/prometheus-cpp/archive/refs/tags/v1.0.1.zip
+# https://github.com/civetweb/civetweb/archive/eefb26f82b233268fc98577d265352720d477ba4.zip
+# https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/prometheus-cpp-client-v1.0.1.zip \
+    && unzip prometheus-cpp-client-v1.0.1.zip && mv prometheus-cpp-1.0.1 prometheus-cpp-client && cd /prometheus-cpp-client/3rdparty/ \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/civetweb.zip \
+    && unzip civetweb.zip && rm -rf civetweb \
+    && mv civetweb-eefb26f82b233268fc98577d265352720d477ba4 civetweb \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest.zip \
+    && unzip googletest.zip && rm -rf googletest \
+    && mv googletest-e2239ee6043f73722e7aa812a459f54a28552929 googletest \
+    && cd .. && mkdir build && cd build \
+    && cmake $CMAKE_OPT .. && make ${JFLAG} && make install \
+    && rm -rf /prometheus-cpp-client*
+
+# pybind11
+# if it is not accessible, replace it with the link below
+# https://github.com/pybind/pybind11/archive/refs/tags/v2.10.0.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/pybind11-v2.10.0.zip \
+    && unzip pybind11-v2.10.0.zip && mv pybind11-2.10.0 pybind11 && cd /pybind11 && cp -r include/pybind11 /usr/local/include \
+    && rm -rf /pybind11*
+
+# braft
+# if it is not accessible, replace it with the link below
+# wget https://github.com/baidu/braft/archive/refs/tags/v1.1.2.zip
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/braft-v1.1.2.zip \
+    && unzip braft-v1.1.2.zip && mv braft-1.1.2/ braft && cd braft \
+    && mkdir build && cd build && cmake $CMAKE_OPT .. && make ${JFLAG} && make install \
+    && rm -rf /braft*
+
+# jemalloc
+# if it is not accessible, replace it with the link below
+# https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jemalloc-5.3.0.tar.gz \
+   && tar zxf jemalloc-5.3.0.tar.gz && cd jemalloc-5.3.0 \
+   && CFLAGS="-fPIC" CXXFLAGS="-fPIC" ./autogen.sh && make ${JFLAG} && make install \
+   && rm -rf /jemalloc*
+
+# rocksdb
+# if it is not accessible, replace it with the link below
+# https://github.com/facebook/rocksdb/archive/refs/tags/v7.8.3.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7.8.3.tar.gz \
+  && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DPORTABLE=ON -DFORCE_SSE42=ON -DWITH_JEMALLOC=ON \
+  && make ${JFLAG} && make install && rm -rf /rocksdb*
+
+# set maven mirror
+RUN mkdir -p ~/.m2 \
+    && echo '<settings>' > ~/.m2/settings.xml \
+    && echo '  <mirrors>' >> ~/.m2/settings.xml \
+    && echo '    <mirror>' >> ~/.m2/settings.xml \
+    && echo '      <id>alimaven</id>' >> ~/.m2/settings.xml \
+    && echo '      <mirrorOf>central</mirrorOf>' >> ~/.m2/settings.xml \
+    && echo '      <url>https://maven.aliyun.com/nexus/content/groups/public/</url>' >> ~/.m2/settings.xml \
+    && echo '    </mirror>' >> ~/.m2/settings.xml \
+    && echo '  </mirrors>' >> ~/.m2/settings.xml \
+    && echo '</settings>' >> ~/.m2/settings.xml \
+    && cat ~/.m2/settings.xml
+
+# install antlr4-4.13.0
+# if it is not accessible, replace it with the link below
+# https://github.com/antlr/antlr4/archive/refs/tags/4.13.0.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/antlr4-4.13.0.tar.gz \
+    && tar zxf antlr4-4.13.0.tar.gz && cd antlr4-4.13.0/runtime/Cpp/ \
+    && mkdir -p build && cd build \
+    && cmake -DWITH_DEMO=0 -DANTLR_BUILD_CPP_TESTS=0 -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-fPIC -DANTLR4_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+    && make ${JFLAG} && make install \
+    && cd ../../../ && JAVA_HOME=/usr/lib/jvm/java-11-openjdk PATH=/opt/apache-maven-3.8.7/bin:$PATH mvn package -DskipTests \
+    && cp tool/target/antlr4-4.13.0-complete.jar /usr/local/bin \
+    && chmod 755 /usr/local/bin/antlr4-4.13.0-complete.jar \
+    && rm -rf /antlr4-4.13.0*
+
+# install openssl 3.0.5
+# if it is not accessible, replace it with the link below
+# https://github.com/openssl/openssl/releases/download/openssl-3.0.5/openssl-3.0.5.tar.gz
+RUN wget https://github.com/openssl/openssl/releases/download/openssl-3.0.5/openssl-3.0.5.tar.gz \
+    && tar zxf openssl-3.0.5.tar.gz && cd openssl-3.0.5 \
+    && ./config -fPIC --prefix=/usr/local \
+    && make ${JFLAG} && make install \
+    && rm -rf /openssl*
+
+# install glog-0.3.5
+# if it is not accessible, replace it with the link below
+# https://github.com/google/glog/archive/refs/tags/v0.3.5.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/glog-0.3.5.tar.gz \
+    && tar zxf glog-0.3.5.tar.gz && cd glog-0.3.5 \
+    && mkdir -p build && cd build \
+    && cmake -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+    && make ${JFLAG} && make install \
+    && rm -rf /glog-0.3.5*
+
+# Apache arrow
+ENV ARROW_ABSL_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/absl-20211102.0.tar.gz \
+    ARROW_AWSSDK_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-sdk-cpp-1.8.133.tar.gz \
+    ARROW_AWS_CHECKSUMS_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-checksums-v0.1.12.tar.gz \
+    ARROW_AWS_C_COMMON_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-c-common-v0.6.9.tar.gz \
+    ARROW_AWS_C_EVENT_STREAM_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/aws-c-event-stream-v0.1.5.tar.gz \
+    ARROW_BOOST_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/boost-1.75.0.tar.gz \
+    ARROW_BROTLI_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/brotli-v1.0.9.tar.gz \
+    ARROW_BZIP2_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/bzip2-1.0.8.tar.gz \
+    ARROW_CARES_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/cares-1.17.2.tar.gz \
+    ARROW_CRC32C_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/crc32c-1.1.2.tar.gz \
+    ARROW_GBENCHMARK_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/gbenchmark-v1.6.0.tar.gz \
+    ARROW_GFLAGS_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/gflags-v2.2.2.tar.gz \
+    ARROW_GLOG_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/glog-v0.5.0.tar.gz \
+    ARROW_GOOGLE_CLOUD_CPP_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/google-cloud-cpp-v1.42.0.tar.gz \
+    ARROW_GRPC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/grpc-v1.46.3.tar.gz \
+    ARROW_GTEST_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/gtest-1.11.0.tar.gz \
+    ARROW_JEMALLOC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/jemalloc-5.3.0.tar.bz2 \
+    ARROW_LZ4_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/lz4-v1.9.4.tar.gz \
+    ARROW_MIMALLOC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/mimalloc-v2.0.6.tar.gz \
+    ARROW_NLOHMANN_JSON_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/nlohmann-json-v3.10.5.tar.gz \
+    ARROW_OPENTELEMETRY_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/opentelemetry-cpp-v1.4.1.tar.gz \
+    ARROW_OPENTELEMETRY_PROTO_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/opentelemetry-proto-v0.17.0.tar.gz \
+    ARROW_ORC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/orc-1.9.0.tar.gz \
+    ARROW_PROTOBUF_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/protobuf-v21.3.tar.gz \
+    ARROW_RAPIDJSON_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/rapidjson-232389d4f1012dddec4ef84861face2d2ba85709.tar.gz \
+    ARROW_RE2_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/re2-2022-06-01.tar.gz \
+    ARROW_SNAPPY_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/snappy-1.1.9.tar.gz \
+    ARROW_THRIFT_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/thrift-0.16.0.tar.gz \
+    ARROW_UCX_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/ucx-1.12.1.tar.gz \
+    ARROW_UTF8PROC_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/utf8proc-v2.7.0.tar.gz \
+    ARROW_XSIMD_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/xsimd-9.0.1.tar.gz \
+    ARROW_ZLIB_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zlib-1.2.13.tar.gz \
+    ARROW_ZSTD_URL=https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/arrow-deps/zstd-1.5.5.tar.gz
+
+# install Apache arrow
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/apache-arrow-13.0.0.tar.gz \
+  && tar xf apache-arrow-13.0.0.tar.gz && cd apache-arrow-13.0.0/cpp && mkdir build && cd build \
+  && cmake .. -DARROW_DATASET=ON -DARROW_PARQUET=ON -DARROW_ORC=ON -DARROW_CSV=ON && make ${JFLAG} \
+  && make install && rm -rf /apache-arrow-*
+
+# GraphAr
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/graphar/GraphAr-0.11.1.tar.gz \
+  && tar xf GraphAr-0.11.1.tar.gz && cd GraphAr-0.11.1/cpp && mkdir build && cd build \
+  && cmake .. && make ${JFLAG} && make install && rm -rf /GraphAr-*
+
+# tabulate
+# if it is not accessible, replace it with the link below
+# https://github.com/p-ranav/tabulate/archive/refs/tags/v1.5.tar.gz
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-3a5830.tar.gz \
+    && tar zxf tabulate-3a5830.tar.gz && cp -rf tabulate/include/tabulate /usr/local/include \
+    && rm -rf /tabulate*
+
+# install vsag
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/vsag-0.11.5.tar.gz -O /tmp/vsag.tar.gz && \
+    cd /tmp && mkdir vsag && tar -xzf vsag.tar.gz --strip-components=1 -C vsag && cd vsag && \
+    yum install -y libgfortran.x86_64 && ln -s /usr/lib64/libgfortran.so.5.0.0 /usr/local/lib/libgfortran.so && ldconfig && \
+    mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
+    make ${JFLAG} && make install && \
+    cd / && rm -rf /tmp/vsag*
+
+RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
+
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
+    LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64/lgraph:/usr/local/lib64:$PYTHONPATH \
+    PATH=/opt/apache-maven-3.8.7/bin:$PATH
+
+# set locale
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8
