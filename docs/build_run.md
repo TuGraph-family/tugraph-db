@@ -6,7 +6,7 @@ tugraph-db有制作好的编译镜像，专门用来源码编译。
 
 拉取编译镜像
 ```
-docker pull tugraph/5.x-compile-alinux3
+docker pull tugraph/5.x-compile-alinux3:0.0.4
 ```
 进到容器里面，拉取源码编译
 ```

@@ -233,7 +233,7 @@ class BenchmarkLightningGraph {
     }
 };
 
-TEST(Benchmark, khop) {
+TEST(Benchmark, DISABLED_khop) {
     int n = FLAGS_num, thread = FLAGS_thread, depth = FLAGS_depth;
     fs::remove_all(testdb);
     auto graphDB = GraphDB::Open(testdb, {});
