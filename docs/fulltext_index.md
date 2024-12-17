@@ -35,6 +35,9 @@ CREATE (nilsE:Employee {name: "Nils-Erik Karlsson", position: "Engineer", team: 
 (lisa)-[:REVIEWED {message: "Nils-Erik is reportedly difficult to work with."}]->(nilsE),
 (maya)-[:EMAILED {message: "I have booked a team meeting tomorrow."}]->(nils);
 
+#这里为了立刻读取到全文索引数据，手动触发了一次回放全文索引的wal，该操作可选。默认系统会自动回放，每个1秒做一次。
+CALL db.index.fulltext.applyWal();
+
 #全文搜索
 
 搜索名字含有nils的点，返回前10个。

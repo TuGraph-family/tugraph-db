@@ -74,7 +74,11 @@ CALL db.index.fulltext.deleteIndex('namesAndTeams');
 
 * db.index.fulltext.applyWal
 
-回放点的全文索引WAL日志
+回放点的全文索引WAL日志。
+
+写入全文索引数据后，真正生效有一定的延迟，属于最终一致性读。默认是系统每隔1秒检查一次是否有新增的wal日志，如果有，则读出来进行回放生效。
+
+这个调用是手动触发一次wal的回放。
 ```
 CALL db.index.fulltext.applyWal();
 ```
@@ -99,6 +103,15 @@ CALL db.index.vector.knnSearchNodes("vector_index", [1.0,2.0,3.0,4.0], {top_k:2}
 删除点的向量索引
 ```
 CALL db.index.vector.deleteIndex('vector_index');
+```
+
+回放点的向量索引WAL日志。
+
+写入向量索引后，真正生效有一定的延迟，属于最终一致性读。默认是系统每隔1秒检查一次是否有新增的wal日志，如果有，则读出来进行回放生效。
+
+这个调用是手动触发一次wal的回放。
+```
+CALL db.index.vector.applyWal();
 ```
 
 ## 子图管理
