@@ -259,6 +259,7 @@ class LightningGraph {
      * \return  True if it succeeds, false if the index does not exist. Throws exception on error.
      */
     bool DeleteIndex(const std::string& label, const std::string& field, bool is_vertex);
+
     bool DeleteVectorIndex(bool is_vertex, const std::string& label, const std::string& field);
 
     bool DeleteCompositeIndex(const std::string& label,

@@ -2226,6 +2226,8 @@ bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& l
                           label, field);
     VectorIndex* index = extractor->GetVectorIndex();
     uint64_t count = 0;
+    std::vector<std::vector<float>> floatvector;
+    std::vector<lgraph::VertexId> vids;
     auto dim = index->GetVecDimension();
     auto kv_iter = schema->GetPropertyTable().GetIterator(txn.GetTxn());
     for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
@@ -2239,12 +2241,18 @@ bool LightningGraph::BlockingAddVectorIndex(bool is_vertex, const std::string& l
             THROW_CODE(VectorIndexException,
                        "vector size error, size:{}, dim:{}", vector.size(), dim);
         }
-        index->Add({std::move(vector)}, {vid});
+        if (index->GetIndexType() != "hnsw") {
+            floatvector.emplace_back(std::move(vector));
+            vids.emplace_back(vid);
+        } else {
+            index->Add({std::move(vector)}, {vid});
+        }
         count++;
         if ((count % 10000) == 0) {
             LOG_INFO() << "vector index count: " << count;
         }
     }
+    if (index->GetIndexType() != "hnsw") index->Add(floatvector, vids);
     LOG_INFO() << "vector index count: " << count;
     LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
                           label, field);
