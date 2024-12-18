@@ -399,7 +399,7 @@ class Schema {
             if (dynamic_cast<_detail::FieldExtractorV2*>(extractor)->GetRecordCount(record) <
                 extractor->GetFieldId() + 1) {
                 if (extractor->HasInitedValue()) {
-                    return extractor->GetInitedValue();
+                    return extractor->GetInitedFieldData();
                 }
                 return FieldData();
             }

@@ -98,6 +98,14 @@ class FieldExtractorV1 : public FieldExtractorBase {
         if (is_vfield_) SetVLayoutInfo(d.optional ? 1 : 0, 1, 0);
     }
 
+    bool DataInRecord(const Value& record) const override {
+        return true;
+    }
+
+    Value GetInitedValue() const override {
+        return Value();
+    }
+
     bool GetIsNull(const Value& record) const override;
 
     // parse a string as input and then set field in record

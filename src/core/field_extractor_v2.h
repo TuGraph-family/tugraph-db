@@ -84,6 +84,10 @@ class FieldExtractorV2 : public FieldExtractorBase {
         return std::make_unique<FieldExtractorV2>(*this);
     }
 
+    bool DataInRecord(const Value &record) const override;
+
+    Value GetInitedValue() const override;
+
     // Get Field info. Check if it's null in record.
     bool GetIsNull(const Value& record) const override;
 

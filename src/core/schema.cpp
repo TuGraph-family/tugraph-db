@@ -521,13 +521,13 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
             extr->SetIsNull(new_prop, extr->GetIsNull(record));
             if (extr->IsFixedType()) {
                 if (extr->GetFieldId() >= count && extr->HasInitedValue()) {
-                    if (extr->GetDefaultValue() == FieldData()) {
+                    if (extr->GetDefaultFieldData() == FieldData()) {
                         extr->SetIsNull(new_prop, true);
                         continue;
                     }
                     SetFixedSizeValue(new_prop,
                                       field_data_helper::FieldDataToValueOfFieldType(
-                                          extr->GetInitedValue(), extr->Type()),
+                                          extr->GetInitedFieldData(), extr->Type()),
                                       extr);
                     extr->SetIsNull(new_prop, false);
                 } else if (extr->GetFieldId() < count) {
@@ -540,13 +540,13 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
                 }
             } else {
                 if (extr->GetFieldId() >= count && extr->HasInitedValue()) {
-                    if (extr->GetDefaultValue() == FieldData()) {
+                    if (extr->GetDefaultFieldData() == FieldData()) {
                         extr->SetIsNull(new_prop, true);
                         continue;
                     }
                     _SetVariableLengthValue(new_prop,
                                             field_data_helper::FieldDataToValueOfFieldType(
-                                                extr->GetInitedValue(), extr->Type()),
+                                                extr->GetInitedFieldData(), extr->Type()),
                                             extr);
                     extr->SetIsNull(new_prop, false);
                 } else if (extr->GetFieldId() < count) {
@@ -862,6 +862,10 @@ void Schema::_SetVariableLengthValue(Value& record, const Value& data,
     // move data to the correct position
     int32_t diff = data.Size() - fsize;
     if (diff > 0) {
+        if (record.Size() + diff > _detail::MAX_PROP_SIZE) {
+            throw RecordSizeLimitExceededException(extractor->Name(), record.Size() +diff,
+                                       _detail::MAX_PROP_SIZE);
+        }
         record.Resize(record.Size() + diff);
         rptr = (char*)record.Data();
         memmove(rptr + variable_offset + sizeof(DataOffset) + data.Size(),

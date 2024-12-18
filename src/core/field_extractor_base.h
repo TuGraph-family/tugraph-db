@@ -112,9 +112,9 @@ class FieldExtractorBase {
 
     size_t TypeSize() const { return field_data_helper::FieldTypeSize(def_.type); }
 
-    FieldData GetDefaultValue() const { return def_.default_value; }
+    FieldData GetDefaultFieldData() const { return def_.default_value; }
 
-    FieldData GetInitedValue() const { return def_.init_value; }
+    FieldData GetInitedFieldData() const { return def_.init_value; }
 
     bool HasDefaultValue() const { return def_.set_default_value; }
 
@@ -186,6 +186,10 @@ class FieldExtractorBase {
     virtual size_t GetFieldOffset(const Value& record) const = 0;
 
     virtual char* GetNullArray(const Value& record) const = 0;
+
+    virtual bool DataInRecord(const Value& record) const = 0;
+
+    virtual Value GetInitedValue() const = 0;
 
     // Get copy from record.
     ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const {

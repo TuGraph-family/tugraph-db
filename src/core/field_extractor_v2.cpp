@@ -17,6 +17,19 @@ namespace lgraph {
 
 namespace _detail {
 
+bool FieldExtractorV2::DataInRecord(const Value& record) const {
+    if (GetFieldId() + 1 > GetRecordCount(record)) {
+        return false;
+    }
+    return true;
+}
+
+Value FieldExtractorV2::GetInitedValue() const {
+    Value v = field_data_helper::FieldDataToValueOfFieldType(GetInitedFieldData(), Type());
+    return v;
+}
+
+
 bool FieldExtractorV2::GetIsNull(const Value& record) const {
     if (!IsOptional()) {
         return false;

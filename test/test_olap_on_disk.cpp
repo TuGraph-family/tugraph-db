@@ -128,8 +128,8 @@ R"(0,1,1
 
 class TestOlapOnDisk : public TuGraphTestWithParam<struct ParamConfig> {};
 
-TEST_F(TestOlapOnDisk, OlapOnDisk) {
-    ParamConfig config = ParamConfig{"text", "./ut_data/test_data", 1};
+TEST_P(TestOlapOnDisk, OlapOnDisk) {
+    ParamConfig config = GetParam();
     // configure test data
     WriteOlapDiskFiles();
     system("mkdir ut_data && mv test_data ut_data/");

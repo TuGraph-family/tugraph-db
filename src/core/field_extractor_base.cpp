@@ -21,16 +21,29 @@ FieldExtractorBase::~FieldExtractorBase() = default;
 
 void FieldExtractorBase::GetCopy(const Value& record, std::string& data) const {
     FMA_DBG_ASSERT(Type() != FieldType::BLOB);
+    if (!DataInRecord(record)) {
+        const Value v = GetInitedValue();
+        data.resize(v.Size());
+        memcpy(&data[0], v.Data(), v.Size());
+        return;
+    }
     data.resize(GetDataSize(record));
     GetCopyRaw(record, &data[0], data.size());
 }
 
 void FieldExtractorBase::GetCopy(const Value& record, Value& data) const {
+    if (!DataInRecord(record)) {
+        data = GetInitedValue();
+        return;
+    }
     data.Resize(GetDataSize(record));
     GetCopyRaw(record, data.Data(), data.Size());
 }
 
 Value FieldExtractorBase::GetConstRef(const Value& record) const {
+    if (!DataInRecord(record)) {
+        return GetInitedValue();
+    }
     if (GetIsNull(record)) return Value();
     return Value((char*)GetFieldPointer(record), GetDataSize(record));
 }

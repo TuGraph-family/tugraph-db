@@ -28,13 +28,13 @@ CALL db.createVertexLabel('person', 'int8',
 'bool' ,'BOOL', false,
 'int8' ,'INT8', false,
 'datetime' ,'DATETIME', false,
-'string' ,'STRING', false
+'string' ,'STRING', false,
 'int16' ,'INT16', false,
 'int32' ,'INT32', false,
 'int64' ,'INT64', false,
 'float' ,'FLOAT', false,
 'double' ,'DOUBLE', false,
-'date' ,'DATE', false,
+'date' ,'DATE', false
 );
 
 CALL db.createEdgeLabel('is_friend', '[["person","person"]]',
