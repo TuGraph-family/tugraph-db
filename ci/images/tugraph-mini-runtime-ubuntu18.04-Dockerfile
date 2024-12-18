@@ -12,7 +12,8 @@ RUN rm -rf /et/apt/sources.list \
 RUN apt-get update && apt-get install -y \
     gcc \
     libssl-dev \
-    wget
+    wget \
+    gfortran
 
 # install tugraph
 # specifies the path of the object storage where the installation package resides
@@ -22,4 +23,4 @@ ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME}
 RUN dpkg -i ${FILENAME} && rm /${FILENAME}
 
-ENV LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH

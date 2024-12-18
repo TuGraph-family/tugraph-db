@@ -9,10 +9,10 @@ RUN sed -e "s|^mirrorlist=|#mirrorlist=|g" \
     -i.bak \
     /etc/yum.repos.d/CentOS-*.repo && yum clean all && yum makecache
 
-RUN yum -x filesystem update -y && yum install -y \
-    gcc \
-    openssl-static \
-    wget
+RUN yum install -y \
+    wget \
+    libgfortran5.x86_64 \
+    libgomp
 
 # install tugraph
 # specifies the path of the object storage where the installation package resides
@@ -20,8 +20,8 @@ ARG FILEPATH
 # specifies installation package name for tugraph
 ARG FILENAME
 RUN wget ${FILEPATH}/${FILENAME}
-RUN rpm -ivh ${FILENAME} && rm /${FILENAME}
+RUN rpm -ivh --nodeps ${FILENAME} && rm /${FILENAME}
 
-ENV LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
 
 CMD lgraph_server -d run

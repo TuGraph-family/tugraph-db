@@ -1,8 +1,44 @@
 FROM arm64v8/centos:7
 
+ARG JFLAG=-j24
+ARG PYPI=" "
+#ARG PYPI="-i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com"
+
+RUN echo $'                                                                         \n\
+[base]                                                                              \n\
+name=CentOS-$releasever - Base                                                      \n\
+baseurl=http://mirrors.aliyun.com/centos-altarch/$releasever/os/$basearch/           \n\
+gpgcheck=0                                                                           \n\
+gpgkey=http://mirrors.aliyun.com/centos-altarch/7/os/$basearch/RPM-GPG-KEY-CentOS-7  \n\
+                                                                                     \n\
+#released updates                                                                    \n\
+[updates]                                                                             \n\
+name=CentOS-$releasever - Updates                                                      \n\
+baseurl=http://mirrors.aliyun.com/centos-altarch/$releasever/updates/$basearch/       \n\
+gpgcheck=0                                                                             \n\
+gpgkey=http://mirrors.aliyun.com/centos-altarch/7/os/$basearch/RPM-GPG-KEY-CentOS-7     \n\
+                                                                                       \n\
+#additional packages that may be useful                                                \n\
+[extras]                                                                               \n\
+name=CentOS-$releasever - Extras                                                       \n\
+baseurl=http://mirrors.aliyun.com/centos-altarch/$releasever/extras/$basearch/         \n\
+gpgcheck=0                                                                             \n\
+gpgkey=http://mirrors.aliyun.com/centos-altarch/7/os/$basearch/RPM-GPG-KEY-CentOS-7    \n\
+enabled=1                                                                              \n\
+                                                                                       \n\
+#additional packages that extend functionality of existing packages                    \n\
+[centosplus]                                                                          \n\
+name=CentOS-$releasever - Plus                                                         \n\
+baseurl=http://mirrors.aliyun.com/centos-altarch/$releasever/centosplus/$basearch/     \n\
+gpgcheck=0                                                                            \n\
+enabled=0                                                                             \n\
+gpgkey=http://mirrors.aliyun.com/centos-altarch/7/os/$basearch/RPM-GPG-KEY-CentOS-7   \n\
+' > /etc/yum.repos.d/CentOS-Base.repo && yum clean all && yum makecache
+
 RUN yum update -y && yum install -y \
     git \
     gcc \
+    which \
     gcc-c++ \
     make \
     wget \
@@ -27,7 +63,6 @@ RUN yum update -y && yum install -y \
     kde-l10n-Chinese \
     glibc-common \
     libcurl-devel \
-    centos-release-scl-rh \
     witch \
     java-11-openjdk-devel
 
@@ -38,7 +73,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.
     && tar -xvf gcc-8.4.0.tar.gz && cd gcc-8.4.0 \
     && ./contrib/download_prerequisites && mkdir build && cd build \
     && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
-    && make -j4 && make install \
+    && make ${JFLAG} && make install \
     && cp  ./aarch64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib64/ \
     && cd /usr/lib64 && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
     && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
@@ -48,9 +83,9 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.
 # https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
-    && make -j4 && make install \
-    && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
-    && python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 ogb pandas==0.24.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
+    && make ${JFLAG} && make install \
+    && python3 -m pip install --upgrade pip ${PYPI} \
+    && python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme ${PYPI} \
     && rm -rf /Python*
     # dgl==1.0.0 :Could not find a version that satisfies the requirement dgl
 
@@ -59,15 +94,23 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
 # https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
     && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
-    && ./bootstrap && make -j4 && make install && rm -rf /cmake-3.*
+    && ./bootstrap && make ${JFLAG} && make install && rm -rf /cmake-3.*
 
-# install boost-1.68
-# if it is not accessible, replace it with the link below
-# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+# 1. Install boost-1.68 and the geometry extensions
+# 2. Revise the macro INVALID_INDEX in geometry module to avoid macro conflict error with Antlr4
+# 3. Copy the boost geometry extensions to the boost-1.68 include directory(headers only)
+# if boost-1.68 is not accessible, replace it with the link below
+# - https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
+# Geometry extensions is the `include/boost/geometry/extensions` directory in the repository and commit id below.
+# - Commit 5fbd2a11027f658decda5e43af73935e98a84ee5 @ https://github.com/boostorg/geometry.git
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
-    && tar xf boost_1_68_0.tar.gz && cd boost_1_68_0 \
-    && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
-    && ./b2 -j4 cxxflags="-std=c++14 -fPIC" install && rm -rf /boost_*
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extensions.tar.gz \
+    && tar xf boost_1_68_0.tar.gz && tar xf geometry-extensions.tar.gz \
+    && cd boost_1_68_0 && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
+    && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
+    && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
+    && cp -r /extensions /usr/local/include/boost/geometry/ \
+    && rm -rf /boost_* /extensions /geometry-extensions.tar.gz
 
 # install protobuf
 # if it is not accessible, replace it with the link below
@@ -75,7 +118,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/protobuf-3.6.0.tar.gz \
     && tar xf protobuf-3.6.0.tar.gz && cd protobuf-3.6.0 \
     && ./autogen.sh && ./configure CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr/local \
-    && make -j4 && make install && ldconfig && rm -rf /protobuf-*
+    && make ${JFLAG} && make install && ldconfig && rm -rf /protobuf-*
 
 # install snappy
 # if it is not accessible, replace it with the link below
@@ -89,7 +132,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/snappy-1.1
     && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/benchmark.zip \
     && unzip benchmark.zip && rm -rf benchmark && mv benchmark-bf585a2789e30585b4e3ce6baf11ef2750b54677 benchmark \
     && cd .. && mkdir build && cd build \
-    && cmake -DCMAKE_CXX_FLAGS=-fPIC .. && make -j4 && make install && rm -rf /snappy*
+    && cmake -DCMAKE_CXX_FLAGS=-fPIC .. && make ${JFLAG} && make install && rm -rf /snappy*
 
 # install gflags
 # if it is not accessible, replace it with the link below
@@ -97,14 +140,14 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/snappy-1.1
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gflags-2.2.1.tar.gz \
     && tar xf gflags-2.2.1.tar.gz && cd gflags-2.2.1 \
     && mkdir build && cd build && cmake -DCMAKE_CXX_FLAGS=-fPIC .. \
-    && make -j4 && make install && rm -rf /gflags-*
+    && make ${JFLAG} && make install && rm -rf /gflags-*
 
 # install leveldb
 # if it is not accessible, replace it with the link below
 # https://github.com/google/leveldb/archive/refs/tags/v1.20.zip
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/leveldb-v1.20.zip \
     && unzip leveldb-v1.20.zip && mv leveldb-1.20 leveldb \
-    && cd leveldb && CFLAGS="-fPIC" CXXFLAGS="-fPIC" make -j4 \
+    && cd leveldb && CFLAGS="-fPIC" CXXFLAGS="-fPIC" make ${JFLAG} \
     && cp -r ./include/leveldb/ /usr/local/include/ \
     && cp ./out-shared/libleveldb.so.1.20 /usr/local/lib/ \
     && cp ./out-static/libleveldb.a /usr/local/lib/ \
@@ -121,11 +164,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.2
     && npm config set registry https://registry.npmmirror.com \
     && rm -rf /node-v16.20.0-linux-arm64.tar.gz \
     && npm install --global yarn \
-    && npm install --global pnpm \
-    && ln -s /node-v16.20.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
-    && ln -s /node-v16.20.0-linux-arm64/bin/pnpm /usr/local/bin/pnpm \
-    && yarn config set registry https://registry.npmmirror.com \
-    && pnpm config set registry https://registry.npmmirror.com
+    && ln -s /node-v16.20.0-linux-arm64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
+    && yarn config set registry https://registry.npmmirror.com
 
 # install lcov
 # if it is not accessible, replace it with the link below
@@ -150,7 +190,7 @@ ARG CMAKE_OPT="-DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=0 -DBUILD_TESTS=0 
 # wget https://github.com/apache/incubator-brpc/archive/refs/heads/release-1.2.zip
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/brpc-release-1.2.zip \
     && unzip brpc-release-1.2.zip && mv brpc-release-1.2 brpc && cd /brpc && mkdir build && cd build \
-    && cmake $CMAKE_OPT -DBUILD_UNIT_TESTS=0 .. && make -j4 && make install \
+    && cmake $CMAKE_OPT -DBUILD_UNIT_TESTS=0 .. && make ${JFLAG} && make install \
     && rm -rf /brpc*
 
 # cpprestsdk
@@ -166,7 +206,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cpprestsdk
     # +   set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")
     && sed -i '/  set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")/c\  set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries")' CMakeLists.txt \
     && mkdir build && cd build \
-    && cmake $CMAKE_OPT -DCMAKE_CXX_FLAGS=-fPIC -Wno-error=unused-parameter -DBoost_USE_STATIC_LIBS=1 .. && make -j4 && make install \
+    && cmake $CMAKE_OPT -DCMAKE_CXX_FLAGS=-fPIC -Wno-error=unused-parameter -DBoost_USE_STATIC_LIBS=1 .. && make ${JFLAG} && make install \
     && rm -rf /cpprestsdk*
 
 # googletest
@@ -174,7 +214,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cpprestsdk
 # https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/googletest-release-1.12.1.zip \
     && unzip googletest-release-1.12.1.zip && mv googletest-release-1.12.1 googletest && cd /googletest && mkdir build && cd build \
-    && cmake $CMAKE_OPT .. && make -j4 && make install \
+    && cmake $CMAKE_OPT .. && make ${JFLAG} && make install \
     && rm -rf /googletest*
 
 # jwt-cpp
@@ -199,7 +239,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/prometheus
     && unzip googletest.zip && rm -rf googletest \
     && mv googletest-e2239ee6043f73722e7aa812a459f54a28552929 googletest \
     && cd .. && mkdir build && cd build \
-    && cmake $CMAKE_OPT .. && make -j4 && make install \
+    && cmake $CMAKE_OPT .. && make ${JFLAG} && make install \
     && rm -rf /prometheus-cpp-client*
 
 # pybind11
@@ -216,14 +256,14 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/braft-v1.1
     && unzip braft-v1.1.2.zip && mv braft-1.1.2/ braft && cd braft \
     # - set(CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} -msse4 -msse4.2")
     && sed -i '/.*set(CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} -msse4 -msse4.2")*/c\' CMakeLists.txt \
-    && mkdir build && cd build && cmake $CMAKE_OPT .. && make -j4 && make install \
+    && mkdir build && cd build && cmake $CMAKE_OPT .. && make ${JFLAG} && make install \
     && rm -rf /braft*
 
 # jemalloc
 # if it is not accessible, replace it with the link below
 # https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jemalloc-5.3.0.tar.gz \
-   && tar zxf jemalloc-5.3.0.tar.gz && cd jemalloc-5.3.0 && CFLAGS="-fPIC" CXXFLAGS="-fPIC" ./autogen.sh && make -j4 && make install \
+   && tar zxf jemalloc-5.3.0.tar.gz && cd jemalloc-5.3.0 && CFLAGS="-fPIC" CXXFLAGS="-fPIC" ./autogen.sh && make ${JFLAG} && make install \
    && rm -rf /jemalloc*
 
 # rocksdb
@@ -232,7 +272,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jemalloc-5
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/rocksdb-v7.8.3.tar.gz \
 # -DFORCE_SSE42=OFF
   && tar zxf rocksdb-v7.8.3.tar.gz && cd rocksdb-7.8.3 && cmake -DCMAKE_BUILD_TYPE=Release -DPORTABLE=ON -DFORCE_SSE42=OFF -DWITH_JEMALLOC=ON \
-  && make -j6 && make install && rm -rf /rocksdb*
+  && make ${JFLAG} && make install && rm -rf /rocksdb*
 
 # set maven mirror
 RUN mkdir -p ~/.m2 \
@@ -333,11 +373,19 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-3
     && tar zxf tabulate-3a5830.tar.gz && cp -rf tabulate/include/tabulate /usr/local/include \
     && rm -rf /tabulate*
 
+# install vsag
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/vsag-0.11.5.tar.gz -O /tmp/vsag.tar.gz && \
+    cd /tmp && mkdir vsag && tar -xzf vsag.tar.gz --strip-components=1 -C vsag && cd vsag && \
+    yum install -y libgfortran5.aarch64 && ln -s /usr/lib64/libgfortran.so.5.0.0 /usr/local/lib/libgfortran.so && ldconfig && \
+    mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
+    make ${JFLAG} && make install && \
+    cd / && rm -rf /tmp/vsag*
+
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
-    LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
-    PYTHONPATH=/usr/local/lgraph/lib64:/usr/local/lib64:$PYTHONPATH \
+    LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
+    PYTHONPATH=/usr/local/lib64/lgraph:/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
 
 # set locale

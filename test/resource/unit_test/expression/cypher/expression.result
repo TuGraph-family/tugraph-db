@@ -254,3 +254,23 @@ RETURN datetimeComponent(1582705717, 'hour'),datetimeComponent(1582705717, 'minu
 [{"datetimeComponent(1582705717, 'hour')":0,"datetimeComponent(1582705717, 'microsecond')":705717,"datetimeComponent(1582705717, 'minute')":26,"datetimeComponent(1582705717, 'second')":22}]
 RETURN datetimeComponent(1582705717000, 'year'),datetimeComponent(1582705717000, 'second'), datetimeComponent(1582705717000, 'microsecond');
 [{"datetimeComponent(1582705717000, 'microsecond')":717000,"datetimeComponent(1582705717000, 'second')":25,"datetimeComponent(1582705717000, 'year')":1970}]
+RETURN toLower("TuGraph");
+[{"toLower(\"TuGraph\")":"tugraph"}]
+RETURN toUpper("TuGraph");
+[{"toUpper(\"TuGraph\")":"TUGRAPH"}]
+RETURN trim("  TuGraph  ");
+[{"trim(\"  TuGraph  \")":"TuGraph"}]
+RETURN replace("Hello TuGraph", "TuGraph", "World");
+[{"replace(\"Hello TuGraph\", \"TuGraph\", \"World\")":"Hello World"}]
+RETURN split("TuGraph,Graph,Database", ",");
+[{"split(\"TuGraph,Graph,Database\", \",\")":"[TuGraph,Graph,Database]"}]
+RETURN left("TuGraph", 3);
+[{"left(\"TuGraph\", 3)":"TuG"}]
+RETURN right("TuGraph", 2);
+[{"right(\"TuGraph\", 2)":"ph"}]
+RETURN reverse("TuGraph");
+[{"reverse(\"TuGraph\")":"hparGuT"}]
+RETURN lTrim("  TuGraph  ");
+[{"lTrim(\"  TuGraph  \")":"TuGraph  "}]
+RETURN rTrim("  TuGraph  ");
+[{"rTrim(\"  TuGraph  \")":"  TuGraph"}]

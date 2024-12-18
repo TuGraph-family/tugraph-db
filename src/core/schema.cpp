@@ -48,12 +48,15 @@ void Schema::DeleteVertexFullTextIndex(VertexId vid, std::vector<FTIndexEntry>& 
 void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
+        auto prop = fe.GetConstRef(record);
+        if (prop.Empty()) {
+            continue;
+        }
         if (fe.Type() != FieldType::FLOAT_VECTOR) {
             VertexIndex* index = fe.GetVertexIndex();
             FMA_ASSERT(index);
             // update field index
-            if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
+            if (!index->Delete(txn, prop, vid)) {
                 THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record));
@@ -102,11 +105,14 @@ void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Va
                                       const std::vector<size_t>& created) {
     for (auto& idx : created) {
         auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
+        auto prop = fe.GetConstRef(record);
+        if (prop.Empty()) {
+            continue;
+        }
         VertexIndex* index = fe.GetVertexIndex();
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
-        if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
+        if (!index->Delete(txn, prop, vid)) {
             THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record));
@@ -155,12 +161,15 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
     created.reserve(fields_.size());
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
+        auto prop = fe.GetConstRef(record);
+        if (prop.Empty()) {
+            continue;
+        }
         if (fe.Type() != FieldType::FLOAT_VECTOR) {
             VertexIndex* index = fe.GetVertexIndex();
             FMA_ASSERT(index);
             // update field index
-            if (!index->Add(txn, fe.GetConstRef(record), vid)) {
+            if (!index->Add(txn, prop, vid)) {
                 THROW_CODE(InputError,
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record));
