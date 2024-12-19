@@ -35,12 +35,12 @@
           },
           {
             "query": "MATCH (n) where n.name in [\"Rachel Kempson\",\"Dennis Quaid\",\"none\"] RETURN n",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,none,]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Filter [n.name In {\"Rachel Kempson\", \"Dennis Quaid\", \"none\"}]\n            Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,none,]\n",
             "res": 2
           },
           {
             "query": "MATCH (n) where n.name =\"Rachel Kempson\" or n.name= \"Dennis Quaid\" or n.name=\"none\" RETURN n",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,none,]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Filter [(((n.name=\"Rachel Kempson\") or (n.name=\"Dennis Quaid\")) or (n.name=\"none\"))]\n            Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,none,]\n",
             "res": 2
           },
           {
@@ -50,7 +50,7 @@
           },
           {
             "query": "MATCH (n) where n.name = \"Rachel Kempson\" or n.name = \"Dennis Quaid\" or n.name = \"Vanessa Redgrave\" RETURN n",
-            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,Vanessa Redgrave,]\n",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [n]\n        Filter [(((n.name=\"Rachel Kempson\") or (n.name=\"Dennis Quaid\")) or (n.name=\"Vanessa Redgrave\"))]\n            Node Index Seek [n] name IN [Dennis Quaid,Rachel Kempson,Vanessa Redgrave,]\n",
             "res": 3
           }
         ],
@@ -115,6 +115,26 @@
             "query": "match(c:City)<-[r:BORN_IN]-(p:Person) where c.name = 'London' and p.name <> 'Christopher Nolan' return r",
             "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [r]\n        Filter [(p.name!=\"Christopher Nolan\")]\n            Expand(All) [c <-- p ]\n                Node Index Seek [c]  IN []\n",
             "res": 2
+          },
+          {
+            "query": "match(n:Person) where n.birthyear > 1900 return n limit 5",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Limit [5]\n        Project [n]\n            Filter [(n.birthyear>1900)]\n                Node By Label Scan [n:Person] n.birthyear[1900,NUL)\n",
+            "res": 5
+          },
+          {
+            "query": "match(n:Person) where n.birthyear < 2000 return n limit 5",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Limit [5]\n        Project [n]\n            Filter [(n.birthyear<2000)]\n                Node By Label Scan [n:Person] n.birthyear[NUL,2000)\n",
+            "res": 5
+          },
+          {
+            "query": "match(n:Person) where n.birthyear > 1900 and n.birthyear < 2000 return n limit 5",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Limit [5]\n        Project [n]\n            Filter [((n.birthyear>1900) and (n.birthyear<2000))]\n                Node By Label Scan [n:Person] n.birthyear[1900,2000)\n",
+            "res": 5
+          },
+          {
+            "query": "match(n:Person) where n.birthyear > 1900 or n.birthyear > 2000 return n limit 5",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Limit [5]\n        Project [n]\n            Filter [((n.birthyear>1900) or (n.birthyear>2000))]\n                Node By Label Scan [n:Person] n.birthyear[1900,NUL)\n",
+            "res": 5
           }
         ],
         "start_vertex": [
@@ -142,6 +162,23 @@
             "query": "match p = (n)<-[r]-(m)-[r1]->(m1:City) RETURN p",
             "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [p]\n        Expand(All) [m --> n ]\n            Expand(All) [m1 <-- m ]\n                Node By Label Scan [m1:City]\n",
             "res": 9
+          }
+        ],
+        "index": [
+          {
+            "query": "match (n:Person)-[r:BORN_IN]->(m:City) where n.name in ['Vanessa Redgrave'] return m",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [m]\n        Filter [n.name In {\"Vanessa Redgrave\"}]\n            Expand(All) [n --> m ]\n                Node Index Seek [n] name IN [Vanessa Redgrave,]\n",
+            "res": 1
+          },
+          {
+            "query": "match (n:Person)-[r:BORN_IN]->(m:City) where n.name in ['Vanessa Redgrave'] and n.birthyear in [1937] return m",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [m]\n        Filter [(n.name In {\"Vanessa Redgrave\"} and n.birthyear In {1937})]\n            Expand(All) [n --> m ]\n                Node Index Seek [n] name IN [Vanessa Redgrave,]\n",
+            "res": 1
+          },
+          {
+            "query": "match (n:Person)-[r:BORN_IN]->(m:City) where n.birthyear in [1937] return m",
+            "plan": "ReadOnly:1\nExecution Plan:\nProduce Results\n    Project [m]\n        Filter [n.birthyear In {1937}]\n            Expand(All) [n --> m ]\n                Node Index Seek [n] birthyear IN [1937,]\n",
+            "res": 1
           }
         ]
       }

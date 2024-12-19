@@ -255,11 +255,23 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
             return;
         }
         auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[0]);
+        if (!val.count("principal") || !val.count("credentials")) {
+            LOG_ERROR() << "Hello msg fields error, "
+                           "'principal' or 'credentials' are missing.";
+            bolt::PackStream ps;
+            ps.AppendFailure({{"code", "error"},
+                              {"message", "Hello msg fields error, "
+                               "'principal' or 'credentials' are missing."}});
+            conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
+            return;
+        }
         auto& principal = std::any_cast<const std::string&>(val.at("principal"));
         auto& credentials = std::any_cast<const std::string&>(val.at("credentials"));
         auto galaxy = BoltServer::Instance().StateMachine()->GetGalaxy();
         if (!galaxy->ValidateUser(principal, credentials)) {
-            LOG_ERROR() << "Bolt authentication failed";
+            LOG_ERROR() << FMA_FMT(
+                "Bolt authentication failed, user:{}, password:{}", principal, credentials);
             bolt::PackStream ps;
             ps.AppendFailure({{"code", "error"},
                               {"message", "Authentication failed"}});
@@ -284,9 +296,9 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
         }
         session->state = SessionState::READY;
         session->user = principal;
+        conn.SetContext(session);
         session->fsm_thread = std::thread(BoltFSM, conn.shared_from_this());
         session->fsm_thread.detach();
-        conn.SetContext(std::move(session));
         bolt::PackStream ps;
         ps.AppendSuccess(meta);
         conn.Respond(std::move(ps.MutableBuffer()));

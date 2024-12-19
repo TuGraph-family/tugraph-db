@@ -26,7 +26,7 @@ namespace frontend {
 class SchemaRef : public AstNode {
 public:
     explicit SchemaRef(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~SchemaRef() = default;
+    virtual ~SchemaRef() = default;
 };  // class SchemaRef
 
 }  // namespace frontend

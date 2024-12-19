@@ -1,0 +1,5 @@
+lgraph_atomic
+===================================
+
+.. doxygenfile:: lgraph_atomic.h
+   :project: cpp_procedure

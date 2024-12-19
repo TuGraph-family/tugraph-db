@@ -26,8 +26,8 @@ class NodeByLabelScan : public OpBase {
     friend class LocateNodeByVidV2;
     friend class LocateNodeByIndexedProp;
     friend class LocateNodeByIndexedPropV2;
+    friend class LocateNodeByPropRangeFilter;
 
-    std::unique_ptr<lgraph::Transaction> *txn_ = nullptr;
     Node *node_ = nullptr;
     lgraph::VIter *it_ = nullptr;           // also cab be derived from node
     std::string alias_;                     // also can be derived from node
@@ -36,21 +36,24 @@ class NodeByLabelScan : public OpBase {
     int rec_length_;                        // number of entries in a record.
     const SymbolTable *sym_tab_ = nullptr;  // build time context
     bool consuming_ = false;                // whether begin consuming
+    std::unordered_map<std::string, std::pair<lgraph::FieldData, lgraph::FieldData>> field_bounds_;
 
  public:
-    NodeByLabelScan(Node *node, const SymbolTable *sym_tab)
+    NodeByLabelScan(Node *node, const SymbolTable *sym_tab,
+                    std::unordered_map<std::string, std::pair<lgraph::FieldData, lgraph::FieldData>>
+                        field_bounds = {})
         : OpBase(OpType::NODE_BY_LABEL_SCAN, "Node By Label Scan"), node_(node), sym_tab_(sym_tab) {
-        if (node) {
-            it_ = node->ItRef();
-            alias_ = node->Alias();
-            label_ = node->Label();
-            modifies.emplace_back(alias_);
-        }
+        CYPHER_THROW_ASSERT(node);
+        it_ = node->ItRef();
+        alias_ = node->Alias();
+        label_ = node->Label();
+        modifies.emplace_back(alias_);
         auto it = sym_tab->symbols.find(alias_);
-        CYPHER_THROW_ASSERT(node && it != sym_tab->symbols.end());
-        if (it != sym_tab->symbols.end()) node_rec_idx_ = it->second.id;
+        CYPHER_THROW_ASSERT(it != sym_tab->symbols.end());
+        node_rec_idx_ = it->second.id;
         rec_length_ = sym_tab->symbols.size();
         consuming_ = false;
+        field_bounds_ = std::move(field_bounds);
     }
 
     OpResult Initialize(RTContext *ctx) override {
@@ -59,11 +62,22 @@ class NodeByLabelScan : public OpBase {
         record->values[node_rec_idx_].type = Entry::NODE;
         record->values[node_rec_idx_].node = node_;
         // transaction allocated before in plan:execute
-        // TODO(anyone) remove patternGraph's state (ctx)
-        auto primary_filed = ctx->txn_->GetVertexPrimaryField(node_->Label());
-        node_->ItRef()->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER,
-                                   node_->Label(), primary_filed,
-                                   lgraph::FieldData(), lgraph::FieldData());
+        auto primary_field = ctx->txn_->GetVertexPrimaryField(label_);
+        for (auto &[field, bounds] : field_bounds_) {
+            if (field == primary_field) {
+                break;
+            }
+            if (ctx->txn_->GetTxn()->IsIndexed(label_, field)) {
+                it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, label_, field,
+                                bounds.first, bounds.second);
+                return OP_OK;
+            }
+        }
+
+        // fallback to primary index
+        it_->Initialize(ctx->txn_->GetTxn().get(), lgraph::VIter::INDEX_ITER, label_, primary_field,
+                        lgraph::FieldData(), lgraph::FieldData());
+
         return OP_OK;
     }
 
@@ -104,13 +118,27 @@ class NodeByLabelScan : public OpBase {
 
     std::string ToString() const override {
         std::string str(name);
+        bool flag = false;
         str.append(" [").append(alias_).append(":").append(label_).append("]");
+
+        for (auto &[field, bounds] : field_bounds_) {
+            if (flag) {
+                str.append(",");
+            }
+            str.append(" ").append(alias_).append(".").append(field).append("[");
+            str.append(bounds.first.ToString()).append(",");
+            str.append(bounds.second.ToString());
+            str.append(")");
+            flag = true;
+        }
         return str;
     }
 
     Node *GetNode() const { return node_; }
 
     const std::string& GetLabel() { return label_; }
+
+    const SymbolTable * GetSymtab() {return sym_tab_;}
 
     CYPHER_DEFINE_VISITABLE()
 

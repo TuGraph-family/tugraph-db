@@ -762,7 +762,7 @@ cypher::FieldData BuiltinFunction::DateTime(RTContext *ctx, const Record &record
     if (args.size() > 2) CYPHER_ARGUMENT_ERROR();
     if (args.size() == 1) {
         // datetime() Returns the current DateTime.
-        return cypher::FieldData(::lgraph::FieldData(::lgraph::DateTime::Now()));
+        return cypher::FieldData(::lgraph::FieldData(::lgraph::DateTime::LocalNow()));
     } else {
         CYPHER_THROW_ASSERT(args.size() == 2);
         // datetime(string) Returns a DateTime by parsing a string.
@@ -1292,9 +1292,138 @@ cypher::FieldData BuiltinFunction::Regexp(RTContext *ctx, const Record &record,
 }
 
 cypher::FieldData BuiltinFunction::Exists(RTContext *ctx, const Record &record,
-                                            const std::vector<ArithExprNode> &args) {
+                                          const std::vector<ArithExprNode> &args) {
     auto res = args[1].Evaluate(ctx, record);
     return cypher::FieldData(lgraph_api::FieldData(!res.IsNull()));
+}
+
+cypher::FieldData BuiltinFunction::ToLower(RTContext *ctx, const Record &record,
+                                          const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    std::transform(arg1.begin(), arg1.end(), arg1.begin(), [](unsigned char c) {
+        return std::tolower(c);
+    });
+    return cypher::FieldData(lgraph_api::FieldData(arg1));
+}
+
+cypher::FieldData BuiltinFunction::ToUpper(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    std::transform(arg1.begin(), arg1.end(), arg1.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
+    return cypher::FieldData(lgraph_api::FieldData(arg1));
+}
+
+static std::string ltrim(const std::string& s) {
+    auto it = std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    });
+    return {it, s.end()};
+}
+
+static std::string rtrim(const std::string& s) {
+    auto it = std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    });
+    return {s.begin(), it.base()};
+}
+
+static std::string trim(const std::string& s) {
+    return ltrim(rtrim(s));
+}
+
+cypher::FieldData BuiltinFunction::Trim(RTContext *ctx, const Record &record,
+                                        const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    return cypher::FieldData(lgraph_api::FieldData(trim(arg1)));
+}
+
+cypher::FieldData BuiltinFunction::Ltrim(RTContext *ctx, const Record &record,
+                                        const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    return cypher::FieldData(lgraph_api::FieldData(ltrim(arg1)));
+}
+
+cypher::FieldData BuiltinFunction::Rtrim(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    return cypher::FieldData(lgraph_api::FieldData(rtrim(arg1)));
+}
+
+cypher::FieldData BuiltinFunction::Replace(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 4) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    auto arg2_entry = args[2].Evaluate(ctx, record);
+    std::string arg2 = arg2_entry.constant.scalar.AsString();
+    auto arg3_entry = args[3].Evaluate(ctx, record);
+    std::string arg3 = arg3_entry.constant.scalar.AsString();
+    size_t pos = 0;
+    while ((pos = arg1.find(arg2, pos)) != std::string::npos) {
+        arg1.replace(pos, arg2.length(), arg3);
+        pos += arg3.length();
+    }
+    return cypher::FieldData(lgraph_api::FieldData(arg1));
+}
+
+cypher::FieldData BuiltinFunction::Split(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    auto arg2_entry = args[2].Evaluate(ctx, record);
+    std::string arg2 = arg2_entry.constant.scalar.AsString();
+    std::vector<std::string> split_result;
+    boost::algorithm::split(split_result, arg1, boost::is_any_of(arg2));
+    std::vector<::lgraph::FieldData> res;
+    for (auto& item : split_result) {
+        res.emplace_back(std::move(item));
+    }
+    return cypher::FieldData(std::move(res));
+}
+
+cypher::FieldData BuiltinFunction::Left(RTContext *ctx, const Record &record,
+                                        const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    auto arg2_entry = args[2].Evaluate(ctx, record);
+    int64_t arg2 = arg2_entry.constant.scalar.AsInt64();
+    if (arg2 < 0) THROW_CODE(InvalidParameter);
+    return cypher::FieldData(arg1.substr(0, std::min((size_t)arg2, arg1.size())));
+}
+
+cypher::FieldData BuiltinFunction::Right(RTContext *ctx, const Record &record,
+                                         const std::vector<ArithExprNode> &args) {
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    auto arg2_entry = args[2].Evaluate(ctx, record);
+    int64_t arg2 = arg2_entry.constant.scalar.AsInt64();
+    if (arg2 < 0) THROW_CODE(InvalidParameter);
+    size_t len = std::min((size_t)arg2, arg1.size());
+    return cypher::FieldData(arg1.substr(arg1.size() - len, len));
+}
+
+cypher::FieldData BuiltinFunction::Reverse(RTContext *ctx, const Record &record,
+                                           const std::vector<ArithExprNode> &args) {
+    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    auto arg1_entry = args[1].Evaluate(ctx, record);
+    std::string arg1 = arg1_entry.constant.scalar.AsString();
+    std::reverse(arg1.begin(), arg1.end());
+    return cypher::FieldData(lgraph_api::FieldData(arg1));
 }
 
 cypher::FieldData BuiltinFunction::Bin(RTContext *ctx, const Record &record,

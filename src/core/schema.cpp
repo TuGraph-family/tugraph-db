@@ -48,12 +48,15 @@ void Schema::DeleteVertexFullTextIndex(VertexId vid, std::vector<FTIndexEntry>& 
 void Schema::DeleteVertexIndex(KvTransaction& txn, VertexId vid, const Value& record) {
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
+        auto prop = fe.GetConstRef(record);
+        if (prop.Empty()) {
+            continue;
+        }
         if (fe.Type() != FieldType::FLOAT_VECTOR) {
             VertexIndex* index = fe.GetVertexIndex();
             FMA_ASSERT(index);
             // update field index
-            if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
+            if (!index->Delete(txn, prop, vid)) {
                 THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record));
@@ -102,11 +105,14 @@ void Schema::DeleteCreatedVertexIndex(KvTransaction& txn, VertexId vid, const Va
                                       const std::vector<size_t>& created) {
     for (auto& idx : created) {
         auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
+        auto prop = fe.GetConstRef(record);
+        if (prop.Empty()) {
+            continue;
+        }
         VertexIndex* index = fe.GetVertexIndex();
         FMA_ASSERT(index);
         // the aim of this method is delete the index that has been created
-        if (!index->Delete(txn, fe.GetConstRef(record), vid)) {
+        if (!index->Delete(txn, prop, vid)) {
             THROW_CODE(InputError, "Failed to un-index vertex [{}] with field "
                                                     "value [{}:{}]: index value does not exist.",
                                                     vid, fe.Name(), fe.FieldToString(record));
@@ -155,12 +161,15 @@ void Schema::AddVertexToIndex(KvTransaction& txn, VertexId vid, const Value& rec
     created.reserve(fields_.size());
     for (auto& idx : indexed_fields_) {
         auto& fe = fields_[idx];
-        if (fe.GetIsNull(record)) continue;
+        auto prop = fe.GetConstRef(record);
+        if (prop.Empty()) {
+            continue;
+        }
         if (fe.Type() != FieldType::FLOAT_VECTOR) {
             VertexIndex* index = fe.GetVertexIndex();
             FMA_ASSERT(index);
             // update field index
-            if (!index->Add(txn, fe.GetConstRef(record), vid)) {
+            if (!index->Add(txn, prop, vid)) {
                 THROW_CODE(InputError,
                 "Failed to index vertex [{}] with field value [{}:{}]: index value already exists.",
                 vid, fe.Name(), fe.FieldToString(record));
@@ -281,20 +290,6 @@ void Schema::DeleteCreatedEdgeIndex(KvTransaction& txn, const EdgeUid& euid, con
     }
 }
 
-bool Schema::EdgeUniqueIndexConflict(KvTransaction& txn, const Value& record) {
-    for (auto& idx : indexed_fields_) {
-        auto& fe = fields_[idx];
-        EdgeIndex* index = fe.GetEdgeIndex();
-        FMA_ASSERT(index);
-        if (!index->IsUnique()) continue;
-        if (fe.GetIsNull(record)) continue;
-        if (index->UniqueIndexConflict(txn, fe.GetConstRef(record))) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void Schema::AddEdgeToIndex(KvTransaction& txn, const EdgeUid& euid, const Value& record,
                             std::vector<size_t>& created) {
     created.reserve(fields_.size());
@@ -328,7 +323,7 @@ void Schema::AddVectorToVectorIndex(KvTransaction& txn, VertexId vid, const Valu
                        "vector index dimension mismatch, vector size:{}, dim:{}",
                        floatvector.back().size(), dim);
         }
-        index->Add(floatvector, vids, 1);
+        index->Add(floatvector, vids);
     }
 }
 
@@ -337,9 +332,7 @@ void Schema::DeleteVectorIndex(KvTransaction& txn, VertexId vid, const Value& re
         auto& fe = fields_[idx];
         if (fe.GetIsNull(record)) continue;
         VectorIndex* index = fe.GetVectorIndex();
-        std::vector<int64_t> vids;
-        vids.push_back(vid);
-        index->Add({}, vids, 0);
+        index->Remove({vid});
     }
 }
 
@@ -536,9 +529,10 @@ void Schema::RefreshLayout() {
 /**
  * Creates an empty record
  *
- * \param [in,out]  v           Value to store the result.
  * \param           size_hint   (Optional) Hint of size of the record, used to
  * reduce memory realloc.
+ *
+ * \return  A Value.
  */
 Value Schema::CreateEmptyRecord(size_t size_hint) const {
     Value v(size_hint);

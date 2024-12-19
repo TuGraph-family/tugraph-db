@@ -43,7 +43,7 @@ TuGraph的文档在[链接](https://tugraph-db.readthedocs.io/zh_CN/latest)，�
 ## 2. 快速上手
 
 一个简单的方法是使用docker进行设置，可以在[DockerHub](https://hub.docker.com/u/tugraph)中找到, 名称为`tugraph/tugraph-runtime-[os]:[tugraph version]`,
-例如， `tugraph/tugraph-runtime-centos7:3.3.0`。
+例如， `tugraph/tugraph-runtime-centos7:4.5.1`。
 
 更多详情请参考 [快速上手文档](./docs/zh-CN/source/3.quick-start/1.preparation.md) 和 [业务开发指南](./docs/zh-CN/source/development_guide.md).
 
@@ -72,7 +72,7 @@ $ make package
 
 ## 4. 开发
 
-我们已为在DockerHub中编译准备了环境docker镜像，可以帮助开发人员轻松入门，名称为 `tugraph/tugraph-compile-[os]:[compile version]`, 例如， `tugraph/tugraph-compile-centos7:1.1.0`。
+我们已为在DockerHub中编译准备了环境docker镜像，可以帮助开发人员轻松入门，名称为 `tugraph/tugraph-compile-[os]:[compile version]`, 例如， `tugraph/tugraph-compile-centos7:1.3.4`。
 
 可以访问 [技术规划](docs/zh-CN/source/12.contributor-manual/5.roadmap.md) 来了解TuGraph进展。
 
@@ -95,13 +95,24 @@ $ make package
   </tr>
 </table>
 
-## 5. 联系我们
+## 6. 联系我们
 
-官网: [www.tugraph.org](https://www.tugraph.org)
+官网: [tugraph.tech](https://tugraph.tech)
 
 Slack (在线开发沟通):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 通过钉钉群、微信群、微信公众号、邮箱和电话联系我们:
 ![contacts](./docs/images/contact-zh.png)
+
+## 7. 致谢
+
+感谢对这个项目做过贡献的个人开发者，名单如下：
+
+<a href="https://github.com/TuGraph-family/tugraph-db/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=TuGraph-family/tugraph-db" />
+</a>
+
+生成 By [contrib.rocks](https://contrib.rocks).
+
 

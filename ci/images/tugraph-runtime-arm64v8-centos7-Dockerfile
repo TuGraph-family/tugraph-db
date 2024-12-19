@@ -1,68 +1,41 @@
 # Docker hub image
 FROM arm64v8/centos:7
 
-RUN yum -x filesystem update -y && yum install -y \
-    git \
-    gcc \
-    gcc-c++ \
-    unzip \
-    make \
+RUN echo $'                                                                         \n\
+[base]                                                                              \n\
+name=CentOS-$releasever - Base                                                      \n\
+baseurl=http://mirrors.aliyun.com/centos-altarch/$releasever/os/$basearch/           \n\
+gpgcheck=0                                                                           \n\
+gpgkey=http://mirrors.aliyun.com/centos-altarch/7/os/$basearch/RPM-GPG-KEY-CentOS-7  \n\
+                                                                                     \n\
+#released updates                                                                    \n\
+[updates]                                                                             \n\
+name=CentOS-$releasever - Updates                                                      \n\
+baseurl=http://mirrors.aliyun.com/centos-altarch/$releasever/updates/$basearch/       \n\
+gpgcheck=0                                                                             \n\
+gpgkey=http://mirrors.aliyun.com/centos-altarch/7/os/$basearch/RPM-GPG-KEY-CentOS-7     \n\
+                                                                                       \n\
+#additional packages that may be useful                                                \n\
+[extras]                                                                               \n\
+name=CentOS-$releasever - Extras                                                       \n\
+baseurl=http://mirrors.aliyun.com/centos-altarch/$releasever/extras/$basearch/         \n\
+gpgcheck=0                                                                             \n\
+gpgkey=http://mirrors.aliyun.com/centos-altarch/7/os/$basearch/RPM-GPG-KEY-CentOS-7    \n\
+enabled=1                                                                              \n\
+                                                                                       \n\
+#additional packages that extend functionality of existing packages                    \n\
+[centosplus]                                                                          \n\
+name=CentOS-$releasever - Plus                                                         \n\
+baseurl=http://mirrors.aliyun.com/centos-altarch/$releasever/centosplus/$basearch/     \n\
+gpgcheck=0                                                                            \n\
+enabled=0                                                                             \n\
+gpgkey=http://mirrors.aliyun.com/centos-altarch/7/os/$basearch/RPM-GPG-KEY-CentOS-7   \n\
+' > /etc/yum.repos.d/CentOS-Base.repo && yum clean all && yum makecache
+
+RUN yum install -y \
     wget \
-    bzip2 \
-    openssl-static \
-    java-1.8.0-openjdk* \
-    libcurl-devel \
-    unzip
-
-# install g++ 8.4.0
-# if it is not accessible, replace it with the link below
-# http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.tar.gz \
-    && tar -xvf gcc-8.4.0.tar.gz && cd gcc-8.4.0 \
-    && ./contrib/download_prerequisites && mkdir build && cd build \
-    && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
-    && make -j4 && make install \
-    && cp  ./aarch64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib64/ \
-    && cd /usr/lib64 && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
-    && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
-
-# install python3
-# if it is not accessible, replace it with the link below
-# https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6.9.tgz \
-    && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
-    && make -j4 && make install \
-    && python3 -m pip install --upgrade pip -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
-    && python3 -m pip install nest_asyncio pexpect requests pytest httpx cython==3.0.0a11 sphinx myst_parser sphinx_panels sphinx_rtd_theme numpy==1.19.5 torch==1.10.2 ogb pandas==0.24.2 -i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com \
-    && rm -rf /Python*
-    # dgl==1.0.0
-
-# install cmake
-# if it is not accessible, replace it with the link below
-# https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
-    && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
-    && ./bootstrap && make -j4 && make install && rm -rf /cmake-3.*
-
-# install boost-1.68
-# if it is not accessible, replace it with the link below
-# https://boostorg.jfrog.io/artifactory/main/release/1.68.0/source/boost_1_68_0.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68_0.tar.gz \
-    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/geometry-extensions.tar.gz \
-    && tar xf boost_1_68_0.tar.gz && tar xf geometry-extensions.tar.gz \
-    && cd boost_1_68_0 && ./bootstrap.sh --with-libraries=system,random,thread,filesystem,chrono,atomic,date_time,regex,stacktrace,log \
-    && ./b2 ${JFLAG} cxxflags="-std=c++17 -fPIC" install \
-    && sed -i '513s/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX,/BOOST_MPL_ASSERT_MSG((I < 1), INVALID_INDEX_,/' /usr/local/include/boost/geometry/index/detail/predicates.hpp \
-    && cp -r /extensions /usr/local/include/boost/geometry/ \
-    && rm -rf /boost_* /extensions /geometry-extensions.tar.gz
-
-#install maven
-# if it is not accessible, replace it with the link below
-# https://dlcdn.apache.org/maven/maven-3/3.8.7/binaries/apache-maven-3.8.7-bin.tar.gz
-RUN cd opt \
-    && wget --no-check-certificate https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/apache-maven-3.8.7-bin.tar.gz \
-    && tar xf apache-maven-3.8.7-bin.tar.gz \
-    && rm apache-maven-*.tar.gz
+    libgfortran5.aarch64 \
+    libgomp && yum clean all
 
 # specifies the path of the object storage where the installation package resides
 ARG FILEPATH
@@ -71,40 +44,9 @@ ARG FILENAME
 
 # install tugraph
 RUN wget ${FILEPATH}/${FILENAME} \
-    && rpm -ivh ${FILENAME} && rm /${FILENAME}
+    && rpm -ivh --nodeps ${FILENAME} && rm /${FILENAME}
 
-# install tugraph demo
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tugraph-demo.tar.gz \
-    && tar xf tugraph-demo.tar.gz && mkdir -p /var/lib/lgraph_demos \
-    && cp -r tugraph-demo/movie /var/lib/lgraph_demos/movie \
-    && cp -r tugraph-demo/the_three_body /var/lib/lgraph_demos/the_three_body \
-    && cp -r tugraph-demo/three_kingdoms /var/lib/lgraph_demos/three_kingdoms \
-    && cp -r tugraph-demo/wandering_earth /var/lib/lgraph_demos/wandering_earth \
-    && cp tugraph-demo/setup.sh /setup.sh
+ENV LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:$LD_LIBRARY_PATH
 
-# install node.js && pnpm
-# if it is not accessible, replace it with the link below
-# https://registry.npmmirror.com/-/binary/node/v16.20.0/node-v16.20.0-linux-x64.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.20.0-linux-arm64.tar.gz \
-    && tar xvf node-v16.20.0-linux-arm64.tar.gz && cd node-v16.20.0-linux-arm64/ \
-    && ln -s /node-v16.20.0-linux-arm64/bin/npm /usr/local/bin/ \
-    && ln -s /node-v16.20.0-linux-arm64/bin/node /usr/local/bin/ \
-    && npm config set registry https://registry.npmmirror.com \
-    && rm -rf /node-v16.20.0-linux-arm64.tar.gz \
-    && npm install --global yarn \
-    && npm install --global pnpm \
-    && ln -s /node-v16.20.0-linux-x64/lib/node_modules/yarn/bin/yarn /usr/local/bin/yarn \
-    && ln -s /node-v16.20.0-linux-arm64/bin/pnpm /usr/local/bin/pnpm \
-    && yarn config set registry https://registry.npmmirror.com \
-    && pnpm config set registry https://registry.npmmirror.com
-
-# install tugraph-db-browser dependencies
-RUN cd /usr/local/share/lgraph/tugraph-db-browser \
-    && pnpm run bootstrap \
-    && pnpm run build
-
-ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre/ \
-    LD_LIBRARY_PATH=/usr/local/lgraph/lib64:/usr/local/lib64:/usr/lib/jvm/java-1.8.0/jre/lib/amd64/server:$LD_LIBRARY_PATH \
-    PYTHONPATH=/usr/local/lgraph/lib64:/usr/local/lib64:$PYTHONPATH \
-    PATH=/opt/apache-maven-3.8.7/bin:$PATH
+CMD lgraph_server -d run
 

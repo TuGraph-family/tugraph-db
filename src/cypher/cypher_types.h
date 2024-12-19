@@ -26,7 +26,6 @@ namespace cypher {
 struct FieldData {
     typedef std::unordered_map<std::string, cypher::FieldData> CYPHER_FIELD_DATA_MAP;
     typedef std::vector<cypher::FieldData> CYPHER_FIELD_DATA_LIST;
-    // TODO(lingsu) : a default state should be added
     enum FieldType { SCALAR, ARRAY, MAP } type;
 
     lgraph::FieldData scalar;
@@ -116,6 +115,7 @@ struct FieldData {
             map->emplace(kv);
         }
     }
+
     explicit FieldData(const CYPHER_FIELD_DATA_MAP& rhs) {
         type = MAP;
         map = new CYPHER_FIELD_DATA_MAP(rhs);
@@ -134,7 +134,7 @@ struct FieldData {
         map = new CYPHER_FIELD_DATA_MAP(std::move(rhs));
     }
 
-        ~FieldData() {
+    ~FieldData() {
         switch (type) {
         case ARRAY:
             delete array;
@@ -167,15 +167,16 @@ struct FieldData {
         switch (type) {
         case ARRAY:
             array = rhs.array;
+            rhs.array = nullptr;
             break;
         case MAP:
             map = rhs.map;
+            rhs.map = nullptr;
             break;
         case SCALAR:
             scalar = std::move(rhs.scalar);
             break;
         }
-        // TODO(lingsu) : rhs should return to the default state
         rhs.type = SCALAR;
     }
 

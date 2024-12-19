@@ -38,7 +38,7 @@ class EdgeIndex;
 class EdgeIndexIterator;
 
 /**
- * An EdgeIndexValue packs multiple src_vids ,dst_vids, lids, tids and eids into a single value.
+ * An EdgeIndexValue packs multiple src_vids, dst_vids, lids, tids and eids into a single value.
  */
 class EdgeIndexValue {
     /**
@@ -108,12 +108,8 @@ class EdgeIndexValue {
     /**
      * Search for the specified edgeuid
      *
-     * \param           src_vid     The src_vid.
-     * \param           dst_vid     The dst_vid.
-     * \param           lid         The label id.
-     * \param           tid         The temporal id.
-     * \param           eid         The eid.
-     * \param [in,out]  found       Is this vid found?
+     * \param           euid        The Edge unique id.
+     * \param [in,out]  found       Is this euid found?
      *
      * \return  Position where the euid is found.
      * list.
@@ -123,11 +119,7 @@ class EdgeIndexValue {
     /**
      * Insert the specified euid.
      *
-     * \param           src_vid     The src_vid.
-     * \param           dst_vid     The dst_vid.
-     * \param           lid         The label id.
-     * \param           tid         The temporal id.
-     * \param           eid         The edge id.
+     * \param           euid        The Edge unique id.
      * \return  The status of the operation.
      *
      * return value:
@@ -142,11 +134,7 @@ class EdgeIndexValue {
     /**
      * Delete the specified euid.
      *
-     * \param           src_vid     The vid.
-     * \param           dst_vid     The dst_vid.
-     * \param           lid         The label id.
-     * \param           tid         The temporal id.
-     * \param           eid         The edge id.
+     * \param           euid        The Edge unique id.
      * \return  The status of the operation.
      *
      * return value:
@@ -205,7 +193,7 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
      * \param           lid         The label id form which to start searching.
      * \param           tid         The Temporal id form which to start searching.
      * \param           eid         The eid from which to start searching.
-     * \param           unique      Whether the index is a unique index.
+     * \param           type        Index type.
      */
     EdgeIndexIterator(EdgeIndex* idx, Transaction* txn, KvTable& table, const Value& key_start,
                       const Value& key_end, VertexId src_vid, VertexId dst_vid, LabelId lid,
@@ -231,7 +219,7 @@ class EdgeIndexIterator : public ::lgraph::IteratorBase {
      * \param        key       The key.
      * \return  Whether the iterator's current key starts with key.
      */
-    bool KeyEquals(Value& key, VertexId src, VertexId dst);
+    bool KeyEquals(Value& key);
 
     /** Loads content from iterator, assuming iterator is already at the right
      * position. */
@@ -475,7 +463,10 @@ class EdgeIndex {
     }
 
     bool IsUnique() const {
-        return type_ == IndexType::GlobalUniqueIndex || type_ == IndexType::PairUniqueIndex;
+        return type_ == IndexType::GlobalUniqueIndex;
+    }
+    bool IsPairUnique() const {
+        return type_ == IndexType::PairUniqueIndex;
     }
     IndexType GetType() const { return type_; }
 
@@ -503,13 +494,9 @@ class EdgeIndex {
     /**
      * Delete a specified vertex under a specified key.
      *
-     * \param [in,out]  txn The transaction.
-     * \param           key The key.
-     * \param           src_vid The src vid.
-     * \param           dst_vid The dst vid.
-     * \param           lid The label id.
-     * \param           tid the temporal id.
-     * \param           eid The eid.
+     * \param [in,out]  txn  The transaction.
+     * \param           k    The key.
+     * \param           euid The Edge unique id.
      * \return  Whether the operation succeeds or not.
      */
     bool Delete(KvTransaction& txn, const Value& k, const EdgeUid& euid);
@@ -522,11 +509,7 @@ class EdgeIndex {
      * \param [in,out]  txn     The transaction.
      * \param           old_key The old key.
      * \param           new_key The new key.
-     * \param           src_vid The src vid.
-     * \param           dst_vid The dst vid.
-     * \param           lid     the label id.
-     * \param           tid     the temporal id.
-     * \param           eid     The eid.
+     * \param           euid    The Edge unique id.
      * \return  Whether the operation succeeds or not.
      */
     bool Update(KvTransaction& txn, const Value& old_key, const Value& new_key,
@@ -537,13 +520,9 @@ class EdgeIndex {
      *
      * \exception   IndexException  Thrown when an EdgeIndex error condition occurs.
      *
-     * \param [in,out]  txn The transaction.
-     * \param           key The key.
-     * \param           src_vid The vid.
-     * \param           dst_vid     The dst_vid.
-     * \param           lid     The label id.
-     * \param           tid     The temporal id.
-     * \param           eid     The eid.
+     * \param [in,out]  txn  The transaction.
+     * \param           k    The key.
+     * \param           euid The Edge unique id.
      * \return  Whether the operation succeeds or not.
      */
     bool Add(KvTransaction& txn, const Value& k, const EdgeUid& euid);

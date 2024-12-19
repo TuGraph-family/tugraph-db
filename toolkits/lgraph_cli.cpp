@@ -60,7 +60,9 @@ std::any ReadMessage(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator) {
     return ret.first;
 }
 
-bool FetchRecords(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator, OutputFormat of) {
+bool FetchRecords(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator,
+                  OutputFormat of, bool print_time) {
+    auto start = std::chrono::high_resolution_clock::now();
     std::string error;
     std::optional<std::vector<std::string>> header;
     tabulate::Table table;
@@ -122,12 +124,24 @@ bool FetchRecords(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator, Outpu
     }
 
     if (error.empty()) {
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsed = end - start;
         if (of == OutputFormat::TABLE) {
             if (table.size() > 0) {
                 LOG_INFO() << table << "\n";
-                LOG_INFO() << FMA_FMT("{} rows", table.size() - 1) << "\n";
+                if (print_time) {
+                    LOG_INFO() << FMA_FMT("{} rows ({} ms)", table.size() - 1,
+                                          static_cast<int>(elapsed.count())) << "\n";
+                } else {
+                    LOG_INFO() << FMA_FMT("{} rows", table.size() - 1) << "\n";
+                }
             } else {
-                LOG_INFO() << FMA_FMT("{} rows", table.size()) << "\n";
+                if (print_time) {
+                    LOG_INFO() << FMA_FMT("{} rows ({} ms)", table.size(),
+                                          static_cast<int>(elapsed.count())) << "\n";
+                } else {
+                    LOG_INFO() << FMA_FMT("{} rows", table.size()) << "\n";
+                }
             }
         }
         return true;
@@ -184,6 +198,7 @@ int main(int argc, char** argv) {
     std::string graph = "default";
     std::string username = "admin";
     std::string password = "73@TuGraph";
+    bool print_time = true;
     config.Add(format, "format", true).
         Comment("output format (table, csv, json)").
         SetPossibleValues({"table", "csv", "json"});
@@ -192,6 +207,8 @@ int main(int argc, char** argv) {
     config.Add(graph, "graph", true).Comment("Graph to use");
     config.Add(username, "user", true).Comment("User to login");
     config.Add(password, "password", true).Comment("Password to use when connecting to server");
+    config.Add(print_time, "print_time", true).Comment(
+        "Whether to print the execution time of the query");
     try {
         config.ExitAfterHelp(true);
         config.ParseAndFinalize(argc, argv);
@@ -282,7 +299,25 @@ int main(int argc, char** argv) {
             ps.AppendPullN(-1);
             asio::write(socket,
                         asio::const_buffer(ps.ConstBuffer().data(), ps.ConstBuffer().size()));
-            bool ret = FetchRecords(socket, hydrator, of);
+            bool ret = FetchRecords(socket, hydrator, of, print_time);
+            if (!ret) {
+                // reset connection
+                ps.Reset();
+                ps.AppendReset();
+                asio::write(socket, asio::const_buffer(
+                                        ps.ConstBuffer().data(), ps.ConstBuffer().size()));
+                while (true) {
+                    auto m = ReadMessage(socket, hydrator);
+                    if (m.type() == typeid(bolt::Success*)) {
+                        break;
+                    } else if (m.type() == typeid(bolt::Ignored*)) {
+                        continue;
+                    } else {
+                        LOG_ERROR() << "unexpected bolt msg after reset";
+                        return -1;
+                    }
+                }
+            }
             if (is_terminal && ret) {
                 linenoiseHistoryAdd(statement.c_str());
                 linenoiseHistorySave(history_file);

@@ -43,7 +43,7 @@ You can find TuGraph's doc by [link](https://tugraph-db.readthedocs.io/en/latest
 ## 2. Quick Start
 
 An easy way to start is using docker to set up, which can be found in [DockerHub](https://hub.docker.com/u/tugraph), named `tugraph/tugraph-runtime-[os]:[tugraph version]`,
-for example, `tugraph/tugraph-runtime-centos7:3.3.0`.
+for example, `tugraph/tugraph-runtime-centos7:4.5.1`.
 
 For more details, please refer to [quick start doc](docs/en-US/source/3.quick-start/1.preparation.md) and [development guide](./docs/zh-CN/source/development_guide.md).
 
@@ -73,7 +73,7 @@ $ make package
 ## 4. Develop
 
 We have prepared environment docker images for compiling in DockerHub, named `tugraph/tugraph-compile-[os]:[compile version]`, 
-for example, `tugraph/tugraph-compile-centos7:1.1.0`, which can help developers get started easily.
+for example, `tugraph/tugraph-compile-centos7:1.3.4`, which can help developers get started easily.
 
 We have a [roadmap](docs/en-US/source/12.contributor-manual/5.roadmap.md) to help you understand TuGraph.
 
@@ -101,13 +101,23 @@ NOTICE: If you want to contribute code, you should sign a [cla doc](https://cla-
 
 ## 6. Contact
 
-Official Website: [www.tugraph.org](https://www.tugraph.org)
+Official Website: [tugraph.tech](https://tugraph.tech)
 
 Slack (For developer quick communication):
 [TuGraph.slack](https://join.slack.com/t/tugraph/shared_invite/zt-1hha8nuli-bqdkwn~w4zH1vlk0QvqIfg)
 
 Contact us via dingtalk, wechat, email and telephone:
 ![contacts](./docs/images/contact-en.png)
+
+## 7. Acknowledgement
+
+Thanks to all the individual developers who have contributed to this repository, which are listed below.
+
+<a href="https://github.com/TuGraph-family/tugraph-db/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=TuGraph-family/tugraph-db" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
 
 
 
