@@ -39,3 +39,12 @@ TEST(Galaxy, basic) {
     EXPECT_THROW_CODE(galaxy->OpenGraph("graph1"), NoSuchGraph);
     galaxy.reset();
 }
+
+TEST(Galaxy, createGraph) {
+    fs::remove_all(test_galaxy);
+    auto galaxy = server::Galaxy::Open(test_galaxy, {});
+    for (int i = 0; i < 10000; i++) {
+        galaxy->CreateGraph("graph" + std::to_string(i));
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(30));
+}

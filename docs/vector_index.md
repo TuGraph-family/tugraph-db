@@ -11,6 +11,9 @@ CALL db.index.vector.createNodeIndex('vector_index','Person', 'embedding', {dime
 
 使用例子
 ```
+#清空子图数据
+CALL db.dropDB();
+
 #为Person类型的点设置一个唯一约束，所有Person类型的点id字段的值是唯一的，为id字段设置唯一索引。
 CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
 
@@ -25,7 +28,7 @@ CREATE (n1)-[r:like]->(n2),
      (n2)-[r:like]->(n3),
      (n3)-[r:like]->(n1);
 
-#这里为了立刻读取到向量索引数据，手动触发了一次回放向量索引的wal，该操作可选。默认系统会自动回放，每个1秒做一次。
+#这里为了立刻读取到向量索引数据，手动触发了一次回放向量索引的wal，该操作可选。默认系统会自动进行回放，但有延迟，每隔1秒进行一次。
 CALL db.index.vector.applyWal();
 
 #向量搜索
