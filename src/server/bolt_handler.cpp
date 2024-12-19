@@ -188,7 +188,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
         session->state = SessionState::FAILED;
     };
     while (!conn->has_closed()) {
-        auto msg = session->msgs.Pop(std::chrono::milliseconds(100));
+        auto msg = session->msgs.Pop(std::chrono::milliseconds(50));
         if (!msg) {  // msgs pop timeout
             continue;
         }

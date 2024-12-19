@@ -18,6 +18,9 @@ CALL db.index.fulltext.createNodeIndex('namesAndTeams',['Employee','Manager'], [
 
 使用例子
 ```
+#清空子图数据
+CALL db.dropDB();
+
 #为Employee类型的点设置一个唯一约束，所有Employee类型的点name字段的值是唯一的，为name字段设置唯一索引。
 CALL db.createUniquePropertyConstraint('employee_name', 'Employee', 'name');
 
@@ -34,6 +37,9 @@ CREATE (nilsE:Employee {name: "Nils-Erik Karlsson", position: "Engineer", team: 
 (maya:Employee {name: "Maya Tanaka", position: "Senior Engineer", team:"Operations"}),
 (lisa)-[:REVIEWED {message: "Nils-Erik is reportedly difficult to work with."}]->(nilsE),
 (maya)-[:EMAILED {message: "I have booked a team meeting tomorrow."}]->(nils);
+
+#这里为了立刻读取到全文索引数据，手动触发了一次回放全文索引的wal，该操作可选。默认系统会自动进行回放，但有延迟，每隔1秒进行一次。
+CALL db.index.fulltext.applyWal();
 
 #全文搜索
 
