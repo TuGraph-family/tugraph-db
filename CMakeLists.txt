@@ -7,7 +7,7 @@ include(GenerateVersionInfo.cmake)
 GenerateVersionInfo(${LGRAPH_VERSION_MAJOR} ${LGRAPH_VERSION_MINOR} ${LGRAPH_VERSION_PATCH}
 		${PROJECT_SOURCE_DIR}/src/common/version.h.in
 		${PROJECT_SOURCE_DIR}/src/common/version.h)
-
+add_subdirectory(release)
 find_package(GTest REQUIRED)
 find_package(spdlog REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
@@ -234,11 +234,5 @@ if(NOT EXISTS ${FT_INDEX_LIB})
 endif()
 
 install(TARGETS lgraph_server lgraph_cli RUNTIME DESTINATION bin)
-install(FILES
-		/usr/local/lib64/libvsag.so
-		/lib64/libgfortran.so.5
-		/lib64/libgfortran.so.5.0.0
-		/lib64/libgomp.so.1
-		/lib64/libgomp.so.1.0.0
-		DESTINATION lib64/lgraph)
+install(FILES /usr/local/lib64/libvsag.so DESTINATION lib64/lgraph)
 
