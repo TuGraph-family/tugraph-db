@@ -339,6 +339,26 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-3
     && tar zxf tabulate-3a5830.tar.gz && cp -rf tabulate/include/tabulate /usr/local/include \
     && rm -rf /tabulate*
 
+# install SWIG
+RUN apt-get update \
+    && apt-get install -y libpcre3-dev libgfortran5 \
+    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/swig-4.0.2.tar.gz \
+    && tar -xzvf swig-4.0.2.tar.gz && cd swig-4.0.2 && ./configure \
+    && make && make install && cd .. \
+    && rm -rf swig-4.0.2 swig-4.0.2.tar.gz \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# install FAISS
+RUN wget -O /tmp/openblas-faiss.tar.gz https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/openblas-faiss.tar.gz \
+    && tar -xzvf /tmp/openblas-faiss.tar.gz -C /tmp && cd /tmp/openblas-faiss/OpenBLAS \
+    && dpkg --purge gfortran gfortran-7 libgfortran-7-dev libgfortran4 libgfortran5 && ldconfig \
+    && make && make install \
+    && cd /tmp/openblas-faiss/faiss && cmake -B build -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_OPT_LEVEL=avx2 -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib -DOpenMP_CXX_FLAGS="-fopenmp" -DOpenMP_CXX_LIB_NAMES="gomp" -DOpenMP_gomp_LIBRARY="/usr/lib/x86_64-linux-gnu/libgomp.so.1" -DBLAS_LIBRARIES=/opt/OpenBLAS/lib/libopenblas.so . -DPYTHON_EXECUTABLE=/usr/bin/python3 . \
+    && make -C build && make -C build install \
+    && apt update && apt install -y gfortran && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/openblas-faiss /tmp/openblas-faiss.tar.gz && ldconfig
+
 # install vsag
 RUN apt-get install -y gfortran && ln -s /usr/lib/x86_64-linux-gnu/libgfortran.so.4 /usr/local/lib/libgfortran.so
 
