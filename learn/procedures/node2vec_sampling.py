@@ -12,127 +12,76 @@ from cython.parallel import parallel, prange
 from cython.cimports.openmp import omp_set_dynamic, omp_get_num_threads, omp_get_thread_num
 from cython.cimports.libcpp.random import random_device, mt19937, uniform_int_distribution
 from cython.cimports.libc.string import memcpy
+from typing import Generic, TypeVar, Dict, Optional
 import numpy as np
 import time
 import lgraph_db_python
+import threading
+
 
 @cython.cclass
 class Node2VecSample:
+    ############ Gobal val ###################
+    txn: Transaction
+    num_threads: cython.int
+    _map = {}
+    _lock = threading.Lock()
+
+    ############ Input Args ###################
     g: cython.pointer(OlapOnDB[Empty])
     db: cython.pointer(GraphDB)
-    feature_num: size_t # dimensions of result vec
-    txn: Transaction
-    p:size_t
-    q:size_t
-    directed: bool
+    dimensions: size_t # dimensions of result vec
+    p: size_t
+    q: size_t
+    sample_node: size_t[:]
+    ############ Result Field ###################
     node: ssize_t[:]
-    num_threads: cython.int
-    flag: size_t[:]
     feature: cython.float[:,:]
     label: ssize_t[:]
-    label_key: string
-    feature_key: string
-    src_list: ssize_t[:]
-    dst_list: ssize_t[:]
-    local_node_num: size_t[:]
-    local_edge_num: size_t[:]
-    local_feature: cython.float[:,:,:]
-    local_node: ssize_t[:,:]
-    local_label: ssize_t[:,:]
-    index:size_t[:]
-    edge_index: size_t[:]
-    local_src_list: ssize_t[:,:]
-    local_dst_list: ssize_t[:,:]
-    local_vertex_type: ssize_t[:,:]
-    local_edge_type: ssize_t[:,:]
     vertex_type_string: ssize_t[:]
-    edge_type_string: ssize_t[:]
-
-    @cython.cfunc
-    @cython.exceptval(check=False)
-    def MergeList(self) ->cython.void:
-        i: size_t
-        k: cython.int
-        thread_id= cython.declare(cython.int)
-        with cython.nogil, parallel():
-            thread_id = omp_get_thread_num()
-            for k in range(thread_id):
-                self.index[thread_id] += self.local_node_num[k]
-                self.edge_index[thread_id] += self.local_edge_num[k]
-            memcpy(cython.address(self.node[self.index[thread_id]]), cython.address(self.local_node[thread_id, 0]), self.local_node_num[thread_id] * cython.sizeof(ssize_t))
-            memcpy(cython.address(self.label[self.index[thread_id]]), cython.address(self.local_label[thread_id, 0]), self.local_node_num[thread_id] * cython.sizeof(ssize_t))
-            memcpy(cython.address(self.vertex_type_string[self.index[thread_id]]), cython.address(self.local_vertex_type[thread_id, 0]), self.local_node_num[thread_id] * cython.sizeof(ssize_t))
-            for i in range(self.local_node_num[thread_id]):
-                memcpy(cython.address(self.feature[self.index[thread_id] + i, 0]), cython.address(self.local_feature[thread_id, i, 0]), self.feature_num * cython.sizeof(cython.float))
 
     @cython.cfunc
     @cython.exceptval(check=False)
     def Compute(self) -> cython.void:
-        # 1. pre-processing
-        
+        # 1. Prepare
+        path_list : cython.list[str] = []
+        path_list.append("0")
+
 
 
     @cython.cfunc
     @cython.exceptval(check=False)
-    def run(self, db: cython.pointer(GraphDB), olapondb:cython.pointer(OlapOnDB[Empty]), feature_num: size_t, sample_node: list, step: size_t, NodeInfo: list, EdgeInfo: list):
-        start = time.time()
+    def run(self, db: cython.pointer(GraphDB), olapondb:cython.pointer(OlapOnDB[Empty]), dimensions: size_t, p: size_t, q: size_t, sample_node: list, NodeInfo: list, EdgeInfo: list):
         self.txn = db.CreateReadTxn()
-        self.g = olapondb
-        self.db = db
-        self.feature_num = cython.cast(size_t, feature_num)
-        self.step = cython.cast(size_t, step)
-        self.p = cython.cast(size_t, p)
-        self.q = cython.cast(size_t, q)
-        self.directed = cython.cast(bool, directed)
         with cython.nogil, parallel():
             self.num_threads = omp_get_num_threads()
-        self.local_node_num = np.zeros((self.num_threads,), dtype=np.uintp)
-        self.local_edge_num = np.zeros((self.num_threads,), dtype=np.uintp)
-        self.local_feature = np.zeros((self.num_threads, olapondb[0].NumVertices(), feature_num), dtype = np.float32)
-        self.local_node = np.zeros((self.num_threads, olapondb[0].NumVertices()), dtype=np.intp)
-        self.local_label = np.zeros((self.num_threads, olapondb[0].NumVertices()), dtype=np.intp)
-        self.local_vertex_type = np.zeros((self.num_threads, olapondb[0].NumVertices()), dtype=np.intp)
-        self.local_edge_type = np.zeros((self.num_threads, olapondb[0].NumEdges()), dtype=np.intp)
-        self.flag = np.zeros((olapondb[0].NumVertices(),), dtype=np.uintp)
-        self.feature_key = "feature_float".encode('utf-8')
-        self.label_key = "label".encode('utf-8')
-        self.local_src_list = np.zeros((self.num_threads, len(sample_node) * (step)), dtype=np.intp)
-        self.local_dst_list = np.zeros((self.num_threads, len(sample_node) * (step)), dtype=np.intp)
-        cost = time.time()
-        worker = Worker.SharedWorker()
-        worker.get().DelegateCompute[Node2VecSample](self.Compute, self)
-        sample_cost = time.time()
+
+        self.g = olapondb
+        self.db = db
+        self.dimensions = cython.cast(size_t, dimensions)
+        self.p = cython.cast(size_t, p)
+        self.q = cython.cast(size_t, q)
+        self.sample_node = array.array('L', sample_node)
+
+        self.Compute()
+
         sample_node_num = cython.declare(ssize_t, 0)
         sample_edge_num = cython.declare(ssize_t, 0)
-        for id in range(self.num_threads):
-            sample_node_num += self.local_node_num[id]
-            sample_edge_num += self.local_edge_num[id]
-        self.feature = np.zeros((sample_node_num, feature_num), dtype=np.float32)
-        self.label = np.zeros((sample_node_num,), dtype=np.intp)
         self.node = np.zeros((sample_node_num,), dtype=np.intp)
-        self.index = np.zeros((self.num_threads,), dtype=np.uintp)
-        self.edge_index = np.zeros((self.num_threads,), dtype=np.uintp)
-        self.src_list = np.zeros((sample_edge_num,), dtype=np.intp)
-        self.dst_list = np.zeros((sample_edge_num,), dtype=np.intp)
+        self.feature = np.zeros((sample_node_num, dimensions), dtype=np.float32)
+        self.label = np.zeros((sample_node_num,), dtype=np.intp)
         self.vertex_type_string = np.zeros((sample_node_num,), dtype=np.intp)
-        self.edge_type_string = np.zeros((sample_edge_num,), dtype=np.intp)
-        self.MergeList()
-
         NodeInfo.append(np.asarray(self.node))
         NodeInfo.append(np.asarray(self.feature))
         NodeInfo.append(np.asarray(self.label))
         NodeInfo.append(np.asarray(self.vertex_type_string))
-        EdgeInfo.append(np.asarray(self.src_list))
-        EdgeInfo.append(np.asarray(self.dst_list))
-        EdgeInfo.append(np.asarray(self.edge_type_string))
-        end_cost = time.time()
-        # printf("prepare_cost = %lf s\n", cython.cast(cython.double, cost - start))
-        # printf("sample_cost = %lf s\n", cython.cast(cython.double, sample_cost - cost))
-        # printf("end_cost = %lf s\n", cython.cast(cython.double, end_cost - sample_cost))
-        # printf("all_cost = %lf s\n", cython.cast(cython.double, end_cost - start))
+        EdgeInfo.append(np.zeros((sample_edge_num,), dtype=np.intp)) #src_list
+        EdgeInfo.append(np.zeros((sample_edge_num,), dtype=np.intp)) #dst_list
+        EdgeInfo.append(np.zeros((sample_edge_num,), dtype=np.intp)) #edge_type_string
+
 @cython.ccall
-def Process(db_: lgraph_db_python.PyGraphDB, olapondb:lgraph_db_python.PyOlapOnDB, feature_num: size_t, sample_node: list, step: size_t, NodeInfo: list, EdgeInfo: list):
+def Process(db_: lgraph_db_python.PyGraphDB, olapondb:lgraph_db_python.PyOlapOnDB, feature_num: size_t, p: size_t, q: size_t, sample_node: list, NodeInfo: list, EdgeInfo: list):
     addr = cython.declare(cython.Py_ssize_t, db_.get_pointer())
     olapondb_addr = cython.declare(cython.Py_ssize_t, olapondb.get_pointer())
     a = Node2VecSample()
-    a.run(cython.cast(cython.pointer(GraphDB), addr), cython.cast(cython.pointer(OlapOnDB[Empty]), olapondb_addr), feature_num, sample_node, step, NodeInfo, EdgeInfo)
+    a.run(cython.cast(cython.pointer(GraphDB), addr), cython.cast(cython.pointer(OlapOnDB[Empty]), olapondb_addr), feature_num, p, q, sample_node, NodeInfo, EdgeInfo)
