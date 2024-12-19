@@ -893,8 +893,7 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
             new_schema.AddFields(to_add);
             for (size_t i = 0; i < to_add.size(); i++) {
                 auto extractor = new_schema.GetFieldExtractor(to_add[i].name);
-                if (default_values[i].GetType() != extractor->Type() &&
-                    !default_values[i].IsNull()) {
+                if (!FieldTypeComplatible(default_values[i].GetType(), extractor->Type())) {
                     throw ParseIncompatibleTypeException(extractor->Name(), extractor->Type(),
                                                          default_values[i].type);
                 }
@@ -950,6 +949,44 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
 
     return _AlterLabel(is_vertex, label, setup_and_gen_new_schema, make_new_prop_and_destroy_old,
                        delete_indexes, n_modified, 100000);
+}
+
+bool LightningGraph::FieldTypeComplatible(FieldType default_value, FieldType b) {
+    if (default_value == b) return true;
+    if (default_value == FieldType::NUL) return true;
+    int taga = -2;  // -1 : is floating data, 1 : is integer data.
+    int tagb = 2;
+    switch (default_value) {
+    case FieldType::INT8:
+    case FieldType::INT16:
+    case FieldType::INT32:
+    case FieldType::INT64:
+        taga = 1;
+        break;
+    case FieldType::FLOAT:
+    case FieldType::DOUBLE:
+        taga = -1;
+        break;
+    default:
+        break;
+    }
+
+    switch (b) {
+    case FieldType::INT8:
+    case FieldType::INT16:
+    case FieldType::INT32:
+    case FieldType::INT64:
+        tagb = 1;
+        break;
+    case FieldType::FLOAT:
+    case FieldType::DOUBLE:
+        tagb = -1;
+        break;
+    default:
+        break;
+    }
+    if (taga == tagb) return true;
+    return false;
 }
 
 bool LightningGraph::AlterLabelModFields(const std::string& label,

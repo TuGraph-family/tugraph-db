@@ -271,6 +271,7 @@ class Schema {
     std::vector<const FieldSpec*> GetFieldSpecPtrs() const;
 
     std::vector<FieldSpec> GetFieldSpecs() const;
+    std::vector<FieldSpec> GetAliveFieldSpecs() const;
 
     std::map<std::string, FieldSpec> GetFieldSpecsAsMap() const;
     std::map<std::string, FieldSpec> GetAliveFieldSpecsAsMap() const;

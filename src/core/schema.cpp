@@ -1431,6 +1431,15 @@ std::vector<FieldSpec> Schema::GetFieldSpecs() const {
     return schema;
 }
 
+std::vector<FieldSpec> Schema::GetAliveFieldSpecs() const {
+    std::vector<FieldSpec> schema;
+    schema.reserve(name_to_idx_.size());
+    for (auto& f : name_to_idx_) {
+        schema.emplace_back(fields_[f.second]->GetFieldSpec());
+    }
+    return schema;
+}
+
 std::map<std::string, FieldSpec> Schema::GetAliveFieldSpecsAsMap() const {
     std::map<std::string, FieldSpec> ret;
     // for FieldExtractorV1, sizeof(name_to_idx_) == sizeof(fields_)

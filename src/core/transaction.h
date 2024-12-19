@@ -497,7 +497,7 @@ class Transaction {
         if (!schema)
             THROW_CODE(InputError, "{} Label \"{}\" does not exist.",
                                   is_vertex ? "vertex" : "edge", label);
-        return schema->GetFieldSpecs();
+        return schema->GetAliveFieldSpecs();
     }
 
     std::map<std::string, FieldSpec> GetSchemaAsMap(bool is_vertex, const std::string& label) {
