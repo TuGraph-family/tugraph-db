@@ -49,6 +49,7 @@ set(LGRAPH_CORE_SRC
         core/transaction.cpp
         core/vertex_index.cpp
         core/vector_index.cpp
+        core/faiss_ivf_flat.cpp
         core/vsag_hnsw.cpp
         core/wal.cpp
         core/lmdb/mdb.c
@@ -122,11 +123,15 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             pthread
             rt
             z
+            /opt/OpenBLAS/lib/libopenblas.a
+            faiss
             )
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 vsag
+                /opt/OpenBLAS/lib/libopenblas.a
+                faiss
                 ${Boost_LIBRARIES}
                 omp
                 pthread
@@ -136,6 +141,8 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     else ()
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 vsag
+                /opt/OpenBLAS/lib/libopenblas.a
+                faiss
                 rt
                 omp
                 pthread
