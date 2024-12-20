@@ -87,7 +87,7 @@ class Node2VecSample:
     p: size_t
     q: size_t
     walk_length: size_t
-    sample_node: ssize_t[:]
+    sample_node: size_t[:]
 
     ########### Result ###########
     node: ssize_t[:]
@@ -150,25 +150,25 @@ class Node2VecSample:
         
     @cython.cfunc
     @cython.exceptval(check=False)
-    def Walk(self, node:int) -> str:
-        path = [node]
+    def Walk(self, node:size_t) -> str:
+        path = [cython.cast(size_t, node)]
         while cython.cast(size_t, len(path)) < self.walk_length:
-            cur = path[-1]
+            cur = cython.cast(size_t, int(path[len(path)-1]))  # 使用 int() 确保类型一致
+
             degree = cython.declare(size_t, self.g.OutDegree(cur))
             if degree > 0:
                 out_edges = cython.declare(AdjList[cython.double], self.g.OutEdges(cur))
-                if degree == 1:
+                if len(path) == 1:
                     a_nodes = self.GetAliasNodes(cur)
                     sample_idx = a_nodes.Sample()
                     path.append(out_edges[sample_idx].neighbour)
                 else:
-                    prev = path[-2]
+                    prev = path[len(path)-2]
                     a_edgs = self.GetAliasEdges(prev, cur)
                     sample_idx = a_edgs.Sample()
                     path.append(out_edges[sample_idx].neighbour)
             else:
                 break
-        printf("all_cost = %lf s\n", cython.cast(cython.double, 12312321321))
         print(path)
 
     @cython.cfunc

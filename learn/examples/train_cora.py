@@ -269,7 +269,7 @@ if __name__ == '__main__':
                         help="the rate of sample edge")
     parser.add_argument("--output_dir", type=str, default="./sample_info.txt",
                         help="the path to store vertex info")
-    parser.add_argument('--method', type=str, default='neighbors_sampling',
+    parser.add_argument('--method', type=str, default='node2vec_sampling',
                         help='sample method:\
                         neighbors_sampling, edge_sampling, random_walk, negative_sampling, node2vec_sampling')
     parser.add_argument('--neighbor_sample_num', type=int, default=20,
