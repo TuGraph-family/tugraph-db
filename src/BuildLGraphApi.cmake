@@ -123,13 +123,13 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             pthread
             rt
             z
-            faiss
+            libfaiss.a
             )
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 vsag
-                faiss
+                libfaiss.a
                 ${Boost_LIBRARIES}
                 omp
                 pthread
@@ -139,7 +139,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     else ()
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 vsag
-                faiss
+                libfaiss.a
                 rt
                 omp
                 pthread

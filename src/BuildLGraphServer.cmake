@@ -81,7 +81,7 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
             geax_isogql
             bolt
             vsag
-            faiss
+            libfaiss.a
             # begin static linking
             -Wl,-Bstatic
             cpprest
@@ -141,5 +141,5 @@ target_link_libraries(${TARGET_SERVER}
         ${TARGET_SERVER_LIB}
         librocksdb.a
         vsag
-        faiss
+        libfaiss.a
 )

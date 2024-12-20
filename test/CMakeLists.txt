@@ -143,7 +143,7 @@ add_executable(unit_test
 
 target_link_libraries(unit_test
         vsag
-        faiss
+        libfaiss.a
         lgraph_server_lib
         geax_isogql
         bolt
