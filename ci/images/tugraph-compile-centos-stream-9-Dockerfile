@@ -1,55 +1,53 @@
-# Docker hub Image
-# FROM ubuntu:18.04
+# quay.io Image
+FROM quay.io/centos/centos:stream9
+
 # Alibaba Image
-FROM reg.docker.alibaba-inc.com/fma/ubuntu:18.04
+# FROM reg.docker.alibaba-inc.com/fma/centos:???
 
-ARG JFLAG=-j8
-ARG PYPI="-i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com"
+ARG JFLAG=-j16
+# ARG PYPI="-i https://pypi.antfin-inc.com/simple/ --trusted-host pypi.antfin-inc.com"
 
-RUN rm -rf /et/apt/sources.list \
-    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic main restricted universe multiverse" >> /etc/apt/sources.list \
-    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-updates main restricted universe multiverse" >> /etc/apt/sources.list \
-    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-backports main restricted universe multiverse" >> /etc/apt/sources.list \
-    && echo "deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ bionic-security main restricted universe multiverse" >> /etc/apt/sources.list
+RUN sed -i 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/centos-addons.repo \
+    && sed -i 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/centos.repo
 
-RUN apt-get update && apt-get install -y \
+
+RUN dnf update -y && dnf install -y \
     git \
-    ssh \
-    tar \
-    gzip \
-    ca-certificates \
     gcc \
-    g++ \
-    pkg-config \
-    uuid-dev \
-    libssl-dev \
-    curl \
-    unzip \
+    gcc-c++ \
+    make \
+    wget \
     bzip2 \
-    libbz2-dev \
-    python \
+    bzip2-devel \
+    zlib-devel.x86_64 \
+    libtool \
+    libtool-ltdl \
+    libtool-ltdl-devel \
+    openssl-devel.x86_64 \
+    unzip \
+    byacc \
+    libuuid-devel \
+    rpm-build \
+    rpmdevtools \
     autoconf \
     automake \
-    libtool \
-    zlib1g-dev \
-    libcurl4-openssl-dev \
-    dpkg \
-    libjson-perl \
-    libperlio-gzip-perl \
-    libdigest-perl-md5-perl \
-    language-pack-zh* \
-    openjdk-11-jdk
-
-# install g++ 8.4.0
+    perl-Digest-MD5 \
+    perl.x86_64 \
+    libcurl-devel.x86_64 \
+    glibc-common \
+    langpacks-zh_CN \
+    which \
+    java-11-openjdk-devel \
+    openssh-server \
+    compat-openssl11 && dnf clean all
+# install g++ 9.4.0
 # if it is not accessible, replace it with the link below
-# http://ftp.gnu.org/gnu/gcc/gcc-8.4.0/gcc-8.4.0.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gcc-8.4.0.tar.gz \
-    && tar -xvf gcc-8.4.0.tar.gz && cd gcc-8.4.0 \
+# http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz
+RUN wget http://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.gz \
+    && tar -xvf gcc-9.4.0.tar.gz && cd gcc-9.4.0 \
     && ./contrib/download_prerequisites && mkdir build && cd build \
     && ../configure CFLAGS=-fPIC CXXFLAGS=-fPIC -enable-checking=release -enable-languages=c,c++ -disable-multilib \
     && make ${JFLAG} && make install \
-    && cp  ./x86_64-*-linux-gnu/libstdc++-v3/src/.libs/libstdc++.so.6.0.25 /usr/lib/ \
-    && cd /usr/lib && ln -sf libstdc++.so.6.0.25 libstdc++.so.6 \
     && rm -rf /gcc-* && ln -s /usr/local/bin/gcc /usr/local/bin/cc
 
 # install python3
@@ -66,8 +64,8 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
 # if it is not accessible, replace it with the link below
 # https://cmake.org/files/v3.25/cmake-3.25.2.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cmake-3.25.2.tar.gz \
-    && tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
-    && ./bootstrap && make ${JFLAG} && make install && rm -rf /cmake-3.*
+&& tar xf cmake-3.25.2.tar.gz && cd cmake-3.25.2 \
+&& ./bootstrap && make ${JFLAG} && make install && rm -rf /cmake-3.*
 
 # 1. Install boost-1.68 and the geometry extensions
 # 2. Revise the macro INVALID_INDEX in geometry module to avoid macro conflict error with Antlr4
@@ -86,10 +84,9 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/boost_1_68
     && rm -rf /boost_* /extensions /geometry-extensions.tar.gz
 
 # install protobuf
-# if it is not accessible, replace it with the link below
-# https://github.com/protocolbuffers/protobuf/archive/v3.6.0.tar.gz -O protobuf-3.6.0.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/protobuf-3.6.0.tar.gz \
-    && tar xf protobuf-3.6.0.tar.gz && cd protobuf-3.6.0 \
+# if it is not accessible, replace it with the link below 
+RUN wget https://github.com/protocolbuffers/protobuf/archive/v3.8.0.tar.gz -O protobuf-3.8.0.tar.gz \
+    && tar xf protobuf-3.8.0.tar.gz && cd protobuf-3.8.0 \
     && ./autogen.sh && ./configure CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr/local \
     && make ${JFLAG} && make install && ldconfig && rm -rf /protobuf-*
 
@@ -107,7 +104,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/snappy-1.1
     && cd .. && mkdir build && cd build \
     && cmake -DCMAKE_CXX_FLAGS=-fPIC .. && make ${JFLAG} && make install && rm -rf /snappy*
 
-# install gflags
+    # install gflags
 # if it is not accessible, replace it with the link below
 # https://github.com/gflags/gflags/archive/v2.2.1.tar.gz -O gflags-2.2.1.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/gflags-2.2.1.tar.gz \
@@ -128,7 +125,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/leveldb-v1
     && ln -s /usr/local/lib/libleveldb.so.1.20 /usr/local/lib/libleveldb.so \
     && rm -rf /leveldb*
 
-# install node.js
+    # install node.js
 # if it is not accessible, replace it with the link below
 # https://registry.npmmirror.com/-/binary/node/v16.6.0/node-v16.20.0-linux-x64.tar.gz
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.20.0-linux-x64.tar.gz \
@@ -143,10 +140,11 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/node-v16.2
 
 # install lcov
 # if it is not accessible, replace it with the link below
-# https://mirrors.edge.kernel.org/ubuntu/pool/universe/l/lcov/lcov_1.14-2_all.deb \
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/lcov_1.14-2_all.deb \
-    && dpkg -i lcov_1.14-2_all.deb \
-    && rm lcov_1.14-2_all.deb 
+# https://github.com/linux-test-project/lcov/releases/download/v1.14/lcov-1.14-1.noarch.rpm
+# install lcov
+RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/lcov-1.14-1.noarch.rpm \
+    && rpm -ivh lcov-1.14-1.noarch.rpm \
+    && rm lcov-1.14-1.noarch.rpm
 
 #install maven
 # if it is not accessible, replace it with the link below
@@ -160,9 +158,9 @@ ARG CMAKE_OPT="-DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=0 -DBUILD_TESTS=0 
 
 # brpc
 # if it is not accessible, replace it with the link below
-# wget https://github.com/apache/incubator-brpc/archive/refs/heads/release-1.2.zip
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/brpc-release-1.2.zip \
-    && unzip brpc-release-1.2.zip && mv brpc-release-1.2 brpc && cd /brpc && mkdir build && cd build \
+# wget https://github.com/apache/incubator-brpc/archive/refs/heads/release-1.3.zip
+RUN wget https://github.com/apache/brpc/archive/refs/tags/1.3.0.zip -O brpc-1.3.0.zip \
+    && unzip brpc-1.3.0.zip && mv brpc-1.3.0 brpc && cd /brpc && mkdir build && cd build \
     && cmake $CMAKE_OPT -DBUILD_UNIT_TESTS=0 .. && make ${JFLAG} && make install \
     && rm -rf /brpc*
 
@@ -176,7 +174,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/cpprestsdk
     && unzip websocketpp.zip && rm -rf websocketpp && mv websocketpp-56123c87598f8b1dd471be83ca841ceae07f95ba websocketpp \
     && cd .. && mkdir build && cd build \
     && cmake $CMAKE_OPT -DCMAKE_CXX_FLAGS=-fPIC -Wno-error=unused-parameter -DBoost_USE_STATIC_LIBS=1 .. && make ${JFLAG} && make install \
-    && rm -rf /cpprestsdk*  
+    && rm -rf /cpprestsdk*
 
 # googletest
 # if it is not accessible, replace it with the link below
@@ -193,7 +191,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/jwt-v0.6.0
     && unzip jwt-v0.6.0.zip && mv jwt-cpp-0.6.0 jwt-cpp && cd /jwt-cpp && cp -r include/jwt-cpp/ /usr/local/include \
     && cp -r include/picojson/ /usr/local/include \
     && rm -rf /jwt-cpp*
-  
+
 # prometheus-cpp-client
 # if it is not accessible, replace it with the link below
 # https://github.com/jupp0r/prometheus-cpp/archive/refs/tags/v1.0.1.zip
@@ -262,17 +260,17 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/antlr4-4.1
     && mkdir -p build && cd build \
     && cmake -DWITH_DEMO=0 -DANTLR_BUILD_CPP_TESTS=0 -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_FLAGS=-fPIC -DANTLR4_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/usr/local .. \
     && make ${JFLAG} && make install \
-    && cd ../../../ && JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 PATH=/opt/apache-maven-3.8.7/bin:$PATH mvn package -DskipTests \
+    && cd ../../../ && JAVA_HOME=/usr/lib/jvm/java-11-openjdk PATH=/opt/apache-maven-3.8.7/bin:$PATH mvn package -DskipTests \
     && cp tool/target/antlr4-4.13.0-complete.jar /usr/local/bin \
     && chmod 755 /usr/local/bin/antlr4-4.13.0-complete.jar \
     && rm -rf /antlr4-4.13.0*
 
-# install openssl 1.1.1g
+# install openssl 3.0.5
 # if it is not accessible, replace it with the link below
-# https://www.openssl.org/source/old/1.1.1/openssl-1.1.1g.tar.gz
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/openssl-1.1.1g.tar.gz \
-    && tar zxf openssl-1.1.1g.tar.gz && cd openssl-1.1.1g \
-    && ./config -fPIC --prefix=/usr \
+# https://github.com/openssl/openssl/releases/download/openssl-3.0.5/openssl-3.0.5.tar.gz
+RUN wget https://github.com/openssl/openssl/releases/download/openssl-3.0.5/openssl-3.0.5.tar.gz \
+    && tar zxf openssl-3.0.5.tar.gz && cd openssl-3.0.5 \
+    && ./config -fPIC --prefix=/usr/local \
     && make ${JFLAG} && make install \
     && rm -rf /openssl*
 
@@ -339,41 +337,21 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/tabulate-3
     && tar zxf tabulate-3a5830.tar.gz && cp -rf tabulate/include/tabulate /usr/local/include \
     && rm -rf /tabulate*
 
-# install SWIG
-RUN apt-get update \
-    && apt-get install -y libpcre3-dev libgfortran5 \
-    && wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/swig-4.0.2.tar.gz \
-    && tar -xzvf swig-4.0.2.tar.gz && cd swig-4.0.2 && ./configure \
-    && make ${JFLAG} && make install && cd .. \
-    && rm -rf swig-4.0.2 swig-4.0.2.tar.gz \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# install FAISS
-RUN wget -O /tmp/openblas-faiss.tar.gz https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/openblas-faiss.tar.gz \
-    && tar -xzvf /tmp/openblas-faiss.tar.gz -C /tmp && cd /tmp/openblas-faiss/OpenBLAS \
-    && dpkg --purge gfortran gfortran-7 libgfortran-7-dev libgfortran4 libgfortran5 && ldconfig \
-    && make ${JFLAG} && make install \
-    && cd /tmp/openblas-faiss/faiss && cmake -B build -DCMAKE_BUILD_TYPE=Release -DFAISS_ENABLE_GPU=OFF -DFAISS_OPT_LEVEL=generic -DBUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_INSTALL_LIBDIR=lib -DOpenMP_CXX_FLAGS="-fopenmp" -DOpenMP_CXX_LIB_NAMES="gomp" -DOpenMP_gomp_LIBRARY="/usr/lib/x86_64-linux-gnu/libgomp.so.1" -DBLAS_LIBRARIES=/opt/OpenBLAS/lib/libopenblas.so . -DPYTHON_EXECUTABLE=/usr/bin/python3 . \
-    && make -C build ${JFLAG} && make -C build install \
-    && apt update && apt install -y gfortran && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /tmp/openblas-faiss /tmp/openblas-faiss.tar.gz && ldconfig
-
 # install vsag
-RUN apt-get install -y gfortran && ln -s /usr/lib/x86_64-linux-gnu/libgfortran.so.4 /usr/local/lib/libgfortran.so
-
 RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/vsag-0.11.5.tar.gz -O /tmp/vsag.tar.gz && \
     cd /tmp && mkdir vsag && tar -xzf vsag.tar.gz --strip-components=1 -C vsag && cd vsag && \
-    mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib64 -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
-    make -j10 && make install && \
+    yum install -y libgfortran.x86_64 && ln -s /usr/lib64/libgfortran.so.5.0.0 /usr/local/lib/libgfortran.so && ldconfig && \
+    mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
+    make ${JFLAG} && make install && \
     cd / && rm -rf /tmp/vsag*
 
-RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec 
+RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec
 
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 \
-    LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk-amd64/lib/server:$LD_LIBRARY_PATH \
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk \
+    LD_LIBRARY_PATH=/usr/local/lib64/lgraph:/usr/lib64:/usr/local/lib64:/usr/local/lib:/usr/lib/jvm/java-11-openjdk/lib/server:$LD_LIBRARY_PATH \
     PYTHONPATH=/usr/local/lib64/lgraph:/usr/local/lib64:$PYTHONPATH \
     PATH=/opt/apache-maven-3.8.7/bin:$PATH
 
-ENV LANG     zh_CN.UTF-8
-ENV LC_ALL   zh_CN.UTF-8
+# set locale
+ENV LANG     zh_CN.utf8
+ENV LC_ALL   zh_CN.utf8

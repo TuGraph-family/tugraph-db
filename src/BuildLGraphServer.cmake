@@ -59,11 +59,19 @@ add_library(${TARGET_SERVER_LIB} STATIC
         http/algo_task.cpp
         ${PROTO_SRCS})
 
-target_compile_options(${TARGET_SERVER_LIB} PUBLIC
+if (OURSYSTEM STREQUAL "centos9")
+        target_compile_options(${TARGET_SERVER_LIB} PUBLIC
+        -DGFLAGS_NS=${GFLAGS_NS}
+        -D__const__=__unused__
+        -pipe
+        -fPIC -fno-omit-frame-pointer)
+else()
+        target_compile_options(${TARGET_SERVER_LIB} PUBLIC
         -DGFLAGS_NS=${GFLAGS_NS}
         -D__const__=
         -pipe
         -fPIC -fno-omit-frame-pointer)
+endif()
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
     target_link_libraries(${TARGET_SERVER_LIB}

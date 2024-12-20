@@ -35,8 +35,15 @@ size_t ktruss_count_common(std::vector<AdjUnit<size_t>> &list_a,
         } else if (ptr_a->neighbour > ptr_b->neighbour) {
             ptr_b++;
         } else {
+#if USING_CENTOS9
+            auto edge_a = ptr_a->edge_data;
+            auto edge_b = ptr_b->edge_data;
+            write_add(&edge_a, (size_t)1);
+            write_add(&edge_b, (size_t)1);
+#else
             write_add(&ptr_a->edge_data, (size_t)1);
             write_add(&ptr_b->edge_data, (size_t)1);
+#endif
             local_count++;
             ptr_a++;
             ptr_b++;
@@ -169,7 +176,12 @@ size_t KTrussCore(OlapBase<Empty> &graph, size_t value_k,
                         auto &neighbour_adj = edges[dst];
                         local_count = ktruss_count_common(src_adj, neighbour_adj, src, dst);
                     }
+#if USING_CENTOS9
+                    auto edge_data = edge.edge_data;
+                    write_add(&edge_data, local_count);
+#else
                     write_add(&edge.edge_data, local_count);
+#endif
                 }
                 return 0;
             },
