@@ -12,23 +12,39 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include "core/field_extractor.h"
+#include "core/field_extractor_v1.h"
 
 namespace lgraph {
+
 namespace _detail {
-/**
- * Parse string data as type and set the field
- *
- * \tparam  T   Type into which the data will be parsed.
- * \param [in,out]  record  The record.
- * \param           data    The string representation of the data. If it is
- * NBytes or String, then the data is stored as-is.
- *
- * \return  ErrorCode::OK if succeeds
- *          FIELD_PARSE_FAILED.
- */
+
+bool FieldExtractorV1::GetIsNull(const Value& record) const {
+    if (!IsOptional()) {
+        return false;
+    } else {
+        // get the Kth bit from NullArray
+        char* arr = GetNullArray(record);
+        return arr[null_bit_off_ / 8] & (0x1 << (null_bit_off_ % 8));
+    }
+}
+
+// set field value to null
+void FieldExtractorV1::SetIsNull(const Value& record, bool is_null) const {
+    if (!IsOptional()) {
+        if (is_null) throw FieldCannotBeSetNullException(Name());
+        return;
+    }
+    // set the Kth bit from NullArray
+    char* arr = GetNullArray(record);
+    if (is_null) {
+        arr[null_bit_off_ / 8] |= (0x1 << (null_bit_off_ % 8));
+    } else {
+        arr[null_bit_off_ / 8] &= ~(0x1 << (null_bit_off_ % 8));
+    }
+}
+
 template <FieldType FT>
-void FieldExtractor::_ParseStringAndSet(Value& record, const std::string& data) const {
+void FieldExtractorV1::_ParseStringAndSet(Value& record, const std::string& data) const {
     typedef typename field_data_helper::FieldType2CType<FT>::type CT;
     typedef typename field_data_helper::FieldType2StorageType<FT>::type ST;
     CT s{};
@@ -38,19 +54,19 @@ void FieldExtractor::_ParseStringAndSet(Value& record, const std::string& data) 
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::STRING>(Value& record,
+void FieldExtractorV1::_ParseStringAndSet<FieldType::STRING>(Value& record,
                                                            const std::string& data) const {
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
+void FieldExtractorV1::_ParseStringAndSet<FieldType::POINT>(Value& record,
                                                           const std::string& data) const {
     FMA_DBG_ASSERT(!is_vfield_);
     // check whether the point data is valid;
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POINT))
         throw ParseStringException(Name(), data, FieldType::POINT);
-    // FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(def_.type));
+    // FMA_DBG_CHECK_EQ(sizeof(data), field_data_helper::FieldTypeSize(Type()));
     size_t Size = record.Size();
     record.Resize(Size);
     char* ptr = (char*)record.Data() + offset_.data_off;
@@ -58,8 +74,8 @@ void FieldExtractor::_ParseStringAndSet<FieldType::POINT>(Value& record,
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
-                                                          const std::string& data) const {
+void FieldExtractorV1::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
+                                                               const std::string& data) const {
     // check whether the linestring data is valid;
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::LINESTRING))
         throw ParseStringException(Name(), data, FieldType::LINESTRING);
@@ -67,16 +83,16 @@ void FieldExtractor::_ParseStringAndSet<FieldType::LINESTRING>(Value& record,
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
-                                                          const std::string& data) const {
+void FieldExtractorV1::_ParseStringAndSet<FieldType::POLYGON>(Value& record,
+                                                            const std::string& data) const {
     if (!::lgraph_api::TryDecodeEWKB(data, ::lgraph_api::SpatialType::POLYGON))
         throw ParseStringException(Name(), data, FieldType::POLYGON);
     return _SetVariableLengthValue(record, Value::ConstRef(data));
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
-                                                          const std::string& data) const {
+void FieldExtractorV1::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
+                                                            const std::string& data) const {
     ::lgraph_api::SpatialType s;
     // throw ParseStringException in this function;
     try {
@@ -91,8 +107,8 @@ void FieldExtractor::_ParseStringAndSet<FieldType::SPATIAL>(Value& record,
 }
 
 template <>
-void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
-                                                          const std::string& data) const {
+void FieldExtractorV1::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
+                                                                 const std::string& data) const {
     std::vector<float> vec;
     // check if there are only numbers and commas
     std::regex nonNumbersAndCommas("[^0-9,.]");
@@ -130,16 +146,16 @@ void FieldExtractor::_ParseStringAndSet<FieldType::FLOAT_VECTOR>(Value& record,
  *          DATA_RANGE_OVERFLOW   if record size overflow
  *          FIELD_PARSE_FAILED.
  */
-void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
-    if (data.empty() && (field_data_helper::IsFixedLengthFieldType(def_.type)
-        || def_.type == FieldType::LINESTRING || def_.type == FieldType::POLYGON
-        || def_.type == FieldType::SPATIAL || def_.type == FieldType::FLOAT_VECTOR)) {
+void FieldExtractorV1::ParseAndSet(Value& record, const std::string& data) const {
+    if (data.empty() &&
+        (IsFixedType() || Type() == FieldType::LINESTRING || Type() == FieldType::POLYGON ||
+         Type() == FieldType::SPATIAL || Type() == FieldType::FLOAT_VECTOR)) {
         SetIsNull(record, true);
         return;
     }
     // empty string is treated as non-NULL
     SetIsNull(record, false);
-    switch (def_.type) {
+    switch (Type()) {
     case FieldType::BOOL:
         return _ParseStringAndSet<FieldType::BOOL>(record, data);
     case FieldType::INT8:
@@ -177,12 +193,12 @@ void FieldExtractor::ParseAndSet(Value& record, const std::string& data) const {
     case FieldType::NUL:
         LOG_ERROR() << "NUL FieldType";
     }
-    LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
+    LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(Type()) << " not handled";
 }
 
 // parse data from FieldData and set field
 // for BLOBs, only formatted data is allowed
-void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
+void FieldExtractorV1::ParseAndSet(Value& record, const FieldData& data) const {
     // NULL FieldData is seen as explicitly setting field to NUL
     bool data_is_null = data.type == FieldType::NUL;
     SetIsNull(record, data_is_null);
@@ -190,7 +206,7 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
 
 #define _SET_FIXED_TYPE_VALUE_FROM_FD(ft)                                                     \
     do {                                                                                      \
-        if (data.type == def_.type) {                                                         \
+        if (data.type == Type()) {                                                            \
             return SetFixedSizeValue(record,                                                  \
                                      field_data_helper::GetStoredValue<FieldType::ft>(data)); \
         } else {                                                                              \
@@ -201,7 +217,7 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         }                                                                                     \
     } while (0)
 
-    switch (def_.type) {
+    switch (Type()) {
     case FieldType::BOOL:
         _SET_FIXED_TYPE_VALUE_FROM_FD(BOOL);
     case FieldType::INT8:
@@ -248,39 +264,39 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
         }
     case FieldType::LINESTRING:
         {
-        if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
-            throw ParseFieldDataException(Name(), data, Type());
-        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::LINESTRING))
+            if (data.type != FieldType::LINESTRING && data.type != FieldType::STRING)
+                throw ParseFieldDataException(Name(), data, Type());
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::LINESTRING))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::LINESTRING);
 
-        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
     case FieldType::POLYGON:
         {
-        if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
-            throw ParseFieldDataException(Name(), data, Type());
-        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
+            if (data.type != FieldType::POLYGON && data.type != FieldType::STRING)
+                throw ParseFieldDataException(Name(), data, Type());
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, ::lgraph_api::SpatialType::POLYGON))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::POLYGON);
 
-        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
     case FieldType::SPATIAL:
         {
-        if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
-            throw ParseFieldDataException(Name(), data, Type());
-        ::lgraph_api::SpatialType s;
+            if (data.type != FieldType::SPATIAL && data.type != FieldType::STRING)
+                throw ParseFieldDataException(Name(), data, Type());
+            ::lgraph_api::SpatialType s;
 
-        // throw ParseStringException in this function;
-        try {
-            s = ::lgraph_api::ExtractType(*data.data.buf);
-        }  catch (...) {
-            throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
-        }
+            // throw ParseStringException in this function;
+            try {
+                s = ::lgraph_api::ExtractType(*data.data.buf);
+            } catch (...) {
+                throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
+            }
 
-        if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
+            if (!::lgraph_api::TryDecodeEWKB(*data.data.buf, s))
                 throw ParseStringException(Name(), *data.data.buf, FieldType::SPATIAL);
 
-        return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
+            return _SetVariableLengthValue(record, Value::ConstRef(*data.data.buf));
         }
     case FieldType::FLOAT_VECTOR:
         {
@@ -290,107 +306,12 @@ void FieldExtractor::ParseAndSet(Value& record, const FieldData& data) const {
             return _SetVariableLengthValue(record, Value::ConstRef(*data.data.vp));
         }
     default:
-        LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type)
-                    << " not handled";
+        LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(Type()) << " not handled";
     }
-}
-
-/**
- * Print the string representation of the field. For digital types, it prints
- * it into ASCII string; for NBytes and String, it just copies the content of
- * the field into the string.
- *
- * \param   record  The record.
- *
- * \return  String representation of the field.
- */
-std::string FieldExtractor::FieldToString(const Value& record) const {
-    if (GetIsNull(record)) return "\"null\"";
-    std::string ret;
-
-#define _COPY_FIELD_AND_RETURN_STR_(record, ft)                                       \
-    do {                                                                              \
-        typename field_data_helper::FieldType2StorageType<FieldType::ft>::type d = 0; \
-        typedef typename field_data_helper::FieldType2CType<FieldType::ft>::type CT;  \
-        GetCopy(record, d);                                                           \
-        return fma_common::StringFormatter::Format("{}", static_cast<CT>(d));         \
-    } while (0)
-
-    switch (def_.type) {
-    case FieldType::BOOL:
-        _COPY_FIELD_AND_RETURN_STR_(record, BOOL);
-    case FieldType::INT8:
-        _COPY_FIELD_AND_RETURN_STR_(record, INT8);
-    case FieldType::INT16:
-        _COPY_FIELD_AND_RETURN_STR_(record, INT16);
-    case FieldType::INT32:
-        _COPY_FIELD_AND_RETURN_STR_(record, INT32);
-    case FieldType::INT64:
-        _COPY_FIELD_AND_RETURN_STR_(record, INT64);
-    case FieldType::FLOAT:
-        _COPY_FIELD_AND_RETURN_STR_(record, FLOAT);
-    case FieldType::DOUBLE:
-        _COPY_FIELD_AND_RETURN_STR_(record, DOUBLE);
-    case FieldType::DATE:
-        {
-            int32_t i;
-            GetCopy(record, i);
-            return Date(i).ToString();
-        }
-    case FieldType::DATETIME:
-        {
-            int64_t i;
-            GetCopy(record, i);
-            return DateTime(i).ToString();
-        }
-    case FieldType::STRING:
-        {
-            std::string ret(GetDataSize(record), 0);
-            GetCopyRaw(record, &ret[0], ret.size());
-            return ret;
-        }
-    case FieldType::BLOB:
-        {
-            // std::string ret(GetDataSize(record), 0);
-            // GetCopyRaw(record, &ret[0], ret.size());
-            // return ::lgraph_api::base64::Encode(ret.substr(2));
-            return fma_common::StringFormatter::Format("[BLOB]");
-        }
-    case FieldType::POINT:
-    case FieldType::LINESTRING:
-    case FieldType::POLYGON:
-    case FieldType::SPATIAL:
-        {
-            std::string ret(GetDataSize(record), 0);
-            GetCopyRaw(record, &ret[0], ret.size());
-            return ret;
-        }
-    case FieldType::FLOAT_VECTOR:
-        {
-            std::string vec_str;
-            for (size_t i = 0; i < record.AsType<std::vector<float>>().size(); i++) {
-                auto floatnum = record.AsType<std::vector<float>>().at(i);
-                if (record.AsType<std::vector<float>>().at(i) > 999999) {
-                    vec_str += std::to_string(floatnum).substr(0, 7);
-                } else {
-                    vec_str += std::to_string(floatnum).substr(0, 8);
-                }
-                vec_str += ',';
-            }
-            if (!vec_str.empty()) {
-                vec_str.pop_back();
-            }
-            return vec_str;
-        }
-    case lgraph_api::NUL:
-        break;
-    }
-    LOG_ERROR() << "Data type " << field_data_helper::FieldTypeName(def_.type) << " not handled";
-    return "";
 }
 
 // sets variable length value to the field
-void FieldExtractor::_SetVariableLengthValue(Value& record, const Value& data) const {
+void FieldExtractorV1::_SetVariableLengthValue(Value& record, const Value& data) const {
     FMA_DBG_ASSERT(is_vfield_);
     if (data.Size() > _detail::MAX_STRING_SIZE)
         throw DataSizeTooLargeException(Name(), data.Size(), _detail::MAX_STRING_SIZE);

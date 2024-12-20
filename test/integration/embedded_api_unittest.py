@@ -195,7 +195,7 @@ class LGraphUnitTests:
                     assert (txn.GetVertexLabelId(lv_2) == 2)
                     assert (txn.GetEdgeLabelId(le_0) == 0)
                     f_names = ["version", "os"]
-                    assert (txn.GetVertexFieldIds(2, f_names) == [1, 3])
+                    assert (txn.GetVertexFieldIds(2, f_names) == [3, 2])
 
                 print("\nadd vertices and edges")
                 with db.CreateWriteTxn() as txn:
@@ -298,7 +298,7 @@ class LGraphUnitTests:
                     assert (vit.GetField(0) == 2)
                     vit.SetFields(['age', 'id', 'name'], [FieldData(27), FieldData(2), FieldData('vadas')])
                     assert (vit.GetField(0) == 2)
-                    vit.SetFields([1, 0, 2], [FieldData(27), FieldData(2), FieldData('vadas')])
+                    vit.SetFields([2, 0, 1], [FieldData(27), FieldData(2), FieldData('vadas')])
                     assert (vit.GetField(0) == 2)
                     assert (vit.GetNumInEdges()[0] == 1)
                     assert (vit.GetNumOutEdges()[0] == 1)
