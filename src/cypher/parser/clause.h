@@ -441,8 +441,6 @@ static lgraph::FieldData MakeFieldData(const Expression &expr) {
             break;
         }
     case Expression::PARAMETER:
-        // Both plan cache parameters and named parameters are represented as strings.
-        ld = lgraph::FieldData(expr.String());
         break;
     case Expression::NULL_:
         break;

@@ -33,7 +33,7 @@ struct Property {
     lgraph::FieldData value;
     enum {
         NUL,        // empty
-        PARAMETER,  // {name:$name} || $1 (for plan cache)
+        PARAMETER,  // {name:$name}
         VALUE,      // {name:'Tom Hanks'}
         VARIABLE,   // UNWIND [1,2] AS mid MATCH (n {id:mid}) || WITH {a: 1, b: 2} as pair
     } type;

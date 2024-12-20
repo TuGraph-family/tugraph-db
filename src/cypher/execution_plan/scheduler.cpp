@@ -15,11 +15,7 @@
 //
 // Created by wt on 18-8-14.
 //
-
-
 #include "./antlr4-runtime.h"
-#include "execution_plan/plan_cache/plan_cache_param.h"
-
 #include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/ast/AstDumper.h"
 #include "geax-front-end/isogql/GQLResolveCtx.h"
@@ -38,7 +34,6 @@
 #include "cypher/execution_plan/execution_plan.h"
 #include "cypher/execution_plan/scheduler.h"
 #include "cypher/execution_plan/execution_plan_v2.h"
-#include "cypher/execution_plan/lru_cache.h"
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 #include "cypher/rewriter/MultiPathPatternRewriter.h"
 #include "cypher/rewriter/PushDownFilterAstRewriter.h"
@@ -74,15 +69,11 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     using namespace parser;
     using namespace antlr4;
     auto t0 = fma_common::GetTime();
+    // <script, execution plan>
+    thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlan>> tls_plan_cache;
     std::shared_ptr<ExecutionPlan> plan;
-    plan = std::make_shared<ExecutionPlan>();
-    std::vector<parser::SglQuery> stmt;
-    parser::CmdType cmd;
-    ASTCacheObj cache_val;
-    // parameterize the query
-    std::string param_query = fastQueryParam(ctx, script);
-    if (!plan_cache_.get_plan(param_query, cache_val)) {
-        ANTLRInputStream input(param_query);
+    if (!tls_plan_cache.Get(script, plan)) {
+        ANTLRInputStream input(script);
         LcypherLexer lexer(&input);
         CommonTokenStream tokens(&lexer);
         LcypherParser parser(&tokens);
@@ -95,54 +86,49 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
         for (const auto &sql_query : visitor.GetQuery()) {
             LOG_DEBUG() << sql_query.ToString();
         }
+        plan = std::make_shared<ExecutionPlan>();
         plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
-        stmt = visitor.GetQuery();
-        cmd = visitor.CommandType();
-        plan_cache_.add_plan(param_query, ASTCacheObj(stmt, cmd));
-    } else {
-        ASTCacheObj ast(cache_val);
-        stmt = ast.Stmt();
-        cmd = ast.CmdType();
-    }
-    plan->Build(stmt, cmd, ctx);
-    plan->Validate(ctx);
-    if (plan->CommandType() != parser::CmdType::QUERY) {
-        ctx->result_info_ = std::make_unique<ResultInfo>();
-        ctx->result_ = std::make_unique<lgraph::Result>();
-        std::string header, data;
-        if (plan->CommandType() == parser::CmdType::EXPLAIN) {
-            header = "@plan";
-            data = plan->DumpPlan(0, false);
-        } else {
-            header = "@profile";
-            data = plan->DumpGraph();
-        }
-        ctx->result_->ResetHeader({{header, lgraph_api::LGraphType::STRING}});
-        auto r = ctx->result_->MutableRecord();
-        r->Insert(header, lgraph::FieldData(data));
-        if (ctx->bolt_conn_) {
-            auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
-            ctx->result_->MarkPythonDriver(session->python_driver);
-            while (!session->streaming_msg) {
-                session->streaming_msg = session->msgs.Pop(std::chrono::milliseconds(100));
-                if (ctx->bolt_conn_->has_closed()) {
-                    LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
-                    return;
+        plan->Build(visitor.GetQuery(), visitor.CommandType(), ctx);
+        plan->Validate(ctx);
+        if (plan->CommandType() != parser::CmdType::QUERY) {
+            ctx->result_info_ = std::make_unique<ResultInfo>();
+            ctx->result_ = std::make_unique<lgraph::Result>();
+            std::string header, data;
+            if (plan->CommandType() == parser::CmdType::EXPLAIN) {
+                header = "@plan";
+                data = plan->DumpPlan(0, false);
+            } else {
+                header = "@profile";
+                data = plan->DumpGraph();
+            }
+            ctx->result_->ResetHeader({{header, lgraph_api::LGraphType::STRING}});
+            auto r = ctx->result_->MutableRecord();
+            r->Insert(header, lgraph::FieldData(data));
+            if (ctx->bolt_conn_) {
+                auto session = (bolt::BoltSession *)ctx->bolt_conn_->GetContext();
+                ctx->result_->MarkPythonDriver(session->python_driver);
+                while (!session->streaming_msg) {
+                    session->streaming_msg = session->msgs.Pop(std::chrono::milliseconds(100));
+                    if (ctx->bolt_conn_->has_closed()) {
+                        LOG_INFO() << "The bolt connection is closed, cancel the op execution.";
+                        return;
+                    }
                 }
+                std::unordered_map<std::string, std::any> meta;
+                meta["fields"] = ctx->result_->BoltHeader();
+                bolt::PackStream ps;
+                ps.AppendSuccess(meta);
+                if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
+                    ps.AppendRecords(ctx->result_->BoltRecords());
+                } else if (session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
+                    // ...
+                }
+                ps.AppendSuccess();
+                ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
             }
-            std::unordered_map<std::string, std::any> meta;
-            meta["fields"] = ctx->result_->BoltHeader();
-            bolt::PackStream ps;
-            ps.AppendSuccess(meta);
-            if (session->streaming_msg.value().type == bolt::BoltMsg::PullN) {
-                ps.AppendRecords(ctx->result_->BoltRecords());
-            } else if (session->streaming_msg.value().type == bolt::BoltMsg::DiscardN) {
-                // ...
-            }
-            ps.AppendSuccess();
-            ctx->bolt_conn_->PostResponse(std::move(ps.MutableBuffer()));
+            return;
         }
-        return;
+        LOG_DEBUG() << "Plan cache disabled.";
     }
     LOG_DEBUG() << plan->DumpPlan(0, false);
     LOG_DEBUG() << plan->DumpGraph();

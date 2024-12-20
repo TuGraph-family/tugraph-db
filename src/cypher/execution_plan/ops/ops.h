@@ -18,11 +18,9 @@
 #pragma once
 
 #include "cypher/execution_plan/ops/op_all_node_scan.h"
-#include "cypher/execution_plan/ops/op_all_node_scan_col.h"
 #include "cypher/execution_plan/ops/op_node_by_label_scan.h"
 #include "cypher/execution_plan/ops/op_node_index_seek.h"
 #include "cypher/execution_plan/ops/op_produce_results.h"
-#include "cypher/execution_plan/ops/op_produce_results_col.h"
 #include "cypher/execution_plan/ops/op_filter.h"
 #include "cypher/execution_plan/ops/op_expand_all.h"
 #include "cypher/execution_plan/ops/op_create.h"
@@ -36,10 +34,8 @@
 #include "cypher/execution_plan/ops/op_gql_inquery_call.h"
 #include "cypher/execution_plan/ops/op_aggregate.h"
 #include "cypher/execution_plan/ops/op_project.h"
-#include "cypher/execution_plan/ops/op_project_col.h"
 #include "cypher/execution_plan/ops/op_sort.h"
 #include "cypher/execution_plan/ops/op_limit.h"
-#include "cypher/execution_plan/ops/op_limit_col.h"
 #include "cypher/execution_plan/ops/op_cartesian_product.h"
 #include "cypher/execution_plan/ops/op_set.h"
 #include "cypher/execution_plan/ops/op_gql_set.h"

@@ -4,6 +4,3 @@
 [submodule "deps/tugraph-db-browser"]
 	path = deps/tugraph-db-browser
 	url = https://github.com/TuGraph-family/tugraph-db-browser.git
-[submodule "deps/buildit"]
-	path = deps/buildit
-	url = "https://github.com/RTEnzyme/buildit.git"

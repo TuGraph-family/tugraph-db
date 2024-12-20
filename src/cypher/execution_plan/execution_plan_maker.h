@@ -14,7 +14,6 @@
 
 #pragma once
 
-#include <gflags/gflags.h>
 #include <vector>
 #include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/common/ObjectAllocator.h"
@@ -22,8 +21,6 @@
 #include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
-
-DECLARE_bool(is_columnar);
 
 class ExecutionPlanMaker : public geax::frontend::AstNodeVisitor {
  public:

@@ -77,7 +77,6 @@ struct AnnotationCollection {
 struct SymbolTable {
     std::unordered_map<std::string, SymbolNode> symbols;
     AnnotationCollection anot_collection;
-    PARAM_TAB* param_tab_ = nullptr;
 
     void DumpTable() const;
 };

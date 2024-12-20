@@ -752,17 +752,9 @@ struct ArithExprNode {
 
     void SetOperand(ArithOperandNode::ArithOperandType operand_type,
                     const cypher::FieldData &data) {
-        // @todo(anyone) below assertion throws excpetion when set parameter operand.
         CYPHER_THROW_ASSERT(operand_type == ArithOperandNode::AR_OPERAND_CONSTANT);
         type = AR_EXP_OPERAND;
         operand.SetConstant(data);
-    }
-
-    void SetOperandParameter(ArithOperandNode::ArithOperandType operand_type,
-                    const std::string &param, const SymbolTable &sym_tab) {
-        CYPHER_THROW_ASSERT(operand_type == ArithOperandNode::AR_OPERAND_PARAMETER);
-        type = AR_EXP_OPERAND;
-        operand.SetParameter(param, sym_tab);
     }
 
     void SetOperandVariable(ArithOperandNode::ArithOperandType operand_type,

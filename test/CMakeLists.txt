@@ -8,18 +8,11 @@ set(GTEST_MAIN_LIB libgtest_main.a)
 
 #antlr4-runtime
 find_package(antlr4-runtime REQUIRED)
-find_package(benchmark REQUIRED)
 include_directories( ${ANTLR4_INCLUDE_DIR} )
 
 add_compile_options(-Wno-unused-local-typedefs)
 add_compile_options(-Wno-sign-compare)
 add_compile_options(-Wno-maybe-uninitialized)
-
-# set(EXTERNAL_PROJECT_DIR "${CMAKE_SOURCE_DIR}/deps/buildit")
-# add_custom_target(buildit
-#     COMMAND ${CMAKE_COMMAND} -E chdir ${EXTERNAL_PROJECT_DIR} $(MAKE)
-#     COMMENT "Building external project"
-# )
 
 add_subdirectory(test_fma)
 
@@ -33,8 +26,6 @@ add_executable(unit_test
         test_blob_manager.cpp
         test_c.cpp
         test_cache_aligned_vector.cpp
-        test_bit_mask.cpp
-        test_column_vector.cpp
         test_concurrent_gettime.cpp
         test_core_exception.cpp
         test_cpp_procedure.cpp
@@ -97,13 +88,10 @@ add_executable(unit_test
         test_perf_kv_fatkey.cpp
         test_perf_multi_writer.cpp
         test_perf_unaligned.cpp
-        test_plan_cache.cpp
         test_proto_convert.cpp
         test_python_plugin_manager.cpp
         test_python_plugin_manager_impl.cpp
-        # test_query_compilation.cpp
         test_query.cpp
-        test_query_col.cpp
         test_random_delete.cpp
         test_rest_client.cpp
         test_restful_abnormal_branch.cpp
@@ -153,38 +141,18 @@ add_executable(unit_test
         ${LGRAPH_ROOT_DIR}/src/core/vector_index.cpp
 )
 
-
-target_include_directories(unit_test PRIVATE ${CMAKE_SOURCE_DIR}/deps/buildit/include)
-
-add_executable(benchmark_test
-    test_query_benchmark.cpp
-    QueryTester.cpp
-)
-
-
 target_link_libraries(unit_test
         vsag
         /opt/OpenBLAS/lib/libopenblas.a
         faiss
         lgraph_server_lib
         geax_isogql
-        # ${CMAKE_SOURCE_DIR}/deps/buildit/build/libbuildit.a
         bolt
         librocksdb.a)
 
 target_link_libraries(unit_test
         ${GTEST_MAIN_LIB}
         ${GTEST_LIB})
-
-target_link_libraries(benchmark_test
-    benchmark
-    ${GTEST_LIB}
-    ${GTEST_MAIN_LIB}
-    lgraph_server_lib
-    geax_isogql
-    bolt
-    librocksdb.a
-)
 
 target_compile_definitions(unit_test PRIVATE
         FMA_IN_UNIT_TEST=1)
