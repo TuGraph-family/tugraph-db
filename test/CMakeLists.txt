@@ -143,7 +143,8 @@ add_executable(unit_test
 
 target_link_libraries(unit_test
         vsag
-        libfaiss.a
+        /opt/OpenBLAS/lib/libopenblas.a
+        faiss
         lgraph_server_lib
         geax_isogql
         bolt

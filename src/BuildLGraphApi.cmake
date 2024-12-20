@@ -123,13 +123,15 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             pthread
             rt
             z
-            libfaiss.a
+            /opt/OpenBLAS/lib/libopenblas.a
+            faiss
             )
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 vsag
-                libfaiss.a
+                /opt/OpenBLAS/lib/libopenblas.a
+                faiss
                 ${Boost_LIBRARIES}
                 omp
                 pthread
@@ -139,7 +141,8 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     else ()
         target_link_libraries(${TARGET_LGRAPH} PUBLIC
                 vsag
-                libfaiss.a
+                /opt/OpenBLAS/lib/libopenblas.a
+                faiss
                 rt
                 omp
                 pthread
