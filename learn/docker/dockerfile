@@ -57,7 +57,7 @@ RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/Python-3.6
     && tar xf Python-3.6.9.tgz && cd Python-3.6.9 && ./configure --prefix=/usr/local \
     && make -j16 && make install \
     && python3 -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
-    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
+    && python3 -m pip install pexpect requests pytest httpx cython==3.0.0a11 smart-open==6.4.0 gensim -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn \
     && rm -rf /Python*
 
 # install cmake
