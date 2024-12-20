@@ -177,12 +177,11 @@ size_t KTrussCore(OlapBase<Empty> &graph, size_t value_k,
                         local_count = ktruss_count_common(src_adj, neighbour_adj, src, dst);
                     }
 #if USING_CENTOS9
-                    auto edge_data= edge.edge_data;
+                    auto edge_data = edge.edge_data;
                     write_add(&edge_data, local_count);
 #else
                     write_add(&edge.edge_data, local_count);
 #endif
-
                 }
                 return 0;
             },
