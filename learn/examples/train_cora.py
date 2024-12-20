@@ -23,6 +23,10 @@ train_nids = 2708
 
 rw_len = 2
 
+p = 10
+q = 1
+num_walks = 100
+
 def construct_graph():
     src_ids = [0, 2, 3, 4]
     dst_ids = [1, 1, 2, 3]
@@ -65,8 +69,8 @@ class TugraphSample(object):
             self.algo.Process(db, olapondb, feature_len,
                     len(seed_nodes), NodeInfo, EdgeInfo)
         elif args.method == "node2vec_sampling":
-            self.algo.Process(db, olapondb, feature_len,
-                    len(seed_nodes), NodeInfo, EdgeInfo)
+            self.algo.Process(db, olapondb, feature_len, p, q, num_walks,
+                    seed_nodes, NodeInfo, EdgeInfo)
 
 
     def sample(self, g, seed_nodes):
