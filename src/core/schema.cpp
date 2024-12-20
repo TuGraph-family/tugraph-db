@@ -1437,6 +1437,9 @@ std::vector<FieldSpec> Schema::GetAliveFieldSpecs() const {
     for (auto& f : name_to_idx_) {
         schema.emplace_back(fields_[f.second]->GetFieldSpec());
     }
+    std::sort(schema.begin(), schema.end(), [] (const FieldSpec& a, const FieldSpec& b) {
+        return a.id < b.id;
+    });
     return schema;
 }
 
