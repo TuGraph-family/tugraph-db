@@ -85,6 +85,7 @@ class Node2VecSample:
     num_threads: cython.int
     alias_node: dict = {}
     alias_edge: dict = {}
+    model : Word2Vec
 
     ########### Input Parameters ###########
     g: cython.pointer(OlapOnDB[cython.double])
@@ -105,6 +106,9 @@ class Node2VecSample:
     vertex_type_string: ssize_t[:]
     src_list: ssize_t[:]
     dst_list: ssize_t[:]
+    local_node: list
+    local_src_list: list
+    local_dst_list: list
 
     @cython.cfunc
     @cython.exceptval(check=False)
@@ -168,18 +172,25 @@ class Node2VecSample:
         path = [cython.cast(size_t, node)]
         while cython.cast(size_t, len(path)) < self.walk_length:
             cur = cython.cast(size_t, int(path[len(path)-1]))
-
             degree = cython.declare(size_t, self.g.OutDegree(cur))
             if degree > 0:
                 out_edges = cython.declare(AdjList[cython.double], self.g.OutEdges(cur))
                 if len(path) == 1:
                     a_nodes = self.GetAliasNodes(cur)
                     sample_idx = a_nodes.Sample()
+                    self.local_node.append(cur)
+                    self.local_node.append(out_edges[sample_idx].neighbour)
+                    self.local_src_list.append(cur)
+                    self.local_dst_list.append(out_edges[sample_idx].neighbour)
                     path.append(out_edges[sample_idx].neighbour)
                 else:
                     prev = path[len(path)-2]
                     a_edgs = self.GetAliasEdges(prev, cur)
                     sample_idx = a_edgs.Sample()
+                    self.local_node.append(cur)
+                    self.local_node.append(out_edges[sample_idx].neighbour)
+                    self.local_src_list.append(cur)
+                    self.local_dst_list.append(out_edges[sample_idx].neighbour)
                     path.append(out_edges[sample_idx].neighbour)
             else:
                 break
@@ -196,25 +207,31 @@ class Node2VecSample:
                 path_list.append(self.Walk(cur_node))
 
         # 2. Word2Vec
-        model = Word2Vec(sentences=path_list, vector_size=self.dimensions, window=2, min_count=1, sg=1, workers=self.num_threads, epochs=10)
+        self.model = Word2Vec(sentences=path_list, vector_size=self.dimensions, window=2, min_count=1, sg=1, workers=self.num_threads, epochs=10)
+    
+    @cython.cfunc
+    @cython.exceptval(check=False)
+    def CopyResult(self) -> cython.void:
         vit = self.txn.GetVertexIterator()
-        for i in range(self.sample_node.shape[0]):
-            cur_node = self.sample_node[i]
+        for i in range(len(self.local_node)):
+            cur_node = self.local_node[i]
             self.node[i] = cur_node
-            self.src_list[i] = cur_node
-            self.dst_list[i] = cur_node
-            vec = model.wv[str(cur_node)]
+            vec = self.model.wv[str(cur_node)]
             for j in range(self.dimensions):
                 self.feature[i, j] = vec[j]
-            self.g.AcquireVertexLock(self.sample_node[i])
+            self.g.AcquireVertexLock(self.local_node[i])
             vit.Goto(self.g.OriginalVid(cur_node))
             for l in range(self.txn.GetVertexSchema(vit.GetLabel()).size()):
                 if self.txn.GetVertexSchema(vit.GetLabel())[l].name == self.feature_key:
                     self.label[i] = vit.GetField(self.label_key).AsInt64()
             vertex_type = vit.GetLabelId()
             self.vertex_type_string[i] = vertex_type
-            self.g.ReleaseVertexLock(self.sample_node[i])
-
+            self.g.ReleaseVertexLock(self.local_node[i])
+        for i in range(len(self.local_src_list)):
+            self.src_list[i] = self.local_src_list[i]
+            self.dst_list[i] = self.local_dst_list[i]
+    
+    
     @cython.cfunc
     @cython.exceptval(check=False)
     def run(self, db: cython.pointer(GraphDB), olapondb:cython.pointer(OlapOnDB[cython.double]), dimensions: size_t, p: cython.double, q: cython.double, walk_length: size_t, num_walks:size_t ,sample_node:list, NodeInfo: list, EdgeInfo: list):
@@ -234,14 +251,22 @@ class Node2VecSample:
 
         self.feature_key = "feature_float".encode('utf-8')
         self.label_key = "label".encode('utf-8')
-        sample_node_num = cython.declare(ssize_t, self.sample_node.shape[0])
+        self.local_node = []
+        self.local_src_list = []
+        self.local_dst_list = []
+
+        self.Compute()
+
+        sample_node_num = cython.declare(ssize_t, len(self.local_node))
+        sample_edge_num = cython.declare(ssize_t, len(self.local_src_list))
         self.node = np.zeros((sample_node_num,), dtype=np.intp)
         self.feature = np.zeros((sample_node_num, dimensions), dtype=np.float32)
         self.label = np.zeros((sample_node_num,), dtype=np.intp)
         self.vertex_type_string = np.zeros((sample_node_num,), dtype=np.intp)
-        self.src_list = np.zeros((sample_node_num,), dtype=np.intp)
-        self.dst_list = np.zeros((sample_node_num,), dtype=np.intp)
-        self.Compute()
+        self.src_list = np.zeros((sample_edge_num,), dtype=np.intp)
+        self.dst_list = np.zeros((sample_edge_num,), dtype=np.intp)
+
+        self.CopyResult()
 
         NodeInfo.append(np.asarray(self.node))
         NodeInfo.append(np.asarray(self.feature))
@@ -249,7 +274,7 @@ class Node2VecSample:
         NodeInfo.append(np.asarray(self.vertex_type_string))
         EdgeInfo.append(np.asarray(self.src_list))
         EdgeInfo.append(np.asarray(self.dst_list))
-        EdgeInfo.append(np.zeros((sample_node_num,), dtype=np.intp)) #edge_type_list
+        EdgeInfo.append(np.zeros((sample_edge_num,), dtype=np.intp)) #edge_type_list
 
 @cython.ccall
 def Process(db_: lgraph_db_python.PyGraphDB, olapondb:lgraph_db_python.PyOlapOnDB, feature_num: size_t, p:cython.double , q:cython.double, walk_length: size_t, num_walks: size_t, sample_node:list, NodeInfo: list, EdgeInfo: list):
