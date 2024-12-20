@@ -113,18 +113,21 @@ struct VectorIndexEntry {
     std::string distance_type;
     int hnsw_m;
     int hnsw_ef_construction;
+    int ivf_flat_nlist;
     template <typename StreamT>
     size_t Serialize(StreamT& buf) const {
         return BinaryWrite(buf, label) + BinaryWrite(buf, field) + BinaryWrite(buf, index_type) +
                BinaryWrite(buf, dimension) + BinaryWrite(buf, distance_type) +
-               BinaryWrite(buf, hnsw_m) + BinaryWrite(buf, hnsw_ef_construction);
+               BinaryWrite(buf, hnsw_m) + BinaryWrite(buf, hnsw_ef_construction) +
+               BinaryWrite(buf, ivf_flat_nlist);
     }
 
     template <typename StreamT>
     size_t Deserialize(StreamT& buf) {
         return BinaryRead(buf, label) + BinaryRead(buf, field) + BinaryRead(buf, index_type) +
                BinaryRead(buf, dimension) + BinaryRead(buf, distance_type) +
-               BinaryRead(buf, hnsw_m) + BinaryRead(buf, hnsw_ef_construction);
+               BinaryRead(buf, hnsw_m) + BinaryRead(buf, hnsw_ef_construction) +
+               BinaryRead(buf, ivf_flat_nlist);
     }
 };
 
@@ -329,6 +332,7 @@ class IndexManager {
                 vis.dimension = ent.dimension;
                 vis.hnsw_ef_construction = ent.hnsw_ef_construction;
                 vis.hnsw_m = ent.hnsw_m;
+                vis.ivf_flat_nlist = ent.ivf_flat_nlist;
                 vis.index_type = ent.index_type;
                 vectorIndexes.emplace_back(vis);
             } else if (index_name.size() > c_index_len &&
