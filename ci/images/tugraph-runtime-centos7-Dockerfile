@@ -12,7 +12,7 @@ RUN sed -e "s|^mirrorlist=|#mirrorlist=|g" \
 RUN yum install -y \
     libgfortran5.x86_64 \
     libgomp \
-    libcurl-devel.x86_64 && yum clean all
+    wget && yum clean all
 
 # install tugraph
 # specifies the path of the object storage where the installation package resides
