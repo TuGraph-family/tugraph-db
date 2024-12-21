@@ -18,6 +18,7 @@
 #include "core/kv_store.h"
 #include "core/lightning_graph.h"
 #include "core/transaction.h"
+#include "core/faiss_ivf_flat.h"
 #include "core/vsag_hnsw.h"
 
 namespace lgraph {
@@ -104,11 +105,21 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                                   idx.label, idx.field);
             const _detail::FieldExtractor* extractor = schema->GetFieldExtractor(idx.field);
             FMA_DBG_ASSERT(extractor);
-            std::unique_ptr<VectorIndex> vsag_index;
-            vsag_index.reset(dynamic_cast<lgraph::VectorIndex*> (
-                new HNSW(idx.label, idx.field, idx.distance_type, idx.index_type,
-                         idx.dimension, {idx.hnsw_m, idx.hnsw_ef_construction})));
+            std::unique_ptr<VectorIndex> vector_index;
+            if (idx.index_type == "ivf_flat") {
+                vector_index.reset(dynamic_cast<lgraph::VectorIndex*> (
+                    new IVFFlat(idx.label, idx.field, idx.distance_type, idx.index_type,
+                                idx.dimension, {idx.ivf_flat_nlist})));
+            } else if (idx.index_type == "hnsw") {
+                vector_index.reset(dynamic_cast<lgraph::VectorIndex*> (
+                    new HNSW(idx.label, idx.field, idx.distance_type, idx.index_type,
+                             idx.dimension, {idx.hnsw_m, idx.hnsw_ef_construction})));
+            } else {
+                LOG_ERROR() << "Unknown index type: " << idx.index_type;
+            }
             uint64_t count = 0;
+            std::vector<std::vector<float>> floatvector;
+            std::vector<lgraph::VertexId> vids;
             auto kv_iter = schema->GetPropertyTable().GetIterator(txn);
             for (kv_iter->GotoFirstKey(); kv_iter->IsValid(); kv_iter->Next()) {
                 auto prop = kv_iter->GetValue();
@@ -117,15 +128,21 @@ IndexManager::IndexManager(KvTransaction& txn, SchemaManager* v_schema_manager,
                 }
                 auto vid = graph::KeyPacker::GetVidFromPropertyTableKey(kv_iter->GetKey());
                 auto vector = (extractor->GetConstRef(prop)).AsType<std::vector<float>>();
-                vsag_index->Add({std::move(vector)}, {vid});
+                if (vector_index->GetIndexType() != "hnsw") {
+                    floatvector.emplace_back(vector);
+                    vids.emplace_back(vid);
+                } else {
+                    vector_index->Add({std::move(vector)}, {vid});
+                }
                 count++;
                 if ((count % 10000) == 0) {
                     LOG_INFO() << "vector index count: " << count;
                 }
             }
+            if (vector_index->GetIndexType() != "hnsw") vector_index->Add(floatvector, vids);
             kv_iter.reset();
-            LOG_INFO() << "vector index count: " << count;
-            schema->MarkVectorIndexed(extractor->GetFieldId(), vsag_index.release());
+            LOG_DEBUG() << "vector index count: " << count;
+            schema->MarkVectorIndexed(extractor->GetFieldId(), vector_index.release());
             LOG_INFO() << FMA_FMT("end building vertex vector index for {}:{} in detached model",
                                   idx.label, idx.field);
         } else {
@@ -183,8 +200,17 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
     idx.index_type = index_type;
     idx.dimension = vec_dimension;
     idx.distance_type = distance_type;
-    idx.hnsw_m = index_spec[0];
-    idx.hnsw_ef_construction = index_spec[1];
+    if (idx.index_type == "ivf_flat") {
+        idx.hnsw_m = 0;
+        idx.hnsw_ef_construction = 0;
+        idx.ivf_flat_nlist = index_spec[0];
+    } else if (idx.index_type == "hnsw") {
+        idx.hnsw_m = index_spec[0];
+        idx.hnsw_ef_construction = index_spec[1];
+        idx.ivf_flat_nlist = 0;
+    } else {
+        LOG_ERROR() << "Unknown index type: " << idx.index_type;
+    }
     auto table_name = GetVertexVectorIndexTableName(label, field);
     auto it = index_list_table_->GetIterator(txn, Value::ConstRef(table_name));
     if (it->IsValid()) return false;  // already exist
@@ -192,8 +218,15 @@ bool IndexManager::AddVectorIndex(KvTransaction& txn, const std::string& label,
     Value idxv;
     StoreVectorIndex(idx, idxv);
     it->AddKeyValue(Value::ConstRef(table_name), idxv);
-    vector_index = std::make_unique<HNSW>(label, field, distance_type,
-                            index_type, vec_dimension, index_spec);
+    if (idx.index_type == "ivf_flat") {
+        vector_index = std::make_unique<IVFFlat>(label, field, distance_type,
+                                index_type, vec_dimension, index_spec);
+    } else if (idx.index_type == "hnsw") {
+        vector_index = std::make_unique<HNSW>(label, field, distance_type,
+                                index_type, vec_dimension, index_spec);
+    } else {
+        LOG_ERROR() << "Unknown index type: " << idx.index_type;
+    }
     return true;
 }
 
@@ -315,6 +348,7 @@ std::vector<VectorIndexSpec> IndexManager::ListVectorIndex(KvTransaction& txn) {
             vs.distance_type = vi.distance_type;
             vs.hnsw_m = vi.hnsw_m;
             vs.hnsw_ef_construction = vi.hnsw_ef_construction;
+            vs.ivf_flat_nlist = vi.ivf_flat_nlist;
             ret.emplace_back(vs);
         }
     }

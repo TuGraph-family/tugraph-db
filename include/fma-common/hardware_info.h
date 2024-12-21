@@ -52,7 +52,9 @@
 #include <net/if.h>
 #include <unistd.h>
 #include <sys/times.h>
+#if !USING_CENTOS9
 #include <sys/vtimes.h>
+#endif
 #include <limits.h>
 #include <fstream>
 #endif  // #ifdef _WIN32 #elif __APPLE__

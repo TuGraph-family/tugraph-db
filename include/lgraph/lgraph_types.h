@@ -1375,6 +1375,7 @@ struct VectorIndexSpec {
     std::string distance_type;
     int hnsw_m;
     int hnsw_ef_construction;
+    int ivf_flat_nlist;
 };
 
 struct EdgeUid {
