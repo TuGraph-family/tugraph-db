@@ -1,6 +1,20 @@
 cmake_minimum_required(VERSION 3.13)
 project(TuGraph C CXX)
 
+############### lgraph_compilation ################
+# set(TARGET_LGRAPH_COMPILATION lgraph_compilation)
+
+# add_executable(${TARGET_LGRAPH_COMPILATION}
+#         lgraph_compilation.cpp)
+
+# target_include_directories(${TARGET_LGRAPH_COMPILATION} PUBLIC
+#         ${CMAKE_SOURCE_DIR}/deps/buildit/include)
+# add_dependencies(${TARGET_LGRAPH_COMPILATION} buildit)
+# target_link_libraries(${TARGET_LGRAPH_COMPILATION}
+#         lgraph_cypher_lib
+        # ${CMAKE_SOURCE_DIR}/deps/buildit/build/libbuildit.a
+        # librocksdb.a)
+
 ############### lgraph_import ######################
 
 set(TARGET_LGRAPH_IMPORT lgraph_import)

@@ -7,7 +7,7 @@ CALL db.addVertexVectorIndex('person','embedding2', {dimension:4});
 CALL db.addVertexVectorIndex('person','name', {dimension:4});
 [VectorIndexException] Only FLOAT_VECTOR type supports vector index
 CALL db.showVertexVectorIndex();
-[{"deleted_ids_num":0,"dimension":4,"distance_type":"l2","elements_num":0,"field_name":"embedding1","index_type":"hnsw","label_name":"person","memory_usage":380,"parameter":{"hnsw.ef_construction":100,"hnsw.m":16}},{"deleted_ids_num":0,"dimension":4,"distance_type":"l2","elements_num":0,"field_name":"embedding2","index_type":"hnsw","label_name":"person","memory_usage":380,"parameter":{"hnsw.ef_construction":100,"hnsw.m":16}}]
+[{"deleted_ids_num":0,"dimension":4,"distance_type":"l2","elements_num":0,"field_name":"embedding1","index_type":"hnsw","label_name":"person","memory_usage":224,"parameter":{"hnsw.ef_construction":100,"hnsw.m":16}},{"deleted_ids_num":0,"dimension":4,"distance_type":"l2","elements_num":0,"field_name":"embedding2","index_type":"hnsw","label_name":"person","memory_usage":224,"parameter":{"hnsw.ef_construction":100,"hnsw.m":16}}]
 CREATE (n:person {id:1, name:'name1', embedding1: [1.0,1.0,1.0,1.0], embedding2: [11.0,11.0,11.0,11.0]});
 [{"<SUMMARY>":"created 1 vertices, created 0 edges."}]
 CREATE (n:person {id:2, name:'name2', embedding1: [2.0,2.0,2.0,2.0], embedding2: [12.0,12.0,12.0,12.0]});
