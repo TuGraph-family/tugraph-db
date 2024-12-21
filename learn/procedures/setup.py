@@ -44,6 +44,14 @@ ext_modules = [
         library_dirs=['../../build/output'],
         extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
     )
+    Extension(
+        'node2vec_sampling', ['node2vec_sampling.py'],
+        libraries=['lgraph'],
+        extra_compile_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"],
+        include_dirs=["../../src", "../../include"],
+        library_dirs=['../../build/output'],
+        extra_link_args=['-Wall', '-g', "-fno-gnu-unique", "-fPIC", "--std=c++17", "-rdynamic", "-O3", "-fopenmp"]
+    )
 ]
 
 setup(

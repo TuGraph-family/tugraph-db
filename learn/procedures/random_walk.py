@@ -196,7 +196,7 @@ class RandomWalkSample:
         self.MergeList()
 
         NodeInfo.append(np.asarray(self.node))
-        NodeInfo.append(np.asarray(self.feature))
+        NodeInfo.append(np.asarray(self.feature)) # embedding
         NodeInfo.append(np.asarray(self.label))
         NodeInfo.append(np.asarray(self.vertex_type_string))
         EdgeInfo.append(np.asarray(self.src_list))
