@@ -59,3 +59,12 @@ class TestExec:
     @pytest.mark.parametrize("algo", [RANDOMWALK], indirect=True)
     def test_exec_randomwalk_python_embed(self, importor, algo):
         pass
+    
+    NODE2VECSAMPLING = {
+        "cmd" : "python3 python_sampling.py node2vec_sampling ./coradb",
+        "result" : ["the label of 35 is: 6"]
+    }
+    @pytest.mark.parametrize("importor", [IMPORTOPT], indirect=True)
+    @pytest.mark.parametrize("algo", [NODE2VECSAMPLING], indirect=True)
+    def test_exec_node2vecsampling_python_embed(self, importor, algo):
+        pass

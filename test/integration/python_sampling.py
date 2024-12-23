@@ -30,6 +30,9 @@ def python_embed_main(algo):
     if sys.argv[1] == "negative_sampling":
         algo.Process(db, olapondb, 1433, 100, NodeInfo, EdgeInfo)
         print("the num of NodeInfo =")
+    if sys.argv[1] == "node2vec_sampling":
+        algo.Process(db, olapondb, 1433, 100, NodeInfo, EdgeInfo)
+        print("the num of NodeInfo =")
     del db
     del galaxy
 

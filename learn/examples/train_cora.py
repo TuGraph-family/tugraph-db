@@ -23,6 +23,12 @@ train_nids = 2708
 
 rw_len = 2
 
+p = 10
+q = 1
+walk_length = 10
+num_walks = 10
+
+
 def construct_graph():
     src_ids = [0, 2, 3, 4]
     dst_ids = [1, 1, 2, 3]
@@ -64,6 +70,9 @@ class TugraphSample(object):
         elif args.method == "negative_sampling":
             self.algo.Process(db, olapondb, feature_len,
                     len(seed_nodes), NodeInfo, EdgeInfo)
+        elif args.method == "node2vec_sampling":
+            self.algo.Process(db, olapondb, feature_len, p, q, walk_length, num_walks,
+                    seed_nodes, NodeInfo, EdgeInfo)
 
 
     def sample(self, g, seed_nodes):
@@ -264,7 +273,7 @@ if __name__ == '__main__':
                         help="the path to store vertex info")
     parser.add_argument('--method', type=str, default='neighbors_sampling',
                         help='sample method:\
-                        neighbors_sampling, edge_sampling, random_walk, negative_sampling')
+                        neighbors_sampling, edge_sampling, random_walk, negative_sampling, node2vec_sampling')
     parser.add_argument('--neighbor_sample_num', type=int, default=20,
                         help='neighbor sampling number.')
     parser.add_argument('--randomwalk_length', type=int, default=20,
