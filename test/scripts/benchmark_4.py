@@ -74,6 +74,16 @@ def create_edge(index):
         cypher = "Match (n1:Person {id:$start_vid}), (n2:Person {id:$end_vid}) Create(n1)-[r:like {desc:$desc_str}]->(n2)"
         session.run(cypher, start_vid=random.randint(start, end), end_vid=random.randint(start, end), desc_str=desc)
 
+def read(index, cypher):
+    url = "bolt://{}:{}".format("127.0.0.1", "7687")
+    auth_token = basic_auth("admin", "73@TuGraph")
+    driver = GraphDatabase.driver(url, auth=auth_token, encrypted=False)
+    session = driver.session(database="default")
+    for i in range(10000):
+        ret = session.run(cypher, start_id=random.randint(0, vertex_num), desc_str=desc)
+        for item in ret.data():
+            pass
+
 def create_vertexes():
     res_list=[]
     pool = Pool(thread_num)
@@ -96,6 +106,17 @@ def create_edges():
     pool.close()
     pool.join()
 
+def test_read(cypher):
+    res_list=[]
+    pool = Pool(thread_num)
+    for i in range(thread_num):
+        res = pool.apply_async(func=read, args=(i, cypher))
+        res_list.append(res)
+    for res in res_list:
+        print(res.get())
+    pool.close()
+    pool.join()
+
 if __name__ == '__main__':
     t1 = time.time()
     create_index()
@@ -107,3 +128,32 @@ if __name__ == '__main__':
     t3 = time.time()
     elapsed_time = t3 - t2
     print(f"create_edges cost: {elapsed_time:.6f} seconds", flush=True)
+    test_read("Match (n:Person {id:$start_id})-[r]->(m) return m")
+    test_read("Match (n:Person {id:$start_id})-[r]->(m) return m.id")
+    test_read("Match (n:Person {id:$start_id})-[r*2]->(m) return count(m)")
+    test_read("Match (n:Person {id:$start_id})-[r*3]->(m) return count(m)")
+
+
+    t4 = time.time()
+    test_read("Match (n:Person {id:$start_id})-[r]->(m) return m")
+    t5 = time.time()
+    elapsed_time = t5 - t4
+    print(f"test_read1 cost: {elapsed_time:.6f} seconds", flush=True)
+
+    t4 = time.time()
+    test_read("Match (n:Person {id:$start_id})-[r]->(m) return m.id")
+    t5 = time.time()
+    elapsed_time = t5 - t4
+    print(f"test_read2 cost: {elapsed_time:.6f} seconds", flush=True)
+
+    t4 = time.time()
+    test_read("Match (n:Person {id:$start_id})-[r*2]->(m) return count(m)")
+    t5 = time.time()
+    elapsed_time = t5 - t4
+    print(f"test_read3 cost: {elapsed_time:.6f} seconds", flush=True)
+
+    t4 = time.time()
+    test_read("Match (n:Person {id:$start_id})-[r*3]->(m) return count(m)")
+    t5 = time.time()
+    elapsed_time = t5 - t4
+    print(f"test_read4 cost: {elapsed_time:.6f} seconds", flush=True)
