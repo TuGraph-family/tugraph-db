@@ -514,7 +514,7 @@ void Schema::ParseAndSet(Value& record, const FieldData& data,
         return;
     }
     FieldId count = GetFieldExtractorV2(extractor)->GetRecordCount(record);
-    if (count <= extractor->GetFieldId()) {
+    if (extractor->DataInRecord(record)) {
         Value new_prop = CreateEmptyRecord();
         for (const auto& field : name_to_idx_) {
             _detail::FieldExtractorV2* extr = GetFieldExtractorV2(GetFieldExtractor(field.first));

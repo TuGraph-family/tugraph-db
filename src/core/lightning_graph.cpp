@@ -886,7 +886,7 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
     std::vector<size_t> dst_fids;  // field ids of old fields in new record
     std::vector<size_t> src_fids;  // field ids of old fields in old record
     std::vector<size_t> new_fids;  // ids of newly added fields
-                                   // make new schema
+    // make new schema
     auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
         if (curr_schema->GetFastAlterSchema()) {
             Schema new_schema(*curr_schema);
@@ -954,38 +954,13 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
 bool LightningGraph::FieldTypeComplatible(FieldType default_value, FieldType b) {
     if (default_value == b) return true;
     if (default_value == FieldType::NUL) return true;
-    int taga = -2;  // -1 : is floating data, 1 : is integer data.
-    int tagb = 2;
-    switch (default_value) {
-    case FieldType::INT8:
-    case FieldType::INT16:
-    case FieldType::INT32:
-    case FieldType::INT64:
-        taga = 1;
-        break;
-    case FieldType::FLOAT:
-    case FieldType::DOUBLE:
-        taga = -1;
-        break;
-    default:
-        break;
-    }
 
-    switch (b) {
-    case FieldType::INT8:
-    case FieldType::INT16:
-    case FieldType::INT32:
-    case FieldType::INT64:
-        tagb = 1;
-        break;
-    case FieldType::FLOAT:
-    case FieldType::DOUBLE:
-        tagb = -1;
-        break;
-    default:
-        break;
+    if ((field_data_helper::IsFloatingType(default_value)
+        && field_data_helper::IsFloatingType(b))
+        || (field_data_helper::IsIntegerType(default_value)
+        && field_data_helper::IsIntegerType(b))) {
+        return true;
     }
-    if (taga == tagb) return true;
     return false;
 }
 
@@ -1020,18 +995,7 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
                     continue;
                 }
 
-                if (extractor->Type() == FieldType::BLOB && f.type != FieldType::BLOB) {
-                    THROW_CODE(
-                        InputError,
-                        "Field [{}] is of type BLOB, which cannot be converted to other types.",
-                        f.name);
-                }
-
-                if (curr_schema->GetFastAlterSchema() &&
-                    !((::lgraph_api::is_float_type(f.type) &&
-                       ::lgraph_api::is_float_type(extractor->Type())) ||
-                      (::lgraph_api::is_integer_type(f.type) &&
-                          ::lgraph_api::is_integer_type(extractor->Type())))) {
+                if (!FieldTypeComplatible(extractor->Type(), f.type)) {
                     THROW_CODE(InputError,
                                "Enabled fast alter schema, only support convert from float_type to "
                                "float_type or"
@@ -1043,14 +1007,6 @@ bool LightningGraph::AlterLabelModFields(const std::string& label,
                                "Field [{}] has fulltext index, which cannot be converted to other "
                                "non-STRING types.",
                                f.name);
-                }
-                if (!((field_data_helper::IsIntegerType(extractor->Type()) &&
-                       field_data_helper::IsIntegerType(f.type)) ||
-                      (field_data_helper::IsFloatingType(extractor->Type()) &&
-                       field_data_helper::IsFloatingType(f.type)) ||
-                      f.type == FieldType::BLOB)) {
-                    THROW_CODE(InputError,
-                               "Field type can only changed within integer type or floating type");
                 }
             }
             Schema new_schema(*curr_schema);

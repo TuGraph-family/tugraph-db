@@ -20,7 +20,6 @@
 #include "fma-common/utils.h"
 
 using namespace fma_common;
-using namespace lgraph_api;
 
 using namespace std;
 

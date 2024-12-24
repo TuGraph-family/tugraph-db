@@ -279,20 +279,20 @@ inline const std::string to_string(FieldType v) {
 }
 
 /**
- * @brief a type of value used in result entry and parameter in procedure or plugin signature
- * @param INTEGER
- * @param FLOAT
- * @param DOUBLE
- * @param BOOLEAN
- * @param STRING
- * @param MAP <string, FieldData>
- * @param NODE VertexIterator, VertexId
- * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
- * @param PATH lgraph_api::Path
- * @param LIST <string, FieldData>
- * @param ANY like Object in Java,
- * its procedure author's responsibility to check the underlying concrete type
- * whether valid in runtime.
+  * @brief a type of value used in result entry and parameter in procedure or plugin signature
+  * @param INTEGER
+  * @param FLOAT
+  * @param DOUBLE
+  * @param BOOLEAN
+  * @param STRING
+  * @param MAP <string, FieldData>
+  * @param NODE VertexIterator, VertexId
+  * @param RELATIONSHIP InEdgeIterator || OutEdgeIterator, EdgeUid
+  * @param PATH lgraph_api::Path
+  * @param LIST <string, FieldData>
+  * @param ANY like Object in Java,
+  * its procedure author's responsibility to check the underlying concrete type
+  * whether valid in runtime.
  */
 enum class LGraphType : uint16_t {
     NUL = 0x0,
@@ -1319,39 +1319,7 @@ struct FieldData {
                   "sizeof int64_t is supposed to be equal to Pointer types");
 };
 
-// /** @brief   Specification for a field. */
-// struct FieldSpec {
-//     /** @brief   name of the field */
-//     std::string name;
-//     /** @brief   type of that field */
-//     FieldType type;
-//     /** @brief   is this field optional? */
-//     bool optional;
-//
-//     FieldSpec() : name(), type(FieldType::NUL), optional(false) {}
-//
-//     /**
-//      * @brief   Constructor
-//      *
-//      * @param   n   Field name
-//      * @param   t   Field type
-//      * @param   nu  True if field is optional
-//      */
-//     FieldSpec(const std::string& n, FieldType t, bool nu) : name(n), type(t), optional(nu) {}
-//     FieldSpec(std::string&& n, FieldType t, bool nu) : name(std::move(n)), type(t), optional(nu)
-//     {}
-//
-//     inline bool operator==(const FieldSpec& rhs) const {
-//         return name == rhs.name && type == rhs.type && optional == rhs.optional;
-//     }
-//
-//     /** @brief   Get the string representation of the FieldSpec. */
-//     std::string ToString() const {
-//         return "lgraph_api::FieldSpec(name=[" + name + "],type=" + lgraph_api::to_string(type) +
-//                "),optional=" + std::to_string(optional);
-//     }
-// };
-
+/** @brief   Specification for a field. */
 struct FieldSpec {
     /** @brief   name of the field */
     std::string name;
@@ -1388,6 +1356,8 @@ struct FieldSpec {
      * @param   t   Field type
      * @param   nu  True if field is optional
      * @param   id  Field id
+     * @param   iv Init value
+     * @param   dv Default value
      */
     FieldSpec(const std::string& n, FieldType t, bool nu)
         : name(n),
