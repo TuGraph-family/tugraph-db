@@ -607,7 +607,7 @@ inline web::json::value ValueToJson(const std::vector<std::pair<std::string, std
 }
 
 inline web::json::value ValueToJson(
-    const std::vector<std::shared_ptr<lgraph::_detail::FieldExtractorBase>>& fields) {
+    const std::vector<lgraph::_detail::FieldExtractorBase*> fields) {
     auto arr = web::json::value::array();
     for (int idx = 0; idx < (int)fields.size(); ++idx) {
         web::json::value js;

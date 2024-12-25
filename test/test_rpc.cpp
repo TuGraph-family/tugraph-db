@@ -1084,11 +1084,11 @@ void test_label_field(lgraph::RpcClient& client) {
 
     ret = client.CallCypher(str,
                             "CALL db.alterLabelModFields('vertex', 'animal',"
-                            "['run', 'int8', false], ['jeep', 'int32', true])");
+                            "['run', 'string', false], ['jeep', 'int32', true])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL db.alterLabelModFields('vertex', 'animal_not_exist',['run', "
-                            "'int8', false], ['jeep', 'int32', true])");
+                            "'string', false], ['jeep', 'int32', true])");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.alterLabelModFields('vertex', 'animal')");
@@ -1097,7 +1097,7 @@ void test_label_field(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.getLabelSchema('vertex', 'animal')");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(CheckElementEqual(json_val, "run", "INT8", "name", "type", "STRING", "STRING"),
+    UT_EXPECT_EQ(CheckElementEqual(json_val, "run", "STRING", "name", "type", "STRING", "STRING"),
                  true);
     UT_EXPECT_EQ(CheckElementEqual(json_val, "jeep", "INT32", "name", "type", "STRING", "STRING"),
                  true);
@@ -2005,38 +2005,38 @@ void* test_rpc_client(void*) {
     std::unique_lock<std::mutex> l(lock_rpc);
     if (stage_3 == 0) cond.wait(l);
     // start test user login
-    // UT_LOG() << "admin user login";
-    // {
-    //     RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
-    //     test_float(client3);
-    //     test_cypher(client3);
-    //     test_gql(client3);
-    //     test_label(client3);
-    //     test_relationshipTypes(client3);
-    //     test_index(client3);
-    //     test_warmup(client3);
-    //     test_createlabel(client3);
-    //     test_label_field(client3);
-    //     test_procedure(client3);
-    //     test_graph(client3);
-    //     test_allow_host(client3);
-    //     test_info(client3);
-    //     test_configration(client3);
-    // }
+    UT_LOG() << "admin user login";
+    {
+        RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
+        test_float(client3);
+        test_cypher(client3);
+        test_gql(client3);
+        test_label(client3);
+        test_relationshipTypes(client3);
+        test_index(client3);
+        test_warmup(client3);
+        test_createlabel(client3);
+        test_label_field(client3);
+        test_procedure(client3);
+        test_graph(client3);
+        test_allow_host(client3);
+        test_info(client3);
+        test_configration(client3);
+    }
     {
         RpcClient client3("0.0.0.0:19099", "admin", "73@TuGraph");
         test_configration_valid(client3);
-//         test_role(client3);
-//         test_user(client3);
-//         test_flushDb(client3);
-//         test_password(client3);
-//         test_cpp_procedure(client3);
-// #ifndef __SANITIZE_ADDRESS__
-//         test_python_procedure(client3);
-// #endif
-//         test_import_file(client3);
+        test_role(client3);
+        test_user(client3);
+        test_flushDb(client3);
+        test_password(client3);
+        test_cpp_procedure(client3);
+#ifndef __SANITIZE_ADDRESS__
+        test_python_procedure(client3);
+#endif
+         test_import_file(client3);
          test_import_content(client3);
-//         test_procedure_privilege(client3);
+         test_procedure_privilege(client3);
     }
 
     stage_3++;
@@ -2047,7 +2047,7 @@ void* test_rpc_client(void*) {
 
 class TestRPC : public TuGraphTest {};
 
-TEST_F(TestRPC, DISABLED_RPC) {
+TEST_F(TestRPC, RPC) {
     // fma_common::Logger::Get().SetLevel(fma_common::LogLevel::LL_DEBUG);
     std::thread tid_https[2] = {std::thread(test_rpc_server, nullptr),
                                 std::thread(test_rpc_client, nullptr)};
