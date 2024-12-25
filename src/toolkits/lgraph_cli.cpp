@@ -66,6 +66,7 @@ std::any ReadMessage(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator) {
 }
 
 bool FetchRecords(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator, OutputFormat of) {
+    auto start = std::chrono::high_resolution_clock::now();
     std::string error;
     std::optional<std::vector<std::string>> header;
     tabulate::Table table;
@@ -126,14 +127,18 @@ bool FetchRecords(asio::ip::tcp::socket& socket, bolt::Hydrator& hydrator, Outpu
         }
     }
     if (error.empty()) {
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsed = end - start;
         if (of == OutputFormat::TABLE) {
             if (table.size() > 0) {
                 if (table.row(0).size()) {
                     LOG_INFO("{}\n", table.str());
                 }
-                LOG_INFO("{} rows\n", table.size() - 1);
+                LOG_INFO("{} rows ({} ms)\n", table.size() - 1,
+                         static_cast<int>(elapsed.count()));
             } else {
-                LOG_INFO("{} rows\n", table.size());
+                LOG_INFO("{} rows ({} ms)\n", table.size(),
+                         static_cast<int>(elapsed.count()));
             }
         }
         return true;
