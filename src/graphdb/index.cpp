@@ -581,9 +581,10 @@ void VertexVectorIndex::ApplyWAL() {
     std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
     for (iter->Seek(start_key); iter->Valid() && iter->key().starts_with(prefix); iter->Next()) {
         auto key = iter->key();
-        key.remove_prefix(sizeof(index_id_));
-        assert(key.size() == sizeof(apply_id_));
-        consumed_wal_id = *(uint64_t*)key.data();
+        rocksdb::Slice tmp = key;
+        tmp.remove_prefix(sizeof(index_id_));
+        assert(tmp.size() == sizeof(apply_id_));
+        consumed_wal_id = *(uint64_t*)tmp.data();
         meta::VectorIndexUpdate update;
         auto val = iter->value();
         auto ret = update.ParseFromArray(val.data(), val.size());

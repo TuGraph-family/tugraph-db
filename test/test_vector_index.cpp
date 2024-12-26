@@ -98,7 +98,7 @@ TEST(VectorIndex, DISABLED_read_benchmark) {
     fs::remove_all(testdb);
     auto graphDB = GraphDB::Open(testdb, {});
     std::string index_name = "vector_index";
-    int vector_count = 10000;
+    int vector_count = 100000;
     int dim = 1024;
     graphDB->AddVertexVectorIndex(index_name, "person", "embedding", dim, "l2", 16, 100);
     auto txn = graphDB->BeginTransaction();
@@ -117,15 +117,17 @@ TEST(VectorIndex, DISABLED_read_benchmark) {
              {"embedding", Value::Array(embedding)}});
     }
     txn->Commit();
+    txn.reset();
     for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
         index->ApplyWAL();
     }
+
+    auto start = std::chrono::high_resolution_clock::now();
     std::vector<float> query;
     query.reserve(dim);
     for (auto j = 0; j < dim; j++) {
         query.emplace_back(dis(gen));
     }
-    auto start = std::chrono::high_resolution_clock::now();
     txn = graphDB->BeginTransaction();
     int count = 0;
     for (auto viter = txn->QueryVertexByKnnSearch(index_name, query, 10, 100);
