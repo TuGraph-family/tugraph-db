@@ -980,9 +980,10 @@ class OlapOnDB : public OlapBase<EdgeData> {
         if (txn.GetNumVertices() == 0) {
             throw std::runtime_error("The graph cannot be empty");
         }
-        if (vertex_filter != nullptr) {
-            flags_ |= SNAPSHOT_IDMAPPING;
-        }
+//        if (vertex_filter != nullptr) {
+//            flags_ |= SNAPSHOT_IDMAPPING;
+//        }
+        flags_ |= SNAPSHOT_IDMAPPING;
         Init(txn.GetNumVertices());
 
         /*if (flags_ & SNAPSHOT_IDMAPPING) {

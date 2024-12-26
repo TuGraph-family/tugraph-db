@@ -50,7 +50,6 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     OlapOnDB<double> olapondb(db, txn, SNAPSHOT_PARALLEL | SNAPSHOT_UNDIRECTED, nullptr,
                               edge_convert_default<double>);
     auto prepare_cost = get_time() - start_time;
-
     // core
     start_time = get_time();
     auto label = olapondb.AllocVertexArray<size_t>();
@@ -64,36 +63,36 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
         json cur;
         json curNode;
         json communityNode;
-        for (size_t i = 0; i < olapondb.NumVertices(); i++) {
-            if (label[i]) {
-                auto vit = txn.GetVertexIterator();
-                vit.Goto(i);
-                if (vit.IsValid()) {
-                    auto vit_label = vit.GetLabel();
-                    auto primary_field = txn.GetVertexPrimaryField(vit_label);
-                    auto field_data = vit.GetField(primary_field);
-                    curNode["vid"] = i;
-                    curNode["label"] = vit_label;
-                    curNode["primary_field"] = primary_field;
-                    curNode["field_data"] = field_data.ToString();
+        auto vit = txn.GetVertexIterator();
+        for (int i = 0; i < olapondb.NumVertices(); i++) {
+            auto vid = olapondb.OriginalVid(i);
+            vit.Goto(vid);
+            auto label_vid = olapondb.OriginalVid(label[i]);
+            auto vit_label = vit.GetLabel();
+            auto primary_field = txn.GetVertexPrimaryField(vit_label);
+            auto field_data = vit.GetField(primary_field);
+            curNode["vid"] = vid;
+            curNode["label"] = vit_label;
+            curNode["primary_field"] = primary_field;
+            curNode["field_data"] = field_data.ToString();
 
-                    vit = txn.GetVertexIterator();
-                    vit.Goto(label[i]);
-                    if (vit.IsValid()) {
-                        vit_label = vit.GetLabel();
-                        primary_field = txn.GetVertexPrimaryField(vit_label);
-                        field_data = vit.GetField(primary_field);
-                        communityNode["vid"] = label[i];
-                        communityNode["label"] = vit_label;
-                        communityNode["primary_field"] = primary_field;
-                        communityNode["field_data"] = field_data.ToString();
+            auto vit2 = txn.GetVertexIterator();
+            vit2.Goto(label_vid);
+            if (vit2.IsValid()) {
+                vit_label = vit2.GetLabel();
+                primary_field = txn.GetVertexPrimaryField(vit_label);
+                field_data = vit2.GetField(primary_field);
+                communityNode["vid"] = label_vid;
+                communityNode["label"] = vit_label;
+                communityNode["primary_field"] = primary_field;
+                communityNode["field_data"] = field_data.ToString();
 
-                        cur["cur"] = curNode;
-                        cur["community"] = communityNode;
-                        auto content = cur.dump() + "\n";
-                        fout.Write(content.c_str(), content.size());
-                    }
-                }
+                cur["cur"] = curNode;
+                cur["community"] = communityNode;
+                auto content = cur.dump() + "\n";
+                fout.Write(content.c_str(), content.size());
+            } else {
+                std::cout << "valid label "  << label_vid << std::endl;
             }
         }
     }
