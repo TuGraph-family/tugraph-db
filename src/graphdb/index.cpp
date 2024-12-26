@@ -570,6 +570,7 @@ std::string VertexVectorIndex::DeleteMarkKey(int64_t vector_id) {
 }
 
 void VertexVectorIndex::ApplyWAL() {
+    std::lock_guard<std::mutex> lock(apply_mutex_);
     std::string prefix((const char*)&index_id_, sizeof(index_id_));
     std::string start_key(prefix);
     uint64_t next = big_to_native(apply_id_) + 1;

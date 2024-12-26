@@ -94,6 +94,51 @@ TEST_P(VectorIndexParamTest, dim) {
 
 INSTANTIATE_TEST_SUITE_P(VectorIndex, VectorIndexParamTest, testing::Values(128, 512, 1024, 2048, 4096));
 
+TEST(VectorIndex, DISABLED_read_benchmark) {
+    fs::remove_all(testdb);
+    auto graphDB = GraphDB::Open(testdb, {});
+    std::string index_name = "vector_index";
+    int vector_count = 10000;
+    int dim = 1024;
+    graphDB->AddVertexVectorIndex(index_name, "person", "embedding", dim, "l2", 16, 100);
+    auto txn = graphDB->BeginTransaction();
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0, 1.0);
+    for (auto i = 0; i < vector_count; i++) {
+        std::vector<Value> embedding;
+        embedding.reserve(dim);
+        for (auto j = 0; j < dim; j++) {
+            embedding.push_back(Value::Float(dis(gen)));
+        }
+        txn->CreateVertex(
+            {"person"},
+            {{"id", Value::Integer(1)},
+             {"embedding", Value::Array(embedding)}});
+    }
+    txn->Commit();
+    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+        index->ApplyWAL();
+    }
+    std::vector<float> query;
+    query.reserve(dim);
+    for (auto j = 0; j < dim; j++) {
+        query.emplace_back(dis(gen));
+    }
+    auto start = std::chrono::high_resolution_clock::now();
+    txn = graphDB->BeginTransaction();
+    int count = 0;
+    for (auto viter = txn->QueryVertexByKnnSearch(index_name, query, 10, 100);
+         viter->Valid(); viter->Next()) {
+        count++;
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    LOG_INFO("count:{}, elapsed: {}", count, elapsed.count());
+    txn->Commit();
+}
+
+
 TEST(VectorIndex, del) {
     fs::remove_all(testdb);
     auto graphDB = GraphDB::Open(testdb, {});
