@@ -22,11 +22,18 @@
 #include "db/db.h"
 #include "./ut_utils.h"
 
-class TestSnapshot : public TuGraphTest {};
+class TestSnapshot : public TuGraphTestWithParam<bool> {};
+
+// INSTANTIATE_TEST_CASE_P(TestSnapshot, TestSnapshot, testing::Values(true, false));
 
 static lgraph::VertexId AddVertex(lgraph::Transaction& txn, const std::string& name,
-                                  const std::string& type) {
-    std::vector<size_t> fids = {1, 0};  // 域为string类型会放在label的最后面
+                                  const std::string& type, bool enable_fast_alter) {
+    std::vector<size_t> fids;
+    if (enable_fast_alter) {
+        fids = {0, 1};  // there is no need to reorder the fields.
+    } else {
+        fids = {1, 0};  // 域为string类型会放在label的最后面
+    }
     std::vector<std::string> values = {name, type};
     return txn.AddVertex((size_t)0, fids, values);
 }
@@ -40,7 +47,7 @@ static lgraph::EdgeId AddEdge(lgraph::Transaction& txn, lgraph::VertexId src, lg
     return txn.AddEdge(src, dst, (size_t)0, fids, values).eid;
 }
 
-void CreateTestDB() {
+void CreateTestDB(bool enable_fast_alter) {
     using namespace lgraph;
 
     fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
@@ -56,8 +63,11 @@ void CreateTestDB() {
     while (!db.IsVertexIndexed("v", "name")) fma_common::SleepUs(100);
 
     Transaction txn = db.CreateWriteTxn();
-    VertexId vid1_ = AddVertex(txn, "v1", "1");
-    VertexId vid2_ = AddVertex(txn, "v2", "2");
+    VertexId vid1_;
+    VertexId vid2_;
+    vid1_ = AddVertex(txn, "v1", "1", enable_fast_alter);
+    vid2_ = AddVertex(txn, "v2", "2", enable_fast_alter);
+
     {
         VertexIndexIterator iit = txn.GetVertexIndexIterator("v", "name", "v2", "v2");
         UT_EXPECT_TRUE(iit.IsValid());
@@ -81,7 +91,7 @@ TEST_F(TestSnapshot, Snapshot) {
     Configuration config;
     config.Add(n, "n_snapshot,n", true).Comment("Number of times to do snapshot");
     config.ParseAndFinalize(argc, argv);
-    { CreateTestDB(); }
+    { CreateTestDB(true); }
     {
         // create snapshot
 

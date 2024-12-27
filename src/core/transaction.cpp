@@ -169,23 +169,6 @@ inline FieldData GetField(const Schema* s, const Value& v, const FT& field, Blob
     return s->GetField(v, field, [&](const BlobKey& bk) { return bm->Get(txn, bk); });
 }
 
-template <typename DT>
-inline void UpdateBlobField(const _detail::FieldExtractor* fe,  // field extractor
-                            const DT& data,                     // data as string or FieldData
-                            Value& record,                      // record to be updated
-                            BlobManager* bm,                    // blob manager
-                            KvTransaction& txn) {               // transaction
-    FMA_DBG_ASSERT(fe->Type() == FieldType::BLOB);
-    // get old blob
-    Value oldv = fe->GetConstRef(record);
-    if (BlobManager::IsLargeBlob(oldv)) {
-        // existing blob is large, replace it
-        BlobKey bk = BlobManager::GetLargeBlobKey(oldv);
-        bm->Delete(txn, bk);
-    }
-    fe->ParseAndSetBlob(record, data, [&](const Value& v) { return bm->Add(txn, v); });
-}
-
 void DeleteBlobs(const Value& prop, Schema* schema, BlobManager* bm, KvTransaction& txn) {
     // delete blobs
     for (size_t i = 0; i < schema->GetNumFields(); i++) {
@@ -254,6 +237,7 @@ std::vector<std::pair<std::string, FieldData>> Transaction::GetVertexFields(
     std::vector<std::pair<std::string, FieldData>> values;
     for (size_t i = 0; i < schema->GetNumFields(); i++) {
         auto fe = schema->GetFieldExtractor(i);
+        if (fe->IsDeleted()) continue;
         values.emplace_back(
             fe->Name(), GetField(schema, prop, i, blob_manager_, *txn_));
     }
@@ -962,12 +946,18 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
     new_prop.Copy(old_prop);
     for (size_t i = 0; i < n_fields; i++) {
         // TODO: use SetField like SetEdgeProperty // NOLINT
-        auto fe = schema->GetFieldExtractor(fields[i]);
+        _detail::FieldExtractorBase* fe = schema->GetFieldExtractor(fields[i]);
         if (fe->Type() == FieldType::BLOB) {
-            UpdateBlobField(fe, values[i], new_prop, blob_manager_, *txn_);
-            // no need to update index since blob cannot be indexed
+            Value oldv = fe->GetConstRef(new_prop);
+            if (BlobManager::IsLargeBlob(oldv)) {
+                BlobKey bk = BlobManager::GetLargeBlobKey(oldv);
+                blob_manager_->Delete(*txn_, bk);
+            }
+            schema->ParseAndSetBlob(
+                new_prop, values[i], [&](const Value& v) { return blob_manager_->Add(*txn_, v); },
+                fe);
         } else if (fe->Type() == FieldType::FLOAT_VECTOR) {
-            fe->ParseAndSet(new_prop, values[i]);
+            schema->ParseAndSet(new_prop, values[i], fe);
             VectorIndex* index = fe->GetVectorIndex();
             if (index) {
                 auto old_v = fe->GetConstRef(old_prop);
@@ -1006,7 +996,7 @@ Transaction::SetVertexProperty(VertexIterator& it, size_t n_fields, const FieldT
                 }
             }
         } else {
-            fe->ParseAndSet(new_prop, values[i]);
+            schema->ParseAndSet(new_prop, values[i], fe);
             // update index if there is no error
             VertexIndex* index = fe->GetVertexIndex();
             if (index && index->IsReady()) {
@@ -1188,9 +1178,17 @@ Transaction::SetEdgeProperty(EIT& it, size_t n_fields, const FieldT* fields, con
     for (size_t i = 0; i < n_fields; i++) {
         auto fe = schema->GetFieldExtractor(fields[i]);
         if (fe->Type() == FieldType::BLOB) {
-            UpdateBlobField(fe, values[i], new_prop, blob_manager_, *txn_);
+            Value oldv = fe->GetConstRef(new_prop);
+            if (BlobManager::IsLargeBlob(oldv)) {
+                // existing blob is large, replace it
+                BlobKey bk = BlobManager::GetLargeBlobKey(oldv);
+                blob_manager_->Delete(*txn_, bk);
+            }
+            schema->ParseAndSetBlob(
+                new_prop, values[i], [&](const Value& v) { return blob_manager_->Add(*txn_, v); },
+                fe);
         } else {
-            fe->ParseAndSet(new_prop, values[i]);
+            schema->ParseAndSet(new_prop, values[i], fe);
             // update index if there is no error
             EdgeIndex* index = fe->GetEdgeIndex();
             if (index && index->IsReady()) {

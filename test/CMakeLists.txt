@@ -40,6 +40,7 @@ add_executable(unit_test
         test_embed.cpp
         test_field_data_helper.cpp
         test_field_extractor.cpp
+        test_field_extractor_v2.cpp
         test_fulltext.cpp
         test_galaxy.cpp
         test_global_config.cpp

@@ -337,5 +337,6 @@ class LightningGraph {
                          VertexId start_vid, VertexId end_vid, bool is_vertex = true);
 
     void Open();
+    static bool FieldTypeComplatible(FieldType a, FieldType b);
 };
 }  // namespace lgraph

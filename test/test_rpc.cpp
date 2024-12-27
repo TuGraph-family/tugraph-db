@@ -1084,11 +1084,11 @@ void test_label_field(lgraph::RpcClient& client) {
 
     ret = client.CallCypher(str,
                             "CALL db.alterLabelModFields('vertex', 'animal',"
-                            "['run', 'int8', false], ['jeep', 'int32', true])");
+                            "['run', 'string', false], ['jeep', 'int32', true])");
     UT_EXPECT_TRUE(ret);
     ret = client.CallCypher(str,
                             "CALL db.alterLabelModFields('vertex', 'animal_not_exist',['run', "
-                            "'int8', false], ['jeep', 'int32', true])");
+                            "'string', false], ['jeep', 'int32', true])");
     UT_EXPECT_FALSE(ret);
 
     ret = client.CallCypher(str, "CALL db.alterLabelModFields('vertex', 'animal')");
@@ -1097,7 +1097,7 @@ void test_label_field(lgraph::RpcClient& client) {
     ret = client.CallCypher(str, "CALL db.getLabelSchema('vertex', 'animal')");
     UT_EXPECT_TRUE(ret);
     json_val = web::json::value::parse(str);
-    UT_EXPECT_EQ(CheckElementEqual(json_val, "run", "INT8", "name", "type", "STRING", "STRING"),
+    UT_EXPECT_EQ(CheckElementEqual(json_val, "run", "STRING", "name", "type", "STRING", "STRING"),
                  true);
     UT_EXPECT_EQ(CheckElementEqual(json_val, "jeep", "INT32", "name", "type", "STRING", "STRING"),
                  true);
@@ -1253,6 +1253,7 @@ void test_configration_valid(lgraph::RpcClient& client) {
     bool ret = client.CallCypher(str, "CALL dbms.config.list()");
     UT_EXPECT_TRUE(ret);
     web::json::value json_val = web::json::value::parse(str);
+    std::cout << json_val.serialize() <<std::endl;
     UT_EXPECT_EQ((CheckElementEqual(json_val, "durable", "0", "name", "value", "STRING", "BOOL")),
                  true);
     UT_EXPECT_EQ(
@@ -2033,9 +2034,9 @@ void* test_rpc_client(void*) {
 #ifndef __SANITIZE_ADDRESS__
         test_python_procedure(client3);
 #endif
-        test_import_file(client3);
-        test_import_content(client3);
-        test_procedure_privilege(client3);
+         test_import_file(client3);
+         test_import_content(client3);
+         test_procedure_privilege(client3);
     }
 
     stage_3++;

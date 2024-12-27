@@ -22,10 +22,11 @@
 using namespace lgraph;
 using namespace lgraph_api;
 
-class TestSchema : public TuGraphTest {};
+class TestSchema : public TuGraphTest, public testing::WithParamInterface<bool> {};
 
-static Schema ConstructSimpleSchema() {
+static Schema ConstructSimpleSchema(bool fast_alter) {
     Schema s;
+    s.SetFastAlterSchema(fast_alter);
     s.SetSchema(true,
                 std::vector<FieldSpec>({FieldSpec("int16", FieldType::INT16, false),
                                         FieldSpec("string", FieldType::STRING, true),
@@ -48,16 +49,16 @@ class InMemoryBlobManager {
     Value Get(const BlobManager::BlobKey& bk) { return map_[bk]; }
 };
 
-TEST_F(TestSchema, LoadStoreSchema) {
-    Schema s = ConstructSimpleSchema();
+TEST_P(TestSchema, LoadStoreSchema) {
+    Schema s = ConstructSimpleSchema(GetParam());
     Value v = s.StoreSchema();
     Schema s2;
     s2.LoadSchema(v);
     UT_EXPECT_TRUE(s.GetFieldSpecsAsMap() == s2.GetFieldSpecsAsMap());
 }
 
-TEST_F(TestSchema, ConstructorsAndOperators) {
-    Schema s = ConstructSimpleSchema();
+TEST_P(TestSchema, ConstructorsAndOperators) {
+    Schema s = ConstructSimpleSchema(GetParam());
     UT_EXPECT_EQ(s.GetNumFields(), 4);
     Schema s2 = s;
     UT_EXPECT_EQ(s2.GetNumFields(), 4);
@@ -72,7 +73,7 @@ TEST_F(TestSchema, ConstructorsAndOperators) {
     UT_EXPECT_EQ(s3.GetNumFields(), 0);
 }
 
-TEST_F(TestSchema, SetSchema) {
+TEST_P(TestSchema, SetSchema) {
     Schema s;
     UT_EXPECT_THROW_CODE(
         s.SetSchema(true,
@@ -90,8 +91,8 @@ TEST_F(TestSchema, SetSchema) {
     UT_EXPECT_THROW_MSG(s.SetSchema(true, fs, "f_0", "", {}, {}), "Invalid Field");
 }
 
-TEST_F(TestSchema, HasBlob) {
-    Schema s = ConstructSimpleSchema();
+TEST_P(TestSchema, HasBlob) {
+    Schema s = ConstructSimpleSchema(GetParam());
     UT_EXPECT_TRUE(s.HasBlob());
     Schema s2 = s;
     UT_EXPECT_TRUE(s2.HasBlob());
@@ -104,16 +105,16 @@ TEST_F(TestSchema, HasBlob) {
     UT_EXPECT_TRUE(!s.HasBlob());
 }
 
-TEST_F(TestSchema, GetFieldExtractor) {
-    Schema s = ConstructSimpleSchema();
+TEST_P(TestSchema, GetFieldExtractor) {
+    Schema s = ConstructSimpleSchema(GetParam());
     for (auto& fs : s.GetFieldSpecs()) UT_EXPECT_TRUE(s.GetFieldExtractor(fs.name));
     for (size_t i = 0; i < s.GetNumFields(); i++) UT_EXPECT_TRUE(s.GetFieldExtractor(i));
     UT_EXPECT_THROW_CODE(s.GetFieldExtractor(s.GetNumFields()), FieldNotFound);
     UT_EXPECT_THROW_CODE(s.GetFieldExtractor("non-existing"), FieldNotFound);
 }
 
-TEST_F(TestSchema, GetFieldId) {
-    Schema s = ConstructSimpleSchema();
+TEST_P(TestSchema, GetFieldId) {
+    Schema s = ConstructSimpleSchema(GetParam());
     std::vector<std::string> fnames;
     for (auto& fs : s.GetFieldSpecs()) {
         fnames.push_back(fs.name);
@@ -131,12 +132,14 @@ TEST_F(TestSchema, GetFieldId) {
     UT_EXPECT_TRUE(!s.TryGetFieldId("non-existing", fid));
 }
 
-TEST_F(TestSchema, DumpRecord) {
+TEST_P(TestSchema, DumpRecord) {
     Value v_old("name");
     Value v_new("name1");
     Schema schema(false);
     Schema schema_1(true);
     Schema schema_lg = schema;
+    schema.SetFastAlterSchema(GetParam());
+    schema_1.SetFastAlterSchema(GetParam());
     FieldSpec fd_0("name", FieldType::STRING, false);
     FieldSpec fd_1("uid", FieldType::INT32, false);
     FieldSpec fd_2("weight", FieldType::FLOAT, false);
@@ -151,11 +154,11 @@ TEST_F(TestSchema, DumpRecord) {
     schema.SetSchema(true, fds, "uid", "", {}, {});
     Value va_tmp = schema.CreateEmptyRecord();
     UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData()),
-                    FieldCannotBeSetNull);
+                         FieldCannotBeSetNull);
     UT_EXPECT_THROW(schema_1.SetField(va_tmp, (std::string) "age", FieldData(256)),
                     lgraph::ParseFieldDataException);
     UT_EXPECT_THROW_CODE(schema_1.SetField(va_tmp, (std::string) "name", FieldData(256)),
-                    ParseIncompatibleType);
+                         ParseIncompatibleType);
     UT_EXPECT_TRUE(schema_1.GetField(va_tmp, (std::string) "does_not_exist",
                                      [](const BlobManager::BlobKey&) { return Value(); }) ==
                    FieldData());
@@ -179,21 +182,23 @@ TEST_F(TestSchema, DumpRecord) {
         std::vector<std::string> value{"marko", "300"};
         // missing weight field
         UT_EXPECT_THROW_CODE(schema.CreateRecord(fid.size(), fid.data(), value.data()),
-                        FieldCannotBeSetNull);
+                             FieldCannotBeSetNull);
     }
 
     std::vector<size_t> fid = schema.GetFieldIds({"name", "uid", "weight", "age", "addr"});
     std::vector<std::string> value{"peter", "101", "65.25", "49", "fifth avenue"};
     Value record = schema.CreateRecord(fid.size(), fid.data(), value.data());
     // UT_LOG() << "record: " << schema.DumpRecord(record);
-    schema.GetFieldId("float");
-    schema.GetFieldExtractor("name");
-    schema.GetFieldExtractor("uid");
-    schema.GetFieldExtractor("weight");
-    schema.GetFieldExtractor("age");
-    schema.GetFieldExtractor("addr");
+    if (GetParam()) {
+        UT_EXPECT_EQ(schema.GetFieldId("float"), 5);
+    }
+    UT_EXPECT_EQ(schema.GetFieldExtractor("name")->FieldToString(record), "peter");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("uid")->FieldToString(record), "101");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("weight")->FieldToString(record), "6.525e1");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("age")->FieldToString(record), "49");
+    UT_EXPECT_EQ(schema.GetFieldExtractor("addr")->FieldToString(record), "fifth avenue");
     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor("hash"), FieldNotFound);
     UT_EXPECT_THROW_CODE(schema.GetFieldExtractor(1024), FieldNotFound);
-    const _detail::FieldExtractor fe_temp = *(schema.GetFieldExtractor("name"));
-    _detail::FieldExtractor fe_5(*schema.GetFieldExtractor(0));
 }
+
+INSTANTIATE_TEST_SUITE_P(TestSchemaTest, TestSchema, testing::Values(true, false));

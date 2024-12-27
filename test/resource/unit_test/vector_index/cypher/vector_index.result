@@ -33,7 +33,7 @@ CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:2, hnsw_ef
 CALL db.vertexVectorRangeSearch('person','embedding1', [1.0,2.0,3.0,4.0], {radius:10.0, hnsw_ef_search:10}) yield node,distance return node.id, distance;
 [{"distance":6.0,"node.id":3}]
 CALL db.alterLabelDelFields('vertex', 'person', ['embedding1']);
-[{"record_affected":3}]
+[{"record_affected":0}]
 CALL db.showVertexVectorIndex();
 [{"deleted_ids_num":1,"dimension":4,"distance_type":"l2","elements_num":4,"field_name":"embedding2","index_type":"hnsw","label_name":"person","memory_usage":244345476,"parameter":{"hnsw.ef_construction":100,"hnsw.m":16}}]
 CALL db.vertexVectorKnnSearch('person','embedding1',[1,2,3,4], {top_k:2, hnsw_ef_search:10}) yield node return node.id;
