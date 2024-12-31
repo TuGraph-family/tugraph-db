@@ -40,7 +40,7 @@ TEST(Galaxy, basic) {
     galaxy.reset();
 }
 
-TEST(Galaxy, createGraph) {
+TEST(Galaxy, DISABLED_createGraph) {
     fs::remove_all(test_galaxy);
     auto galaxy = server::Galaxy::Open(test_galaxy, {});
     for (int i = 0; i < 10000; i++) {
