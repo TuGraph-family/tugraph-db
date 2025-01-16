@@ -1,18 +1,18 @@
 #pragma once
 
 #include <google/protobuf/util/message_differencer.h>
-#include "util.h"
-#include "raftpb/raft.pb.h"
+#include "../util.h"
+#include "../raftpb/raft.pb.h"
 
 namespace raftpb {
 using namespace eraft;
 // ConfChangeI abstracts over ConfChangeV2 and (legacy) ConfChange to allow
 // treating them in a unified manner.
 struct ConfChangeI {
-    virtual ConfChangeV2 AsV2() const = 0;
-    virtual std::pair<ConfChange, bool> AsV1() const = 0;
+    [[nodiscard]] virtual ConfChangeV2 AsV2() const = 0;
+    [[nodiscard]] virtual std::pair<ConfChange, bool> AsV1() const = 0;
     virtual ~ConfChangeI() = default;
-    virtual std::string String() const = 0;
+    [[nodiscard]] virtual std::string String() const = 0;
 };
 
 struct ConfChangeWrap : ConfChangeI {

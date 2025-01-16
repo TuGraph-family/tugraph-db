@@ -1,8 +1,8 @@
 #pragma once
-#include "util.h"
+#include "../util.h"
 #include "progress.h"
-#include "quorum/joint.h"
-#include "raftpb/raft.pb.h"
+#include "../quorum/joint.h"
+#include "../raftpb/raft.pb.h"
 
 namespace tracker {
 // Config reflects the configuration tracked in a ProgressTracker.

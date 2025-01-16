@@ -4,7 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include "quorum.h"
-#include "util.h"
+#include "../util.h"
 
 namespace quorum {
 using namespace eraft;

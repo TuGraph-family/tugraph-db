@@ -1,7 +1,7 @@
 #pragma once
-#include "raftpb/raft.pb.h"
+#include "../raftpb/raft.pb.h"
 #include <google/protobuf/util/message_differencer.h>
-#include "util.h"
+#include "../util.h"
 
 namespace raftpb {
 using namespace eraft;

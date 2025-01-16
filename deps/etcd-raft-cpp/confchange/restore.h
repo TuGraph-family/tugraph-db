@@ -1,5 +1,5 @@
 #pragma once
-#include "raftpb/raft.pb.h"
+#include "../raftpb/raft.pb.h"
 #include "confchange.h"
 
 namespace confchange {

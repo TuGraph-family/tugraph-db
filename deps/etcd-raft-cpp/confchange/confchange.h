@@ -1,6 +1,6 @@
 #pragma once
-#include "util.h"
-#include "raftpb/raft.pb.h"
+#include "../util.h"
+#include "../raftpb/raft.pb.h"
 
 namespace confchange {
 using namespace eraft;
