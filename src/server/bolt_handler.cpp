@@ -241,9 +241,8 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
     LOG_DEBUG() << FMA_FMT("bolt fsm thread[conn_id:{}] exit.", conn_id);
 }
 
-std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
-                   std::vector<std::any> fields)> BoltHandler =
-[](BoltConnection& conn, BoltMsg msg, std::vector<std::any> fields) {
+std::function BoltHandler =
+[](BoltConnection& conn, BoltMsg msg, std::vector<std::any> fields, std::vector<uint8_t> raw_data) {
     if (msg == BoltMsg::Hello) {
         if (fields.size() != 1) {
             LOG_ERROR() << "Hello msg fields size error, size: " << fields.size();
@@ -309,7 +308,11 @@ std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
                msg == BoltMsg::Commit ||
                msg == BoltMsg::Rollback) {
         auto session = (BoltSession*)conn.GetContext();
-        session->msgs.Push({msg, std::move(fields)});
+        BoltMsgDetail detail;
+        detail.type = msg;
+        detail.fields = std::move(fields);
+        detail.raw_data = std::move(raw_data);
+        session->msgs.Push(std::move(detail));
     } else if (msg == BoltMsg::Reset) {
         auto session = (BoltSession*)conn.GetContext();
         session->state = SessionState::INTERRUPTED;

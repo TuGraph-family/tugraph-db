@@ -36,6 +36,7 @@ struct BoltMsgDetail {
     BoltMsg type;
     std::vector<std::any> fields;
     int64_t n = -1;
+    std::vector<uint8_t> raw_data;
 };
 
 struct BoltSession {
