@@ -3,7 +3,7 @@
 #include <rocksdb/db.h>
 #include <rocksdb/convenience.h>
 #include "etcd-raft-cpp/rawnode.h"
-
+namespace bolt_ha {
 struct RaftLogStorage : private boost::noncopyable, eraft::Storage {
 public:
     RaftLogStorage(rocksdb::DB* db,
@@ -47,3 +47,4 @@ private:
     raftpb::HardState hard_state_;
     raftpb::ConfState conf_state_;
 };
+}

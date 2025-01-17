@@ -60,6 +60,8 @@ std::map<std::string, std::string> lgraph::GlobalConfig::FormatAsOptions() const
     }
     AddOption(options, "bolt port", bolt_port);
     AddOption(options, "number of bolt io threads", bolt_io_thread_num);
+    AddOption(options, "bolt raft port", bolt_raft_port);
+    AddOption(options, "bolt raft node id", bolt_raft_node_id);
     return options;
 }
 
@@ -218,6 +220,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     bolt_io_thread_num = 1;
     // default disable plugin load/delete
     enable_plugin = false;
+    bolt_raft_port = 0;
+    bolt_raft_node_id = 0;
 
     // parse options
     fma_common::Configuration argparser;
@@ -340,5 +344,11 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     argparser.Add(is_cypher_v2,
                   "is_cypher_v2", true)
         .Comment("Config browser whether to store user credentials in local storage.");
+    argparser.Add(bolt_raft_port, "bolt_raft_port", true)
+    .Comment("Bolt raft port.");
+    argparser.Add(bolt_raft_node_id, "bolt_raft_node_id", true)
+    .Comment("Bolt raft node id.");
+    argparser.Add(bolt_raft_init_peers, "bolt_raft_init_peers", true)
+    .Comment("Bolt raft initial member information.");
     return argparser;
 }

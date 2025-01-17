@@ -2,7 +2,7 @@
 #include "raft_log_store.h"
 #include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
-
+namespace bolt_ha {
 std::string raft_log_key(uint64_t log_id) {
     std::string ret;
     boost::endian::native_to_big_inplace(log_id);
@@ -273,4 +273,5 @@ std::pair<uint64_t, eraft::Error> RaftLogStorage::FirstIndex() {
 std::pair<raftpb::Snapshot, eraft::Error> RaftLogStorage::Snapshot() {
     // disable snapshot
     return {raftpb::Snapshot{}, eraft::ErrSnapshotTemporarilyUnavailable};
+}
 }

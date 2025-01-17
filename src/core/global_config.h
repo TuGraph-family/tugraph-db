@@ -84,6 +84,9 @@ struct BasicConfigs {
     // bolt
     int bolt_port = 0;
     int bolt_io_thread_num = 1;
+    int bolt_raft_port = 0;
+    uint64_t bolt_raft_node_id = 0;
+    std::string bolt_raft_init_peers;
     // default disable plugin load/delete
     bool enable_plugin = false;
     BrowserOptions browser_options;

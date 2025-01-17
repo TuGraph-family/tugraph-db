@@ -3,7 +3,7 @@
 #include <boost/asio.hpp>
 #include <utility>
 #include "raft_log_store.h"
-
+namespace bolt_ha {
 class NodeClient : public std::enable_shared_from_this<NodeClient> {
 public:
     NodeClient(boost::asio::io_service& io_service, const std::string &ip, int port)
@@ -39,27 +39,11 @@ private:
 
 class RaftDriver {
 public:
-    RaftDriver(boost::asio::io_service &raft_service,
-               boost::asio::io_service &tick_service,
-               boost::asio::io_service &ready_service,
-               boost::asio::io_service &client_service,
-               std::function<void (uint64_t index, const std::string&)> apply,
+    RaftDriver(std::function<void (uint64_t index, const std::string&)> apply,
                uint64_t apply_id,
                int64_t node_id,
                std::vector<eraft::Peer> init_peers,
-               std::string log_path)
-        :raft_service_(raft_service),
-        tick_service_(tick_service),
-        ready_service_(ready_service),
-        client_service_(client_service),
-        apply_(std::move(apply)),
-        apply_id_(apply_id),
-        node_id_(node_id),
-        init_peers_(std::move(init_peers)),
-        log_path_(std::move(log_path)),
-        tick_interval_(100),
-        tick_timer_(tick_service_, tick_interval_) {
-    }
+               std::string log_path);
     eraft::Error Run();
     void Message(raftpb::Message msg);
     eraft::Error Proposal(std::string data);
@@ -85,10 +69,11 @@ private:
     void on_ready(eraft::Ready ready);
     std::string nodes_info();
 
-    boost::asio::io_service& raft_service_;
-    boost::asio::io_service& tick_service_;
-    boost::asio::io_service& ready_service_;
-    boost::asio::io_service& client_service_;
+    std::vector<std::thread> threads_;
+    boost::asio::io_service raft_service_;
+    boost::asio::io_service tick_service_;
+    boost::asio::io_service ready_service_;
+    boost::asio::io_service client_service_;
     std::function<void (uint64_t, const std::string&)> apply_;
     uint64_t apply_id_;
     uint64_t node_id_;
@@ -102,3 +87,5 @@ private:
     bool advance_ = false;
     std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
 };
+extern std::shared_ptr<RaftDriver> raft_driver;
+}

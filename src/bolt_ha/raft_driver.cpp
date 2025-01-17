@@ -14,7 +14,7 @@ using boost::asio::ip::tcp;
 
 extern std::shared_mutex promise_mutex;
 extern std::unordered_map<uint64_t, std::promise<std::string>> pending_promise;
-
+namespace bolt_ha {
 void NodeClient::reconnect() {
     if (has_closed_) {
         return;
@@ -165,6 +165,40 @@ std::string MessageToNetString(const google::protobuf::Message& msg) {
     boost::endian::native_to_big_inplace(size);
     str.insert(0, (const char*)&size, sizeof(size));
     return str;
+}
+
+RaftDriver::RaftDriver(std::function<void (uint64_t index, const std::string&)> apply,
+           uint64_t apply_id,
+           int64_t node_id,
+           std::vector<eraft::Peer> init_peers,
+           std::string log_path)
+    : apply_(std::move(apply)),
+    apply_id_(apply_id),
+    node_id_(node_id),
+    init_peers_(std::move(init_peers)),
+    log_path_(std::move(log_path)),
+    tick_interval_(100),
+    tick_timer_(tick_service_, tick_interval_) {
+    threads_.emplace_back([this]() {
+        pthread_setname_np(pthread_self(), "raft_service");
+        boost::asio::io_service::work holder(raft_service_);
+        raft_service_.run();
+    });
+    threads_.emplace_back([this]() {
+        pthread_setname_np(pthread_self(), "tick_service");
+        boost::asio::io_service::work holder(tick_service_);
+        tick_service_.run();
+    });
+    threads_.emplace_back([this]() {
+        pthread_setname_np(pthread_self(), "ready_service");
+        boost::asio::io_service::work holder(ready_service_);
+        ready_service_.run();
+    });
+    threads_.emplace_back([this]() {
+        pthread_setname_np(pthread_self(), "client_service");
+        boost::asio::io_service::work holder(client_service_);
+        client_service_.run();
+    });
 }
 
 eraft::Error RaftDriver::Run() {
@@ -337,84 +371,86 @@ void RaftDriver::on_ready(eraft::Ready ready) {
     }
     for (const auto& entry : ready.committedEntries_) {
         switch (entry.type()) {
-            case raftpb::EntryNormal: {
-                if (entry.data().empty()) {
-                    continue;
+        case raftpb::EntryNormal: {
+            if (entry.data().empty()) {
+                continue;
+            }
+            auto propose = nlohmann::json::parse(entry.data());
+            auto uid = propose["uid"].get<uint64_t>();
+            auto data = propose["data"].get<std::string>();
+            apply_(entry.index(), data);
+            {
+                std::shared_lock lock(promise_mutex);
+                auto iter = pending_promise.find(uid);
+                if (iter != pending_promise.end()) {
+                    iter->second.set_value(data);
                 }
-                auto propose = nlohmann::json::parse(entry.data());
-                auto uid = propose["uid"].get<uint64_t>();
-                auto data = propose["data"].get<std::string>();
-                apply_(entry.index(), data);
-                {
-                    std::shared_lock lock(promise_mutex);
-                    auto iter = pending_promise.find(uid);
-                    if (iter != pending_promise.end()) {
-                        iter->second.set_value(data);
-                    }
+            }
+            break;
+        }
+        case raftpb::EntryConfChange: {
+            raftpb::ConfChange cc;
+            if (!cc.ParseFromString(entry.data())) {
+                LOG_FATAL() << "failed to parse ConfChange";
+            }
+            auto confstate = rn_->ApplyConfChange(raftpb::ConfChangeWrap(cc));
+            auto info = nlohmann::json::parse(cc.context());
+            switch (cc.type()) {
+            case  raftpb::ConfChangeType::ConfChangeAddLearnerNode:
+            case  raftpb::ConfChangeType::ConfChangeAddNode: {
+                if (cc.type() == raftpb::ConfChangeType::ConfChangeAddNode) {
+                    LOG_INFO() << FMA_FMT("Add node: {}", cc.ShortDebugString());
+                } else {
+                    LOG_INFO() << FMA_FMT("Add learner: {}", cc.ShortDebugString());
+                }
+                if (!node_clients_.count(cc.node_id())) {
+                    auto ip = info["ip"].get<std::string>();
+                    auto port = info["port"].get<int>();
+                    auto client = std::make_shared<NodeClient>(client_service_, ip, port);
+                    client->Connect();
+                    node_clients_.emplace(cc.node_id(), std::move(client));
+                } else {
+                    LOG_ERROR() << FMA_FMT("peer client id %d has already existed", cc.node_id());
                 }
                 break;
             }
-            case raftpb::EntryConfChange: {
-                raftpb::ConfChange cc;
-                if (!cc.ParseFromString(entry.data())) {
-                    LOG_FATAL() << "failed to parse ConfChange";
+            case  raftpb::ConfChangeType::ConfChangeRemoveNode: {
+                LOG_INFO() << FMA_FMT("Remove node: {}", cc.ShortDebugString());
+                if (node_clients_.count(cc.node_id())) {
+                    node_clients_.at(cc.node_id())->Close();
+                    node_clients_.erase(cc.node_id());
+                    LOG_INFO() << FMA_FMT("erase id {} from peer client pool", cc.node_id());
                 }
-                auto confstate = rn_->ApplyConfChange(raftpb::ConfChangeWrap(cc));
-                auto info = nlohmann::json::parse(cc.context());
-                switch (cc.type()) {
-                    case  raftpb::ConfChangeType::ConfChangeAddLearnerNode:
-                    case  raftpb::ConfChangeType::ConfChangeAddNode: {
-                        if (cc.type() == raftpb::ConfChangeType::ConfChangeAddNode) {
-                            LOG_INFO() << FMA_FMT("Add node: {}", cc.ShortDebugString());
-                        } else {
-                            LOG_INFO() << FMA_FMT("Add learner: {}", cc.ShortDebugString());
-                        }
-                        if (!node_clients_.count(cc.node_id())) {
-                            auto ip = info["ip"].get<std::string>();
-                            auto port = info["port"].get<int>();
-                            auto client = std::make_shared<NodeClient>(client_service_, ip, port);
-                            client->Connect();
-                            node_clients_.emplace(cc.node_id(), std::move(client));
-                        } else {
-                            LOG_ERROR() << FMA_FMT("peer client id %d has already existed", cc.node_id());
-                        }
-                        break;
-                    }
-                    case  raftpb::ConfChangeType::ConfChangeRemoveNode: {
-                        LOG_INFO() << FMA_FMT("Remove node: {}", cc.ShortDebugString());
-                        if (node_clients_.count(cc.node_id())) {
-                            node_clients_.at(cc.node_id())->Close();
-                            node_clients_.erase(cc.node_id());
-                            LOG_INFO() << FMA_FMT("erase id {} from peer client pool", cc.node_id());
-                        }
-                        break;
-                    }
-                    case  raftpb::ConfChangeType::ConfChangeUpdateNode: {
-                        LOG_INFO() << FMA_FMT("Update node: %s", cc.ShortDebugString());
-                        break;
-                    }
-                    default: {
-                        break;
-                    }
-                }
-                LOG_INFO() << FMA_FMT("New ConfState: {}", confstate->ShortDebugString());
-                rocksdb::WriteBatch wb;
-                storage_->SetConfState(*confstate, wb);
-                storage_->SetNodesInfo(nodes_info(), wb);
-                storage_->SetApplyIndex(entry.index(), wb);
-                storage_->WriteBatch(wb);
-                if (cc.id() > 0) {
-                    std::shared_lock lock(promise_mutex);
-                    auto iter = pending_promise.find(cc.id());
-                    if (iter != pending_promise.end()) {
-                        iter->second.set_value(cc.context());
-                    }
-                }
+                break;
+            }
+            case  raftpb::ConfChangeType::ConfChangeUpdateNode: {
+                LOG_INFO() << FMA_FMT("Update node: %s", cc.ShortDebugString());
                 break;
             }
             default: {
-                LOG_ERROR() << FMA_FMT("Unhandled entry : {}", entry.ShortDebugString());
+                break;
             }
+            }
+            LOG_INFO() << FMA_FMT("New ConfState: {}", confstate->ShortDebugString());
+            rocksdb::WriteBatch wb;
+            storage_->SetConfState(*confstate, wb);
+            storage_->SetNodesInfo(nodes_info(), wb);
+            storage_->SetApplyIndex(entry.index(), wb);
+            storage_->WriteBatch(wb);
+            if (cc.id() > 0) {
+                std::shared_lock lock(promise_mutex);
+                auto iter = pending_promise.find(cc.id());
+                if (iter != pending_promise.end()) {
+                    iter->second.set_value(cc.context());
+                }
+            }
+            break;
+        }
+        default: {
+            LOG_ERROR() << FMA_FMT("Unhandled entry : {}", entry.ShortDebugString());
+        }
         }
     }
+}
+std::shared_ptr<RaftDriver> raft_driver;
 }
