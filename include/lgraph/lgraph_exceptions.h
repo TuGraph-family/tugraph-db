@@ -81,8 +81,8 @@ X(ReachMaximumCompositeIndexField, "The size of composite index fields exceeds t
 X(PluginDisabled, "Plugin disabled!") \
 X(BoltDataException, "Bolt data exception") \
 X(VectorIndexException, "Vector index exception") \
-X(ReplicateTimeout, "Raft replication Timeout")
-
+X(RaftProposeError, "Raft propose error")        \
+X(ReplicateTimeout, "Raft replication timeout")
 enum class ErrorCode {
 #define X(code, msg) code,
     ERROR_CODES

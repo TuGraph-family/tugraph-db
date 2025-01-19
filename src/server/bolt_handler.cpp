@@ -316,6 +316,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                             auto err = bolt_ha::g_raft_driver->Propose(request.SerializeAsString());
                             if (err != nullptr) {
                                 LOG_ERROR() << FMA_FMT("Failed to propose, err: {}", err.String());
+                                THROW_CODE(RaftProposeError, err.String());
                             }
                             if (future.wait_for(std::chrono::milliseconds(1000)) == std::future_status::ready) {
                                 future.get();
