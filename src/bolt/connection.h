@@ -82,7 +82,8 @@ class BoltConnection
  public:
     BoltConnection(boost::asio::io_service& io_service,
                    std::function<void(BoltConnection& conn, BoltMsg msg,
-                                     const std::vector<std::any>& fields)> handle)
+                                     const std::vector<std::any>& fields,
+                                      std::vector<uint8_t > raw_data)> handle)
             : Connection(io_service),
           handle_(std::move(handle)) {}
     void Start() override;

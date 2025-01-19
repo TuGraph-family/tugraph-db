@@ -20,6 +20,10 @@
 #include "server/bolt_server.h"
 #include "server/bolt_session.h"
 #include "db/galaxy.h"
+
+#include "bolt_ha/raft_driver.h"
+#include "bolt_ha/bolt_ha.pb.h"
+
 using namespace lgraph_api;
 namespace bolt {
 extern boost::asio::io_service workers;
@@ -105,6 +109,76 @@ parser::Expression ConvertParameters(std::any data) {
                    "Unexpected cypher parameter type : {}", data.type().name());
     }
     return ret;
+}
+
+using namespace std::chrono;
+std::shared_mutex promise_mutex;
+std::unordered_map<uint64_t, std::shared_ptr<bolt_ha::ApplyContext>> pending_promise;
+
+void g_apply(uint64_t index, const std::string& log) {
+    bolt_ha::RaftRequest request;
+    auto ret = request.ParseFromString(log);
+    assert(ret);
+    std::shared_ptr<bolt_ha::ApplyContext> context;
+    {
+        std::unique_lock lock(promise_mutex);
+        auto iter = pending_promise.find(request.id());
+        if (iter != pending_promise.end()) {
+            context = iter->second;
+            pending_promise.erase(iter);
+        }
+    }
+    if (context) {
+        context->index = index;
+        context->start.set_value();
+        context->end.get_future().get();
+    } else {
+        Unpacker unpacker;
+        unpacker.Reset(std::string_view(request.raw_data().data(), request.raw_data().size()));
+        unpacker.Next();
+        auto len = unpacker.Len();
+        auto tag = static_cast<BoltMsg>(unpacker.StructTag());
+        FMA_ASSERT(tag == BoltMsg::Run);
+        std::vector<std::any> fields;
+        for (uint32_t i = 0; i < len; i++) {
+            unpacker.Next();
+            fields.push_back(bolt::ServerHydrator(unpacker));
+        }
+
+        auto& cypher = std::any_cast<const std::string&>(fields[0]);
+        auto& extra = std::any_cast<
+            const std::unordered_map<std::string, std::any>&>(fields[2]);
+        std::string graph;
+        auto db_iter = extra.find("db");
+        if (db_iter != extra.end()) {
+            graph = std::any_cast<const std::string&>(db_iter->second);
+        }
+        auto& field1 = std::any_cast<
+            std::unordered_map<std::string, std::any>&>(fields[1]);
+        auto sm = BoltServer::Instance().StateMachine();
+        cypher::RTContext ctx(sm, sm->GetGalaxy(), request.user(), graph,
+                              sm->IsCypherV2());
+        if (ctx.is_cypher_v2_) {
+            ctx.bolt_parameters_v2_ = std::make_shared<std::unordered_map<
+                std::string, geax::frontend::Expr*>>();
+        } else {
+            ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
+                std::string, parser::Expression>>();
+        }
+        for (auto& pair : field1) {
+            if (ctx.is_cypher_v2_) {
+                ctx.bolt_parameters_v2_->emplace("$" + pair.first,
+                                                 ConvertParameters(ctx.obj_alloc_, std::move(pair.second)));
+            } else {
+                ctx.bolt_parameters_->emplace("$" + pair.first,
+                                              ConvertParameters(std::move(pair.second)));
+            }
+        }
+        cypher::ElapsedTime elapsed;
+        sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
+                                       cypher, elapsed);
+        sm->GetGalaxy()->UpdateBoltRaftApplyIndex(index);
+    }
 }
 
 void BoltFSM(std::shared_ptr<BoltConnection> conn) {
@@ -223,11 +297,42 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                         }
                     }
                     session->streaming_msg.reset();
+                    std::shared_ptr<bolt_ha::ApplyContext> apply_context;
+                    {
+                        std::string plugin_name, plugin_type;
+                        auto ret = cypher::Scheduler::DetermineReadOnly(&ctx, GraphQueryType::CYPHER, cypher, plugin_name, plugin_type);
+                        if (!ret) {
+                            auto uid = bolt_ha::g_id_generator->Next();
+                            apply_context = std::make_shared<bolt_ha::ApplyContext>();
+                            auto future = apply_context->start.get_future();
+                            {
+                                std::unique_lock lock(promise_mutex);
+                                pending_promise.emplace(uid, apply_context);
+                            }
+                            bolt_ha::RaftRequest request;
+                            request.set_id(uid);
+                            request.set_user(session->user);
+                            request.set_raw_data((const char*)msg.value().raw_data.data(), msg.value().raw_data.size());
+                            auto err = bolt_ha::g_raft_driver->Propose(request.SerializeAsString());
+                            if (err != nullptr) {
+                                LOG_ERROR() << FMA_FMT("Failed to propose, err: {}", err.String());
+                            }
+                            if (future.wait_for(std::chrono::milliseconds(1000)) == std::future_status::ready) {
+                                future.get();
+                            } else {
+                                THROW_CODE(ReplicateTimeout);
+                            }
+                        }
+                    }
                     cypher::ElapsedTime elapsed;
                     LOG_DEBUG() << "Bolt run " << cypher;
                     sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
                                                    cypher, elapsed);
                     LOG_DEBUG() << "Cypher execution completed";
+                    if (apply_context) {
+                        sm->GetGalaxy()->UpdateBoltRaftApplyIndex(apply_context->index);
+                        apply_context->end.set_value();
+                    }
                 } catch (const lgraph_api::LgraphException& e) {
                     LOG_ERROR() << e.what();
                     RespondFailure(e.code(), e.msg());
@@ -241,7 +346,9 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
     LOG_DEBUG() << FMA_FMT("bolt fsm thread[conn_id:{}] exit.", conn_id);
 }
 
-std::function BoltHandler =
+std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
+                   std::vector<std::any> fields, std::vector<uint8_t> raw_data)>
+BoltHandler =
 [](BoltConnection& conn, BoltMsg msg, std::vector<std::any> fields, std::vector<uint8_t> raw_data) {
     if (msg == BoltMsg::Hello) {
         if (fields.size() != 1) {

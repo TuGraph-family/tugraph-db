@@ -12,8 +12,6 @@
 using boost::asio::async_write;
 using boost::asio::ip::tcp;
 
-extern std::shared_mutex promise_mutex;
-extern std::unordered_map<uint64_t, std::promise<std::string>> pending_promise;
 namespace bolt_ha {
 void NodeClient::reconnect() {
     if (has_closed_) {
@@ -305,7 +303,7 @@ eraft::Error RaftDriver::ProposeConfChange(const raftpb::ConfChange& cc) {
     return PostMessage(std::move(msg));
 }
 
-eraft::Error RaftDriver::Proposal(std::string data) {
+eraft::Error RaftDriver::Propose(std::string data) {
     raftpb::Message msg;
     auto entry = msg.add_entries();
     entry->set_type(raftpb::EntryType::EntryNormal);
@@ -375,17 +373,7 @@ void RaftDriver::on_ready(eraft::Ready ready) {
             if (entry.data().empty()) {
                 continue;
             }
-            auto propose = nlohmann::json::parse(entry.data());
-            auto uid = propose["uid"].get<uint64_t>();
-            auto data = propose["data"].get<std::string>();
-            apply_(entry.index(), data);
-            {
-                std::shared_lock lock(promise_mutex);
-                auto iter = pending_promise.find(uid);
-                if (iter != pending_promise.end()) {
-                    iter->second.set_value(data);
-                }
-            }
+            apply_(entry.index(), entry.data());
             break;
         }
         case raftpb::EntryConfChange: {
@@ -437,13 +425,13 @@ void RaftDriver::on_ready(eraft::Ready ready) {
             storage_->SetNodesInfo(nodes_info(), wb);
             storage_->SetApplyIndex(entry.index(), wb);
             storage_->WriteBatch(wb);
-            if (cc.id() > 0) {
+            /*if (cc.id() > 0) {
                 std::shared_lock lock(promise_mutex);
                 auto iter = pending_promise.find(cc.id());
                 if (iter != pending_promise.end()) {
                     iter->second.set_value(cc.context());
                 }
-            }
+            }*/
             break;
         }
         default: {
@@ -452,5 +440,6 @@ void RaftDriver::on_ready(eraft::Ready ready) {
         }
     }
 }
-std::shared_ptr<RaftDriver> raft_driver;
+std::shared_ptr<RaftDriver> g_raft_driver;
+std::shared_ptr<Generator> g_id_generator;
 }

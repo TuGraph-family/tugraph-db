@@ -265,6 +265,8 @@ class Galaxy {
     bool AddUserRoles(const std::string& current_user, const std::string& user,
                       const std::vector<std::string>& roles);
 
+    void UpdateBoltRaftApplyIndex(uint64_t index);
+
  private:
     // load config from db
     // overwrites content of global_config_ if it is not null

@@ -46,7 +46,7 @@ public:
                std::string log_path);
     eraft::Error Run();
     void Message(raftpb::Message msg);
-    eraft::Error Proposal(std::string data);
+    eraft::Error Propose(std::string data);
     eraft::Error ProposeConfChange(const raftpb::ConfChange& cc);
 
 private:
@@ -87,5 +87,34 @@ private:
     bool advance_ = false;
     std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
 };
-extern std::shared_ptr<RaftDriver> raft_driver;
+extern std::shared_ptr<RaftDriver> g_raft_driver;
+
+struct Generator {
+    static const int tsLen  = 5 * 8;
+    static const int cntLen  = 8;
+    static const int suffixLen = tsLen + cntLen;
+
+    Generator(uint64_t id, uint64_t time) {
+        prefix = id << suffixLen;
+        suffix = lowbit(time, tsLen) << cntLen;
+    }
+    uint64_t prefix = 0;
+    std::atomic<uint64_t> suffix{0};
+    uint64_t lowbit(uint64_t x, int n) {
+        return x & (std::numeric_limits<uint64_t>::max() >> (64 - n));
+    }
+    uint64_t Next() {
+        auto suf = suffix.fetch_add(1) + 1;
+        auto id = prefix | lowbit(suf, suffixLen);
+        return id;
+    }
+};
+extern std::shared_ptr<Generator> g_id_generator;
+
+struct ApplyContext {
+    uint64_t index = 0;
+    std::promise<void> start;
+    std::promise<void> end;
+};
+
 }

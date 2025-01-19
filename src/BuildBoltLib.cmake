@@ -9,6 +9,8 @@ set(BOLT_SRC
     bolt_ha/logger.cpp
     bolt_ha/raft_log_store.cpp
     bolt_ha/raft_driver.cpp
+    bolt_ha/bolt_ha.pb.cc
+    ${LGRAPH_ROOT_DIR}/deps/etcd-raft-cpp/raftpb/raft.pb.cc
     lgraph_api/lgraph_exceptions.cpp)
 
 add_library(${TARGET_BOLT_LIB} STATIC ${BOLT_SRC})

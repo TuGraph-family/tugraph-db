@@ -320,26 +320,11 @@ int LGraphServer::Start() {
                 return -1;
             }
             if (config_->bolt_raft_port > 0) {
-                std::vector<eraft::Peer> init_peers;
-                auto cluster = nlohmann::json::parse(config_->bolt_raft_init_peers);
-                for (const auto& item : cluster) {
-                    eraft::Peer peer;
-                    peer.id_ = item["node_id"].get<int64_t>();
-                    peer.context_ = item.dump();
-                    init_peers.emplace_back(std::move(peer));
-                }
-                /*
-                bolt_ha::raft_driver = std::make_unique<bolt_ha::RaftDriver> (
-                    [](uint64_t index, const std::string& log){apply(data_db, index, log);},
-                    0,
-                    config_->bolt_raft_node_id,
-                    init_peers,
-                    "raftlog");
-                auto err = bolt_ha::raft_driver->Run();
-                if (err != nullptr) {
-                    LOG_ERROR() << "raft driver failed to run, error: " << err.String();
+                if (!bolt::BoltRaftServer::Instance().Start(
+                    state_machine_.get(), config_->bolt_raft_port,
+                    config_->bolt_raft_node_id, config_->bolt_raft_init_peers)) {
                     return -1;
-                }*/
+                }
             }
         }
 

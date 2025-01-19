@@ -785,6 +785,12 @@ void lgraph::Galaxy::CheckTuGraphVersion(KvTransaction& txn) {
     }
 }
 
+void lgraph::Galaxy::UpdateBoltRaftApplyIndex(uint64_t index) {
+    auto txn = store_->CreateWriteTxn(false);
+    db_info_table_->SetValue(*txn, Value::ConstRef("bolt_raft_apply_index"), Value::ConstRef(index));
+    txn->Commit();
+}
+
 void lgraph::Galaxy::BootstrapRaftLogIndex(int64_t log_id) {
     SetRaftLogIndexBeforeWrite(log_id);
     // need to write something so that raft log id can be written to db
