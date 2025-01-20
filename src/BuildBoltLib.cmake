@@ -9,7 +9,7 @@ set(BOLT_SRC
     bolt_raft/logger.cpp
     bolt_raft/raft_log_store.cpp
     bolt_raft/raft_driver.cpp
-    bolt_raft/bolt_ha.pb.cc
+    bolt_raft/raft_request.pb.cc
     ${LGRAPH_ROOT_DIR}/deps/etcd-raft-cpp/raftpb/raft.pb.cc
     lgraph_api/lgraph_exceptions.cpp)
 

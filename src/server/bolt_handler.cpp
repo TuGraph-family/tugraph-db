@@ -22,7 +22,7 @@
 #include "db/galaxy.h"
 
 #include "bolt_raft/raft_driver.h"
-#include "bolt_raft/bolt_ha.pb.h"
+#include "bolt_raft/raft_request.pb.h"
 
 using namespace lgraph_api;
 namespace bolt {
