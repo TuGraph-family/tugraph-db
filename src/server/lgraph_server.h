@@ -20,7 +20,6 @@
 #include "server/state_machine.h"
 #include "restful/server/rest_server.h"
 #include "http/http_server.h"
-#include "server/bolt_server.h"
 
 #ifndef _WIN32
 #include "brpc/server.h"

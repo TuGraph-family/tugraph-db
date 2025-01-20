@@ -42,26 +42,4 @@ class BoltServer final {
     std::vector<std::thread> threads_;
     bool stopped_ = false;
 };
-
-class BoltRaftServer final {
- public:
-    static BoltRaftServer& Instance() {
-        static BoltRaftServer server;
-        return server;
-    }
-    DISABLE_COPY(BoltRaftServer);
-    DISABLE_MOVE(BoltRaftServer);
-    bool Start(lgraph::StateMachine* sm, int port, uint64_t node_id, std::string init_peers);
-    void Stop();
-    ~BoltRaftServer() {Stop();}
-    lgraph::StateMachine* StateMachine() {
-        return sm_;
-    }
- private:
-    BoltRaftServer() = default;
-    lgraph::StateMachine* sm_ = nullptr;
-    std::vector<std::thread> threads_;
-    bool stopped_ = false;
-};
-
 }  // namespace bolt

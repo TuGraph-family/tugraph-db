@@ -21,8 +21,8 @@
 #include "server/bolt_session.h"
 #include "db/galaxy.h"
 
-#include "bolt_ha/raft_driver.h"
-#include "bolt_ha/bolt_ha.pb.h"
+#include "bolt_raft/raft_driver.h"
+#include "bolt_raft/bolt_ha.pb.h"
 
 using namespace lgraph_api;
 namespace bolt {
@@ -113,13 +113,13 @@ parser::Expression ConvertParameters(std::any data) {
 
 using namespace std::chrono;
 std::shared_mutex promise_mutex;
-std::unordered_map<uint64_t, std::shared_ptr<bolt_ha::ApplyContext>> pending_promise;
+std::unordered_map<uint64_t, std::shared_ptr<bolt_raft::ApplyContext>> pending_promise;
 
 void g_apply(uint64_t index, const std::string& log) {
-    bolt_ha::RaftRequest request;
+    bolt_raft::RaftRequest request;
     auto ret = request.ParseFromString(log);
     assert(ret);
-    std::shared_ptr<bolt_ha::ApplyContext> context;
+    std::shared_ptr<bolt_raft::ApplyContext> context;
     {
         std::unique_lock lock(promise_mutex);
         auto iter = pending_promise.find(request.id());
@@ -297,23 +297,23 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                         }
                     }
                     session->streaming_msg.reset();
-                    std::shared_ptr<bolt_ha::ApplyContext> apply_context;
+                    std::shared_ptr<bolt_raft::ApplyContext> apply_context;
                     {
                         std::string plugin_name, plugin_type;
                         auto ret = cypher::Scheduler::DetermineReadOnly(&ctx, GraphQueryType::CYPHER, cypher, plugin_name, plugin_type);
                         if (!ret) {
-                            auto uid = bolt_ha::g_id_generator->Next();
-                            apply_context = std::make_shared<bolt_ha::ApplyContext>();
+                            auto uid = bolt_raft::g_id_generator->Next();
+                            apply_context = std::make_shared<bolt_raft::ApplyContext>();
                             auto future = apply_context->start.get_future();
                             {
                                 std::unique_lock lock(promise_mutex);
                                 pending_promise.emplace(uid, apply_context);
                             }
-                            bolt_ha::RaftRequest request;
+                            bolt_raft::RaftRequest request;
                             request.set_id(uid);
                             request.set_user(session->user);
                             request.set_raw_data((const char*)msg.value().raw_data.data(), msg.value().raw_data.size());
-                            auto err = bolt_ha::g_raft_driver->Propose(request.SerializeAsString());
+                            auto err = bolt_raft::g_raft_driver->Propose(request.SerializeAsString());
                             if (err != nullptr) {
                                 LOG_ERROR() << FMA_FMT("Failed to propose, err: {}", err.String());
                                 THROW_CODE(RaftProposeError, err.String());

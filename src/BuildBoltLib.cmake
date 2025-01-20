@@ -6,10 +6,10 @@ set(BOLT_SRC
     bolt/connection.cpp
     bolt/hydrator.cpp
     bolt/pack.cpp
-    bolt_ha/logger.cpp
-    bolt_ha/raft_log_store.cpp
-    bolt_ha/raft_driver.cpp
-    bolt_ha/bolt_ha.pb.cc
+    bolt_raft/logger.cpp
+    bolt_raft/raft_log_store.cpp
+    bolt_raft/raft_driver.cpp
+    bolt_raft/bolt_ha.pb.cc
     ${LGRAPH_ROOT_DIR}/deps/etcd-raft-cpp/raftpb/raft.pb.cc
     lgraph_api/lgraph_exceptions.cpp)
 

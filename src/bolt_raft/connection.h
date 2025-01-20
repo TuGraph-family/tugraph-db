@@ -7,7 +7,7 @@
 #include "fma-common/string_formatter.h"
 #include "etcd-raft-cpp/raftpb/raft.pb.h"
 
-namespace bolt_ha {
+namespace bolt_raft {
 
 class Connection : private boost::asio::noncopyable {
  public:

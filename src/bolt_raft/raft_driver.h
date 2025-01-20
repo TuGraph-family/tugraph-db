@@ -3,7 +3,7 @@
 #include <boost/asio.hpp>
 #include <utility>
 #include "raft_log_store.h"
-namespace bolt_ha {
+namespace bolt_raft {
 class NodeClient : public std::enable_shared_from_this<NodeClient> {
 public:
     NodeClient(boost::asio::io_service& io_service, const std::string &ip, int port)

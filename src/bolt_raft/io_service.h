@@ -9,7 +9,7 @@
 #include "fma-common/string_formatter.h"
 
 using boost::asio::ip::tcp;
-namespace bolt_ha {
+namespace bolt_raft {
 
 class IOServicePool : private boost::asio::noncopyable {
  public:

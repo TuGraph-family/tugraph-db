@@ -31,7 +31,8 @@
 #include "server/state_machine.h"
 #include "server/ha_state_machine.h"
 #include "server/db_management_client.h"
-#include "bolt_ha/raft_driver.h"
+#include "server/bolt_server.h"
+#include "server/bolt_raft_server.h"
 
 #ifndef _WIN32
 #include "brpc/server.h"
@@ -320,8 +321,7 @@ int LGraphServer::Start() {
                 return -1;
             }
             if (config_->bolt_raft_port > 0) {
-                if (!bolt::BoltRaftServer::Instance().Start(
-                    state_machine_.get(), config_->bolt_raft_port,
+                if (!bolt_raft::BoltRaftServer::Instance().Start(config_->bolt_raft_port,
                     config_->bolt_raft_node_id, config_->bolt_raft_init_peers)) {
                     return -1;
                 }

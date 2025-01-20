@@ -12,7 +12,7 @@
 using boost::asio::async_write;
 using boost::asio::ip::tcp;
 
-namespace bolt_ha {
+namespace bolt_raft {
 void NodeClient::reconnect() {
     if (has_closed_) {
         return;

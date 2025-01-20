@@ -13,7 +13,7 @@
  */
 
 syntax = "proto3";
-package bolt_ha;
+package bolt_raft;
 
 message RaftRequest {
   uint64 id      = 1;

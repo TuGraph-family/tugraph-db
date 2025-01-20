@@ -2,7 +2,7 @@
 #include "raft_log_store.h"
 #include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
-namespace bolt_ha {
+namespace bolt_raft {
 std::string raft_log_key(uint64_t log_id) {
     std::string ret;
     boost::endian::native_to_big_inplace(log_id);
