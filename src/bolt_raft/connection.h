@@ -26,7 +26,6 @@ class Connection : private boost::asio::noncopyable {
     int64_t& conn_id() { return conn_id_;};
     boost::asio::io_service& io_service() {return io_service_;};
     virtual void Start() = 0;
-    virtual void PostResponse(std::string) {};
  private:
     boost::asio::io_service& io_service_;
     boost::asio::ip::tcp::socket socket_;
@@ -83,7 +82,7 @@ inline void ProtobufConnection::read_magic_done(const boost::system::error_code&
         return;
     }
     if (memcmp(buffer4_, magic_code_, sizeof(magic_code_)) != 0) {
-        LOG_WARN() << ("receive wrong magic code");
+        LOG_WARN() << "receive wrong magic code";
         Close();
         return;
     }
@@ -100,12 +99,12 @@ inline void ProtobufConnection::read_msg_size_done(const boost::system::error_co
 
     boost::endian::big_to_native_inplace(msg_size_);
     if (msg_size_ > 1024 * 1024 * 1024) {
-        LOG_WARN() << FMA_FMT("receive message which is too big, size : {}", msg_size_);
+        LOG_WARN() << FMA_FMT("receive raft message which is too big, size : {}", msg_size_);
         Close();
         return;
     }
     if (msg_size_ == 0) {
-        LOG_WARN() << FMA_FMT("receive message with error size, size : {}", msg_size_);
+        LOG_WARN() << FMA_FMT("receive raft message with error size, size : {}", msg_size_);
         Close();
         return;
     }
@@ -122,14 +121,14 @@ inline void ProtobufConnection::read_msg_body() {
 
 inline void ProtobufConnection::read_msg_body_done(const boost::system::error_code &ec) {
     if (ec) {
-        LOG_WARN() << FMA_FMT("read_msg_body_done error {}", ec.message().c_str());
+        LOG_WARN() << FMA_FMT("read_msg_body_done error {}", ec.message());
         Close();
         return;
     }
     raftpb::Message msg;
     auto ret = msg.ParseFromArray(msg_body_.data(), (int)msg_body_.size());
     if (!ret) {
-        LOG_WARN() << FMA_FMT("raft msg ParseFromArray failed, close connection");
+        LOG_WARN() << FMA_FMT("failed to parse raft msg, close connection");
         Close();
         return;
     }

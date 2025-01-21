@@ -1,5 +1,8 @@
 #include <thread>
+#include <shared_mutex>
 #include "fma-common/type_traits.h"
+#include "bolt_raft/raft_driver.h"
+#include "bolt_raft/raft_request.pb.h"
 
 namespace bolt_raft {
 class BoltRaftServer final {
@@ -12,10 +15,16 @@ class BoltRaftServer final {
     DISABLE_MOVE(BoltRaftServer);
     bool Start(int port, uint64_t node_id, std::string init_peers);
     void Stop();
+    std::shared_ptr<ApplyContext> Propose(const RaftRequest& request);
     ~BoltRaftServer() { Stop(); }
  private:
     BoltRaftServer() = default;
     std::vector<std::thread> threads_{};
     bool stopped_ = false;
+    boost::asio::io_service listener_{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE};
+    std::function<void(raftpb::Message)> protobuf_handler_{};
+    std::shared_ptr<RaftDriver> raft_driver_ = nullptr;
+    std::shared_ptr<Generator> id_generator_ = nullptr;
+    std::unordered_map<uint64_t, std::shared_ptr<bolt_raft::ApplyContext>> pending_promise_;
 };
 }

@@ -8,6 +8,7 @@
 #include "tools/json.hpp"
 #include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
+#include "raft_request.pb.h"
 
 using boost::asio::async_write;
 using boost::asio::ip::tcp;
@@ -165,7 +166,7 @@ std::string MessageToNetString(const google::protobuf::Message& msg) {
     return str;
 }
 
-RaftDriver::RaftDriver(std::function<void (uint64_t index, const std::string&)> apply,
+RaftDriver::RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> apply,
            uint64_t apply_id,
            int64_t node_id,
            std::vector<eraft::Peer> init_peers,
@@ -250,7 +251,7 @@ eraft::Error RaftDriver::Run() {
             LOG_WARN() << FMA_FMT("tick_timer async_wait error: {}", ec.message().c_str());
             return;
         }
-        tick();
+        Tick();
     });
     return {};
 }
@@ -271,16 +272,15 @@ void RaftDriver::Message(raftpb::Message msg) {
         if (err != nullptr) {
             LOG_WARN() << FMA_FMT("Step return err: {}",err.String().c_str());
         }
-        check_ready();
+        CheckReady();
     });
 }
 
-eraft::Error RaftDriver::PostMessage(raftpb::Message msg) {
-    std::promise<eraft::Error> promise;
-    std::future<eraft::Error> future = promise.get_future();
-    raft_service_.post([this, msg = std::move(msg), &promise]() mutable {
+std::shared_ptr<ApplyContext> RaftDriver::PostMessage(uint64_t uuid, raftpb::Message msg) {
+    auto context = std::make_shared<ApplyContext>();
+    raft_service_.post([this, uuid, context, msg = std::move(msg)]() mutable {
         if (rn_->raft_->id_ != rn_->raft_->lead_) {
-            promise.set_value(eraft::Error("not leader"));
+            context->propose.set_value(eraft::Error("not leader"));
             return;
         }
         msg.set_from(rn_->raft_->id_);
@@ -288,31 +288,57 @@ eraft::Error RaftDriver::PostMessage(raftpb::Message msg) {
         if (err != nullptr) {
             LOG_WARN() << FMA_FMT("Proposal return err: {}",err.String().c_str());
         }
-        promise.set_value(std::move(err));
-        check_ready();
+        context->propose.set_value(std::move(err));
+        {
+            std::lock_guard<std::mutex> guard(promise_mutex_);
+            pending_promise_.emplace(uuid, std::move(context));
+        }
+        CheckReady();
     });
-    return future.get();
+    return context;
 }
 
-eraft::Error RaftDriver::ProposeConfChange(const raftpb::ConfChange& cc) {
+void RaftDriver::Advance() {
+    raft_service_.post([this]() mutable {
+        rn_->Advance({});
+        advance_ = false;
+    });
+}
+
+void RaftDriver::Tick() {
+    raft_service_.post([this]() mutable {
+        rn_->Tick();
+        CheckReady();
+    });
+    tick_timer_.expires_at(tick_timer_.expires_at() + tick_interval_);
+    tick_timer_.async_wait([this](const boost::system::error_code& ec){
+        if (ec) {
+            LOG_WARN() << "tick_timer async_wait error: " << ec.message();
+            return;
+        }
+        Tick();
+    });
+}
+
+std::shared_ptr<ApplyContext> RaftDriver::ProposeConfChange(const raftpb::ConfChange& cc) {
     raftpb::Message msg;
     auto entry = msg.add_entries();
     entry->set_type(raftpb::EntryType::EntryConfChange);
     entry->set_data(cc.SerializeAsString());
     msg.set_type(raftpb::MessageType::MsgProp);
-    return PostMessage(std::move(msg));
+    return PostMessage(id_generator_->Next(), std::move(msg));
 }
 
-eraft::Error RaftDriver::Propose(std::string data) {
+std::shared_ptr<ApplyContext> RaftDriver::Propose(std::string data) {
     raftpb::Message msg;
     auto entry = msg.add_entries();
     entry->set_type(raftpb::EntryType::EntryNormal);
     entry->set_data(std::move(data));
     msg.set_type(raftpb::MessageType::MsgProp);
-    return PostMessage(std::move(msg));
+    return PostMessage(id_generator_->Next(), std::move(msg));
 }
 
-void RaftDriver::check_ready() {
+void RaftDriver::CheckReady() {
     if (advance_) {
         return;
     }
@@ -321,8 +347,8 @@ void RaftDriver::check_ready() {
     }
     auto ready = rn_->GetReady();
     ready_service_.post([this, ready = std::move(ready)]() mutable {
-        on_ready(std::move(ready));
-        advance();
+        OnReady(std::move(ready));
+        Advance();
     });
     advance_ = true;
 }
@@ -340,7 +366,7 @@ std::string RaftDriver::nodes_info() {
 }
 
 
-void RaftDriver::on_ready(eraft::Ready ready) {
+void RaftDriver::OnReady(eraft::Ready ready) {
     if (ready.softState_) {
         LOG_INFO() << FMA_FMT("soft state change, state:{}, lead:{}",
                  eraft::ToString(ready.softState_->raftState_).c_str(), ready.softState_->lead_);
@@ -373,7 +399,26 @@ void RaftDriver::on_ready(eraft::Ready ready) {
             if (entry.data().empty()) {
                 continue;
             }
-            apply_(entry.index(), entry.data());
+
+            RaftRequest request;
+            auto ret = request.ParseFromString(entry.data());
+            assert(ret);
+            std::shared_ptr<bolt_raft::ApplyContext> context;
+            {
+                std::lock_guard<std::mutex> guard(promise_mutex_);
+                auto iter = pending_promise_.find(request.id());
+                if (iter != pending_promise_.end()) {
+                    context = iter->second;
+                    pending_promise_.erase(iter);
+                }
+            }
+            if (context) {
+                context->index = entry.index();
+                context->start.set_value();
+                context->end.get_future().get();
+            } else {
+                apply_(entry.index(), request);
+            }
             break;
         }
         case raftpb::EntryConfChange: {
@@ -440,6 +485,4 @@ void RaftDriver::on_ready(eraft::Ready ready) {
         }
     }
 }
-std::shared_ptr<RaftDriver> g_raft_driver;
-std::shared_ptr<Generator> g_id_generator;
 }

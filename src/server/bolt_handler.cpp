@@ -18,6 +18,7 @@
 #include "tools/lgraph_log.h"
 #include "bolt/connection.h"
 #include "server/bolt_server.h"
+#include "server/bolt_raft_server.h"
 #include "server/bolt_session.h"
 #include "db/galaxy.h"
 
@@ -112,73 +113,53 @@ parser::Expression ConvertParameters(std::any data) {
 }
 
 using namespace std::chrono;
-std::shared_mutex promise_mutex;
-std::unordered_map<uint64_t, std::shared_ptr<bolt_raft::ApplyContext>> pending_promise;
 
-void g_apply(uint64_t index, const std::string& log) {
-    bolt_raft::RaftRequest request;
-    auto ret = request.ParseFromString(log);
-    assert(ret);
-    std::shared_ptr<bolt_raft::ApplyContext> context;
-    {
-        std::unique_lock lock(promise_mutex);
-        auto iter = pending_promise.find(request.id());
-        if (iter != pending_promise.end()) {
-            context = iter->second;
-            pending_promise.erase(iter);
-        }
-    }
-    if (context) {
-        context->index = index;
-        context->start.set_value();
-        context->end.get_future().get();
-    } else {
-        Unpacker unpacker;
-        unpacker.Reset(std::string_view(request.raw_data().data(), request.raw_data().size()));
+void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request) {
+    Unpacker unpacker;
+    unpacker.Reset(std::string_view(request.raw_data().data(), request.raw_data().size()));
+    unpacker.Next();
+    auto len = unpacker.Len();
+    auto tag = static_cast<BoltMsg>(unpacker.StructTag());
+    FMA_ASSERT(tag == BoltMsg::Run);
+    std::vector<std::any> fields;
+    for (uint32_t i = 0; i < len; i++) {
         unpacker.Next();
-        auto len = unpacker.Len();
-        auto tag = static_cast<BoltMsg>(unpacker.StructTag());
-        FMA_ASSERT(tag == BoltMsg::Run);
-        std::vector<std::any> fields;
-        for (uint32_t i = 0; i < len; i++) {
-            unpacker.Next();
-            fields.push_back(bolt::ServerHydrator(unpacker));
-        }
-
-        auto& cypher = std::any_cast<const std::string&>(fields[0]);
-        auto& extra = std::any_cast<
-            const std::unordered_map<std::string, std::any>&>(fields[2]);
-        std::string graph;
-        auto db_iter = extra.find("db");
-        if (db_iter != extra.end()) {
-            graph = std::any_cast<const std::string&>(db_iter->second);
-        }
-        auto& field1 = std::any_cast<
-            std::unordered_map<std::string, std::any>&>(fields[1]);
-        auto sm = BoltServer::Instance().StateMachine();
-        cypher::RTContext ctx(sm, sm->GetGalaxy(), request.user(), graph,
-                              sm->IsCypherV2());
-        if (ctx.is_cypher_v2_) {
-            ctx.bolt_parameters_v2_ = std::make_shared<std::unordered_map<
-                std::string, geax::frontend::Expr*>>();
-        } else {
-            ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
-                std::string, parser::Expression>>();
-        }
-        for (auto& pair : field1) {
-            if (ctx.is_cypher_v2_) {
-                ctx.bolt_parameters_v2_->emplace("$" + pair.first,
-                                                 ConvertParameters(ctx.obj_alloc_, std::move(pair.second)));
-            } else {
-                ctx.bolt_parameters_->emplace("$" + pair.first,
-                                              ConvertParameters(std::move(pair.second)));
-            }
-        }
-        cypher::ElapsedTime elapsed;
-        sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
-                                       cypher, elapsed);
-        sm->GetGalaxy()->UpdateBoltRaftApplyIndex(index);
+        fields.push_back(bolt::ServerHydrator(unpacker));
     }
+
+    auto& cypher = std::any_cast<const std::string&>(fields[0]);
+    auto& extra = std::any_cast<
+        const std::unordered_map<std::string, std::any>&>(fields[2]);
+    std::string graph;
+    auto db_iter = extra.find("db");
+    if (db_iter != extra.end()) {
+        graph = std::any_cast<const std::string&>(db_iter->second);
+    }
+    auto& field1 = std::any_cast<
+        std::unordered_map<std::string, std::any>&>(fields[1]);
+    auto sm = BoltServer::Instance().StateMachine();
+    cypher::RTContext ctx(sm, sm->GetGalaxy(), request.user(), graph,
+                          sm->IsCypherV2());
+    if (ctx.is_cypher_v2_) {
+        ctx.bolt_parameters_v2_ = std::make_shared<std::unordered_map<
+            std::string, geax::frontend::Expr*>>();
+    } else {
+        ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
+            std::string, parser::Expression>>();
+    }
+    for (auto& pair : field1) {
+        if (ctx.is_cypher_v2_) {
+            ctx.bolt_parameters_v2_->emplace("$" + pair.first,
+                                             ConvertParameters(ctx.obj_alloc_, std::move(pair.second)));
+        } else {
+            ctx.bolt_parameters_->emplace("$" + pair.first,
+                                          ConvertParameters(std::move(pair.second)));
+        }
+    }
+    cypher::ElapsedTime elapsed;
+    sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
+                                   cypher, elapsed);
+    sm->GetGalaxy()->UpdateBoltRaftApplyIndex(index);
 }
 
 void BoltFSM(std::shared_ptr<BoltConnection> conn) {
@@ -302,25 +283,16 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                         std::string plugin_name, plugin_type;
                         auto ret = cypher::Scheduler::DetermineReadOnly(&ctx, GraphQueryType::CYPHER, cypher, plugin_name, plugin_type);
                         if (!ret) {
-                            auto uid = bolt_raft::g_id_generator->Next();
-                            apply_context = std::make_shared<bolt_raft::ApplyContext>();
-                            auto future = apply_context->start.get_future();
-                            {
-                                std::unique_lock lock(promise_mutex);
-                                pending_promise.emplace(uid, apply_context);
-                            }
                             bolt_raft::RaftRequest request;
-                            request.set_id(uid);
                             request.set_user(session->user);
                             request.set_raw_data((const char*)msg.value().raw_data.data(), msg.value().raw_data.size());
-                            auto err = bolt_raft::g_raft_driver->Propose(request.SerializeAsString());
+                            apply_context = bolt_raft::BoltRaftServer::Instance().Propose(std::move(request));
+                            auto err = apply_context->propose.get_future().get();
                             if (err != nullptr) {
                                 LOG_ERROR() << FMA_FMT("Failed to propose, err: {}", err.String());
                                 THROW_CODE(RaftProposeError, err.String());
                             }
-                            if (future.wait_for(std::chrono::milliseconds(1000)) == std::future_status::ready) {
-                                future.get();
-                            } else {
+                            if (apply_context->start.get_future().wait_for(std::chrono::milliseconds(1000)) != std::future_status::ready) {
                                 THROW_CODE(ReplicateTimeout);
                             }
                         }

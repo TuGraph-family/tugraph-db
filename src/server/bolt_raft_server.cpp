@@ -4,21 +4,19 @@
 #include "bolt_raft/connection.h"
 #include "tools/json.hpp"
 #include "tools/lgraph_log.h"
-
 namespace bolt {
-void g_apply(uint64_t index, const std::string& log);
+void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request);
 }
 
 namespace bolt_raft {
-std::function protobuf_handler = [](raftpb::Message rpc_msg){
-    bolt_raft::g_raft_driver->Message(std::move(rpc_msg));
-};
+std::shared_ptr<ApplyContext> BoltRaftServer::Propose(const RaftRequest& request) {
+    return raft_driver_->Propose(request.SerializeAsString());
+}
 
-static boost::asio::io_service raft_listener(BOOST_ASIO_CONCURRENCY_HINT_UNSAFE);
 bool BoltRaftServer::Start(int port, uint64_t node_id, std::string init_peers) {
     std::promise<bool> promise;
     std::future<bool> future = promise.get_future();
-    threads_.emplace_back([port, node_id, init_peers, &promise](){
+    threads_.emplace_back([this, port, node_id, init_peers, &promise]() {
         bool promise_done = false;
         try {
             std::vector<eraft::Peer> peers;
@@ -29,27 +27,30 @@ bool BoltRaftServer::Start(int port, uint64_t node_id, std::string init_peers) {
                 peer.context_ = item.dump();
                 peers.emplace_back(std::move(peer));
             }
-            bolt_raft::g_id_generator = std::make_shared<bolt_raft::Generator>(
+            id_generator_ = std::make_shared<Generator>(
                 node_id,std::chrono::duration_cast<std::chrono::milliseconds>(
                              std::chrono::steady_clock::now().time_since_epoch()).count());
-            bolt_raft::g_raft_driver = std::make_unique<bolt_raft::RaftDriver> (
-                bolt::g_apply,
+            raft_driver_ = std::make_unique<RaftDriver> (
+                bolt::ApplyRaftRequest,
                 0,
                 node_id,
                 peers,
                 "raftlog");
-            auto err = bolt_raft::g_raft_driver->Run();
+            auto err = raft_driver_->Run();
             if (err != nullptr) {
                 LOG_ERROR() << "raft driver failed to run, error: " << err.String();
                 return;
             }
-            bolt_raft::IOService<bolt_raft::ProtobufConnection, decltype(protobuf_handler)> bolt_raft_service(
-                raft_listener, port, 1, protobuf_handler);
-            boost::asio::io_service::work holder(raft_listener);
+            protobuf_handler_ = [this](raftpb::Message rpc_msg) {
+                raft_driver_->Message(std::move(rpc_msg));
+            };
+            bolt_raft::IOService<bolt_raft::ProtobufConnection, decltype(protobuf_handler_)> bolt_raft_service(
+                listener_, port, 1, protobuf_handler_);
+            boost::asio::io_service::work holder(listener_);
             LOG_INFO() << "bolt raft server run";
             promise.set_value(true);
             promise_done = true;
-            raft_listener.run();
+            listener_.run();
         } catch (const std::exception& e) {
             LOG_WARN() << "bolt raft server expection: " << e.what();
             if (!promise_done) {
@@ -64,7 +65,7 @@ void BoltRaftServer::Stop() {
     if (stopped_) {
         return;
     }
-    raft_listener.stop();
+    listener_.stop();
     for (auto& t : threads_) {
         t.join();
     }

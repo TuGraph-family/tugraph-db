@@ -3,13 +3,15 @@
 #include <boost/asio.hpp>
 #include <utility>
 #include "raft_log_store.h"
+#include "bolt_raft/raft_request.pb.h"
 namespace bolt_raft {
+using namespace boost::asio::ip;
 class NodeClient : public std::enable_shared_from_this<NodeClient> {
 public:
     NodeClient(boost::asio::io_service& io_service, const std::string &ip, int port)
             : io_service_(io_service),
               socket_(io_service_),
-              endpoint_(boost::asio::ip::address::from_string(ip), port),
+              endpoint_(address::from_string(ip), port),
               interval_(1000),
               timer_(io_service_) {
     }
@@ -25,8 +27,8 @@ private:
     void send_magic_code();
 
     boost::asio::io_service& io_service_;
-    boost::asio::ip::tcp::socket socket_;
-    boost::asio::ip::tcp::endpoint endpoint_;
+    tcp::socket socket_;
+    tcp::endpoint endpoint_;
     std::deque<std::string> msg_queue_;
     std::vector<boost::asio::const_buffer> send_buffers_;
     boost::posix_time::millisec interval_;
@@ -36,58 +38,6 @@ private:
     const uint8_t magic_code[4] = {0x17, 0xB0, 0x60, 0x60};
     uint8_t buffer4_[4] = {0};
 };
-
-class RaftDriver {
-public:
-    RaftDriver(std::function<void (uint64_t index, const std::string&)> apply,
-               uint64_t apply_id,
-               int64_t node_id,
-               std::vector<eraft::Peer> init_peers,
-               std::string log_path);
-    eraft::Error Run();
-    void Message(raftpb::Message msg);
-    eraft::Error Propose(std::string data);
-    eraft::Error ProposeConfChange(const raftpb::ConfChange& cc);
-
-private:
-    eraft::Error PostMessage(raftpb::Message msg);
-    void tick() {
-        raft_service_.post([this]() mutable {
-            rn_->Tick();
-            check_ready();
-        });
-        tick_timer_.expires_at(tick_timer_.expires_at() + tick_interval_);
-        tick_timer_.async_wait(std::bind(&RaftDriver::tick, this));
-    }
-    void advance() {
-        raft_service_.post([this]() mutable {
-            rn_->Advance({});
-            advance_ = false;
-        });
-    }
-    void check_ready();
-    void on_ready(eraft::Ready ready);
-    std::string nodes_info();
-
-    std::vector<std::thread> threads_;
-    boost::asio::io_service raft_service_;
-    boost::asio::io_service tick_service_;
-    boost::asio::io_service ready_service_;
-    boost::asio::io_service client_service_;
-    std::function<void (uint64_t, const std::string&)> apply_;
-    uint64_t apply_id_;
-    uint64_t node_id_;
-    std::vector<eraft::Peer> init_peers_;
-    std::string log_path_;
-    boost::posix_time::millisec tick_interval_;
-    boost::asio::deadline_timer tick_timer_;
-    std::shared_ptr<eraft::RawNode> rn_;
-    std::shared_ptr<RaftLogStorage> storage_;
-    uint64_t lead_ = eraft::None;
-    bool advance_ = false;
-    std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
-};
-extern std::shared_ptr<RaftDriver> g_raft_driver;
 
 struct Generator {
     static const int tsLen  = 5 * 8;
@@ -100,7 +50,7 @@ struct Generator {
     }
     uint64_t prefix = 0;
     std::atomic<uint64_t> suffix{0};
-    uint64_t lowbit(uint64_t x, int n) {
+    static uint64_t lowbit(uint64_t x, int n) {
         return x & (std::numeric_limits<uint64_t>::max() >> (64 - n));
     }
     uint64_t Next() {
@@ -109,12 +59,53 @@ struct Generator {
         return id;
     }
 };
-extern std::shared_ptr<Generator> g_id_generator;
 
 struct ApplyContext {
     uint64_t index = 0;
+    std::promise<eraft::Error> propose;
     std::promise<void> start;
     std::promise<void> end;
 };
 
+class RaftDriver {
+public:
+    RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> apply,
+               uint64_t apply_id,
+               int64_t node_id,
+               std::vector<eraft::Peer> init_peers,
+               std::string log_path);
+    eraft::Error Run();
+    void Message(raftpb::Message msg);
+    std::shared_ptr<ApplyContext>  Propose(std::string data);
+    std::shared_ptr<ApplyContext>  ProposeConfChange(const raftpb::ConfChange& cc);
+
+private:
+   std::shared_ptr<ApplyContext> PostMessage(uint64_t uuid, raftpb::Message msg);
+    void Tick();
+    void Advance();
+    void CheckReady();
+    void OnReady(eraft::Ready ready);
+    std::string nodes_info();
+
+    std::vector<std::thread> threads_;
+    boost::asio::io_service raft_service_;
+    boost::asio::io_service tick_service_;
+    boost::asio::io_service ready_service_;
+    boost::asio::io_service client_service_;
+    std::function<void (uint64_t, const RaftRequest&)> apply_;
+    uint64_t apply_id_;
+    uint64_t node_id_;
+    std::vector<eraft::Peer> init_peers_;
+    std::string log_path_;
+    boost::posix_time::millisec tick_interval_;
+    boost::asio::deadline_timer tick_timer_;
+    std::shared_ptr<eraft::RawNode> rn_;
+    std::shared_ptr<RaftLogStorage> storage_;
+    uint64_t lead_ = eraft::None;
+    bool advance_ = false;
+    std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
+    std::shared_ptr<Generator> id_generator_ = nullptr;
+    std::mutex promise_mutex_;
+    std::unordered_map<uint64_t, std::shared_ptr<ApplyContext>> pending_promise_;
+};
 }

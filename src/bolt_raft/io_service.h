@@ -115,7 +115,7 @@ class IOService : private boost::asio::noncopyable {
     void clean_closed_conn() {
         for (auto it = connections_.cbegin(); it != connections_.cend();) {
             if (it->second->has_closed()) {
-                LOG_DEBUG() << FMA_FMT("erase connection[id:{},use_count:{}] from pool",
+                LOG_DEBUG() << FMA_FMT("erase raft connection[id:{},use_count:{}] from pool",
                           it->second->conn_id(), it->second.use_count());
                 it = connections_.erase(it);
             } else {
