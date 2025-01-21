@@ -235,6 +235,8 @@ eraft::Error RaftDriver::Run() {
     config.maxInflightMsgs_ = 256;
     config.maxUncommittedEntriesSize_ = 1 << 30;
     config.stepDownOnRemoval_ = true;
+    config.preVote_ = true;
+    config.checkQuorum_ = true;
     eraft::Error err;
     std::tie(rn_, err) = eraft::NewRawNode(config);
     if (err != nullptr) {
@@ -260,6 +262,7 @@ eraft::Error RaftDriver::Run() {
 void RaftDriver::Message(raftpb::Message msg) {
     // Ignore unexpected local messages receiving over network.
     if (eraft::IsLocalMsg(msg.type()) && !eraft::IsLocalMsgTarget(msg.from())) {
+        LOG_WARN() << "ignore unexpected local messages receiving over network : " << msg.ShortDebugString();
         return;
     }
     raft_service_.post([this, msg = std::move(msg)]() mutable {
