@@ -9,7 +9,7 @@ void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request);
 }
 
 namespace bolt_raft {
-std::shared_ptr<ApplyContext> BoltRaftServer::Propose(const RaftRequest& request) {
+std::shared_ptr<PromiseContext> BoltRaftServer::Propose(const RaftRequest& request) {
     return raft_driver_->Propose(request.SerializeAsString());
 }
 
@@ -50,6 +50,7 @@ bool BoltRaftServer::Start(int port, uint64_t node_id, std::string init_peers) {
             LOG_INFO() << "bolt raft server run";
             promise.set_value(true);
             promise_done = true;
+            started_ = true;
             listener_.run();
         } catch (const std::exception& e) {
             LOG_WARN() << "bolt raft server expection: " << e.what();
@@ -62,14 +63,14 @@ bool BoltRaftServer::Start(int port, uint64_t node_id, std::string init_peers) {
 }
 
 void BoltRaftServer::Stop() {
-    if (stopped_) {
+    if (!started_) {
         return;
     }
     listener_.stop();
     for (auto& t : threads_) {
         t.join();
     }
-    stopped_ = true;
+    started_ = false;
     LOG_INFO() << "bolt raft server stopped.";
 }
 }

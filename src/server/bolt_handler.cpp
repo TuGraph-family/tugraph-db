@@ -115,50 +115,49 @@ parser::Expression ConvertParameters(std::any data) {
 using namespace std::chrono;
 
 void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request) {
-    Unpacker unpacker;
-    unpacker.Reset(std::string_view(request.raw_data().data(), request.raw_data().size()));
-    unpacker.Next();
-    auto len = unpacker.Len();
-    auto tag = static_cast<BoltMsg>(unpacker.StructTag());
-    FMA_ASSERT(tag == BoltMsg::Run);
-    std::vector<std::any> fields;
-    for (uint32_t i = 0; i < len; i++) {
-        unpacker.Next();
-        fields.push_back(bolt::ServerHydrator(unpacker));
-    }
-
-    auto& cypher = std::any_cast<const std::string&>(fields[0]);
-    auto& extra = std::any_cast<
-        const std::unordered_map<std::string, std::any>&>(fields[2]);
-    std::string graph;
-    auto db_iter = extra.find("db");
-    if (db_iter != extra.end()) {
-        graph = std::any_cast<const std::string&>(db_iter->second);
-    }
-    auto& field1 = std::any_cast<
-        std::unordered_map<std::string, std::any>&>(fields[1]);
     auto sm = BoltServer::Instance().StateMachine();
-    cypher::RTContext ctx(sm, sm->GetGalaxy(), request.user(), graph,
-                          sm->IsCypherV2());
-    if (ctx.is_cypher_v2_) {
-        ctx.bolt_parameters_v2_ = std::make_shared<std::unordered_map<
-            std::string, geax::frontend::Expr*>>();
-    } else {
-        ctx.bolt_parameters_ = std::make_shared<std::unordered_map<
-            std::string, parser::Expression>>();
-    }
-    for (auto& pair : field1) {
-        if (ctx.is_cypher_v2_) {
-            ctx.bolt_parameters_v2_->emplace("$" + pair.first,
-                                             ConvertParameters(ctx.obj_alloc_, std::move(pair.second)));
-        } else {
-            ctx.bolt_parameters_->emplace("$" + pair.first,
-                                          ConvertParameters(std::move(pair.second)));
+    try {
+        Unpacker unpacker;
+        unpacker.Reset(std::string_view(request.raw_data().data(), request.raw_data().size()));
+        unpacker.Next();
+        auto len = unpacker.Len();
+        auto tag = static_cast<BoltMsg>(unpacker.StructTag());
+        FMA_ASSERT(tag == BoltMsg::Run);
+        std::vector<std::any> fields;
+        for (uint32_t i = 0; i < len; i++) {
+            unpacker.Next();
+            fields.push_back(bolt::ServerHydrator(unpacker));
         }
+        auto& cypher = std::any_cast<const std::string&>(fields[0]);
+        auto& extra = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[2]);
+        std::string graph;
+        auto db_iter = extra.find("db");
+        if (db_iter != extra.end()) {
+            graph = std::any_cast<const std::string&>(db_iter->second);
+        }
+        auto& field1 = std::any_cast<std::unordered_map<std::string, std::any>&>(fields[1]);
+        cypher::RTContext ctx(sm, sm->GetGalaxy(), request.user(), graph, sm->IsCypherV2());
+        if (ctx.is_cypher_v2_) {
+            ctx.bolt_parameters_v2_ =
+                std::make_shared<std::unordered_map<std::string, geax::frontend::Expr*>>();
+        } else {
+            ctx.bolt_parameters_ =
+                std::make_shared<std::unordered_map<std::string, parser::Expression>>();
+        }
+        for (auto& pair : field1) {
+            if (ctx.is_cypher_v2_) {
+                ctx.bolt_parameters_v2_->emplace(
+                    "$" + pair.first, ConvertParameters(ctx.obj_alloc_, std::move(pair.second)));
+            } else {
+                ctx.bolt_parameters_->emplace("$" + pair.first,
+                                              ConvertParameters(std::move(pair.second)));
+            }
+        }
+        cypher::ElapsedTime elapsed;
+        sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER, cypher, elapsed);
+    } catch (std::exception& e) {
+        LOG_ERROR() << "ApplyRaftRequest exception: " << e.what();
     }
-    cypher::ElapsedTime elapsed;
-    sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
-                                   cypher, elapsed);
     sm->GetGalaxy()->UpdateBoltRaftApplyIndex(index);
 }
 
@@ -242,6 +241,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                 session->state = SessionState::READY;
                 continue;
             } else if (type == bolt::BoltMsg::Run) {
+                std::shared_ptr<bolt_raft::PromiseContext> promise_context;
                 try {
                     if (fields.size() < 3) {
                         THROW_CODE(InputError,
@@ -278,23 +278,20 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                         }
                     }
                     session->streaming_msg.reset();
-                    std::shared_ptr<bolt_raft::ApplyContext> apply_context;
-                    {
+                    if (bolt_raft::BoltRaftServer::Instance().Started()) {
                         std::string plugin_name, plugin_type;
-                        auto ret = cypher::Scheduler::DetermineReadOnly(&ctx, GraphQueryType::CYPHER, cypher, plugin_name, plugin_type);
-                        if (!ret) {
+                        auto read_only = cypher::Scheduler::DetermineReadOnly(&ctx, GraphQueryType::CYPHER, cypher, plugin_name, plugin_type);
+                        if (!read_only) {
                             bolt_raft::RaftRequest request;
                             request.set_user(session->user);
                             request.set_raw_data((const char*)msg.value().raw_data.data(), msg.value().raw_data.size());
-                            apply_context = bolt_raft::BoltRaftServer::Instance().Propose(std::move(request));
-                            auto err = apply_context->propose.get_future().get();
+                            promise_context = bolt_raft::BoltRaftServer::Instance().Propose(request);
+                            auto err = promise_context->proposed.get_future().get();
                             if (err != nullptr) {
                                 LOG_ERROR() << FMA_FMT("Failed to propose, err: {}", err.String());
                                 THROW_CODE(RaftProposeError, err.String());
                             }
-                            if (apply_context->start.get_future().wait_for(std::chrono::milliseconds(1000)) != std::future_status::ready) {
-                                THROW_CODE(ReplicateTimeout);
-                            }
+                            promise_context->commited.get_future().wait();
                         }
                     }
                     cypher::ElapsedTime elapsed;
@@ -302,16 +299,16 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
                                                    cypher, elapsed);
                     LOG_DEBUG() << "Cypher execution completed";
-                    if (apply_context) {
-                        sm->GetGalaxy()->UpdateBoltRaftApplyIndex(apply_context->index);
-                        apply_context->end.set_value();
-                    }
                 } catch (const lgraph_api::LgraphException& e) {
                     LOG_ERROR() << e.what();
                     RespondFailure(e.code(), e.msg());
                 } catch (std::exception& e) {
                     LOG_ERROR() << e.what();
                     RespondFailure(ErrorCode::UnknownError, e.what());
+                }
+                if (promise_context) {
+                    BoltServer::Instance().StateMachine()->GetGalaxy()->UpdateBoltRaftApplyIndex(promise_context->index);
+                    promise_context->applied.set_value();
                 }
             }
         }

@@ -60,11 +60,11 @@ struct Generator {
     }
 };
 
-struct ApplyContext {
+struct PromiseContext {
     uint64_t index = 0;
-    std::promise<eraft::Error> propose;
-    std::promise<void> start;
-    std::promise<void> end;
+    std::promise<eraft::Error> proposed;
+    std::promise<void> commited;
+    std::promise<void> applied;
 };
 
 class RaftDriver {
@@ -76,11 +76,11 @@ public:
                std::string log_path);
     eraft::Error Run();
     void Message(raftpb::Message msg);
-    std::shared_ptr<ApplyContext>  Propose(std::string data);
-    std::shared_ptr<ApplyContext>  ProposeConfChange(const raftpb::ConfChange& cc);
+    std::shared_ptr<PromiseContext>  Propose(std::string data);
+    std::shared_ptr<PromiseContext>  ProposeConfChange(const raftpb::ConfChange& cc);
 
 private:
-   std::shared_ptr<ApplyContext> PostMessage(uint64_t uuid, raftpb::Message msg);
+   std::shared_ptr<PromiseContext> PostMessage(uint64_t uuid, raftpb::Message msg);
     void Tick();
     void Advance();
     void CheckReady();
@@ -106,6 +106,6 @@ private:
     std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
     std::shared_ptr<Generator> id_generator_ = nullptr;
     std::mutex promise_mutex_;
-    std::unordered_map<uint64_t, std::shared_ptr<ApplyContext>> pending_promise_;
+    std::unordered_map<uint64_t, std::shared_ptr<PromiseContext>> pending_promise_;
 };
 }

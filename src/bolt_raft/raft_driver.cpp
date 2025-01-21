@@ -246,13 +246,14 @@ eraft::Error RaftDriver::Run() {
             return err;
         }
     }
-    tick_timer_.async_wait([this](const boost::system::error_code& ec) {
+    Tick();
+    /*tick_timer_.async_wait([this](const boost::system::error_code& ec) {
         if (ec) {
             LOG_WARN() << FMA_FMT("tick_timer async_wait error: {}", ec.message().c_str());
             return;
         }
         Tick();
-    });
+    });*/
     return {};
 }
 
@@ -270,29 +271,31 @@ void RaftDriver::Message(raftpb::Message msg) {
         }
         auto err = rn_->Step(std::move(msg));
         if (err != nullptr) {
-            LOG_WARN() << FMA_FMT("Step return err: {}",err.String().c_str());
+            LOG_WARN() << FMA_FMT("failed to step message, err: {}",err.String().c_str());
+            return;
         }
         CheckReady();
     });
 }
 
-std::shared_ptr<ApplyContext> RaftDriver::PostMessage(uint64_t uuid, raftpb::Message msg) {
-    auto context = std::make_shared<ApplyContext>();
+std::shared_ptr<PromiseContext> RaftDriver::PostMessage(uint64_t uuid, raftpb::Message msg) {
+    auto context = std::make_shared<PromiseContext>();
     raft_service_.post([this, uuid, context, msg = std::move(msg)]() mutable {
         if (rn_->raft_->id_ != rn_->raft_->lead_) {
-            context->propose.set_value(eraft::Error("not leader"));
+            context->proposed.set_value(eraft::Error("not leader"));
             return;
         }
         msg.set_from(rn_->raft_->id_);
         auto err = rn_->Step(std::move(msg));
         if (err != nullptr) {
-            LOG_WARN() << FMA_FMT("Proposal return err: {}",err.String().c_str());
+            LOG_WARN() << FMA_FMT("failed to step raft message, err: {}",err.String().c_str());
+            return;
         }
-        context->propose.set_value(std::move(err));
         {
             std::lock_guard<std::mutex> guard(promise_mutex_);
             pending_promise_.emplace(uuid, std::move(context));
         }
+        context->proposed.set_value(std::move(err));
         CheckReady();
     });
     return context;
@@ -320,7 +323,7 @@ void RaftDriver::Tick() {
     });
 }
 
-std::shared_ptr<ApplyContext> RaftDriver::ProposeConfChange(const raftpb::ConfChange& cc) {
+std::shared_ptr<PromiseContext> RaftDriver::ProposeConfChange(const raftpb::ConfChange& cc) {
     raftpb::Message msg;
     auto entry = msg.add_entries();
     entry->set_type(raftpb::EntryType::EntryConfChange);
@@ -329,7 +332,7 @@ std::shared_ptr<ApplyContext> RaftDriver::ProposeConfChange(const raftpb::ConfCh
     return PostMessage(id_generator_->Next(), std::move(msg));
 }
 
-std::shared_ptr<ApplyContext> RaftDriver::Propose(std::string data) {
+std::shared_ptr<PromiseContext> RaftDriver::Propose(std::string data) {
     raftpb::Message msg;
     auto entry = msg.add_entries();
     entry->set_type(raftpb::EntryType::EntryNormal);
@@ -403,7 +406,7 @@ void RaftDriver::OnReady(eraft::Ready ready) {
             RaftRequest request;
             auto ret = request.ParseFromString(entry.data());
             assert(ret);
-            std::shared_ptr<bolt_raft::ApplyContext> context;
+            std::shared_ptr<bolt_raft::PromiseContext> context;
             {
                 std::lock_guard<std::mutex> guard(promise_mutex_);
                 auto iter = pending_promise_.find(request.id());
@@ -414,8 +417,8 @@ void RaftDriver::OnReady(eraft::Ready ready) {
             }
             if (context) {
                 context->index = entry.index();
-                context->start.set_value();
-                context->end.get_future().get();
+                context->commited.set_value();
+                context->applied.get_future().wait();
             } else {
                 apply_(entry.index(), request);
             }
