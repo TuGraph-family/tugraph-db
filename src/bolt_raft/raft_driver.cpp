@@ -163,7 +163,7 @@ std::string MessageToNetString(const google::protobuf::Message& msg) {
     str.reserve(msg_size + sizeof(uint32_t));
     boost::endian::native_to_big_inplace(msg_size);
     str.append(reinterpret_cast<const char*>(&msg_size), sizeof(msg_size));
-    msg.SerializeToString(&str);
+    str.append(msg.SerializeAsString());
     return str;
 }
 

@@ -408,19 +408,11 @@ BoltHandler =
             conn.Close();
             return;
         }
+        std::string db;
         auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[2]);
-        if (!val.count("db")) {
-            LOG_ERROR() << "Route msg fields error, "
-                           "'db' are missing.";
-            bolt::PackStream ps;
-            ps.AppendFailure({{"code", "error"},
-                              {"message", "Route msg fields error, "
-                               "'db' is missing."}});
-            conn.Respond(std::move(ps.MutableBuffer()));
-            conn.Close();
-            return;
+        if (val.count("db")) {
+            db = std::any_cast<const std::string&>(val.at("db"));
         }
-        auto& db = std::any_cast<const std::string&>(val.at("db"));
         auto members = bolt_raft::BoltRaftServer::Instance().raft_driver().GetNodeInfosWithLeader();
         std::vector<std::string> router, reader, writer;
         for (auto& [id, node] : members.nodes()) {
