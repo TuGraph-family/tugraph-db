@@ -16,8 +16,9 @@ class BoltRaftServer final {
     bool Start(int port, uint64_t node_id, std::string init_peers);
     void Stop();
     bool Started() {return started_;}
-    std::shared_ptr<PromiseContext> Propose(const RaftRequest& request);
+    RaftDriver& raft_driver() {return *raft_driver_;}
     ~BoltRaftServer() { Stop(); }
+
  private:
     BoltRaftServer() = default;
     std::vector<std::thread> threads_{};
@@ -25,7 +26,5 @@ class BoltRaftServer final {
     boost::asio::io_service listener_{BOOST_ASIO_CONCURRENCY_HINT_UNSAFE};
     std::function<void(raftpb::Message)> protobuf_handler_{};
     std::shared_ptr<RaftDriver> raft_driver_ = nullptr;
-    std::shared_ptr<Generator> id_generator_ = nullptr;
-    std::unordered_map<uint64_t, std::shared_ptr<bolt_raft::PromiseContext>> pending_promise_;
 };
 }

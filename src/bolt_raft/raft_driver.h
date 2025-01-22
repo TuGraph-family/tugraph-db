@@ -76,8 +76,9 @@ public:
                std::string log_path);
     eraft::Error Run();
     void Message(raftpb::Message msg);
-    std::shared_ptr<PromiseContext>  Propose(std::string data);
+    std::shared_ptr<PromiseContext>  Propose(bolt_raft::RaftRequest request);
     std::shared_ptr<PromiseContext>  ProposeConfChange(const raftpb::ConfChange& cc);
+    NodeInfos GetNodeInfosWithLeader();
 
 private:
    std::shared_ptr<PromiseContext> PostMessage(uint64_t uuid, raftpb::Message msg);
@@ -85,7 +86,6 @@ private:
     void Advance();
     void CheckReady();
     void OnReady(eraft::Ready ready);
-    std::string nodes_info();
 
     std::vector<std::thread> threads_;
     boost::asio::io_service raft_service_;
@@ -103,6 +103,8 @@ private:
     std::shared_ptr<RaftLogStorage> storage_;
     uint64_t lead_ = eraft::None;
     bool advance_ = false;
+    std::shared_mutex node_infos_mutex_;
+    NodeInfos node_infos_;
     std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
     std::shared_ptr<Generator> id_generator_ = nullptr;
     std::mutex promise_mutex_;

@@ -153,6 +153,7 @@ void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request) {
                                               ConvertParameters(std::move(pair.second)));
             }
         }
+        LOG_DEBUG() << "Raft apply cypher: " << cypher;
         cypher::ElapsedTime elapsed;
         sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER, cypher, elapsed);
     } catch (std::exception& e) {
@@ -285,7 +286,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                             bolt_raft::RaftRequest request;
                             request.set_user(session->user);
                             request.set_raw_data((const char*)msg.value().raw_data.data(), msg.value().raw_data.size());
-                            promise_context = bolt_raft::BoltRaftServer::Instance().Propose(request);
+                            promise_context = bolt_raft::BoltRaftServer::Instance().raft_driver().Propose(std::move(request));
                             auto err = promise_context->proposed.get_future().get();
                             if (err != nullptr) {
                                 LOG_ERROR() << FMA_FMT("Failed to propose, err: {}", err.String());
@@ -394,6 +395,70 @@ BoltHandler =
         auto session = (BoltSession*)conn.GetContext();
         session->state = SessionState::INTERRUPTED;
         session->msgs.Push({BoltMsg::Reset, std::move(fields)});
+    } else if (msg == BoltMsg::Route) {
+        if (!bolt_raft::BoltRaftServer::Instance().Started()) {
+            LOG_WARN() << FMA_FMT("receive bolt route message, but bolt raft server is not started");
+            conn.Close();
+            return;
+        }
+        if (fields.size() != 3) {
+            LOG_ERROR() << "Route msg fields size error, size: " << fields.size();
+            bolt::PackStream ps;
+            ps.AppendFailure({{"code", "error"},
+                              {"message", "Route msg fields size error"}});
+            conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
+            return;
+        }
+        auto& val = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[2]);
+        if (!val.count("db")) {
+            LOG_ERROR() << "Route msg fields error, "
+                           "'db' are missing.";
+            bolt::PackStream ps;
+            ps.AppendFailure({{"code", "error"},
+                              {"message", "Route msg fields error, "
+                               "'db' is missing."}});
+            conn.Respond(std::move(ps.MutableBuffer()));
+            conn.Close();
+            return;
+        }
+        auto& db = std::any_cast<const std::string&>(val.at("db"));
+        auto members = bolt_raft::BoltRaftServer::Instance().raft_driver().GetNodeInfosWithLeader();
+        std::vector<std::string> router, reader, writer;
+        for (auto& [id, node] : members.nodes()) {
+            auto ip_port = node.ip() + ":" + std::to_string(node.bolt_port());
+            router.emplace_back(ip_port);
+            if (node.is_leader()) {
+                reader.emplace_back(ip_port);
+                writer.emplace_back(ip_port);
+            }
+        }
+        std::unordered_map<std::string, std::any> rt {
+            {"rt", std::unordered_map<std::string, std::any> {
+                       {"ttl"    , 1000},
+                       {"db"    , db},
+                       {"servers",
+                        std::vector<std::any> {
+                            std::unordered_map<std::string, std::any> {
+                                {"addresses", router},
+                                {"role", std::string("ROUTE")}
+                            },
+                            std::unordered_map<std::string, std::any> {
+                                {"addresses", reader},
+                                {"role", std::string("READ")}
+                            },
+                            std::unordered_map<std::string, std::any> {
+                                {"addresses", writer},
+                                {"role", std::string("WRITE")}
+                            }
+                        }
+                       }
+                   }
+            }
+        };
+        bolt::PackStream ps;
+        ps.AppendSuccess(rt);
+        conn.Respond(std::move(ps.MutableBuffer()));
     } else if (msg == BoltMsg::Goodbye) {
         conn.Close();
     } else {

@@ -19,12 +19,31 @@
 #endif
 // @@protoc_insertion_point(includes)
 
+namespace protobuf_raft_5frequest_2eproto {
+extern PROTOBUF_INTERNAL_EXPORT_protobuf_raft_5frequest_2eproto ::google::protobuf::internal::SCCInfo<0> scc_info_NodeInfo;
+extern PROTOBUF_INTERNAL_EXPORT_protobuf_raft_5frequest_2eproto ::google::protobuf::internal::SCCInfo<1> scc_info_NodeInfos_NodesEntry_DoNotUse;
+}  // namespace protobuf_raft_5frequest_2eproto
 namespace bolt_raft {
 class RaftRequestDefaultTypeInternal {
  public:
   ::google::protobuf::internal::ExplicitlyConstructed<RaftRequest>
       _instance;
 } _RaftRequest_default_instance_;
+class NodeInfoDefaultTypeInternal {
+ public:
+  ::google::protobuf::internal::ExplicitlyConstructed<NodeInfo>
+      _instance;
+} _NodeInfo_default_instance_;
+class NodeInfos_NodesEntry_DoNotUseDefaultTypeInternal {
+ public:
+  ::google::protobuf::internal::ExplicitlyConstructed<NodeInfos_NodesEntry_DoNotUse>
+      _instance;
+} _NodeInfos_NodesEntry_DoNotUse_default_instance_;
+class NodeInfosDefaultTypeInternal {
+ public:
+  ::google::protobuf::internal::ExplicitlyConstructed<NodeInfos>
+      _instance;
+} _NodeInfos_default_instance_;
 }  // namespace bolt_raft
 namespace protobuf_raft_5frequest_2eproto {
 static void InitDefaultsRaftRequest() {
@@ -41,11 +60,57 @@ static void InitDefaultsRaftRequest() {
 ::google::protobuf::internal::SCCInfo<0> scc_info_RaftRequest =
     {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 0, InitDefaultsRaftRequest}, {}};
 
-void InitDefaults() {
-  ::google::protobuf::internal::InitSCC(&scc_info_RaftRequest.base);
+static void InitDefaultsNodeInfo() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::bolt_raft::_NodeInfo_default_instance_;
+    new (ptr) ::bolt_raft::NodeInfo();
+    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::bolt_raft::NodeInfo::InitAsDefaultInstance();
 }
 
-::google::protobuf::Metadata file_level_metadata[1];
+::google::protobuf::internal::SCCInfo<0> scc_info_NodeInfo =
+    {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 0, InitDefaultsNodeInfo}, {}};
+
+static void InitDefaultsNodeInfos_NodesEntry_DoNotUse() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::bolt_raft::_NodeInfos_NodesEntry_DoNotUse_default_instance_;
+    new (ptr) ::bolt_raft::NodeInfos_NodesEntry_DoNotUse();
+  }
+  ::bolt_raft::NodeInfos_NodesEntry_DoNotUse::InitAsDefaultInstance();
+}
+
+::google::protobuf::internal::SCCInfo<1> scc_info_NodeInfos_NodesEntry_DoNotUse =
+    {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 1, InitDefaultsNodeInfos_NodesEntry_DoNotUse}, {
+      &protobuf_raft_5frequest_2eproto::scc_info_NodeInfo.base,}};
+
+static void InitDefaultsNodeInfos() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::bolt_raft::_NodeInfos_default_instance_;
+    new (ptr) ::bolt_raft::NodeInfos();
+    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
+  }
+  ::bolt_raft::NodeInfos::InitAsDefaultInstance();
+}
+
+::google::protobuf::internal::SCCInfo<1> scc_info_NodeInfos =
+    {{ATOMIC_VAR_INIT(::google::protobuf::internal::SCCInfoBase::kUninitialized), 1, InitDefaultsNodeInfos}, {
+      &protobuf_raft_5frequest_2eproto::scc_info_NodeInfos_NodesEntry_DoNotUse.base,}};
+
+void InitDefaults() {
+  ::google::protobuf::internal::InitSCC(&scc_info_RaftRequest.base);
+  ::google::protobuf::internal::InitSCC(&scc_info_NodeInfo.base);
+  ::google::protobuf::internal::InitSCC(&scc_info_NodeInfos_NodesEntry_DoNotUse.base);
+  ::google::protobuf::internal::InitSCC(&scc_info_NodeInfos.base);
+}
+
+::google::protobuf::Metadata file_level_metadata[4];
 
 const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   ~0u,  // no _has_bits_
@@ -56,13 +121,44 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::RaftRequest, id_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::RaftRequest, user_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::RaftRequest, raw_data_),
+  ~0u,  // no _has_bits_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, node_id_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, ip_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, bolt_port_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, bolt_raft_port_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, is_leader_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfos_NodesEntry_DoNotUse, _has_bits_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfos_NodesEntry_DoNotUse, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfos_NodesEntry_DoNotUse, key_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfos_NodesEntry_DoNotUse, value_),
+  0,
+  1,
+  ~0u,  // no _has_bits_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfos, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfos, nodes_),
 };
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::bolt_raft::RaftRequest)},
+  { 8, -1, sizeof(::bolt_raft::NodeInfo)},
+  { 18, 25, sizeof(::bolt_raft::NodeInfos_NodesEntry_DoNotUse)},
+  { 27, -1, sizeof(::bolt_raft::NodeInfos)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
   reinterpret_cast<const ::google::protobuf::Message*>(&::bolt_raft::_RaftRequest_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::bolt_raft::_NodeInfo_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::bolt_raft::_NodeInfos_NodesEntry_DoNotUse_default_instance_),
+  reinterpret_cast<const ::google::protobuf::Message*>(&::bolt_raft::_NodeInfos_default_instance_),
 };
 
 void protobuf_AssignDescriptors() {
@@ -80,7 +176,7 @@ void protobuf_AssignDescriptorsOnce() {
 void protobuf_RegisterTypes(const ::std::string&) GOOGLE_PROTOBUF_ATTRIBUTE_COLD;
 void protobuf_RegisterTypes(const ::std::string&) {
   protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 1);
+  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 4);
 }
 
 void AddDescriptorsImpl() {
@@ -88,10 +184,16 @@ void AddDescriptorsImpl() {
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
       "\n\022raft_request.proto\022\tbolt_raft\"9\n\013RaftR"
       "equest\022\n\n\002id\030\001 \001(\004\022\014\n\004user\030\002 \001(\t\022\020\n\010raw_"
-      "data\030\003 \001(\014b\006proto3"
+      "data\030\003 \001(\014\"e\n\010NodeInfo\022\017\n\007node_id\030\001 \001(\004\022"
+      "\n\n\002ip\030\002 \001(\t\022\021\n\tbolt_port\030\003 \001(\005\022\026\n\016bolt_r"
+      "aft_port\030\004 \001(\005\022\021\n\tis_leader\030\005 \001(\010\"~\n\tNod"
+      "eInfos\022.\n\005nodes\030\001 \003(\0132\037.bolt_raft.NodeIn"
+      "fos.NodesEntry\032A\n\nNodesEntry\022\013\n\003key\030\001 \001("
+      "\004\022\"\n\005value\030\002 \001(\0132\023.bolt_raft.NodeInfo:\0028"
+      "\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 98);
+      descriptor, 329);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "raft_request.proto", &protobuf_RegisterTypes);
 }
@@ -436,12 +538,735 @@ void RaftRequest::InternalSwap(RaftRequest* other) {
 }
 
 
+// ===================================================================
+
+void NodeInfo::InitAsDefaultInstance() {
+}
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int NodeInfo::kNodeIdFieldNumber;
+const int NodeInfo::kIpFieldNumber;
+const int NodeInfo::kBoltPortFieldNumber;
+const int NodeInfo::kBoltRaftPortFieldNumber;
+const int NodeInfo::kIsLeaderFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+NodeInfo::NodeInfo()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  ::google::protobuf::internal::InitSCC(
+      &protobuf_raft_5frequest_2eproto::scc_info_NodeInfo.base);
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:bolt_raft.NodeInfo)
+}
+NodeInfo::NodeInfo(const NodeInfo& from)
+  : ::google::protobuf::Message(),
+      _internal_metadata_(NULL) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ip_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  if (from.ip().size() > 0) {
+    ip_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.ip_);
+  }
+  ::memcpy(&node_id_, &from.node_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&is_leader_) -
+    reinterpret_cast<char*>(&node_id_)) + sizeof(is_leader_));
+  // @@protoc_insertion_point(copy_constructor:bolt_raft.NodeInfo)
+}
+
+void NodeInfo::SharedCtor() {
+  ip_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  ::memset(&node_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&is_leader_) -
+      reinterpret_cast<char*>(&node_id_)) + sizeof(is_leader_));
+}
+
+NodeInfo::~NodeInfo() {
+  // @@protoc_insertion_point(destructor:bolt_raft.NodeInfo)
+  SharedDtor();
+}
+
+void NodeInfo::SharedDtor() {
+  ip_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+
+void NodeInfo::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const ::google::protobuf::Descriptor* NodeInfo::descriptor() {
+  ::protobuf_raft_5frequest_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_raft_5frequest_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
+}
+
+const NodeInfo& NodeInfo::default_instance() {
+  ::google::protobuf::internal::InitSCC(&protobuf_raft_5frequest_2eproto::scc_info_NodeInfo.base);
+  return *internal_default_instance();
+}
+
+
+void NodeInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:bolt_raft.NodeInfo)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ip_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  ::memset(&node_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&is_leader_) -
+      reinterpret_cast<char*>(&node_id_)) + sizeof(is_leader_));
+  _internal_metadata_.Clear();
+}
+
+bool NodeInfo::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:bolt_raft.NodeInfo)
+  for (;;) {
+    ::std::pair<::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // uint64 node_id = 1;
+      case 1: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(8u /* 8 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &node_id_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // string ip = 2;
+      case 2: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_ip()));
+          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            this->ip().data(), static_cast<int>(this->ip().length()),
+            ::google::protobuf::internal::WireFormatLite::PARSE,
+            "bolt_raft.NodeInfo.ip"));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // int32 bolt_port = 3;
+      case 3: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(24u /* 24 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &bolt_port_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // int32 bolt_raft_port = 4;
+      case 4: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(32u /* 32 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &bolt_raft_port_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      // bool is_leader = 5;
+      case 5: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(40u /* 40 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &is_leader_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, _internal_metadata_.mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:bolt_raft.NodeInfo)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:bolt_raft.NodeInfo)
+  return false;
+#undef DO_
+}
+
+void NodeInfo::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:bolt_raft.NodeInfo)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 node_id = 1;
+  if (this->node_id() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->node_id(), output);
+  }
+
+  // string ip = 2;
+  if (this->ip().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->ip().data(), static_cast<int>(this->ip().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "bolt_raft.NodeInfo.ip");
+    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
+      2, this->ip(), output);
+  }
+
+  // int32 bolt_port = 3;
+  if (this->bolt_port() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->bolt_port(), output);
+  }
+
+  // int32 bolt_raft_port = 4;
+  if (this->bolt_raft_port() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(4, this->bolt_raft_port(), output);
+  }
+
+  // bool is_leader = 5;
+  if (this->is_leader() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(5, this->is_leader(), output);
+  }
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
+  }
+  // @@protoc_insertion_point(serialize_end:bolt_raft.NodeInfo)
+}
+
+::google::protobuf::uint8* NodeInfo::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:bolt_raft.NodeInfo)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint64 node_id = 1;
+  if (this->node_id() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt64ToArray(1, this->node_id(), target);
+  }
+
+  // string ip = 2;
+  if (this->ip().size() > 0) {
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+      this->ip().data(), static_cast<int>(this->ip().length()),
+      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+      "bolt_raft.NodeInfo.ip");
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        2, this->ip(), target);
+  }
+
+  // int32 bolt_port = 3;
+  if (this->bolt_port() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->bolt_port(), target);
+  }
+
+  // int32 bolt_raft_port = 4;
+  if (this->bolt_raft_port() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(4, this->bolt_raft_port(), target);
+  }
+
+  // bool is_leader = 5;
+  if (this->is_leader() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(5, this->is_leader(), target);
+  }
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bolt_raft.NodeInfo)
+  return target;
+}
+
+size_t NodeInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:bolt_raft.NodeInfo)
+  size_t total_size = 0;
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
+  }
+  // string ip = 2;
+  if (this->ip().size() > 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::StringSize(
+        this->ip());
+  }
+
+  // uint64 node_id = 1;
+  if (this->node_id() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::UInt64Size(
+        this->node_id());
+  }
+
+  // int32 bolt_port = 3;
+  if (this->bolt_port() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int32Size(
+        this->bolt_port());
+  }
+
+  // int32 bolt_raft_port = 4;
+  if (this->bolt_raft_port() != 0) {
+    total_size += 1 +
+      ::google::protobuf::internal::WireFormatLite::Int32Size(
+        this->bolt_raft_port());
+  }
+
+  // bool is_leader = 5;
+  if (this->is_leader() != 0) {
+    total_size += 1 + 1;
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void NodeInfo::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:bolt_raft.NodeInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  const NodeInfo* source =
+      ::google::protobuf::internal::DynamicCastToGenerated<const NodeInfo>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:bolt_raft.NodeInfo)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:bolt_raft.NodeInfo)
+    MergeFrom(*source);
+  }
+}
+
+void NodeInfo::MergeFrom(const NodeInfo& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:bolt_raft.NodeInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.ip().size() > 0) {
+
+    ip_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.ip_);
+  }
+  if (from.node_id() != 0) {
+    set_node_id(from.node_id());
+  }
+  if (from.bolt_port() != 0) {
+    set_bolt_port(from.bolt_port());
+  }
+  if (from.bolt_raft_port() != 0) {
+    set_bolt_raft_port(from.bolt_raft_port());
+  }
+  if (from.is_leader() != 0) {
+    set_is_leader(from.is_leader());
+  }
+}
+
+void NodeInfo::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:bolt_raft.NodeInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void NodeInfo::CopyFrom(const NodeInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:bolt_raft.NodeInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool NodeInfo::IsInitialized() const {
+  return true;
+}
+
+void NodeInfo::Swap(NodeInfo* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void NodeInfo::InternalSwap(NodeInfo* other) {
+  using std::swap;
+  ip_.Swap(&other->ip_, &::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+    GetArenaNoVirtual());
+  swap(node_id_, other->node_id_);
+  swap(bolt_port_, other->bolt_port_);
+  swap(bolt_raft_port_, other->bolt_raft_port_);
+  swap(is_leader_, other->is_leader_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+}
+
+::google::protobuf::Metadata NodeInfo::GetMetadata() const {
+  protobuf_raft_5frequest_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_raft_5frequest_2eproto::file_level_metadata[kIndexInFileMessages];
+}
+
+
+// ===================================================================
+
+NodeInfos_NodesEntry_DoNotUse::NodeInfos_NodesEntry_DoNotUse() {}
+NodeInfos_NodesEntry_DoNotUse::NodeInfos_NodesEntry_DoNotUse(::google::protobuf::Arena* arena) : SuperType(arena) {}
+void NodeInfos_NodesEntry_DoNotUse::MergeFrom(const NodeInfos_NodesEntry_DoNotUse& other) {
+  MergeFromInternal(other);
+}
+::google::protobuf::Metadata NodeInfos_NodesEntry_DoNotUse::GetMetadata() const {
+  ::protobuf_raft_5frequest_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_raft_5frequest_2eproto::file_level_metadata[2];
+}
+void NodeInfos_NodesEntry_DoNotUse::MergeFrom(
+    const ::google::protobuf::Message& other) {
+  ::google::protobuf::Message::MergeFrom(other);
+}
+
+
+// ===================================================================
+
+void NodeInfos::InitAsDefaultInstance() {
+}
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+const int NodeInfos::kNodesFieldNumber;
+#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+
+NodeInfos::NodeInfos()
+  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
+  ::google::protobuf::internal::InitSCC(
+      &protobuf_raft_5frequest_2eproto::scc_info_NodeInfos.base);
+  SharedCtor();
+  // @@protoc_insertion_point(constructor:bolt_raft.NodeInfos)
+}
+NodeInfos::NodeInfos(const NodeInfos& from)
+  : ::google::protobuf::Message(),
+      _internal_metadata_(NULL) {
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  nodes_.MergeFrom(from.nodes_);
+  // @@protoc_insertion_point(copy_constructor:bolt_raft.NodeInfos)
+}
+
+void NodeInfos::SharedCtor() {
+}
+
+NodeInfos::~NodeInfos() {
+  // @@protoc_insertion_point(destructor:bolt_raft.NodeInfos)
+  SharedDtor();
+}
+
+void NodeInfos::SharedDtor() {
+}
+
+void NodeInfos::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const ::google::protobuf::Descriptor* NodeInfos::descriptor() {
+  ::protobuf_raft_5frequest_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_raft_5frequest_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
+}
+
+const NodeInfos& NodeInfos::default_instance() {
+  ::google::protobuf::internal::InitSCC(&protobuf_raft_5frequest_2eproto::scc_info_NodeInfos.base);
+  return *internal_default_instance();
+}
+
+
+void NodeInfos::Clear() {
+// @@protoc_insertion_point(message_clear_start:bolt_raft.NodeInfos)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  nodes_.Clear();
+  _internal_metadata_.Clear();
+}
+
+bool NodeInfos::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
+  ::google::protobuf::uint32 tag;
+  // @@protoc_insertion_point(parse_start:bolt_raft.NodeInfos)
+  for (;;) {
+    ::std::pair<::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
+    tag = p.first;
+    if (!p.second) goto handle_unusual;
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // map<uint64, .bolt_raft.NodeInfo> nodes = 1;
+      case 1: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(10u /* 10 & 0xFF */)) {
+          NodeInfos_NodesEntry_DoNotUse::Parser< ::google::protobuf::internal::MapField<
+              NodeInfos_NodesEntry_DoNotUse,
+              ::google::protobuf::uint64, ::bolt_raft::NodeInfo,
+              ::google::protobuf::internal::WireFormatLite::TYPE_UINT64,
+              ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
+              0 >,
+            ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo > > parser(&nodes_);
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+              input, &parser));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
+      default: {
+      handle_unusual:
+        if (tag == 0) {
+          goto success;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, _internal_metadata_.mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+success:
+  // @@protoc_insertion_point(parse_success:bolt_raft.NodeInfos)
+  return true;
+failure:
+  // @@protoc_insertion_point(parse_failure:bolt_raft.NodeInfos)
+  return false;
+#undef DO_
+}
+
+void NodeInfos::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // @@protoc_insertion_point(serialize_start:bolt_raft.NodeInfos)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // map<uint64, .bolt_raft.NodeInfo> nodes = 1;
+  if (!this->nodes().empty()) {
+    typedef ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::const_pointer
+        ConstPtr;
+    typedef ::google::protobuf::internal::SortItem< ::google::protobuf::uint64, ConstPtr > SortItem;
+    typedef ::google::protobuf::internal::CompareByFirstField<SortItem> Less;
+
+    if (output->IsSerializationDeterministic() &&
+        this->nodes().size() > 1) {
+      ::std::unique_ptr<SortItem[]> items(
+          new SortItem[this->nodes().size()]);
+      typedef ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::size_type size_type;
+      size_type n = 0;
+      for (::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::const_iterator
+          it = this->nodes().begin();
+          it != this->nodes().end(); ++it, ++n) {
+        items[static_cast<ptrdiff_t>(n)] = SortItem(&*it);
+      }
+      ::std::sort(&items[0], &items[static_cast<ptrdiff_t>(n)], Less());
+      ::std::unique_ptr<NodeInfos_NodesEntry_DoNotUse> entry;
+      for (size_type i = 0; i < n; i++) {
+        entry.reset(nodes_.NewEntryWrapper(
+            items[static_cast<ptrdiff_t>(i)].second->first, items[static_cast<ptrdiff_t>(i)].second->second));
+        ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+            1, *entry, output);
+      }
+    } else {
+      ::std::unique_ptr<NodeInfos_NodesEntry_DoNotUse> entry;
+      for (::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::const_iterator
+          it = this->nodes().begin();
+          it != this->nodes().end(); ++it) {
+        entry.reset(nodes_.NewEntryWrapper(
+            it->first, it->second));
+        ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+            1, *entry, output);
+      }
+    }
+  }
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
+  }
+  // @@protoc_insertion_point(serialize_end:bolt_raft.NodeInfos)
+}
+
+::google::protobuf::uint8* NodeInfos::InternalSerializeWithCachedSizesToArray(
+    bool deterministic, ::google::protobuf::uint8* target) const {
+  (void)deterministic; // Unused
+  // @@protoc_insertion_point(serialize_to_array_start:bolt_raft.NodeInfos)
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // map<uint64, .bolt_raft.NodeInfo> nodes = 1;
+  if (!this->nodes().empty()) {
+    typedef ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::const_pointer
+        ConstPtr;
+    typedef ::google::protobuf::internal::SortItem< ::google::protobuf::uint64, ConstPtr > SortItem;
+    typedef ::google::protobuf::internal::CompareByFirstField<SortItem> Less;
+
+    if (deterministic &&
+        this->nodes().size() > 1) {
+      ::std::unique_ptr<SortItem[]> items(
+          new SortItem[this->nodes().size()]);
+      typedef ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::size_type size_type;
+      size_type n = 0;
+      for (::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::const_iterator
+          it = this->nodes().begin();
+          it != this->nodes().end(); ++it, ++n) {
+        items[static_cast<ptrdiff_t>(n)] = SortItem(&*it);
+      }
+      ::std::sort(&items[0], &items[static_cast<ptrdiff_t>(n)], Less());
+      ::std::unique_ptr<NodeInfos_NodesEntry_DoNotUse> entry;
+      for (size_type i = 0; i < n; i++) {
+        entry.reset(nodes_.NewEntryWrapper(
+            items[static_cast<ptrdiff_t>(i)].second->first, items[static_cast<ptrdiff_t>(i)].second->second));
+        target = ::google::protobuf::internal::WireFormatLite::
+                   InternalWriteMessageNoVirtualToArray(
+                       1, *entry, deterministic, target);
+;
+      }
+    } else {
+      ::std::unique_ptr<NodeInfos_NodesEntry_DoNotUse> entry;
+      for (::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::const_iterator
+          it = this->nodes().begin();
+          it != this->nodes().end(); ++it) {
+        entry.reset(nodes_.NewEntryWrapper(
+            it->first, it->second));
+        target = ::google::protobuf::internal::WireFormatLite::
+                   InternalWriteMessageNoVirtualToArray(
+                       1, *entry, deterministic, target);
+;
+      }
+    }
+  }
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bolt_raft.NodeInfos)
+  return target;
+}
+
+size_t NodeInfos::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:bolt_raft.NodeInfos)
+  size_t total_size = 0;
+
+  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
+  }
+  // map<uint64, .bolt_raft.NodeInfo> nodes = 1;
+  total_size += 1 *
+      ::google::protobuf::internal::FromIntSize(this->nodes_size());
+  {
+    ::std::unique_ptr<NodeInfos_NodesEntry_DoNotUse> entry;
+    for (::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >::const_iterator
+        it = this->nodes().begin();
+        it != this->nodes().end(); ++it) {
+      entry.reset(nodes_.NewEntryWrapper(it->first, it->second));
+      total_size += ::google::protobuf::internal::WireFormatLite::
+          MessageSizeNoVirtual(*entry);
+    }
+  }
+
+  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void NodeInfos::MergeFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:bolt_raft.NodeInfos)
+  GOOGLE_DCHECK_NE(&from, this);
+  const NodeInfos* source =
+      ::google::protobuf::internal::DynamicCastToGenerated<const NodeInfos>(
+          &from);
+  if (source == NULL) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:bolt_raft.NodeInfos)
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:bolt_raft.NodeInfos)
+    MergeFrom(*source);
+  }
+}
+
+void NodeInfos::MergeFrom(const NodeInfos& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:bolt_raft.NodeInfos)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom(from._internal_metadata_);
+  ::google::protobuf::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  nodes_.MergeFrom(from.nodes_);
+}
+
+void NodeInfos::CopyFrom(const ::google::protobuf::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:bolt_raft.NodeInfos)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void NodeInfos::CopyFrom(const NodeInfos& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:bolt_raft.NodeInfos)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool NodeInfos::IsInitialized() const {
+  return true;
+}
+
+void NodeInfos::Swap(NodeInfos* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void NodeInfos::InternalSwap(NodeInfos* other) {
+  using std::swap;
+  nodes_.Swap(&other->nodes_);
+  _internal_metadata_.Swap(&other->_internal_metadata_);
+}
+
+::google::protobuf::Metadata NodeInfos::GetMetadata() const {
+  protobuf_raft_5frequest_2eproto::protobuf_AssignDescriptorsOnce();
+  return ::protobuf_raft_5frequest_2eproto::file_level_metadata[kIndexInFileMessages];
+}
+
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace bolt_raft
 namespace google {
 namespace protobuf {
 template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::bolt_raft::RaftRequest* Arena::CreateMaybeMessage< ::bolt_raft::RaftRequest >(Arena* arena) {
   return Arena::CreateInternal< ::bolt_raft::RaftRequest >(arena);
+}
+template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::bolt_raft::NodeInfo* Arena::CreateMaybeMessage< ::bolt_raft::NodeInfo >(Arena* arena) {
+  return Arena::CreateInternal< ::bolt_raft::NodeInfo >(arena);
+}
+template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::bolt_raft::NodeInfos_NodesEntry_DoNotUse* Arena::CreateMaybeMessage< ::bolt_raft::NodeInfos_NodesEntry_DoNotUse >(Arena* arena) {
+  return Arena::CreateInternal< ::bolt_raft::NodeInfos_NodesEntry_DoNotUse >(arena);
+}
+template<> GOOGLE_PROTOBUF_ATTRIBUTE_NOINLINE ::bolt_raft::NodeInfos* Arena::CreateMaybeMessage< ::bolt_raft::NodeInfos >(Arena* arena) {
+  return Arena::CreateInternal< ::bolt_raft::NodeInfos >(arena);
 }
 }  // namespace protobuf
 }  // namespace google

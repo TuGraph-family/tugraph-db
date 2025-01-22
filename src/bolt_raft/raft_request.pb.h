@@ -29,6 +29,9 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
+#include <google/protobuf/map.h>  // IWYU pragma: export
+#include <google/protobuf/map_entry.h>
+#include <google/protobuf/map_field_inl.h>
 #include <google/protobuf/unknown_field_set.h>
 // @@protoc_insertion_point(includes)
 #define PROTOBUF_INTERNAL_EXPORT_protobuf_raft_5frequest_2eproto 
@@ -38,7 +41,7 @@ namespace protobuf_raft_5frequest_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[1];
+  static const ::google::protobuf::internal::ParseTable schema[4];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -46,12 +49,24 @@ struct TableStruct {
 void AddDescriptors();
 }  // namespace protobuf_raft_5frequest_2eproto
 namespace bolt_raft {
+class NodeInfo;
+class NodeInfoDefaultTypeInternal;
+extern NodeInfoDefaultTypeInternal _NodeInfo_default_instance_;
+class NodeInfos;
+class NodeInfosDefaultTypeInternal;
+extern NodeInfosDefaultTypeInternal _NodeInfos_default_instance_;
+class NodeInfos_NodesEntry_DoNotUse;
+class NodeInfos_NodesEntry_DoNotUseDefaultTypeInternal;
+extern NodeInfos_NodesEntry_DoNotUseDefaultTypeInternal _NodeInfos_NodesEntry_DoNotUse_default_instance_;
 class RaftRequest;
 class RaftRequestDefaultTypeInternal;
 extern RaftRequestDefaultTypeInternal _RaftRequest_default_instance_;
 }  // namespace bolt_raft
 namespace google {
 namespace protobuf {
+template<> ::bolt_raft::NodeInfo* Arena::CreateMaybeMessage<::bolt_raft::NodeInfo>(Arena*);
+template<> ::bolt_raft::NodeInfos* Arena::CreateMaybeMessage<::bolt_raft::NodeInfos>(Arena*);
+template<> ::bolt_raft::NodeInfos_NodesEntry_DoNotUse* Arena::CreateMaybeMessage<::bolt_raft::NodeInfos_NodesEntry_DoNotUse>(Arena*);
 template<> ::bolt_raft::RaftRequest* Arena::CreateMaybeMessage<::bolt_raft::RaftRequest>(Arena*);
 }  // namespace protobuf
 }  // namespace google
@@ -190,6 +205,278 @@ class RaftRequest : public ::google::protobuf::Message /* @@protoc_insertion_poi
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_raft_5frequest_2eproto::TableStruct;
 };
+// -------------------------------------------------------------------
+
+class NodeInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:bolt_raft.NodeInfo) */ {
+ public:
+  NodeInfo();
+  virtual ~NodeInfo();
+
+  NodeInfo(const NodeInfo& from);
+
+  inline NodeInfo& operator=(const NodeInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  NodeInfo(NodeInfo&& from) noexcept
+    : NodeInfo() {
+    *this = ::std::move(from);
+  }
+
+  inline NodeInfo& operator=(NodeInfo&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const NodeInfo& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const NodeInfo* internal_default_instance() {
+    return reinterpret_cast<const NodeInfo*>(
+               &_NodeInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    1;
+
+  void Swap(NodeInfo* other);
+  friend void swap(NodeInfo& a, NodeInfo& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline NodeInfo* New() const final {
+    return CreateMaybeMessage<NodeInfo>(NULL);
+  }
+
+  NodeInfo* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<NodeInfo>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const NodeInfo& from);
+  void MergeFrom(const NodeInfo& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(NodeInfo* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // string ip = 2;
+  void clear_ip();
+  static const int kIpFieldNumber = 2;
+  const ::std::string& ip() const;
+  void set_ip(const ::std::string& value);
+  #if LANG_CXX11
+  void set_ip(::std::string&& value);
+  #endif
+  void set_ip(const char* value);
+  void set_ip(const char* value, size_t size);
+  ::std::string* mutable_ip();
+  ::std::string* release_ip();
+  void set_allocated_ip(::std::string* ip);
+
+  // uint64 node_id = 1;
+  void clear_node_id();
+  static const int kNodeIdFieldNumber = 1;
+  ::google::protobuf::uint64 node_id() const;
+  void set_node_id(::google::protobuf::uint64 value);
+
+  // int32 bolt_port = 3;
+  void clear_bolt_port();
+  static const int kBoltPortFieldNumber = 3;
+  ::google::protobuf::int32 bolt_port() const;
+  void set_bolt_port(::google::protobuf::int32 value);
+
+  // int32 bolt_raft_port = 4;
+  void clear_bolt_raft_port();
+  static const int kBoltRaftPortFieldNumber = 4;
+  ::google::protobuf::int32 bolt_raft_port() const;
+  void set_bolt_raft_port(::google::protobuf::int32 value);
+
+  // bool is_leader = 5;
+  void clear_is_leader();
+  static const int kIsLeaderFieldNumber = 5;
+  bool is_leader() const;
+  void set_is_leader(bool value);
+
+  // @@protoc_insertion_point(class_scope:bolt_raft.NodeInfo)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::ArenaStringPtr ip_;
+  ::google::protobuf::uint64 node_id_;
+  ::google::protobuf::int32 bolt_port_;
+  ::google::protobuf::int32 bolt_raft_port_;
+  bool is_leader_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  friend struct ::protobuf_raft_5frequest_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
+class NodeInfos_NodesEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<NodeInfos_NodesEntry_DoNotUse, 
+    ::google::protobuf::uint64, ::bolt_raft::NodeInfo,
+    ::google::protobuf::internal::WireFormatLite::TYPE_UINT64,
+    ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
+    0 > {
+public:
+  typedef ::google::protobuf::internal::MapEntry<NodeInfos_NodesEntry_DoNotUse, 
+    ::google::protobuf::uint64, ::bolt_raft::NodeInfo,
+    ::google::protobuf::internal::WireFormatLite::TYPE_UINT64,
+    ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
+    0 > SuperType;
+  NodeInfos_NodesEntry_DoNotUse();
+  NodeInfos_NodesEntry_DoNotUse(::google::protobuf::Arena* arena);
+  void MergeFrom(const NodeInfos_NodesEntry_DoNotUse& other);
+  static const NodeInfos_NodesEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const NodeInfos_NodesEntry_DoNotUse*>(&_NodeInfos_NodesEntry_DoNotUse_default_instance_); }
+  void MergeFrom(const ::google::protobuf::Message& other) final;
+  ::google::protobuf::Metadata GetMetadata() const;
+};
+
+// -------------------------------------------------------------------
+
+class NodeInfos : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:bolt_raft.NodeInfos) */ {
+ public:
+  NodeInfos();
+  virtual ~NodeInfos();
+
+  NodeInfos(const NodeInfos& from);
+
+  inline NodeInfos& operator=(const NodeInfos& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  NodeInfos(NodeInfos&& from) noexcept
+    : NodeInfos() {
+    *this = ::std::move(from);
+  }
+
+  inline NodeInfos& operator=(NodeInfos&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const NodeInfos& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const NodeInfos* internal_default_instance() {
+    return reinterpret_cast<const NodeInfos*>(
+               &_NodeInfos_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  void Swap(NodeInfos* other);
+  friend void swap(NodeInfos& a, NodeInfos& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline NodeInfos* New() const final {
+    return CreateMaybeMessage<NodeInfos>(NULL);
+  }
+
+  NodeInfos* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<NodeInfos>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const NodeInfos& from);
+  void MergeFrom(const NodeInfos& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(NodeInfos* other);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return NULL;
+  }
+  inline void* MaybeArenaPtr() const {
+    return NULL;
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+
+  // accessors -------------------------------------------------------
+
+  // map<uint64, .bolt_raft.NodeInfo> nodes = 1;
+  int nodes_size() const;
+  void clear_nodes();
+  static const int kNodesFieldNumber = 1;
+  const ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >&
+      nodes() const;
+  ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >*
+      mutable_nodes();
+
+  // @@protoc_insertion_point(class_scope:bolt_raft.NodeInfos)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::internal::MapField<
+      NodeInfos_NodesEntry_DoNotUse,
+      ::google::protobuf::uint64, ::bolt_raft::NodeInfo,
+      ::google::protobuf::internal::WireFormatLite::TYPE_UINT64,
+      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
+      0 > nodes_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  friend struct ::protobuf_raft_5frequest_2eproto::TableStruct;
+};
 // ===================================================================
 
 
@@ -321,9 +608,152 @@ inline void RaftRequest::set_allocated_raw_data(::std::string* raw_data) {
   // @@protoc_insertion_point(field_set_allocated:bolt_raft.RaftRequest.raw_data)
 }
 
+// -------------------------------------------------------------------
+
+// NodeInfo
+
+// uint64 node_id = 1;
+inline void NodeInfo::clear_node_id() {
+  node_id_ = GOOGLE_ULONGLONG(0);
+}
+inline ::google::protobuf::uint64 NodeInfo::node_id() const {
+  // @@protoc_insertion_point(field_get:bolt_raft.NodeInfo.node_id)
+  return node_id_;
+}
+inline void NodeInfo::set_node_id(::google::protobuf::uint64 value) {
+  
+  node_id_ = value;
+  // @@protoc_insertion_point(field_set:bolt_raft.NodeInfo.node_id)
+}
+
+// string ip = 2;
+inline void NodeInfo::clear_ip() {
+  ip_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline const ::std::string& NodeInfo::ip() const {
+  // @@protoc_insertion_point(field_get:bolt_raft.NodeInfo.ip)
+  return ip_.GetNoArena();
+}
+inline void NodeInfo::set_ip(const ::std::string& value) {
+  
+  ip_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+  // @@protoc_insertion_point(field_set:bolt_raft.NodeInfo.ip)
+}
+#if LANG_CXX11
+inline void NodeInfo::set_ip(::std::string&& value) {
+  
+  ip_.SetNoArena(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
+  // @@protoc_insertion_point(field_set_rvalue:bolt_raft.NodeInfo.ip)
+}
+#endif
+inline void NodeInfo::set_ip(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  ip_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:bolt_raft.NodeInfo.ip)
+}
+inline void NodeInfo::set_ip(const char* value, size_t size) {
+  
+  ip_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      ::std::string(reinterpret_cast<const char*>(value), size));
+  // @@protoc_insertion_point(field_set_pointer:bolt_raft.NodeInfo.ip)
+}
+inline ::std::string* NodeInfo::mutable_ip() {
+  
+  // @@protoc_insertion_point(field_mutable:bolt_raft.NodeInfo.ip)
+  return ip_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline ::std::string* NodeInfo::release_ip() {
+  // @@protoc_insertion_point(field_release:bolt_raft.NodeInfo.ip)
+  
+  return ip_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+}
+inline void NodeInfo::set_allocated_ip(::std::string* ip) {
+  if (ip != NULL) {
+    
+  } else {
+    
+  }
+  ip_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ip);
+  // @@protoc_insertion_point(field_set_allocated:bolt_raft.NodeInfo.ip)
+}
+
+// int32 bolt_port = 3;
+inline void NodeInfo::clear_bolt_port() {
+  bolt_port_ = 0;
+}
+inline ::google::protobuf::int32 NodeInfo::bolt_port() const {
+  // @@protoc_insertion_point(field_get:bolt_raft.NodeInfo.bolt_port)
+  return bolt_port_;
+}
+inline void NodeInfo::set_bolt_port(::google::protobuf::int32 value) {
+  
+  bolt_port_ = value;
+  // @@protoc_insertion_point(field_set:bolt_raft.NodeInfo.bolt_port)
+}
+
+// int32 bolt_raft_port = 4;
+inline void NodeInfo::clear_bolt_raft_port() {
+  bolt_raft_port_ = 0;
+}
+inline ::google::protobuf::int32 NodeInfo::bolt_raft_port() const {
+  // @@protoc_insertion_point(field_get:bolt_raft.NodeInfo.bolt_raft_port)
+  return bolt_raft_port_;
+}
+inline void NodeInfo::set_bolt_raft_port(::google::protobuf::int32 value) {
+  
+  bolt_raft_port_ = value;
+  // @@protoc_insertion_point(field_set:bolt_raft.NodeInfo.bolt_raft_port)
+}
+
+// bool is_leader = 5;
+inline void NodeInfo::clear_is_leader() {
+  is_leader_ = false;
+}
+inline bool NodeInfo::is_leader() const {
+  // @@protoc_insertion_point(field_get:bolt_raft.NodeInfo.is_leader)
+  return is_leader_;
+}
+inline void NodeInfo::set_is_leader(bool value) {
+  
+  is_leader_ = value;
+  // @@protoc_insertion_point(field_set:bolt_raft.NodeInfo.is_leader)
+}
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// NodeInfos
+
+// map<uint64, .bolt_raft.NodeInfo> nodes = 1;
+inline int NodeInfos::nodes_size() const {
+  return nodes_.size();
+}
+inline void NodeInfos::clear_nodes() {
+  nodes_.Clear();
+}
+inline const ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >&
+NodeInfos::nodes() const {
+  // @@protoc_insertion_point(field_map:bolt_raft.NodeInfos.nodes)
+  return nodes_.GetMap();
+}
+inline ::google::protobuf::Map< ::google::protobuf::uint64, ::bolt_raft::NodeInfo >*
+NodeInfos::mutable_nodes() {
+  // @@protoc_insertion_point(field_mutable_map:bolt_raft.NodeInfos.nodes)
+  return nodes_.MutableMap();
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 
 // @@protoc_insertion_point(namespace_scope)
 

@@ -9,10 +9,6 @@ void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request);
 }
 
 namespace bolt_raft {
-std::shared_ptr<PromiseContext> BoltRaftServer::Propose(const RaftRequest& request) {
-    return raft_driver_->Propose(request.SerializeAsString());
-}
-
 bool BoltRaftServer::Start(int port, uint64_t node_id, std::string init_peers) {
     std::promise<bool> promise;
     std::future<bool> future = promise.get_future();
@@ -23,13 +19,16 @@ bool BoltRaftServer::Start(int port, uint64_t node_id, std::string init_peers) {
             auto cluster = nlohmann::json::parse(init_peers);
             for (const auto& item : cluster) {
                 eraft::Peer peer;
-                peer.id_ = item["node_id"].get<int64_t>();
-                peer.context_ = item.dump();
+                NodeInfo node_info;
+                node_info.set_node_id(item["bolt_raft_node_id"].get<uint64_t>());
+                node_info.set_ip(item["ip"].get<std::string>());
+                node_info.set_bolt_port(item["bolt_port"].get<int32_t>());
+                node_info.set_bolt_raft_port(item["bolt_raft_port"].get<int32_t>());
+                node_info.set_is_leader(false);
+                peer.id_ = node_info.node_id();
+                peer.context_ = node_info.SerializeAsString();
                 peers.emplace_back(std::move(peer));
             }
-            id_generator_ = std::make_shared<Generator>(
-                node_id,std::chrono::duration_cast<std::chrono::milliseconds>(
-                             std::chrono::steady_clock::now().time_since_epoch()).count());
             raft_driver_ = std::make_unique<RaftDriver> (
                 bolt::ApplyRaftRequest,
                 0,

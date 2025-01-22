@@ -22,8 +22,8 @@ std::string raft_confstate_key() {
     return "confState";
 }
 
-std::string raft_nodesinfo_key() {
-    return "nodesInfo";
+std::string raft_nodeinfos_key() {
+    return "nodeInfos";
 }
 
 bool RaftLogStorage::Init() {
@@ -126,23 +126,21 @@ eraft::Error RaftLogStorage::SetConfState(const raftpb::ConfState& hs, rocksdb::
     return nullptr;
 }
 
-eraft::Error RaftLogStorage::SetNodesInfo(const std::string& info, rocksdb::WriteBatch &batch) {
+eraft::Error RaftLogStorage::SetNodeInfos(const std::string& info, rocksdb::WriteBatch &batch) {
     std::string val;
-    std::string key = raft_nodesinfo_key();
+    std::string key = raft_nodeinfos_key();
     batch.Put(meta_cf_, key, info);
     return nullptr;
 }
 
-std::string RaftLogStorage::GetNodesInfo() {
-    std::string ret;
-    std::string key = raft_nodesinfo_key();
+std::optional<std::string> RaftLogStorage::GetNodeInfos() {
+    std::optional<std::string> ret;
     std::string val;
+    std::string key = raft_nodeinfos_key();
     auto s = db_->Get(rocksdb::ReadOptions(), meta_cf_, key, &val);
     if (s.ok()) {
         ret = val;
-    } else if (s.IsNotFound()) {
-        ret = "[]";
-    } else {
+    } else if (!s.IsNotFound()) {
         LOG_FATAL() << FMA_FMT("Failed to get nodes info: {}", s.ToString());
     }
     return ret;

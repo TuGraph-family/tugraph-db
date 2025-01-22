@@ -23,8 +23,8 @@ public:
     bool Init();
     eraft::Error SetHardState(const raftpb::HardState& hs, rocksdb::WriteBatch &batch);
     eraft::Error SetConfState(const raftpb::ConfState& hs, rocksdb::WriteBatch &batch);
-    eraft::Error SetNodesInfo(const std::string& info, rocksdb::WriteBatch &batch);
-    std::string GetNodesInfo();
+    eraft::Error SetNodeInfos(const std::string& info, rocksdb::WriteBatch &batch);
+    std::optional<std::string> GetNodeInfos();
     eraft::Error SetApplyIndex(uint64_t apply_index, rocksdb::WriteBatch &batch);
     uint64_t GetApplyIndex();
     eraft::Error Append(std::vector<raftpb::Entry> entries, rocksdb::WriteBatch &batch);
