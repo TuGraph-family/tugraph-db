@@ -8,7 +8,7 @@
 #include "tools/json.hpp"
 #include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
-#include "raft_request.pb.h"
+#include "bolt_raft.pb.h"
 
 using boost::asio::async_write;
 using boost::asio::ip::tcp;

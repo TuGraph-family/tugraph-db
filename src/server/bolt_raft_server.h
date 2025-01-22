@@ -2,7 +2,7 @@
 #include <shared_mutex>
 #include "fma-common/type_traits.h"
 #include "bolt_raft/raft_driver.h"
-#include "bolt_raft/raft_request.pb.h"
+#include "bolt_raft/bolt_raft.pb.h"
 
 namespace bolt_raft {
 class BoltRaftServer final {

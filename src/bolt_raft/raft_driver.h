@@ -3,7 +3,7 @@
 #include <boost/asio.hpp>
 #include <utility>
 #include "raft_log_store.h"
-#include "bolt_raft/raft_request.pb.h"
+#include "bolt_raft/bolt_raft.pb.h"
 namespace bolt_raft {
 using namespace boost::asio::ip;
 class NodeClient : public std::enable_shared_from_this<NodeClient> {
