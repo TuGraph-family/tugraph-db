@@ -87,6 +87,7 @@ struct BasicConfigs {
     int bolt_raft_port = 0;
     uint64_t bolt_raft_node_id = 0;
     std::string bolt_raft_init_peers;
+    std::string bolt_raft_log_path = "raftlog";
     // default disable plugin load/delete
     bool enable_plugin = false;
     BrowserOptions browser_options;

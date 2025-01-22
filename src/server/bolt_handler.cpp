@@ -27,8 +27,6 @@
 
 using namespace lgraph_api;
 namespace bolt {
-extern boost::asio::io_service workers;
-
 geax::frontend::Expr* ConvertParameters(geax::common::ObjectArenaAllocator &obj_alloc_,
                                         std::any data) {
     geax::frontend::Expr* ret;

@@ -101,7 +101,6 @@ private:
     boost::asio::deadline_timer tick_timer_;
     std::shared_ptr<eraft::RawNode> rn_;
     std::shared_ptr<RaftLogStorage> storage_;
-    uint64_t lead_ = eraft::None;
     bool advance_ = false;
     std::shared_mutex node_infos_mutex_;
     NodeInfos node_infos_;

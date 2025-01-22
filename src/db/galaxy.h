@@ -266,6 +266,7 @@ class Galaxy {
                       const std::vector<std::string>& roles);
 
     void UpdateBoltRaftApplyIndex(uint64_t index);
+    uint64_t GetBoltRaftApplyIndex();
 
  private:
     // load config from db

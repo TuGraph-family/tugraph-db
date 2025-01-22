@@ -158,11 +158,12 @@ void NodeClient::Connect() {
 }
 
 std::string MessageToNetString(const google::protobuf::Message& msg) {
+    uint32_t msg_size = msg.ByteSizeLong();
     std::string str;
+    str.reserve(msg_size + sizeof(uint32_t));
+    boost::endian::native_to_big_inplace(msg_size);
+    str.append(reinterpret_cast<const char*>(&msg_size), sizeof(msg_size));
     msg.SerializeToString(&str);
-    uint32_t size = str.size();
-    boost::endian::native_to_big_inplace(size);
-    str.insert(0, (const char*)&size, sizeof(size));
     return str;
 }
 
@@ -255,13 +256,6 @@ eraft::Error RaftDriver::Run() {
         }
     }
     Tick();
-    /*tick_timer_.async_wait([this](const boost::system::error_code& ec) {
-        if (ec) {
-            LOG_WARN() << FMA_FMT("tick_timer async_wait error: {}", ec.message().c_str());
-            return;
-        }
-        Tick();
-    });*/
     return {};
 }
 

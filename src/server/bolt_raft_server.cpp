@@ -4,15 +4,18 @@
 #include "bolt_raft/connection.h"
 #include "tools/json.hpp"
 #include "tools/lgraph_log.h"
+#include "db/galaxy.h"
 namespace bolt {
 void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request);
 }
 
 namespace bolt_raft {
-bool BoltRaftServer::Start(int port, uint64_t node_id, std::string init_peers) {
+bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
+                           const std::string& init_peers, const std::string& log_path) {
+    sm_ = sm;
     std::promise<bool> promise;
     std::future<bool> future = promise.get_future();
-    threads_.emplace_back([this, port, node_id, init_peers, &promise]() {
+    threads_.emplace_back([this, port, node_id, init_peers, log_path, &promise]() {
         bool promise_done = false;
         try {
             std::vector<eraft::Peer> peers;
@@ -29,15 +32,18 @@ bool BoltRaftServer::Start(int port, uint64_t node_id, std::string init_peers) {
                 peer.context_ = node_info.SerializeAsString();
                 peers.emplace_back(std::move(peer));
             }
+            auto apply_index = sm_->GetGalaxy()->GetBoltRaftApplyIndex();
+            LOG_INFO() << "read apply index from metadb, apply index: " << apply_index;
             raft_driver_ = std::make_unique<RaftDriver> (
                 bolt::ApplyRaftRequest,
-                0,
+                apply_index,
                 node_id,
                 peers,
-                "raftlog");
+                log_path);
             auto err = raft_driver_->Run();
             if (err != nullptr) {
                 LOG_ERROR() << "raft driver failed to run, error: " << err.String();
+                promise.set_value(false);
                 return;
             }
             protobuf_handler_ = [this](raftpb::Message rpc_msg) {

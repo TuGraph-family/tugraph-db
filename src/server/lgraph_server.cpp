@@ -321,8 +321,10 @@ int LGraphServer::Start() {
                 return -1;
             }
             if (config_->bolt_raft_port > 0) {
-                if (!bolt_raft::BoltRaftServer::Instance().Start(config_->bolt_raft_port,
-                    config_->bolt_raft_node_id, config_->bolt_raft_init_peers)) {
+                if (!bolt_raft::BoltRaftServer::Instance().Start(
+                        state_machine_.get(), config_->bolt_raft_port,
+                        config_->bolt_raft_node_id,config_->bolt_raft_init_peers,
+                        config_->bolt_raft_log_path)) {
                     return -1;
                 }
             }

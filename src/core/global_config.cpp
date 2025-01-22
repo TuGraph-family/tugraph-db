@@ -350,5 +350,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     .Comment("Bolt raft node id.");
     argparser.Add(bolt_raft_init_peers, "bolt_raft_init_peers", true)
     .Comment("Bolt raft initial member information.");
+    argparser.Add(bolt_raft_log_path, "bolt_raft_log_path", true)
+        .Comment("Bolt raft log path.");
     return argparser;
 }
