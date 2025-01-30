@@ -446,6 +446,8 @@ BoltHandler =
                    }
             }
         };
+        LOG_DEBUG() << FMA_FMT("bolt route table: [db:{}, ROUTE:{}, READ:{}, WRITE:{}]",
+                               db, router, reader, writer);
         bolt::PackStream ps;
         ps.AppendSuccess(rt);
         conn.Respond(std::move(ps.MutableBuffer()));

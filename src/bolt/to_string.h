@@ -27,7 +27,7 @@ namespace detail {
 nlohmann::json ToJsonObj(const bolt::Node& node);
 nlohmann::json ToJsonObj(const bolt::Relationship& rel);
 nlohmann::json ToJsonObj(const bolt::Path& path);
-nlohmann::json ToJsonObj(const std::any& item) {
+inline nlohmann::json ToJsonObj(const std::any& item) {
     if (!item.has_value()) {
         return nullptr;
     }
@@ -82,7 +82,7 @@ nlohmann::json ToJsonObj(const std::any& item) {
     }
 }
 
-nlohmann::json ToJsonObj(const bolt::Node& node) {
+inline nlohmann::json ToJsonObj(const bolt::Node& node) {
     std::string ret("(");
     for (auto& label : node.labels) {
         ret.append(":").append(label);
@@ -102,7 +102,7 @@ nlohmann::json ToJsonObj(const bolt::Node& node) {
     return ret;
 }
 
-nlohmann::json ToJsonObj(const bolt::Relationship& rel) {
+inline nlohmann::json ToJsonObj(const bolt::Relationship& rel) {
     std::string ret;
     ret.append("[:").append(rel.type).append(" {");
     int count = 0;
@@ -119,7 +119,7 @@ nlohmann::json ToJsonObj(const bolt::Relationship& rel) {
     return ret;
 }
 
-nlohmann::json ToJsonObj(const bolt::Path& path) {
+inline nlohmann::json ToJsonObj(const bolt::Path& path) {
     std::unordered_map<int64_t, size_t> nodes_index;
     for (size_t i = 0; i < path.nodes.size(); i++) {
         nodes_index[path.nodes[i].id] = i;
@@ -140,7 +140,7 @@ nlohmann::json ToJsonObj(const bolt::Path& path) {
 }
 }  // namespace detail
 
-std::string Print(const std::any& boltType) {
+inline std::string Print(const std::any& boltType) {
     auto j = detail::ToJsonObj(boltType);
     if (j.is_string()) {
         return j.get<std::string>();
@@ -149,7 +149,7 @@ std::string Print(const std::any& boltType) {
     }
 }
 
-nlohmann::json ToJson(const std::any& boltType) {
+inline nlohmann::json ToJson(const std::any& boltType) {
     return detail::ToJsonObj(boltType);
 }
 
