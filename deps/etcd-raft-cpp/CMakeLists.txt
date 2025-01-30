@@ -38,12 +38,3 @@ target_link_libraries(all_test
     pthread
 )
 
-add_executable(kvstore
-        kvstore/kv_store.cpp
-        raftpb/raft.pb.cc
-        kvstore/raft_log_store.cpp
-        kvstore/raft_driver.cpp
-        kvstore/logger.cpp
-)
-
-target_link_libraries(kvstore rocksdb.a lz4.a zstd.a protobuf.a gflags.a spdlog.a boost_thread.a pthread)
