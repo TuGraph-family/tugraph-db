@@ -83,14 +83,13 @@ public:
 private:
    std::shared_ptr<PromiseContext> PostMessage(uint64_t uuid, raftpb::Message msg);
     void Tick();
-    void Advance();
     void CheckReady();
-    void OnReady(eraft::Ready ready);
+    void Apply(std::vector<raftpb::Entry> entries);
 
     std::vector<std::thread> threads_;
     boost::asio::io_service raft_service_;
     boost::asio::io_service tick_service_;
-    boost::asio::io_service ready_service_;
+    boost::asio::io_service apply_service_;
     boost::asio::io_service client_service_;
     std::function<void (uint64_t, const RaftRequest&)> apply_;
     uint64_t apply_id_;
@@ -101,7 +100,6 @@ private:
     boost::asio::deadline_timer tick_timer_;
     std::shared_ptr<eraft::RawNode> rn_;
     std::shared_ptr<RaftLogStorage> storage_;
-    bool advance_ = false;
     std::shared_mutex node_infos_mutex_;
     NodeInfos node_infos_;
     std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
