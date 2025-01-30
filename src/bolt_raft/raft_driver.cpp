@@ -194,7 +194,7 @@ RaftDriver::RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> 
         tick_service_.run();
     });
     threads_.emplace_back([this]() {
-        pthread_setname_np(pthread_self(), "ready_service");
+        pthread_setname_np(pthread_self(), "apply_service");
         boost::asio::io_service::work holder(apply_service_);
         apply_service_.run();
     });
@@ -347,7 +347,7 @@ NodeInfos RaftDriver::GetNodeInfosWithLeader() {
     });
     auto leader = future.get();
 
-    std::shared_lock<std::shared_mutex> lock(node_infos_mutex_);
+    std::shared_lock<std::shared_mutex> lock(nodes_mutex_);
     NodeInfos ret = node_infos_;
     if (ret.nodes().count(leader)) {
         ret.mutable_nodes()->at(leader).set_is_leader(true);
@@ -375,12 +375,15 @@ void RaftDriver::CheckReady() {
         LOG_FATAL() << "Snapshot should be empty";
     }
     storage_->WriteBatch(batch);
-    for (const auto& msg : ready.messages_) {
-        auto iter = node_clients_.find(msg.to());
-        if (iter != node_clients_.end()) {
-            iter->second->Send(MessageToNetString(msg));
-        } else {
-            LOG_WARN() << FMA_FMT("send msg, but peer client id {} not exists", msg.to());
+    {
+        std::shared_lock<std::shared_mutex> lock(nodes_mutex_);
+        for (const auto& msg : ready.messages_) {
+            auto iter = node_clients_.find(msg.to());
+            if (iter != node_clients_.end()) {
+                iter->second->Send(MessageToNetString(msg));
+            } else {
+                LOG_WARN() << FMA_FMT("send msg, but peer client id {} not exists", msg.to());
+            }
         }
     }
     if (!eraft::IsEmptySnap(ready.snapshot_)) {
@@ -438,7 +441,7 @@ void RaftDriver::Apply(std::vector<raftpb::Entry> entries) {
                         } else {
                             LOG_INFO() << FMA_FMT("Add learner: {}", node_info.ShortDebugString());
                         }
-                        std::unique_lock<std::shared_mutex> lock(node_infos_mutex_);
+                        std::unique_lock<std::shared_mutex> lock(nodes_mutex_);
                         if (!node_infos_.nodes().count(node_info.node_id())) {
                             node_infos_.mutable_nodes()->insert({node_info.node_id(), node_info});
                             auto client = std::make_shared<NodeClient>(client_service_, node_info.ip(), node_info.bolt_raft_port());
@@ -451,7 +454,7 @@ void RaftDriver::Apply(std::vector<raftpb::Entry> entries) {
                     }
                 case  raftpb::ConfChangeType::ConfChangeRemoveNode: {
                         LOG_INFO() << FMA_FMT("Remove node: {}", node_info.node_id());
-                        std::unique_lock<std::shared_mutex> lock(node_infos_mutex_);
+                        std::unique_lock<std::shared_mutex> lock(nodes_mutex_);
                         if (node_infos_.nodes().count(node_info.node_id())) {
                             node_clients_.at(node_info.node_id())->Close();
                             node_clients_.erase(node_info.node_id());

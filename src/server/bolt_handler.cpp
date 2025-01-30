@@ -113,7 +113,7 @@ parser::Expression ConvertParameters(std::any data) {
 using namespace std::chrono;
 
 void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request) {
-    auto sm = BoltServer::Instance().StateMachine();
+    auto sm = bolt_raft::BoltRaftServer::Instance().StateMachine();
     try {
         Unpacker unpacker;
         unpacker.Reset(std::string_view(request.raw_data().data(), request.raw_data().size()));

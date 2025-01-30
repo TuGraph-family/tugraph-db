@@ -10,27 +10,16 @@ std::string raft_log_key(uint64_t log_id) {
     return ret;
 }
 
-std::string raft_hardstate_key() {
-    return "hardState";
-}
-
-std::string raft_applyindex_key() {
-    return "applyIndex";
-}
-
-std::string raft_confstate_key() {
-    return "confState";
-}
-
-std::string raft_nodeinfos_key() {
-    return "nodeInfos";
-}
+const std::string raft_hardstate_key  = "hardState";
+const std::string raft_applyindex_key = "applyIndex";
+const std::string raft_confstate_key  = "confState";
+const std::string raft_nodeinfos_key  = "nodeInfos";
 
 bool RaftLogStorage::Init() {
     std::string value;
     raftpb::HardState hardstate;
     raftpb::ConfState confstate;
-    auto s = db_->Get(rocksdb::ReadOptions(), meta_cf_, raft_hardstate_key(), &value);
+    auto s = db_->Get(rocksdb::ReadOptions(), meta_cf_, raft_hardstate_key, &value);
     if (s.IsNotFound()) {
         rocksdb::WriteBatch batch;
         // dummy entry
@@ -39,10 +28,10 @@ bool RaftLogStorage::Init() {
         batch.Put(log_cf_, raft_log_key(0), value);
         // dummy hardstate
         hardstate.SerializeToString(&value);
-        batch.Put(meta_cf_, raft_hardstate_key(), value);
+        batch.Put(meta_cf_, raft_hardstate_key, value);
         // dummy confstate
         confstate.SerializeToString(&value);
-        batch.Put(meta_cf_, raft_confstate_key(), value);
+        batch.Put(meta_cf_, raft_confstate_key, value);
         s = db_->Write(rocksdb::WriteOptions(), &batch);
         if (!s.ok()) {
             LOG_FATAL() << "failed to write db";
@@ -56,7 +45,7 @@ bool RaftLogStorage::Init() {
     if (!hardstate.ParseFromString(value)) {
         LOG_FATAL() << "hardstate ParseFromString failed";
     }
-    s = db_->Get(rocksdb::ReadOptions(), meta_cf_, raft_confstate_key(), &value);
+    s = db_->Get(rocksdb::ReadOptions(), meta_cf_, raft_confstate_key, &value);
     if (!s.ok()) {
         LOG_FATAL() << "failed to get confstate from db: " << s.ToString();
     }
@@ -112,32 +101,28 @@ raftpb::Entry RaftLogStorage::get_last_log_entry() {
 
 eraft::Error RaftLogStorage::SetHardState(const raftpb::HardState& hs, rocksdb::WriteBatch &batch) {
     std::string val;
-    std::string key = raft_hardstate_key();
     hs.SerializeToString(&val);
-    batch.Put(meta_cf_, key, val);
+    batch.Put(meta_cf_, raft_hardstate_key, val);
     return nullptr;
 }
 
 eraft::Error RaftLogStorage::SetConfState(const raftpb::ConfState& hs, rocksdb::WriteBatch &batch) {
     std::string val;
-    std::string key = raft_confstate_key();
     hs.SerializeToString(&val);
-    batch.Put(meta_cf_, key, val);
+    batch.Put(meta_cf_, raft_confstate_key, val);
     return nullptr;
 }
 
 eraft::Error RaftLogStorage::SetNodeInfos(const std::string& info, rocksdb::WriteBatch &batch) {
     std::string val;
-    std::string key = raft_nodeinfos_key();
-    batch.Put(meta_cf_, key, info);
+    batch.Put(meta_cf_, raft_nodeinfos_key, info);
     return nullptr;
 }
 
 std::optional<std::string> RaftLogStorage::GetNodeInfos() {
     std::optional<std::string> ret;
     std::string val;
-    std::string key = raft_nodeinfos_key();
-    auto s = db_->Get(rocksdb::ReadOptions(), meta_cf_, key, &val);
+    auto s = db_->Get(rocksdb::ReadOptions(), meta_cf_, raft_nodeinfos_key, &val);
     if (s.ok()) {
         ret = val;
     } else if (!s.IsNotFound()) {
@@ -148,16 +133,14 @@ std::optional<std::string> RaftLogStorage::GetNodeInfos() {
 
 eraft::Error RaftLogStorage::SetApplyIndex(uint64_t apply_index, rocksdb::WriteBatch &batch) {
     std::string val;
-    std::string key = raft_applyindex_key();
-    batch.Put(meta_cf_, key, std::to_string(apply_index));
+    batch.Put(meta_cf_, raft_applyindex_key, std::to_string(apply_index));
     return nullptr;
 }
 
 uint64_t RaftLogStorage::GetApplyIndex() {
     uint64_t apply_index = 0;
-    std::string key = raft_applyindex_key();
     std::string val;
-    auto s = db_->Get(rocksdb::ReadOptions(), meta_cf_, key, &val);
+    auto s = db_->Get(rocksdb::ReadOptions(), meta_cf_, raft_applyindex_key, &val);
     if (s.ok()) {
         apply_index = std::stoull(val);
     } else if (!s.IsNotFound()) {

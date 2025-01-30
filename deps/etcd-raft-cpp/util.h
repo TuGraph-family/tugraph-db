@@ -348,7 +348,8 @@ inline bool isHardStateEqual(const raftpb::HardState& a, const raftpb::HardState
 
 // IsEmptyHardState returns true if the given HardState is empty.
 inline bool IsEmptyHardState(const raftpb::HardState& st) {
-    return isHardStateEqual(st, raftpb::HardState());
+    static raftpb::HardState empty;
+    return isHardStateEqual(st, empty);
 }
 
 template<class T>

@@ -100,7 +100,7 @@ private:
     boost::asio::deadline_timer tick_timer_;
     std::shared_ptr<eraft::RawNode> rn_;
     std::shared_ptr<RaftLogStorage> storage_;
-    std::shared_mutex node_infos_mutex_;
+    std::shared_mutex nodes_mutex_;
     NodeInfos node_infos_;
     std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
     std::shared_ptr<Generator> id_generator_ = nullptr;

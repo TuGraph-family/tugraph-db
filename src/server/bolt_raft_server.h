@@ -20,7 +20,9 @@ class BoltRaftServer final {
     bool Started() {return started_;}
     RaftDriver& raft_driver() {return *raft_driver_;}
     ~BoltRaftServer() { Stop(); }
-
+    lgraph::StateMachine* StateMachine() {
+        return sm_;
+    }
  private:
     BoltRaftServer() = default;
     std::vector<std::thread> threads_{};
