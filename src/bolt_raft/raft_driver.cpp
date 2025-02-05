@@ -13,6 +13,7 @@
 
 using boost::asio::async_write;
 using boost::asio::ip::tcp;
+using namespace std::chrono;
 
 namespace bolt_raft {
 void NodeClient::reconnect() {
@@ -174,35 +175,14 @@ RaftDriver::RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> 
            std::vector<eraft::Peer> init_peers,
            std::string log_path)
     : apply_(std::move(apply)),
-    apply_id_(apply_id),
-    node_id_(node_id),
-    init_peers_(std::move(init_peers)),
-    log_path_(std::move(log_path)),
-    tick_interval_(100),
-    tick_timer_(tick_service_, tick_interval_) {
-    id_generator_ = std::make_shared<Generator>(
-        node_id,std::chrono::duration_cast<std::chrono::milliseconds>(
-                     std::chrono::steady_clock::now().time_since_epoch()).count());
-    threads_.emplace_back([this]() {
-        pthread_setname_np(pthread_self(), "raft_service");
-        boost::asio::io_service::work holder(raft_service_);
-        raft_service_.run();
-    });
-    threads_.emplace_back([this]() {
-        pthread_setname_np(pthread_self(), "tick_service");
-        boost::asio::io_service::work holder(tick_service_);
-        tick_service_.run();
-    });
-    threads_.emplace_back([this]() {
-        pthread_setname_np(pthread_self(), "apply_service");
-        boost::asio::io_service::work holder(apply_service_);
-        apply_service_.run();
-    });
-    threads_.emplace_back([this]() {
-        pthread_setname_np(pthread_self(), "client_service");
-        boost::asio::io_service::work holder(client_service_);
-        client_service_.run();
-    });
+      apply_id_(apply_id),
+      node_id_(node_id),
+      init_peers_(std::move(init_peers)),
+      log_path_(std::move(log_path)),
+      tick_interval_(100),
+      tick_timer_(tick_service_, tick_interval_),
+      id_generator_(node_id, duration_cast<milliseconds>(
+                                 steady_clock::now().time_since_epoch()).count()) {
 }
 
 eraft::Error RaftDriver::Run() {
@@ -257,7 +237,38 @@ eraft::Error RaftDriver::Run() {
         }
     }
     Tick();
+    threads_.emplace_back([this]() {
+        pthread_setname_np(pthread_self(), "raft_service");
+        boost::asio::io_service::work holder(raft_service_);
+        raft_service_.run();
+    });
+    threads_.emplace_back([this]() {
+        pthread_setname_np(pthread_self(), "tick_service");
+        boost::asio::io_service::work holder(tick_service_);
+        tick_service_.run();
+    });
+    threads_.emplace_back([this]() {
+        pthread_setname_np(pthread_self(), "apply_service");
+        boost::asio::io_service::work holder(apply_service_);
+        apply_service_.run();
+    });
+    threads_.emplace_back([this]() {
+        pthread_setname_np(pthread_self(), "client_service");
+        boost::asio::io_service::work holder(client_service_);
+        client_service_.run();
+    });
     return {};
+}
+
+void RaftDriver::Stop() {
+    client_service_.stop();
+    tick_service_.stop();
+    raft_service_.stop();
+    apply_service_.stop();
+    for (auto& t : threads_) {
+        t.join();
+    }
+    storage_->Close();
 }
 
 void RaftDriver::Message(raftpb::Message msg) {
@@ -326,11 +337,11 @@ std::shared_ptr<PromiseContext> RaftDriver::ProposeConfChange(const raftpb::Conf
     entry->set_type(raftpb::EntryType::EntryConfChange);
     entry->set_data(cc.SerializeAsString());
     msg.set_type(raftpb::MessageType::MsgProp);
-    return PostMessage(id_generator_->Next(), std::move(msg));
+    return PostMessage(id_generator_.Next(), std::move(msg));
 }
 
 std::shared_ptr<PromiseContext> RaftDriver::Propose(bolt_raft::RaftRequest request) {
-    request.set_id(id_generator_->Next());
+    request.set_id(id_generator_.Next());
     raftpb::Message msg;
     auto entry = msg.add_entries();
     entry->set_type(raftpb::EntryType::EntryNormal);

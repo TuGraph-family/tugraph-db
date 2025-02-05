@@ -75,6 +75,7 @@ public:
                std::vector<eraft::Peer> init_peers,
                std::string log_path);
     eraft::Error Run();
+    void Stop();
     void Message(raftpb::Message msg);
     std::shared_ptr<PromiseContext>  Propose(bolt_raft::RaftRequest request);
     std::shared_ptr<PromiseContext>  ProposeConfChange(const raftpb::ConfChange& cc);
@@ -103,7 +104,7 @@ private:
     std::shared_mutex nodes_mutex_;
     NodeInfos node_infos_;
     std::unordered_map<uint64_t, std::shared_ptr<NodeClient>> node_clients_;
-    std::shared_ptr<Generator> id_generator_ = nullptr;
+    Generator id_generator_;
     std::mutex promise_mutex_;
     std::unordered_map<uint64_t, std::shared_ptr<PromiseContext>> pending_promise_;
 };

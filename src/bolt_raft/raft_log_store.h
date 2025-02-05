@@ -21,6 +21,7 @@ public:
     std::pair<raftpb::Snapshot, eraft::Error> Snapshot() override;
 
     bool Init();
+    void Close();
     eraft::Error SetHardState(const raftpb::HardState& hs, rocksdb::WriteBatch &batch);
     eraft::Error SetConfState(const raftpb::ConfState& hs, rocksdb::WriteBatch &batch);
     eraft::Error SetNodeInfos(const std::string& info, rocksdb::WriteBatch &batch);

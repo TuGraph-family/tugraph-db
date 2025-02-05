@@ -60,6 +60,17 @@ bool RaftLogStorage::Init() {
     return last_entry_index_ > 0;
 }
 
+void RaftLogStorage::Close() {
+    db_->DestroyColumnFamilyHandle(log_cf_);
+    db_->DestroyColumnFamilyHandle(meta_cf_);
+    auto s = db_->Close();
+    if (!s.ok()) {
+        LOG_WARN() << FMA_FMT("failed to close db, error:{}", s.ToString());
+    }
+    delete db_;
+    db_ = nullptr;
+}
+
 void RaftLogStorage::WriteBatch(rocksdb::WriteBatch &batch) {
     auto s = db_->Write(rocksdb::WriteOptions(), &batch);
     if (!s.ok()) {

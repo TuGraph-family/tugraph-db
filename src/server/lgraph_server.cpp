@@ -313,7 +313,6 @@ int LGraphServer::Start() {
         lgraph::RestServer::Config rest_config(*config_);
         rest_server_ = std::make_unique<lgraph::RestServer>(state_machine_.get(),
                                                             rest_config, config_);
-
         if (config_->bolt_port > 0) {
             if (!bolt::BoltServer::Instance().Start(state_machine_.get(),
                                                config_->bolt_port,
@@ -321,10 +320,22 @@ int LGraphServer::Start() {
                 return -1;
             }
             if (config_->bolt_raft_port > 0) {
+                std::string log_path = config_->bolt_raft_log_path;
+                if (log_path.empty()) {
+                    log_path = config_->db_dir + "/raftlog";
+                }
+                if (config_->bolt_raft_node_id  == 0) {
+                    LOG_ERROR() << "bolt_raft_node_id should be greater than 0";
+                    return -1;
+                }
+                if (config_->bolt_raft_init_peers.empty()) {
+                    LOG_ERROR() << "bolt_raft_init_peers is empty";
+                    return -1;
+                }
                 if (!bolt_raft::BoltRaftServer::Instance().Start(
                         state_machine_.get(), config_->bolt_raft_port,
                         config_->bolt_raft_node_id,config_->bolt_raft_init_peers,
-                        config_->bolt_raft_log_path)) {
+                        log_path)) {
                     return -1;
                 }
             }
@@ -401,6 +412,9 @@ int LGraphServer::Stop(bool force_exit) {
         rpc_service_.reset();
         if (config_->bolt_port > 0) {
             bolt::BoltServer::Instance().Stop();
+            if (config_->bolt_raft_port > 0) {
+                bolt_raft::BoltRaftServer::Instance().Stop();
+            }
         }
 #endif
         if (state_machine_) state_machine_->Stop();

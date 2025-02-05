@@ -75,6 +75,7 @@ void BoltRaftServer::Stop() {
     for (auto& t : threads_) {
         t.join();
     }
+    raft_driver_->Stop();
     started_ = false;
     LOG_INFO() << "bolt raft server stopped.";
 }
