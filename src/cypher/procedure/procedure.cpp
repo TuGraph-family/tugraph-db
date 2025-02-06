@@ -3534,6 +3534,24 @@ void BuiltinProcedure::DbBoltRemoveRaftNode(RTContext *ctx, const Record *record
     FillProcedureYieldItem("db.bolt.removeRaftNode", yield_items, records);
 }
 
+void BuiltinProcedure::DbBoltGetRaftStatus(RTContext *ctx, const Record *record,
+                                           const VEC_EXPR &args, const VEC_STR &yield_items,
+                                           std::vector<Record> *records) {
+    if (!bolt_raft::BoltRaftServer::Instance().Started()) {
+        THROW_CODE(BoltRaftError, "bolt raft is not enabled");
+        return;
+    }
+    CheckProcedureYieldItem("db.bolt.getRaftStatus", yield_items);
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are given",
+                                               args.size()))
+    auto s = bolt_raft::BoltRaftServer::Instance().raft_driver().GetRaftStatus();
+    nlohmann::json obj = nlohmann::json::parse(s);
+    Record r;
+    r.AddConstant(lgraph::FieldData::String(obj.dump(4)));
+    records->emplace_back(r.Snapshot());
+    FillProcedureYieldItem("db.bolt.getRaftStatus", yield_items, records);
+}
+
 static void _FetchPath(lgraph::Transaction &txn, size_t hops,
                        std::unordered_map<lgraph::VertexId, lgraph::VertexId> &parent,
                        std::unordered_map<lgraph::VertexId, lgraph::VertexId> &child,

@@ -396,6 +396,8 @@ class BuiltinProcedure {
                                      const VEC_STR &yield_items, std::vector<Record> *records);
     static void DbBoltAddRaftLearnerNode(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                          const VEC_STR &yield_items, std::vector<Record> *records);
+    static void DbBoltGetRaftStatus(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                         const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 class AlgoFunc {
@@ -1221,7 +1223,12 @@ static std::vector<Procedure> global_procedures = {
                   Procedure::SIG_SPEC{
                       {"node_id", {0, lgraph_api::LGraphType::INTEGER}}
                   },
-                  Procedure::SIG_SPEC{}, true, true)
+                  Procedure::SIG_SPEC{}, true, true),
+    Procedure("db.bolt.getRaftStatus", BuiltinProcedure::DbBoltGetRaftStatus,
+              Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"status", {0, lgraph_api::LGraphType::STRING}}
+              }, true, true)
 
 };
 

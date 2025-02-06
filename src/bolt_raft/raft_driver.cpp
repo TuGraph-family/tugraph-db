@@ -368,6 +368,16 @@ NodeInfos RaftDriver::GetNodeInfosWithLeader() {
     return ret;
 }
 
+std::string RaftDriver::GetRaftStatus() {
+    std::promise<std::string> promise;
+    auto future = promise.get_future();
+    raft_service_.post([this, &promise]() {
+        auto s = rn_->GetStatus();
+        promise.set_value(s.String());
+    });
+    return future.get();
+}
+
 void RaftDriver::CheckReady() {
     if (!rn_->HasReady()) {
         return;

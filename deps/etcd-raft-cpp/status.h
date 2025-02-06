@@ -27,7 +27,7 @@ struct Status {
     // MarshalJSON translates the raft status into JSON.
     // TODO: try to simplify this by introducing ID type into raft
     std::pair<std::string, Error> MarshalJSON() {
-        auto j = format(R"({"id":"%x","term":%d,"vote":"%x","commit":%d,"lead":"%x","raftState":%s,"applied":%d,"progress":{)",
+        auto j = format(R"({"id":"%x","term":%d,"vote":"%x","commit":%d,"lead":"%x","raftState":"%s","applied":%d,"progress":{)",
             basicStatus_.id_,
             basicStatus_.hardState_.term(),
             basicStatus_.hardState_.vote(),
@@ -40,7 +40,7 @@ struct Status {
             j += "},";
         } else {
             for (auto& pair : progress_) {
-                auto subj = format(R"("%x":{"match":%d,"next":%d,"state":%s},)",
+                auto subj = format(R"("%x":{"match":%d,"next":%d,"state":"%s"},)",
                                    pair.first,
                                    pair.second.match_,
                                    pair.second.next_,
@@ -48,7 +48,7 @@ struct Status {
                 j += subj;
             }
             // remove the trailing ","
-            j = j.substr(j.size()-1) + "},";
+            j = j.substr(0, j.size()-1) + "},";
         }
 
         j += format(R"("leadtransferee":"%x"})", basicStatus_.leadTransferee_);

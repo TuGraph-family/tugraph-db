@@ -80,6 +80,7 @@ public:
     std::shared_ptr<PromiseContext>  Propose(bolt_raft::RaftRequest request);
     std::shared_ptr<PromiseContext>  ProposeConfChange(raftpb::ConfChange& cc);
     NodeInfos GetNodeInfosWithLeader();
+    std::string GetRaftStatus();
 
 private:
    std::shared_ptr<PromiseContext> PostMessage(uint64_t uuid, raftpb::Message msg);
