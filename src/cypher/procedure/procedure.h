@@ -387,6 +387,15 @@ class BuiltinProcedure {
 
     static void DbmsHaClusterInfo(RTContext *ctx, const Record *record, const VEC_EXPR &args,
                                   const VEC_STR &yield_items, std::vector<Record> *records);
+
+    static void DbBoltListRaftNodes(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                    const VEC_STR &yield_items, std::vector<Record> *records);
+    static void DbBoltAddRaftNode(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                  const VEC_STR &yield_items, std::vector<Record> *records);
+    static void DbBoltRemoveRaftNode(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                     const VEC_STR &yield_items, std::vector<Record> *records);
+    static void DbBoltAddRaftLearnerNode(RTContext *ctx, const Record *record, const VEC_EXPR &args,
+                                         const VEC_STR &yield_items, std::vector<Record> *records);
 };
 
 class AlgoFunc {
@@ -1181,7 +1190,40 @@ static std::vector<Procedure> global_procedures = {
     Procedure("dbms.ha.clusterInfo", BuiltinProcedure::DbmsHaClusterInfo, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"cluster_info", {0, lgraph_api::LGraphType::LIST}},
                                   {"is_master", {1, lgraph_api::LGraphType::BOOLEAN}}
-              }, true, true)};
+              }, true, true),
+
+    Procedure("db.bolt.listRaftNodes", BuiltinProcedure::DbBoltListRaftNodes, Procedure::SIG_SPEC{},
+              Procedure::SIG_SPEC{
+                  {"node_id", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"ip", {1, lgraph_api::LGraphType::STRING}},
+                  {"bolt_port", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"bolt_raft_port", {3, lgraph_api::LGraphType::INTEGER}},
+                  {"is_leader", {4, lgraph_api::LGraphType::BOOLEAN}}
+              }, true, true),
+
+    Procedure("db.bolt.addRaftNode", BuiltinProcedure::DbBoltAddRaftNode,
+              Procedure::SIG_SPEC{
+                  {"node_id", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"ip", {1, lgraph_api::LGraphType::STRING}},
+                  {"bolt_port", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"bolt_raft_port", {3, lgraph_api::LGraphType::INTEGER}}
+              },
+              Procedure::SIG_SPEC{}, true, true),
+    Procedure("db.bolt.addRaftLearnerNode", BuiltinProcedure::DbBoltAddRaftLearnerNode,
+              Procedure::SIG_SPEC{
+                  {"node_id", {0, lgraph_api::LGraphType::INTEGER}},
+                  {"ip", {1, lgraph_api::LGraphType::STRING}},
+                  {"bolt_port", {2, lgraph_api::LGraphType::INTEGER}},
+                  {"bolt_raft_port", {3, lgraph_api::LGraphType::INTEGER}}
+              },
+              Procedure::SIG_SPEC{}, true, true),
+        Procedure("db.bolt.removeRaftNode", BuiltinProcedure::DbBoltRemoveRaftNode,
+                  Procedure::SIG_SPEC{
+                      {"node_id", {0, lgraph_api::LGraphType::INTEGER}}
+                  },
+                  Procedure::SIG_SPEC{}, true, true)
+
+};
 
 class ProcedureTable {
     std::unordered_map<std::string, Procedure> ptable_;

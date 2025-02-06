@@ -332,13 +332,14 @@ void RaftDriver::Tick() {
     });
 }
 
-std::shared_ptr<PromiseContext> RaftDriver::ProposeConfChange(const raftpb::ConfChange& cc) {
+std::shared_ptr<PromiseContext> RaftDriver::ProposeConfChange(raftpb::ConfChange& cc) {
+    cc.set_id(id_generator_.Next());
     raftpb::Message msg;
     auto entry = msg.add_entries();
     entry->set_type(raftpb::EntryType::EntryConfChange);
     entry->set_data(cc.SerializeAsString());
     msg.set_type(raftpb::MessageType::MsgProp);
-    return PostMessage(id_generator_.Next(), std::move(msg));
+    return PostMessage(cc.id(), std::move(msg));
 }
 
 std::shared_ptr<PromiseContext> RaftDriver::Propose(bolt_raft::RaftRequest request) {
@@ -402,9 +403,23 @@ void RaftDriver::CheckReady() {
         LOG_FATAL() << "Snapshot should be empty";
     }
     if (!ready.committedEntries_.empty()) {
-        apply_service_.post([this, committedEntries = std::move(ready.committedEntries_)]() mutable {
-            Apply(std::move(committedEntries));
-        });
+        bool has_confchange = false;
+        for (auto& entry : ready.committedEntries_) {
+            if (entry.type() == raftpb::EntryConfChange) {
+                has_confchange = true;
+                break;
+            }
+        }
+        if (!has_confchange) {
+            apply_service_.post(
+                [this, committedEntries = std::move(ready.committedEntries_)]() mutable {
+                    Apply(std::move(committedEntries));
+                });
+        } else {
+            LOG_INFO() << "There are ConfChange in committed Entries, Entries size: "
+                       << ready.committedEntries_.size();
+            Apply(ready.committedEntries_);
+        }
     }
     rn_->Advance({});
 }
@@ -490,13 +505,19 @@ void RaftDriver::Apply(std::vector<raftpb::Entry> entries) {
                 storage_->SetNodeInfos(node_infos_.SerializeAsString(), wb);
                 storage_->SetApplyIndex(entry.index(), wb);
                 storage_->WriteBatch(wb);
-                /*if (cc.id() > 0) {
-                    std::shared_lock lock(promise_mutex);
-                    auto iter = pending_promise.find(cc.id());
-                    if (iter != pending_promise.end()) {
-                        iter->second.set_value(cc.context());
+
+                std::shared_ptr<bolt_raft::PromiseContext> context;
+                {
+                    std::lock_guard<std::mutex> guard(promise_mutex_);
+                    auto iter = pending_promise_.find(cc.id());
+                    if (iter != pending_promise_.end()) {
+                        context = iter->second;
+                        pending_promise_.erase(iter);
                     }
-                }*/
+                }
+                if (context) {
+                    context->applied.set_value();
+                }
                 break;
             }
         default: {

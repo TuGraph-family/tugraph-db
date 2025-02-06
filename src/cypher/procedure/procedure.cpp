@@ -35,6 +35,7 @@
 #include "fma-common/encrypt.h"
 #include "import/import_v3.h"
 #include "server/bolt_session.h"
+#include "server/bolt_raft_server.h"
 
 namespace cypher {
 
@@ -3414,6 +3415,123 @@ void BuiltinProcedure::DbmsHaClusterInfo(RTContext *ctx, const Record *record,
     r.AddConstant(lgraph::FieldData(ctx->sm_->IsCurrentMaster()));
     records->emplace_back(r.Snapshot());
     FillProcedureYieldItem("dbms.ha.clusterInfo", yield_items, records);
+}
+
+void BuiltinProcedure::DbBoltListRaftNodes(RTContext *ctx, const Record *record,
+                                           const VEC_EXPR &args, const VEC_STR &yield_items,
+                                           std::vector<Record> *records) {
+    if (!bolt_raft::BoltRaftServer::Instance().Started()) {
+        THROW_CODE(BoltRaftError, "bolt raft is not enabled");
+        return;
+    }
+    CheckProcedureYieldItem("db.bolt.listRaftNodes", yield_items);
+    CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
+                                           "given. Usage: db.bolt.listRaftPeers()",
+                                           args.size()))
+    auto infos= bolt_raft::BoltRaftServer::Instance().raft_driver().GetNodeInfosWithLeader();
+    for (auto& [_, node] : infos.nodes()) {
+        Record r;
+        r.AddConstant(lgraph::FieldData::Int64(node.node_id()));
+        r.AddConstant(lgraph::FieldData::String(node.ip()));
+        r.AddConstant(lgraph::FieldData::Int64(node.bolt_port()));
+        r.AddConstant(lgraph::FieldData::Int64(node.bolt_raft_port()));
+        r.AddConstant(lgraph::FieldData::Bool(node.is_leader()));
+        records->emplace_back(r.Snapshot());
+    }
+    FillProcedureYieldItem("db.bolt.listRaftNodes", yield_items, records);
+}
+
+void BuiltinProcedure::DbBoltAddRaftNode(RTContext *ctx, const Record *record,
+                                         const VEC_EXPR &args, const VEC_STR &yield_items,
+                                         std::vector<Record> *records) {
+    if (!bolt_raft::BoltRaftServer::Instance().Started()) {
+        THROW_CODE(BoltRaftError, "bolt raft is not enabled");
+        return;
+    }
+    CheckProcedureYieldItem("db.bolt.addRaftNode", yield_items);
+    CYPHER_ARG_CHECK(args.size() == 4, FMA_FMT("Function requires 4 arguments, but {} are given",
+                                           args.size()))
+    CYPHER_ARG_CHECK(args[0].IsInteger(), "node_id type should be Integer")
+    CYPHER_ARG_CHECK(args[1].IsString(), "ip type should be String")
+    CYPHER_ARG_CHECK(args[2].IsInteger(), "bolt_port type should be Integer")
+    CYPHER_ARG_CHECK(args[3].IsInteger(), "bolt_raft_port type should be Integer")
+    bolt_raft::NodeInfo node;
+    node.set_is_leader(false);
+    node.set_node_id(args[0].constant.scalar.AsInt64());
+    node.set_ip(args[1].constant.scalar.AsString());
+    node.set_bolt_port(args[2].constant.scalar.AsInt64());
+    node.set_bolt_raft_port(args[3].constant.scalar.AsInt64());
+    raftpb::ConfChange cc;
+    cc.set_type(raftpb::ConfChangeType::ConfChangeAddNode);
+    cc.set_node_id(node.node_id());
+    cc.set_context(node.SerializeAsString());
+    auto promise = bolt_raft::BoltRaftServer::Instance().raft_driver().ProposeConfChange(cc);
+    auto err = promise->proposed.get_future().get();
+    if (err != nullptr) {
+        THROW_CODE(BoltRaftError, err.String());
+    }
+    promise->applied.get_future().get();
+    FillProcedureYieldItem("db.bolt.addRaftNode", yield_items, records);
+}
+
+void BuiltinProcedure::DbBoltAddRaftLearnerNode(RTContext *ctx, const Record *record,
+                                                const VEC_EXPR &args, const VEC_STR &yield_items,
+                                                std::vector<Record> *records) {
+    if (!bolt_raft::BoltRaftServer::Instance().Started()) {
+        THROW_CODE(BoltRaftError, "bolt raft is not enabled");
+        return;
+    }
+    CheckProcedureYieldItem("db.bolt.addRaftLearnerNode", yield_items);
+    CYPHER_ARG_CHECK(args.size() == 4, FMA_FMT("Function requires 4 arguments, but {} are given",
+                                               args.size()))
+    CYPHER_ARG_CHECK(args[0].IsInteger(), "node_id type should be Integer")
+    CYPHER_ARG_CHECK(args[1].IsString(), "ip type should be String")
+    CYPHER_ARG_CHECK(args[2].IsInteger(), "bolt_port type should be Integer")
+    CYPHER_ARG_CHECK(args[3].IsInteger(), "bolt_raft_port type should be Integer")
+    bolt_raft::NodeInfo node;
+    node.set_is_leader(false);
+    node.set_node_id(args[0].constant.scalar.AsInt64());
+    node.set_ip(args[1].constant.scalar.AsString());
+    node.set_bolt_port(args[2].constant.scalar.AsInt64());
+    node.set_bolt_raft_port(args[3].constant.scalar.AsInt64());
+    raftpb::ConfChange cc;
+    cc.set_type(raftpb::ConfChangeType::ConfChangeAddLearnerNode);
+    cc.set_node_id(node.node_id());
+    cc.set_context(node.SerializeAsString());
+    auto promise = bolt_raft::BoltRaftServer::Instance().raft_driver().ProposeConfChange(cc);
+    auto err = promise->proposed.get_future().get();
+    if (err != nullptr) {
+        THROW_CODE(BoltRaftError, err.String());
+    }
+    promise->applied.get_future().get();
+    FillProcedureYieldItem("db.bolt.addRaftLearnerNode", yield_items, records);
+}
+
+void BuiltinProcedure::DbBoltRemoveRaftNode(RTContext *ctx, const Record *record,
+                                            const VEC_EXPR &args, const VEC_STR &yield_items,
+                                            std::vector<Record> *records) {
+    if (!bolt_raft::BoltRaftServer::Instance().Started()) {
+        THROW_CODE(BoltRaftError, "bolt raft is not enabled");
+        return;
+    }
+    CheckProcedureYieldItem("db.bolt.removeRaftNode", yield_items);
+    CYPHER_ARG_CHECK(args.size() == 1, FMA_FMT("Function requires 4 arguments, but {} are given",
+                                               args.size()))
+    CYPHER_ARG_CHECK(args[0].IsInteger(), "node_id type should be Integer")
+    bolt_raft::NodeInfo node;
+    node.set_is_leader(false);
+    node.set_node_id(args[0].constant.scalar.AsInt64());
+    raftpb::ConfChange cc;
+    cc.set_node_id(node.node_id());
+    cc.set_type(raftpb::ConfChangeType::ConfChangeRemoveNode);
+    cc.set_context(node.SerializeAsString());
+    auto promise = bolt_raft::BoltRaftServer::Instance().raft_driver().ProposeConfChange(cc);
+    auto err = promise->proposed.get_future().get();
+    if (err != nullptr) {
+        THROW_CODE(BoltRaftError, err.String());
+    }
+    promise->applied.get_future().get();
+    FillProcedureYieldItem("db.bolt.removeRaftNode", yield_items, records);
 }
 
 static void _FetchPath(lgraph::Transaction &txn, size_t hops,

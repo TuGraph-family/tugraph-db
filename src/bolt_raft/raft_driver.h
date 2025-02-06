@@ -78,7 +78,7 @@ public:
     void Stop();
     void Message(raftpb::Message msg);
     std::shared_ptr<PromiseContext>  Propose(bolt_raft::RaftRequest request);
-    std::shared_ptr<PromiseContext>  ProposeConfChange(const raftpb::ConfChange& cc);
+    std::shared_ptr<PromiseContext>  ProposeConfChange(raftpb::ConfChange& cc);
     NodeInfos GetNodeInfosWithLeader();
 
 private:
