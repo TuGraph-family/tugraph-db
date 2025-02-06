@@ -1095,7 +1095,7 @@ static std::vector<Procedure> global_procedures = {
     Procedure("db.plugin.listPlugin", BuiltinProcedure::DbPluginListPlugin,
               Procedure::SIG_SPEC{{"plugin_type", {0, lgraph_api::LGraphType::STRING}},
                                   {"plugin_version", {1, lgraph_api::LGraphType::STRING}}},
-              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}}, false,
+              Procedure::SIG_SPEC{{"plugin_description", {0, lgraph_api::LGraphType::MAP}}}, true,
               true),
 
     Procedure("db.plugin.listUserPlugins", BuiltinProcedure::DbPluginListUserPlugins,
@@ -1149,7 +1149,7 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
 
     Procedure("db.flushDB", BuiltinProcedure::DbFlushDB, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, true, true),
 
     Procedure("db.dropDB", BuiltinProcedure::DbDropDB, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
@@ -1165,18 +1165,18 @@ static std::vector<Procedure> global_procedures = {
 
     Procedure("dbms.task.terminateTask", BuiltinProcedure::DbTaskTerminateTask,
               Procedure::SIG_SPEC{{"task_id", {0, lgraph_api::LGraphType::STRING}}},
-              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, false, true),
+              Procedure::SIG_SPEC{{"", {0, lgraph_api::LGraphType::NUL}}}, true, true),
 
     Procedure("db.monitor.tuGraphInfo", BuiltinProcedure::DbMonitorTuGraphInfo,
               Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{{"request", {0, lgraph_api::LGraphType::STRING}}}, false, true),
+              Procedure::SIG_SPEC{{"request", {0, lgraph_api::LGraphType::STRING}}}, true, true),
 
     Procedure("db.monitor.serverInfo", BuiltinProcedure::DbMonitorServerInfo, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"cpu", {0, lgraph_api::LGraphType::STRING}},
                                   {"memory", {1, lgraph_api::LGraphType::STRING}},
                                   {"disk_rate", {2, lgraph_api::LGraphType::STRING}},
                                   {"disk_storage", {3, lgraph_api::LGraphType::STRING}}},
-              false, true),
+              true, true),
 
     Procedure("dbms.ha.clusterInfo", BuiltinProcedure::DbmsHaClusterInfo, Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"cluster_info", {0, lgraph_api::LGraphType::LIST}},

@@ -40,7 +40,7 @@ static std::string ToString(const SymbolTable &sym_tab) {
 }
 
 void SymbolTable::DumpTable() const {
-    if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
+    if (LoggerManager::GetInstance().GetLevel() <= severity_level::DEBUG) {
         LOG_DEBUG() << ToString(*this);
     }
 }

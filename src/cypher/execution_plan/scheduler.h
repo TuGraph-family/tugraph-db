@@ -50,6 +50,7 @@ class Scheduler {
     static bool DetermineReadOnly(cypher::RTContext *ctx,
                                   const lgraph_api::GraphQueryType &query_type,
                                   const std::string &script, std::string &name, std::string &type);
+    static bool ReadOnlyCypher(cypher::RTContext *ctx, const std::string &script);
 
  private:
     void EvalCypher(RTContext *ctx, const std::string &script, ElapsedTime &elapsed);

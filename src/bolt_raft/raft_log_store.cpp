@@ -69,6 +69,7 @@ void RaftLogStorage::Close() {
     }
     delete db_;
     db_ = nullptr;
+    LOG_INFO() << "raft log storage is closed";
 }
 
 void RaftLogStorage::WriteBatch(rocksdb::WriteBatch &batch) {
@@ -227,10 +228,13 @@ std::pair<std::vector<raftpb::Entry>, eraft::Error> RaftLogStorage::Entries(uint
         }
         next_index += 1;
         total_size += v.size();
-        if (total_size > maxSize) {
+        if (!ret.empty() && total_size > maxSize) {
             break;
         }
         ret.emplace_back(std::move(entry));
+    }
+    if (ret.empty()) {
+        LOG_FATAL() << "unexpected empty Entry vector";
     }
     return {std::move(ret), nullptr};
 }

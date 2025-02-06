@@ -279,7 +279,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     session->streaming_msg.reset();
                     if (bolt_raft::BoltRaftServer::Instance().Started()) {
                         std::string plugin_name, plugin_type;
-                        auto read_only = cypher::Scheduler::DetermineReadOnly(&ctx, GraphQueryType::CYPHER, cypher, plugin_name, plugin_type);
+                        auto read_only = cypher::Scheduler::ReadOnlyCypher(&ctx, cypher);
                         if (!read_only) {
                             bolt_raft::RaftRequest request;
                             request.set_user(session->user);

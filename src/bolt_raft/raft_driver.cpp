@@ -269,6 +269,7 @@ void RaftDriver::Stop() {
         t.join();
     }
     storage_->Close();
+    LOG_INFO() << "bolt raft driver stopped";
 }
 
 void RaftDriver::Message(raftpb::Message msg) {
