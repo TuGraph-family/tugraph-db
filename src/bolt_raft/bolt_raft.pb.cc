@@ -131,6 +131,7 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, bolt_port_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, bolt_raft_port_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, is_leader_),
+  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfo, is_learner_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfos_NodesEntry_DoNotUse, _has_bits_),
   GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::bolt_raft::NodeInfos_NodesEntry_DoNotUse, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -150,8 +151,8 @@ const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUT
 static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::bolt_raft::RaftRequest)},
   { 8, -1, sizeof(::bolt_raft::NodeInfo)},
-  { 18, 25, sizeof(::bolt_raft::NodeInfos_NodesEntry_DoNotUse)},
-  { 27, -1, sizeof(::bolt_raft::NodeInfos)},
+  { 19, 26, sizeof(::bolt_raft::NodeInfos_NodesEntry_DoNotUse)},
+  { 28, -1, sizeof(::bolt_raft::NodeInfos)},
 };
 
 static ::google::protobuf::Message const * const file_default_instances[] = {
@@ -184,16 +185,16 @@ void AddDescriptorsImpl() {
   static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
       "\n\017bolt_raft.proto\022\tbolt_raft\"9\n\013RaftRequ"
       "est\022\n\n\002id\030\001 \001(\004\022\014\n\004user\030\002 \001(\t\022\020\n\010raw_dat"
-      "a\030\003 \001(\014\"e\n\010NodeInfo\022\017\n\007node_id\030\001 \001(\004\022\n\n\002"
+      "a\030\003 \001(\014\"y\n\010NodeInfo\022\017\n\007node_id\030\001 \001(\004\022\n\n\002"
       "ip\030\002 \001(\t\022\021\n\tbolt_port\030\003 \001(\005\022\026\n\016bolt_raft"
-      "_port\030\004 \001(\005\022\021\n\tis_leader\030\005 \001(\010\"~\n\tNodeIn"
-      "fos\022.\n\005nodes\030\001 \003(\0132\037.bolt_raft.NodeInfos"
-      ".NodesEntry\032A\n\nNodesEntry\022\013\n\003key\030\001 \001(\004\022\""
-      "\n\005value\030\002 \001(\0132\023.bolt_raft.NodeInfo:\0028\001b\006"
-      "proto3"
+      "_port\030\004 \001(\005\022\021\n\tis_leader\030\005 \001(\010\022\022\n\nis_lea"
+      "rner\030\006 \001(\010\"~\n\tNodeInfos\022.\n\005nodes\030\001 \003(\0132\037"
+      ".bolt_raft.NodeInfos.NodesEntry\032A\n\nNodes"
+      "Entry\022\013\n\003key\030\001 \001(\004\022\"\n\005value\030\002 \001(\0132\023.bolt"
+      "_raft.NodeInfo:\0028\001b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 326);
+      descriptor, 346);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "bolt_raft.proto", &protobuf_RegisterTypes);
 }
@@ -548,6 +549,7 @@ const int NodeInfo::kIpFieldNumber;
 const int NodeInfo::kBoltPortFieldNumber;
 const int NodeInfo::kBoltRaftPortFieldNumber;
 const int NodeInfo::kIsLeaderFieldNumber;
+const int NodeInfo::kIsLearnerFieldNumber;
 #endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
 
 NodeInfo::NodeInfo()
@@ -566,16 +568,16 @@ NodeInfo::NodeInfo(const NodeInfo& from)
     ip_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.ip_);
   }
   ::memcpy(&node_id_, &from.node_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&is_leader_) -
-    reinterpret_cast<char*>(&node_id_)) + sizeof(is_leader_));
+    static_cast<size_t>(reinterpret_cast<char*>(&is_learner_) -
+    reinterpret_cast<char*>(&node_id_)) + sizeof(is_learner_));
   // @@protoc_insertion_point(copy_constructor:bolt_raft.NodeInfo)
 }
 
 void NodeInfo::SharedCtor() {
   ip_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&node_id_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&is_leader_) -
-      reinterpret_cast<char*>(&node_id_)) + sizeof(is_leader_));
+      reinterpret_cast<char*>(&is_learner_) -
+      reinterpret_cast<char*>(&node_id_)) + sizeof(is_learner_));
 }
 
 NodeInfo::~NodeInfo() {
@@ -609,8 +611,8 @@ void NodeInfo::Clear() {
 
   ip_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(&node_id_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&is_leader_) -
-      reinterpret_cast<char*>(&node_id_)) + sizeof(is_leader_));
+      reinterpret_cast<char*>(&is_learner_) -
+      reinterpret_cast<char*>(&node_id_)) + sizeof(is_learner_));
   _internal_metadata_.Clear();
 }
 
@@ -696,6 +698,20 @@ bool NodeInfo::MergePartialFromCodedStream(
         break;
       }
 
+      // bool is_learner = 6;
+      case 6: {
+        if (static_cast< ::google::protobuf::uint8>(tag) ==
+            static_cast< ::google::protobuf::uint8>(48u /* 48 & 0xFF */)) {
+
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &is_learner_)));
+        } else {
+          goto handle_unusual;
+        }
+        break;
+      }
+
       default: {
       handle_unusual:
         if (tag == 0) {
@@ -752,6 +768,11 @@ void NodeInfo::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteBool(5, this->is_leader(), output);
   }
 
+  // bool is_learner = 6;
+  if (this->is_learner() != 0) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(6, this->is_learner(), output);
+  }
+
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
@@ -795,6 +816,11 @@ void NodeInfo::SerializeWithCachedSizes(
   // bool is_leader = 5;
   if (this->is_leader() != 0) {
     target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(5, this->is_leader(), target);
+  }
+
+  // bool is_learner = 6;
+  if (this->is_learner() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(6, this->is_learner(), target);
   }
 
   if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
@@ -847,6 +873,11 @@ size_t NodeInfo::ByteSizeLong() const {
     total_size += 1 + 1;
   }
 
+  // bool is_learner = 6;
+  if (this->is_learner() != 0) {
+    total_size += 1 + 1;
+  }
+
   int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
   SetCachedSize(cached_size);
   return total_size;
@@ -890,6 +921,9 @@ void NodeInfo::MergeFrom(const NodeInfo& from) {
   if (from.is_leader() != 0) {
     set_is_leader(from.is_leader());
   }
+  if (from.is_learner() != 0) {
+    set_is_learner(from.is_learner());
+  }
 }
 
 void NodeInfo::CopyFrom(const ::google::protobuf::Message& from) {
@@ -922,6 +956,7 @@ void NodeInfo::InternalSwap(NodeInfo* other) {
   swap(bolt_port_, other->bolt_port_);
   swap(bolt_raft_port_, other->bolt_raft_port_);
   swap(is_leader_, other->is_leader_);
+  swap(is_learner_, other->is_learner_);
   _internal_metadata_.Swap(&other->_internal_metadata_);
 }
 

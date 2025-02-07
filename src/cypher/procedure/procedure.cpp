@@ -3436,6 +3436,7 @@ void BuiltinProcedure::DbBoltListRaftNodes(RTContext *ctx, const Record *record,
         r.AddConstant(lgraph::FieldData::Int64(node.bolt_port()));
         r.AddConstant(lgraph::FieldData::Int64(node.bolt_raft_port()));
         r.AddConstant(lgraph::FieldData::Bool(node.is_leader()));
+        r.AddConstant(lgraph::FieldData::Bool(node.is_learner()));
         records->emplace_back(r.Snapshot());
     }
     FillProcedureYieldItem("db.bolt.listRaftNodes", yield_items, records);
@@ -3457,6 +3458,7 @@ void BuiltinProcedure::DbBoltAddRaftNode(RTContext *ctx, const Record *record,
     CYPHER_ARG_CHECK(args[3].IsInteger(), "bolt_raft_port type should be Integer")
     bolt_raft::NodeInfo node;
     node.set_is_leader(false);
+    node.set_is_learner(false);
     node.set_node_id(args[0].constant.scalar.AsInt64());
     node.set_ip(args[1].constant.scalar.AsString());
     node.set_bolt_port(args[2].constant.scalar.AsInt64());
@@ -3490,6 +3492,7 @@ void BuiltinProcedure::DbBoltAddRaftLearnerNode(RTContext *ctx, const Record *re
     CYPHER_ARG_CHECK(args[3].IsInteger(), "bolt_raft_port type should be Integer")
     bolt_raft::NodeInfo node;
     node.set_is_leader(false);
+    node.set_is_learner(true);
     node.set_node_id(args[0].constant.scalar.AsInt64());
     node.set_ip(args[1].constant.scalar.AsString());
     node.set_bolt_port(args[2].constant.scalar.AsInt64());
@@ -3544,8 +3547,10 @@ void BuiltinProcedure::DbBoltGetRaftStatus(RTContext *ctx, const Record *record,
     CheckProcedureYieldItem("db.bolt.getRaftStatus", yield_items);
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are given",
                                                args.size()))
-    auto s = bolt_raft::BoltRaftServer::Instance().raft_driver().GetRaftStatus();
-    nlohmann::json obj = nlohmann::json::parse(s);
+    auto status = bolt_raft::BoltRaftServer::Instance().raft_driver().GetRaftStatus();
+    nlohmann::json obj = nlohmann::json::parse(status.s.String());
+    obj["raftlog"]["first"] = status.first_log;
+    obj["raftlog"]["last"] = status.last_log;
     Record r;
     r.AddConstant(lgraph::FieldData::String(obj.dump(4)));
     records->emplace_back(r.Snapshot());

@@ -22,6 +22,7 @@ public:
 
     bool Init();
     void Close();
+    void Compact(uint64_t index);
     eraft::Error SetHardState(const raftpb::HardState& hs, rocksdb::WriteBatch &batch);
     eraft::Error SetConfState(const raftpb::ConfState& hs, rocksdb::WriteBatch &batch);
     eraft::Error SetNodeInfos(const std::string& info, rocksdb::WriteBatch &batch);

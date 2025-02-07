@@ -67,6 +67,12 @@ struct PromiseContext {
     std::promise<void> applied;
 };
 
+struct RaftStatus {
+    eraft::Status s;
+    uint64_t first_log = 0;
+    uint64_t last_log = 0;
+};
+
 class RaftDriver {
 public:
     RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> apply,
@@ -80,17 +86,18 @@ public:
     std::shared_ptr<PromiseContext>  Propose(bolt_raft::RaftRequest request);
     std::shared_ptr<PromiseContext>  ProposeConfChange(raftpb::ConfChange& cc);
     NodeInfos GetNodeInfosWithLeader();
-    std::string GetRaftStatus();
+    RaftStatus GetRaftStatus();
 
 private:
    std::shared_ptr<PromiseContext> PostMessage(uint64_t uuid, raftpb::Message msg);
     void Tick();
+    void CheckAndCompactLog();
     void CheckReady();
     void Apply(std::vector<raftpb::Entry> entries);
 
     std::vector<std::thread> threads_;
     boost::asio::io_service raft_service_;
-    boost::asio::io_service tick_service_;
+    boost::asio::io_service timer_service_;
     boost::asio::io_service apply_service_;
     boost::asio::io_service client_service_;
     std::function<void (uint64_t, const RaftRequest&)> apply_;
@@ -100,6 +107,8 @@ private:
     std::string log_path_;
     boost::posix_time::millisec tick_interval_;
     boost::asio::deadline_timer tick_timer_;
+    boost::posix_time::millisec compact_interval_;
+    boost::asio::deadline_timer compact_timer_;
     std::shared_ptr<eraft::RawNode> rn_;
     std::shared_ptr<RaftLogStorage> storage_;
     std::shared_mutex nodes_mutex_;

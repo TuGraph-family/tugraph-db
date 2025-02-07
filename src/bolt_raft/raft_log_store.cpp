@@ -72,6 +72,19 @@ void RaftLogStorage::Close() {
     LOG_INFO() << "raft log storage is closed";
 }
 
+void RaftLogStorage::Compact(uint64_t index) {
+    if (index >= last_entry_index_) {
+        LOG_FATAL() << FMA_FMT("Compact out of range, compact:{}, last:{}", index, last_entry_index_);
+    }
+    auto min = raft_log_key(0);
+    auto max = raft_log_key(index);
+    auto s = db_->DeleteRange({}, log_cf_, min, max);
+    if (!s.ok()) {
+        LOG_ERROR() << FMA_FMT("failed to delete range, error:{}", s.ToString());
+    }
+    first_entry_index_ = index;
+}
+
 void RaftLogStorage::WriteBatch(rocksdb::WriteBatch &batch) {
     auto s = db_->Write(rocksdb::WriteOptions(), &batch);
     if (!s.ok()) {

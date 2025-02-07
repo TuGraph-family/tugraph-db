@@ -332,6 +332,12 @@ class NodeInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(
   bool is_leader() const;
   void set_is_leader(bool value);
 
+  // bool is_learner = 6;
+  void clear_is_learner();
+  static const int kIsLearnerFieldNumber = 6;
+  bool is_learner() const;
+  void set_is_learner(bool value);
+
   // @@protoc_insertion_point(class_scope:bolt_raft.NodeInfo)
  private:
 
@@ -341,6 +347,7 @@ class NodeInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(
   ::google::protobuf::int32 bolt_port_;
   ::google::protobuf::int32 bolt_raft_port_;
   bool is_leader_;
+  bool is_learner_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_bolt_5fraft_2eproto::TableStruct;
 };
@@ -719,6 +726,20 @@ inline void NodeInfo::set_is_leader(bool value) {
   
   is_leader_ = value;
   // @@protoc_insertion_point(field_set:bolt_raft.NodeInfo.is_leader)
+}
+
+// bool is_learner = 6;
+inline void NodeInfo::clear_is_learner() {
+  is_learner_ = false;
+}
+inline bool NodeInfo::is_learner() const {
+  // @@protoc_insertion_point(field_get:bolt_raft.NodeInfo.is_learner)
+  return is_learner_;
+}
+inline void NodeInfo::set_is_learner(bool value) {
+  
+  is_learner_ = value;
+  // @@protoc_insertion_point(field_set:bolt_raft.NodeInfo.is_learner)
 }
 
 // -------------------------------------------------------------------

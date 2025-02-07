@@ -1200,7 +1200,8 @@ static std::vector<Procedure> global_procedures = {
                   {"ip", {1, lgraph_api::LGraphType::STRING}},
                   {"bolt_port", {2, lgraph_api::LGraphType::INTEGER}},
                   {"bolt_raft_port", {3, lgraph_api::LGraphType::INTEGER}},
-                  {"is_leader", {4, lgraph_api::LGraphType::BOOLEAN}}
+                  {"is_leader", {4, lgraph_api::LGraphType::BOOLEAN}},
+                  {"is_learner", {5, lgraph_api::LGraphType::BOOLEAN}}
               }, true, true),
 
     Procedure("db.bolt.addRaftNode", BuiltinProcedure::DbBoltAddRaftNode,

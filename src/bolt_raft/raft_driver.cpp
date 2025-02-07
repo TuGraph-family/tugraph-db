@@ -180,7 +180,9 @@ RaftDriver::RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> 
       init_peers_(std::move(init_peers)),
       log_path_(std::move(log_path)),
       tick_interval_(100),
-      tick_timer_(tick_service_, tick_interval_),
+      tick_timer_(timer_service_, tick_interval_),
+      compact_interval_(10 * 60 * 1000),
+      compact_timer_(timer_service_, compact_interval_),
       id_generator_(node_id, duration_cast<milliseconds>(
                                  steady_clock::now().time_since_epoch()).count()) {
 }
@@ -237,15 +239,17 @@ eraft::Error RaftDriver::Run() {
         }
     }
     Tick();
+    CheckAndCompactLog();
+
     threads_.emplace_back([this]() {
         pthread_setname_np(pthread_self(), "raft_service");
         boost::asio::io_service::work holder(raft_service_);
         raft_service_.run();
     });
     threads_.emplace_back([this]() {
-        pthread_setname_np(pthread_self(), "tick_service");
-        boost::asio::io_service::work holder(tick_service_);
-        tick_service_.run();
+        pthread_setname_np(pthread_self(), "timer_service");
+        boost::asio::io_service::work holder(timer_service_);
+        timer_service_.run();
     });
     threads_.emplace_back([this]() {
         pthread_setname_np(pthread_self(), "apply_service");
@@ -262,7 +266,7 @@ eraft::Error RaftDriver::Run() {
 
 void RaftDriver::Stop() {
     client_service_.stop();
-    tick_service_.stop();
+    timer_service_.stop();
     raft_service_.stop();
     apply_service_.stop();
     for (auto& t : threads_) {
@@ -368,14 +372,39 @@ NodeInfos RaftDriver::GetNodeInfosWithLeader() {
     return ret;
 }
 
-std::string RaftDriver::GetRaftStatus() {
-    std::promise<std::string> promise;
+RaftStatus RaftDriver::GetRaftStatus() {
+    std::promise<RaftStatus> promise;
     auto future = promise.get_future();
     raft_service_.post([this, &promise]() {
-        auto s = rn_->GetStatus();
-        promise.set_value(s.String());
+        RaftStatus rs;
+        rs.s = rn_->GetStatus();
+        rs.first_log = storage_->FirstIndex().first - 1;
+        rs.last_log = storage_->LastIndex().first;
+        promise.set_value(rs);
     });
     return future.get();
+}
+
+void RaftDriver::CheckAndCompactLog() {
+    raft_service_.post([this]() mutable {
+        auto first = storage_->FirstIndex().first;
+        auto applied = rn_->raft_->raftLog_->applied_;
+        if (applied > first) {
+            if (applied - first >= 2000000) {
+                auto compacted = (first + applied) / 2;
+                storage_->Compact(compacted);
+                LOG_INFO() << FMA_FMT("Compact raft log, compacted:{}, applied:{}", compacted, applied);
+            }
+        }
+    });
+    compact_timer_.expires_at(compact_timer_.expires_at() + compact_interval_);
+    compact_timer_.async_wait([this](const boost::system::error_code& ec){
+        if (ec) {
+            LOG_WARN() << "compact_timer async_wait error: " << ec.message();
+            return;
+        }
+        CheckAndCompactLog();
+    });
 }
 
 void RaftDriver::CheckReady() {

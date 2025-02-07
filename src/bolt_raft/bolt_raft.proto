@@ -27,6 +27,7 @@ message NodeInfo {
   int32 bolt_port = 3;
   int32 bolt_raft_port = 4;
   bool is_leader       = 5;
+  bool is_learner       = 6;
 }
 
 message NodeInfos {
