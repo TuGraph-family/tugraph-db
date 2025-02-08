@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
- // written by botu.wzy
+// written by botu.wzy
 
 #include "bolt_raft_server.h"
 #include "bolt_raft/raft_driver.h"
@@ -27,11 +27,12 @@ void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request);
 
 namespace bolt_raft {
 bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
-                           const std::string& init_peers, const std::string& log_path) {
+                           const std::string& init_peers, const std::string& log_path,
+                           uint64_t keep_log_num) {
     sm_ = sm;
     std::promise<bool> promise;
     std::future<bool> future = promise.get_future();
-    threads_.emplace_back([this, port, node_id, init_peers, log_path, &promise]() {
+    threads_.emplace_back([this, port, node_id, init_peers, log_path, keep_log_num, &promise]() {
         bool promise_done = false;
         try {
             std::vector<eraft::Peer> peers;
@@ -50,12 +51,8 @@ bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
             }
             auto apply_index = sm_->GetGalaxy()->GetBoltRaftApplyIndex();
             LOG_INFO() << "read apply index from metadb, apply index: " << apply_index;
-            raft_driver_ = std::make_unique<RaftDriver> (
-                bolt::ApplyRaftRequest,
-                apply_index,
-                node_id,
-                peers,
-                log_path);
+            raft_driver_ = std::make_unique<RaftDriver>(bolt::ApplyRaftRequest, apply_index,
+                                                        node_id, peers, log_path, keep_log_num);
             auto err = raft_driver_->Run();
             if (err != nullptr) {
                 LOG_ERROR() << "raft driver failed to run, error: " << err.String();
@@ -65,13 +62,14 @@ bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
             protobuf_handler_ = [this](raftpb::Message rpc_msg) {
                 raft_driver_->Step(std::move(rpc_msg));
             };
-            bolt_raft::IOService<bolt_raft::RaftConnection, decltype(protobuf_handler_)> bolt_raft_service(
-                listener_, port, 1, protobuf_handler_);
+            bolt_raft::IOService<bolt_raft::RaftConnection, decltype(protobuf_handler_)>
+                bolt_raft_service(listener_, port, 1, protobuf_handler_);
             boost::asio::io_service::work holder(listener_);
             LOG_INFO() << "bolt raft server run";
             promise.set_value(true);
             promise_done = true;
             started_ = true;
+            pthread_setname_np(pthread_self(), "raft_listener");
             listener_.run();
         } catch (const std::exception& e) {
             LOG_WARN() << "failed to start bolt raft server, expection: " << e.what();
@@ -95,4 +93,4 @@ void BoltRaftServer::Stop() {
     started_ = false;
     LOG_INFO() << "bolt raft server stopped.";
 }
-}
+}  // namespace bolt_raft

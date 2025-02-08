@@ -278,7 +278,7 @@ int LGraphServer::Start() {
             }
             brpc::ServerOptions brpc_options;
             brpc_options.has_builtin_services = false;
-            if (config_->thread_limit != 0) brpc_options.max_concurrency = config_->thread_limit;
+            //if (config_->thread_limit != 0) brpc_options.max_concurrency = config_->thread_limit;
             // brpc_options.num_threads = brpc_options.max_concurrency = 1;
             if (config_->enable_ssl) {
                 brpc_options.mutable_ssl_options()->default_cert.certificate =
@@ -332,10 +332,14 @@ int LGraphServer::Start() {
                     LOG_ERROR() << "bolt_raft_init_peers is empty";
                     return -1;
                 }
+                if (config_->bolt_raft_log_keep_num < 100000) {
+                    LOG_ERROR() << "bolt_raft_log_keep_num should be greater than 100000";
+                    return -1;
+                }
                 if (!bolt_raft::BoltRaftServer::Instance().Start(
                         state_machine_.get(), config_->bolt_raft_port,
                         config_->bolt_raft_node_id,config_->bolt_raft_init_peers,
-                        log_path)) {
+                        log_path, config_->bolt_raft_log_keep_num)) {
                     return -1;
                 }
             }

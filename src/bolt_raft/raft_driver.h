@@ -1,3 +1,19 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+// written by botu.wzy
+
 #pragma once
 #include <deque>
 #include <boost/asio.hpp>
@@ -7,21 +23,21 @@
 namespace bolt_raft {
 using namespace boost::asio::ip;
 class NodeClient : public std::enable_shared_from_this<NodeClient> {
-public:
-    NodeClient(boost::asio::io_service& io_service, const std::string &ip, int port)
-            : io_service_(io_service),
-              socket_(io_service_),
-              endpoint_(address::from_string(ip), port),
-              interval_(1000),
-              timer_(io_service_) {
-    }
+ public:
+    NodeClient(boost::asio::io_service& io_service, const std::string& ip, int port)
+        : io_service_(io_service),
+          socket_(io_service_),
+          endpoint_(address::from_string(ip), port),
+          interval_(1000),
+          timer_(io_service_) {}
     void Connect();
     void Send(std::string str);
     void Close();
     std::string ip() { return endpoint_.address().to_string(); }
     int port() { return endpoint_.port(); }
-    bool connected() {return connected_;}
-private:
+    bool connected() { return connected_; }
+
+ private:
     void do_send();
     void do_read_some();
     void reconnect();
@@ -41,8 +57,8 @@ private:
 };
 
 struct Generator {
-    static const int tsLen  = 5 * 8;
-    static const int cntLen  = 8;
+    static const int tsLen = 5 * 8;
+    static const int cntLen = 8;
     static const int suffixLen = tsLen + cntLen;
 
     Generator(uint64_t id, uint64_t time) {
@@ -75,22 +91,20 @@ struct RaftStatus {
 };
 
 class RaftDriver {
-public:
-    RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> apply,
-               uint64_t apply_id,
-               int64_t node_id,
-               std::vector<eraft::Peer> init_peers,
-               std::string log_path);
+ public:
+    RaftDriver(std::function<void(uint64_t index, const RaftRequest&)> apply, uint64_t apply_id,
+               int64_t node_id, std::vector<eraft::Peer> init_peers, std::string log_path,
+               uint64_t keep_log_num);
     eraft::Error Run();
     void Stop();
     void Step(raftpb::Message msg);
-    std::shared_ptr<PromiseContext>  ProposeRaftRequest(bolt_raft::RaftRequest request);
-    std::shared_ptr<PromiseContext>  ProposeConfChange(raftpb::ConfChange& cc);
+    std::shared_ptr<PromiseContext> ProposeRaftRequest(bolt_raft::RaftRequest request);
+    std::shared_ptr<PromiseContext> ProposeConfChange(raftpb::ConfChange& cc);
     NodeInfos GetNodeInfosWithLeader();
     RaftStatus GetRaftStatus();
 
-private:
-   std::shared_ptr<PromiseContext> Propose(uint64_t uuid, raftpb::Message msg);
+ private:
+    std::shared_ptr<PromiseContext> Propose(uint64_t uuid, raftpb::Message msg);
     void Tick();
     void CheckAndCompactLog();
     void CheckReady();
@@ -101,7 +115,7 @@ private:
     boost::asio::io_service timer_service_;
     boost::asio::io_service apply_service_;
     boost::asio::io_service client_service_;
-    std::function<void (uint64_t, const RaftRequest&)> apply_;
+    std::function<void(uint64_t, const RaftRequest&)> apply_;
     uint64_t apply_id_;
     uint64_t node_id_;
     std::vector<eraft::Peer> init_peers_;
@@ -119,5 +133,6 @@ private:
     std::mutex promise_mutex_;
     std::unordered_map<uint64_t, std::shared_ptr<PromiseContext>> pending_promise_;
     std::unordered_set<uint64_t> mark_unreachable_;
+    uint64_t keep_log_num_;
 };
-}
+}  // namespace bolt_raft

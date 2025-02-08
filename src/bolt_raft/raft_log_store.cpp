@@ -1,3 +1,19 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+// written by botu.wzy
+
 #include <boost/endian/conversion.hpp>
 #include "raft_log_store.h"
 #include "tools/lgraph_log.h"
@@ -10,10 +26,10 @@ std::string raft_log_key(uint64_t log_id) {
     return ret;
 }
 
-const std::string raft_hardstate_key  = "hardState";
+const std::string raft_hardstate_key = "hardState";
 const std::string raft_applyindex_key = "applyIndex";
-const std::string raft_confstate_key  = "confState";
-const std::string raft_nodeinfos_key  = "nodeInfos";
+const std::string raft_confstate_key = "confState";
+const std::string raft_nodeinfos_key = "nodeInfos";
 
 bool RaftLogStorage::Init() {
     std::string value;
@@ -52,11 +68,14 @@ bool RaftLogStorage::Init() {
     if (!confstate.ParseFromString(value)) {
         LOG_FATAL() << "failed to parse ConfState from string";
     }
-    LOG_INFO() << FMA_FMT("read raft state from db, hardstate:[{}], confstate:[{}]", hardstate.ShortDebugString(), confstate.ShortDebugString());
     first_entry_index_ = get_first_log_entry().index();
     last_entry_index_ = get_last_log_entry().index();
     conf_state_ = std::move(confstate);
     hard_state_ = std::move(hardstate);
+    LOG_INFO() << FMA_FMT(
+        "read raft state from db, first_index:{}, last_index:{}, hardstate:[{}], confstate:[{}]",
+        first_entry_index_, last_entry_index_, hardstate.ShortDebugString(),
+        confstate.ShortDebugString());
     return last_entry_index_ > 0;
 }
 
@@ -74,7 +93,8 @@ void RaftLogStorage::Close() {
 
 void RaftLogStorage::Compact(uint64_t index) {
     if (index >= last_entry_index_) {
-        LOG_FATAL() << FMA_FMT("compact raft log out of range, compact:{}, last:{}", index, last_entry_index_);
+        LOG_FATAL() << FMA_FMT("compact raft log out of range, compact:{}, last:{}", index,
+                               last_entry_index_);
     }
     auto min = raft_log_key(0);
     auto max = raft_log_key(index);
@@ -95,7 +115,7 @@ void RaftLogStorage::WriteBatch(rocksdb::WriteBatch &batch) {
 raftpb::Entry RaftLogStorage::get_first_log_entry() {
     std::string min_raft_log_key = raft_log_key(0);
     std::unique_ptr<rocksdb::Iterator> iter =
-            std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(rocksdb::ReadOptions(), log_cf_));
+        std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(rocksdb::ReadOptions(), log_cf_));
     iter->Seek(min_raft_log_key);
     if (!iter->Valid()) {
         LOG_FATAL() << "failed to get first raft log key";
@@ -111,7 +131,7 @@ raftpb::Entry RaftLogStorage::get_first_log_entry() {
 raftpb::Entry RaftLogStorage::get_last_log_entry() {
     std::string max_raft_log_key = raft_log_key(std::numeric_limits<uint64_t>::max());
     std::unique_ptr<rocksdb::Iterator> iter =
-            std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(rocksdb::ReadOptions(), log_cf_));
+        std::unique_ptr<rocksdb::Iterator>(db_->NewIterator(rocksdb::ReadOptions(), log_cf_));
     iter->SeekForPrev(max_raft_log_key);
     if (!iter->Valid()) {
         LOG_FATAL() << "failed to get last raft log key";
@@ -124,21 +144,21 @@ raftpb::Entry RaftLogStorage::get_last_log_entry() {
     return entry;
 }
 
-eraft::Error RaftLogStorage::SetHardState(const raftpb::HardState& hs, rocksdb::WriteBatch &batch) {
+eraft::Error RaftLogStorage::SetHardState(const raftpb::HardState &hs, rocksdb::WriteBatch &batch) {
     std::string val;
     hs.SerializeToString(&val);
     batch.Put(meta_cf_, raft_hardstate_key, val);
     return nullptr;
 }
 
-eraft::Error RaftLogStorage::SetConfState(const raftpb::ConfState& hs, rocksdb::WriteBatch &batch) {
+eraft::Error RaftLogStorage::SetConfState(const raftpb::ConfState &hs, rocksdb::WriteBatch &batch) {
     std::string val;
     hs.SerializeToString(&val);
     batch.Put(meta_cf_, raft_confstate_key, val);
     return nullptr;
 }
 
-eraft::Error RaftLogStorage::SetNodeInfos(const std::string& info, rocksdb::WriteBatch &batch) {
+eraft::Error RaftLogStorage::SetNodeInfos(const std::string &info, rocksdb::WriteBatch &batch) {
     std::string val;
     batch.Put(meta_cf_, raft_nodeinfos_key, info);
     return nullptr;
@@ -174,7 +194,8 @@ uint64_t RaftLogStorage::GetApplyIndex() {
     return apply_index;
 }
 
-eraft::Error RaftLogStorage::Append(std::vector<raftpb::Entry> entries, rocksdb::WriteBatch &batch) {
+eraft::Error RaftLogStorage::Append(std::vector<raftpb::Entry> entries,
+                                    rocksdb::WriteBatch &batch) {
     if (entries.empty()) {
         return nullptr;
     }
@@ -188,7 +209,7 @@ eraft::Error RaftLogStorage::Append(std::vector<raftpb::Entry> entries, rocksdb:
     }
     // truncate compacted entries
     if (first > entries[0].index()) {
-        entries.erase(entries.begin(), entries.begin() + (int64_t)(first-entries[0].index()));
+        entries.erase(entries.begin(), entries.begin() + (int64_t)(first - entries[0].index()));
     }
 
     uint64_t pre_last_entry_index = last_entry_index_;
@@ -208,7 +229,9 @@ std::tuple<raftpb::HardState, raftpb::ConfState, eraft::Error> RaftLogStorage::I
     return {hard_state_, conf_state_, nullptr};
 }
 
-std::pair<std::vector<raftpb::Entry>, eraft::Error> RaftLogStorage::Entries(uint64_t lo, uint64_t hi, uint64_t maxSize) {
+std::pair<std::vector<raftpb::Entry>, eraft::Error> RaftLogStorage::Entries(uint64_t lo,
+                                                                            uint64_t hi,
+                                                                            uint64_t maxSize) {
     if (lo <= first_entry_index_) {
         return {{}, eraft::ErrCompacted};
     }
@@ -271,16 +294,12 @@ std::pair<uint64_t, eraft::Error> RaftLogStorage::Term(uint64_t i) {
     return {entry.term(), nullptr};
 }
 
-std::pair<uint64_t, eraft::Error> RaftLogStorage::LastIndex() {
-    return {lastIndex(), nullptr};
-}
+std::pair<uint64_t, eraft::Error> RaftLogStorage::LastIndex() { return {lastIndex(), nullptr}; }
 
-std::pair<uint64_t, eraft::Error> RaftLogStorage::FirstIndex() {
-    return {firstIndex(), nullptr};
-}
+std::pair<uint64_t, eraft::Error> RaftLogStorage::FirstIndex() { return {firstIndex(), nullptr}; }
 
 std::pair<raftpb::Snapshot, eraft::Error> RaftLogStorage::Snapshot() {
     // disable snapshot
     return {raftpb::Snapshot{}, eraft::ErrSnapshotTemporarilyUnavailable};
 }
-}
+}  // namespace bolt_raft

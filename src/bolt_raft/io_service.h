@@ -1,3 +1,19 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+// written by botu.wzy
+
 #pragma once
 #include <pthread.h>
 #include <thread>
@@ -43,7 +59,7 @@ class IOServicePool : private boost::asio::noncopyable {
         for (std::size_t i = 0; i < io_services_.size(); ++i) {
             io_services_[i]->stop();
         }
-        for (auto &t: threads_) {
+        for (auto &t : threads_) {
             t.join();
         }
         stopped_ = true;
@@ -67,25 +83,24 @@ class IOServicePool : private boost::asio::noncopyable {
     bool stopped_ = false;
 };
 
-inline void socket_set_options(tcp::socket& socket) {
+inline void socket_set_options(tcp::socket &socket) {
     socket.set_option(boost::asio::ip::tcp::no_delay(true));
     socket.set_option(boost::asio::socket_base::keep_alive(true));
     socket.set_option(boost::asio::ip::tcp::socket::reuse_address(true));
 }
 
-template<typename T, typename F>
+template <typename T, typename F>
 class IOService : private boost::asio::noncopyable {
  public:
-    ~IOService() {
-        io_service_pool_.Stop();
-    }
+    ~IOService() { io_service_pool_.Stop(); }
 
-    IOService(boost::asio::io_service &service,
-              int port, int thread_num, F handler)
+    IOService(boost::asio::io_service &service, int port, int thread_num, F handler)
         : handler_(handler),
           acceptor_(service, tcp::endpoint(tcp::v4(), port),
-                    /*reuse_addr*/true),
-          io_service_pool_(thread_num), interval_(10), timer_(service) {
+                    /*reuse_addr*/ true),
+          io_service_pool_(thread_num),
+          interval_(10),
+          timer_(service) {
         io_service_pool_.Run();
         invoke_async_accept();
         clean_closed_conn();
@@ -98,9 +113,9 @@ class IOService : private boost::asio::noncopyable {
             if (ec) {
                 LOG_WARN() << FMA_FMT("async accept error: {}", ec.message());
             } else {
-                LOG_DEBUG() << FMA_FMT("accept new raft connection {}",
-                          boost::lexical_cast<std::string>(
-                              conn_->socket().remote_endpoint()).c_str());
+                LOG_DEBUG() << FMA_FMT(
+                    "accept new raft connection {}",
+                    boost::lexical_cast<std::string>(conn_->socket().remote_endpoint()).c_str());
                 socket_set_options(conn_->socket());
                 conn_->conn_id() = next_conn_id_;
                 connections_.emplace(next_conn_id_, conn_);
@@ -116,7 +131,7 @@ class IOService : private boost::asio::noncopyable {
         for (auto it = connections_.cbegin(); it != connections_.cend();) {
             if (it->second->has_closed()) {
                 LOG_DEBUG() << FMA_FMT("erase raft connection[id:{},use_count:{}] from pool",
-                          it->second->conn_id(), it->second.use_count());
+                                       it->second->conn_id(), it->second.use_count());
                 it = connections_.erase(it);
             } else {
                 ++it;
@@ -136,4 +151,4 @@ class IOService : private boost::asio::noncopyable {
     boost::asio::deadline_timer timer_;
 };
 
-}
+}  // namespace bolt_raft

@@ -29,7 +29,7 @@ struct BrowserOptions {
 
 struct BasicConfigs {
     std::string db_dir = "./lgraph_db";  // db
-    int thread_limit = 0;                // number of threads, for both rpc and http
+    int thread_limit = 2;                // number of threads, for http
     int subprocess_max_idle_seconds = 600;
     // address and ssl
     std::string bind_host = "0.0.0.0";
@@ -88,6 +88,7 @@ struct BasicConfigs {
     uint64_t bolt_raft_node_id = 0;
     std::string bolt_raft_init_peers;
     std::string bolt_raft_log_path;
+    uint64_t bolt_raft_log_keep_num;
     // default disable plugin load/delete
     bool enable_plugin = false;
     BrowserOptions browser_options;

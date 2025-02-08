@@ -37,6 +37,7 @@ bool BoltServer::Start(lgraph::StateMachine* sm, int port, int io_thread_num) {
             LOG_INFO() << "bolt server run";
             promise.set_value(true);
             promise_done = true;
+            pthread_setname_np(pthread_self(), "bolt_listener");
             listener.run();
         } catch (const std::exception& e) {
             LOG_WARN() << "bolt server expection: " << e.what();

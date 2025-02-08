@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
- // written by botu.wzy
+// written by botu.wzy
 
 #include <thread>
 #include <shared_mutex>
@@ -30,15 +30,14 @@ class BoltRaftServer final {
     }
     DISABLE_COPY(BoltRaftServer);
     DISABLE_MOVE(BoltRaftServer);
-    bool Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
-               const std::string& init_peers, const std::string& log_path);
+    bool Start(lgraph::StateMachine* sm, int port, uint64_t node_id, const std::string& init_peers,
+               const std::string& log_path, uint64_t keep_log_num);
     void Stop();
-    bool Started() const {return started_;}
-    RaftDriver& raft_driver() {return *raft_driver_;}
+    bool Started() const { return started_; }
+    RaftDriver& raft_driver() { return *raft_driver_; }
     ~BoltRaftServer() { Stop(); }
-    lgraph::StateMachine* StateMachine() {
-        return sm_;
-    }
+    lgraph::StateMachine* StateMachine() { return sm_; }
+
  private:
     BoltRaftServer() = default;
     std::vector<std::thread> threads_{};
@@ -48,4 +47,4 @@ class BoltRaftServer final {
     std::shared_ptr<RaftDriver> raft_driver_ = nullptr;
     lgraph::StateMachine* sm_ = nullptr;
 };
-}
+}  // namespace bolt_raft

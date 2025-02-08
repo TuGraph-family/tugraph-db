@@ -1,3 +1,19 @@
+/**
+ * Copyright 2022 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+// written by botu.wzy
+
 #include <gflags/gflags.h>
 #include <filesystem>
 #include <shared_mutex>
@@ -29,7 +45,7 @@ void NodeClient::reconnect() {
     send_buffers_.clear();
     msg_queue_.clear();
     timer_.expires_from_now(interval_);
-    timer_.async_wait([this, self = shared_from_this()](const boost::system::error_code &ec) {
+    timer_.async_wait([this, self = shared_from_this()](const boost::system::error_code& ec) {
         if (ec == boost::asio::error::operation_aborted) {
             return;
         }
@@ -48,12 +64,14 @@ void NodeClient::Close() {
 
 void NodeClient::Send(std::string str) {
     if (has_closed_) {
-        LOG_DEBUG() << FMA_FMT("connection[{}:{}] is closed, drop this message", endpoint_.address().to_string(), endpoint_.port());
+        LOG_DEBUG() << FMA_FMT("connection[{}:{}] is closed, drop this message",
+                               endpoint_.address().to_string(), endpoint_.port());
         return;
     }
-    io_service_.post([this, self = shared_from_this(), msg = std::move(str)]() mutable  {
+    io_service_.post([this, self = shared_from_this(), msg = std::move(str)]() mutable {
         if (!connected_) {
-            LOG_DEBUG() << FMA_FMT("connection[{}:{}] is not available, drop this message", endpoint_.address().to_string(), endpoint_.port());
+            LOG_DEBUG() << FMA_FMT("connection[{}:{}] is not available, drop this message",
+                                   endpoint_.address().to_string(), endpoint_.port());
             return;
         }
         bool need_invoke = msg_queue_.empty();
@@ -66,19 +84,18 @@ void NodeClient::Send(std::string str) {
 
 void NodeClient::send_magic_code() {
     async_write(socket_, boost::asio::buffer(magic_code),
-        [this, self = shared_from_this()](const boost::system::error_code &ec, size_t) {
-            if (ec) {
-                LOG_WARN() << FMA_FMT("async write error {}", ec.message().c_str());
-                if (ec == boost::asio::error::operation_aborted) {
-                    return;
-                }
-                reconnect();
-                return;
-            }
-            connected_ = true;
-            do_read_some();
-        }
-    );
+                [this, self = shared_from_this()](const boost::system::error_code& ec, size_t) {
+                    if (ec) {
+                        LOG_WARN() << FMA_FMT("async write error {}", ec.message().c_str());
+                        if (ec == boost::asio::error::operation_aborted) {
+                            return;
+                        }
+                        reconnect();
+                        return;
+                    }
+                    connected_ = true;
+                    do_read_some();
+                });
 }
 
 void NodeClient::do_send() {
@@ -88,8 +105,9 @@ void NodeClient::do_send() {
             break;
         }
     }
-    async_write(socket_, send_buffers_,
-        [this, self = shared_from_this()](const boost::system::error_code &ec, std::size_t) {
+    async_write(
+        socket_, send_buffers_,
+        [this, self = shared_from_this()](const boost::system::error_code& ec, std::size_t) {
             if (ec) {
                 LOG_WARN() << FMA_FMT("async write error {}", ec.message().c_str());
                 if (ec == boost::asio::error::operation_aborted) {
@@ -104,13 +122,13 @@ void NodeClient::do_send() {
             if (!msg_queue_.empty()) {
                 do_send();
             }
-        }
-    );
+        });
 }
 
 void NodeClient::do_read_some() {
-    socket_.async_read_some(boost::asio::buffer(buffer4_),
-        [this, self = shared_from_this()](const boost::system::error_code &ec, size_t) {
+    socket_.async_read_some(
+        boost::asio::buffer(buffer4_),
+        [this, self = shared_from_this()](const boost::system::error_code& ec, size_t) {
             if (ec) {
                 LOG_WARN() << FMA_FMT("async_read_some error: {}", ec.message().c_str());
                 if (ec == boost::asio::error::operation_aborted) {
@@ -118,7 +136,7 @@ void NodeClient::do_read_some() {
                 }
                 reconnect();
             } else {
-                LOG_ERROR() <<"unexpected read in node client do_read_some";
+                LOG_ERROR() << "unexpected read in node client do_read_some";
                 reconnect();
             }
         });
@@ -143,16 +161,19 @@ void NodeClient::Connect() {
     if (ec) {
         LOG_WARN() << FMA_FMT("socket open error: {}", ec.message().c_str());
     }
-    socket_.async_connect(endpoint_,
-        [this, self = shared_from_this()](const boost::system::error_code &ec) {
+    socket_.async_connect(
+        endpoint_, [this, self = shared_from_this()](const boost::system::error_code& ec) {
             if (ec) {
                 if (ec == boost::asio::error::operation_aborted) {
                     return;
                 }
-                LOG_WARN() << FMA_FMT("async connect {} error: {}", boost::lexical_cast<std::string>(endpoint_).c_str(), ec.message().c_str());
+                LOG_WARN() << FMA_FMT("async connect {} error: {}",
+                                      boost::lexical_cast<std::string>(endpoint_).c_str(),
+                                      ec.message().c_str());
                 reconnect();
             } else {
-                LOG_INFO() << FMA_FMT("connect to {} successfully", boost::lexical_cast<std::string>(endpoint_).c_str());
+                LOG_INFO() << FMA_FMT("connect to {} successfully",
+                                      boost::lexical_cast<std::string>(endpoint_).c_str());
                 socket_set_options(socket_);
                 send_magic_code();
             }
@@ -169,11 +190,9 @@ std::string MessageToNetString(const google::protobuf::Message& msg) {
     return str;
 }
 
-RaftDriver::RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> apply,
-           uint64_t apply_id,
-           int64_t node_id,
-           std::vector<eraft::Peer> init_peers,
-           std::string log_path)
+RaftDriver::RaftDriver(std::function<void(uint64_t index, const RaftRequest&)> apply,
+                       uint64_t apply_id, int64_t node_id, std::vector<eraft::Peer> init_peers,
+                       std::string log_path, uint64_t keep_log_num)
     : apply_(std::move(apply)),
       apply_id_(apply_id),
       node_id_(node_id),
@@ -183,9 +202,9 @@ RaftDriver::RaftDriver(std::function<void (uint64_t index, const RaftRequest&)> 
       tick_timer_(timer_service_, tick_interval_),
       compact_interval_(10 * 60 * 1000),
       compact_timer_(timer_service_, compact_interval_),
-      id_generator_(node_id, duration_cast<milliseconds>(
-                                 steady_clock::now().time_since_epoch()).count()) {
-}
+      id_generator_(node_id,
+                    duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count()),
+      keep_log_num_(keep_log_num) {}
 
 eraft::Error RaftDriver::Run() {
     rocksdb::Options options;
@@ -208,8 +227,8 @@ eraft::Error RaftDriver::Run() {
         node_infos_.ParseFromString(nodes.value());
     }
     for (auto& [id, node] : node_infos_.nodes()) {
-        auto client = std::make_shared<NodeClient>(
-            client_service_, node.ip(), node.bolt_raft_port());
+        auto client =
+            std::make_shared<NodeClient>(client_service_, node.ip(), node.bolt_raft_port());
         client->Connect();
         node_clients_.emplace(node.node_id(), std::move(client));
     }
@@ -280,7 +299,7 @@ void RaftDriver::Step(raftpb::Message msg) {
     raft_service_.post([this, msg = std::move(msg)]() mutable {
         auto err = rn_->Step(std::move(msg));
         if (err != nullptr) {
-            LOG_WARN() << FMA_FMT("failed to step message, err: {}",err.String().c_str());
+            LOG_WARN() << FMA_FMT("failed to step message, err: {}", err.String().c_str());
             return;
         }
         CheckReady();
@@ -297,7 +316,7 @@ std::shared_ptr<PromiseContext> RaftDriver::Propose(uint64_t uuid, raftpb::Messa
         msg.set_from(rn_->raft_->id_);
         auto err = rn_->raft_->Step(std::move(msg));
         if (err != nullptr) {
-            LOG_WARN() << FMA_FMT("failed to step raft message, err: {}",err.String().c_str());
+            LOG_WARN() << FMA_FMT("failed to step raft message, err: {}", err.String().c_str());
             return;
         }
         context->proposed.set_value(std::move(err));
@@ -316,7 +335,7 @@ void RaftDriver::Tick() {
         CheckReady();
     });
     tick_timer_.expires_at(tick_timer_.expires_at() + tick_interval_);
-    tick_timer_.async_wait([this](const boost::system::error_code& ec){
+    tick_timer_.async_wait([this](const boost::system::error_code& ec) {
         if (ec) {
             LOG_WARN() << "tick_timer async_wait error: " << ec.message();
             return;
@@ -348,9 +367,7 @@ std::shared_ptr<PromiseContext> RaftDriver::ProposeRaftRequest(bolt_raft::RaftRe
 NodeInfos RaftDriver::GetNodeInfosWithLeader() {
     std::promise<uint64_t> promise;
     auto future = promise.get_future();
-    raft_service_.post([this, &promise]() {
-        promise.set_value(rn_->raft_->lead_);
-    });
+    raft_service_.post([this, &promise]() { promise.set_value(rn_->raft_->lead_); });
     auto leader = future.get();
 
     std::shared_lock<std::shared_mutex> lock(nodes_mutex_);
@@ -379,15 +396,16 @@ void RaftDriver::CheckAndCompactLog() {
         auto first = storage_->FirstIndex().first;
         auto applied = rn_->raft_->raftLog_->applied_;
         if (applied > first) {
-            if (applied - first >= 2000000) {
-                auto compacted = (first + applied) / 2;
+            if (applied - first >= keep_log_num_ + 100000) {
+                auto compacted = applied - keep_log_num_;
                 storage_->Compact(compacted);
-                LOG_INFO() << FMA_FMT("compact raft log, compacted index:{}, applied index:{}", compacted, applied);
+                LOG_INFO() << FMA_FMT("compact raft log, compacted index:{}, applied index:{}",
+                                      compacted, applied);
             }
         }
     });
     compact_timer_.expires_at(compact_timer_.expires_at() + compact_interval_);
-    compact_timer_.async_wait([this](const boost::system::error_code& ec){
+    compact_timer_.async_wait([this](const boost::system::error_code& ec) {
         if (ec) {
             LOG_WARN() << "compact_timer async_wait error: " << ec.message();
             return;
@@ -403,7 +421,8 @@ void RaftDriver::CheckReady() {
     auto ready = rn_->GetReady();
     if (ready.softState_) {
         LOG_INFO() << FMA_FMT("soft state change, state:{}, lead:{}",
-                              eraft::ToString(ready.softState_->raftState_), ready.softState_->lead_);
+                              eraft::ToString(ready.softState_->raftState_),
+                              ready.softState_->lead_);
     }
     rocksdb::WriteBatch batch;
     if (!ready.entries_.empty()) {
@@ -451,10 +470,9 @@ void RaftDriver::CheckReady() {
             }
         }
         if (!has_confchange) {
-            apply_service_.post(
-                [this, committedEntries = std::move(ready.committedEntries_)]() {
-                    Apply(committedEntries);
-                });
+            apply_service_.post([this, committedEntries = std::move(ready.committedEntries_)]() {
+                Apply(committedEntries);
+            });
         } else {
             LOG_INFO() << "there is ConfChange in committed entries, entries size: "
                        << ready.committedEntries_.size();
@@ -467,7 +485,8 @@ void RaftDriver::CheckReady() {
 void RaftDriver::Apply(const std::vector<raftpb::Entry>& entries) {
     for (const auto& entry : entries) {
         switch (entry.type()) {
-        case raftpb::EntryNormal: {
+        case raftpb::EntryNormal:
+            {
                 if (entry.data().empty()) {
                     continue;
                 }
@@ -492,7 +511,8 @@ void RaftDriver::Apply(const std::vector<raftpb::Entry>& entries) {
                 }
                 break;
             }
-        case raftpb::EntryConfChange: {
+        case raftpb::EntryConfChange:
+            {
                 raftpb::ConfChange cc;
                 if (!cc.ParseFromString(entry.data())) {
                     LOG_FATAL() << "failed to parse ConfChange data";
@@ -501,8 +521,9 @@ void RaftDriver::Apply(const std::vector<raftpb::Entry>& entries) {
                 NodeInfo node_info;
                 node_info.ParseFromString(cc.context());
                 switch (cc.type()) {
-                case  raftpb::ConfChangeType::ConfChangeAddLearnerNode:
-                case  raftpb::ConfChangeType::ConfChangeAddNode: {
+                case raftpb::ConfChangeType::ConfChangeAddLearnerNode:
+                case raftpb::ConfChangeType::ConfChangeAddNode:
+                    {
                         if (cc.type() == raftpb::ConfChangeType::ConfChangeAddNode) {
                             LOG_INFO() << FMA_FMT("add node: {}", node_info.ShortDebugString());
                         } else {
@@ -511,15 +532,18 @@ void RaftDriver::Apply(const std::vector<raftpb::Entry>& entries) {
                         std::unique_lock<std::shared_mutex> lock(nodes_mutex_);
                         if (!node_infos_.nodes().count(node_info.node_id())) {
                             node_infos_.mutable_nodes()->insert({node_info.node_id(), node_info});
-                            auto client = std::make_shared<NodeClient>(client_service_, node_info.ip(), node_info.bolt_raft_port());
+                            auto client = std::make_shared<NodeClient>(
+                                client_service_, node_info.ip(), node_info.bolt_raft_port());
                             client->Connect();
                             node_clients_.emplace(node_info.node_id(), std::move(client));
                         } else {
-                            LOG_ERROR() << FMA_FMT("node id %d has already existed", node_info.node_id());
+                            LOG_ERROR()
+                                << FMA_FMT("node id %d has already existed", node_info.node_id());
                         }
                         break;
                     }
-                case  raftpb::ConfChangeType::ConfChangeRemoveNode: {
+                case raftpb::ConfChangeType::ConfChangeRemoveNode:
+                    {
                         LOG_INFO() << FMA_FMT("remove node: {}", node_info.node_id());
                         std::unique_lock<std::shared_mutex> lock(nodes_mutex_);
                         if (node_infos_.nodes().count(node_info.node_id())) {
@@ -531,13 +555,16 @@ void RaftDriver::Apply(const std::vector<raftpb::Entry>& entries) {
                         }
                         break;
                     }
-                case  raftpb::ConfChangeType::ConfChangeUpdateNode: {
+                case raftpb::ConfChangeType::ConfChangeUpdateNode:
+                    {
                         LOG_INFO() << FMA_FMT("update node: %s", cc.ShortDebugString());
                         break;
                     }
-                default: {
+                default:
+                    {
                         break;
-                    }}
+                    }
+                }
 
                 LOG_INFO() << FMA_FMT("new conf state: {}", confstate->ShortDebugString());
                 rocksdb::WriteBatch wb;
@@ -560,11 +587,12 @@ void RaftDriver::Apply(const std::vector<raftpb::Entry>& entries) {
                 }
                 break;
             }
-        default: {
+        default:
+            {
                 LOG_ERROR() << FMA_FMT("unhandled entry : {}", entry.ShortDebugString());
             }
         }
     }
 }
 
-}
+}  // namespace bolt_raft

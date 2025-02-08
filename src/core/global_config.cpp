@@ -191,7 +191,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     audit_log_dir = "";
     backup_log_dir = "";
     snapshot_dir = "";
-    thread_limit = 0;
+    thread_limit = 2;
     unlimited_token = false;
     enable_realtime_count = true;
     reset_admin_password = false;
@@ -222,6 +222,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     enable_plugin = false;
     bolt_raft_port = 0;
     bolt_raft_node_id = 0;
+    bolt_raft_log_keep_num = 1000000;
 
     // parse options
     fma_common::Configuration argparser;
@@ -280,7 +281,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     argparser.Add(snapshot_dir, "snapshot_dir", true)
         .Comment("Directory to store the snapshot files.");
     argparser.Add(thread_limit, "thread_limit", true)
-        .Comment("Maximum number of threads to use");
+        .Comment("Maximum number of threads to use in http web server");
     argparser.Add(unlimited_token, "unlimited_token", true)
         .Comment("Unlimited token for TuGraph.");
     argparser.Add(reset_admin_password, "reset_admin_password", true)
@@ -351,6 +352,8 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     argparser.Add(bolt_raft_init_peers, "bolt_raft_init_peers", true)
     .Comment("Bolt raft initial member information.");
     argparser.Add(bolt_raft_log_path, "bolt_raft_log_path", true)
-        .Comment("Bolt raft log path.");
+        .Comment("Bolt raft log path."),
+    argparser.Add(bolt_raft_log_keep_num, "bolt_raft_log_keep_num", true)
+        .Comment("Bolt raft log number kept.");
     return argparser;
 }
