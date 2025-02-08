@@ -4,3 +4,6 @@
 [submodule "deps/tugraph-db-browser"]
 	path = deps/tugraph-db-browser
 	url = https://github.com/TuGraph-family/tugraph-db-browser.git
+[submodule "deps/etcd-raft-cpp"]
+	path = deps/etcd-raft-cpp
+	url = https://github.com/TuGraph-family/etcd-raft-cpp.git
