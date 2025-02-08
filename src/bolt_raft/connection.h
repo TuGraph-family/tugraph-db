@@ -15,10 +15,10 @@
 // written by botu.wzy
 
 #pragma once
+#include <utility>
 #include <deque>
 #include <boost/asio.hpp>
 #include <boost/endian/conversion.hpp>
-#include <utility>
 #include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
 #include "etcd-raft-cpp/raftpb/raft.pb.h"
@@ -31,15 +31,15 @@ class Connection : private boost::asio::noncopyable {
 
     explicit Connection(boost::asio::io_service& io_service)
         : io_service_(io_service), socket_(io_service_), has_closed_(false) {}
-    boost::asio::ip::tcp::socket& socket() { return socket_; };
+    boost::asio::ip::tcp::socket& socket() { return socket_; }
     virtual void Close() {
         LOG_DEBUG() << FMA_FMT("close conn[id:{}]", conn_id_);
         socket_.close();
         has_closed_ = true;
-    };
-    virtual bool has_closed() { return has_closed_; };
-    int64_t& conn_id() { return conn_id_; };
-    boost::asio::io_service& io_service() { return io_service_; };
+    }
+    virtual bool has_closed() { return has_closed_; }
+    int64_t& conn_id() { return conn_id_; }
+    boost::asio::io_service& io_service() { return io_service_; }
     virtual void Start() = 0;
 
  private:

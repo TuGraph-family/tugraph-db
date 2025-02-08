@@ -15,9 +15,9 @@
 // written by botu.wzy
 
 #pragma once
-#include <boost/noncopyable.hpp>
 #include <rocksdb/db.h>
 #include <rocksdb/convenience.h>
+#include <boost/noncopyable.hpp>
 #include "etcd-raft-cpp/rawnode.h"
 namespace bolt_raft {
 struct RaftLogStorage : private boost::noncopyable, eraft::Storage {

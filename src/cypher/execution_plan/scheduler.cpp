@@ -191,10 +191,10 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
             if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
                 LOG_DEBUG() << FMA_FMT("failed to dump ast, cypher:{}, ret:{}, error_msg:{}",
                                        script, ToString(ret), dumper.error_msg());
-                //THROW_CODE(CypherException, dumper.error_msg());
+                // THROW_CODE(CypherException, dumper.error_msg());
             } else {
                 LOG_DEBUG() << "--- Dump AST---";
-                LOG_DEBUG() << dumper.dump().substr(0,1024);
+                LOG_DEBUG() << dumper.dump().substr(0, 1024);
             }
         }
         plan = std::make_shared<ExecutionPlanV2>();

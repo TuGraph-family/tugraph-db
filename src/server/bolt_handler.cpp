@@ -156,7 +156,8 @@ void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request) {
         cypher::ElapsedTime elapsed;
         sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER, cypher, elapsed);
     } catch (std::exception& e) {
-        LOG_ERROR() << FMA_FMT("failed to apply cypher, cypher: {}, exception: {}", cypher, e.what());
+        LOG_ERROR() << FMA_FMT(
+            "failed to apply cypher, cypher: {}, exception: {}", cypher, e.what());
     }
     sm->GetGalaxy()->UpdateBoltRaftApplyIndex(index);
 }
@@ -284,8 +285,10 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                         if (!read_only) {
                             bolt_raft::RaftRequest request;
                             request.set_user(session->user);
-                            request.set_raw_data((const char*)msg.value().raw_data.data(), msg.value().raw_data.size());
-                            promise_context = bolt_raft::BoltRaftServer::Instance().raft_driver().ProposeRaftRequest(std::move(request));
+                            request.set_raw_data((const char*)msg.value().raw_data.data(),
+                                                 msg.value().raw_data.size());
+                            promise_context = bolt_raft::BoltRaftServer::Instance().
+                                              raft_driver().ProposeRaftRequest(std::move(request));
                             auto err = promise_context->proposed.get_future().get();
                             if (err != nullptr) {
                                 LOG_ERROR() << FMA_FMT("failed to propose, err: {}", err.String());
@@ -307,7 +310,8 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                     RespondFailure(ErrorCode::UnknownError, e.what());
                 }
                 if (promise_context) {
-                    BoltServer::Instance().StateMachine()->GetGalaxy()->UpdateBoltRaftApplyIndex(promise_context->index);
+                    BoltServer::Instance().StateMachine()->GetGalaxy()->UpdateBoltRaftApplyIndex(
+                        promise_context->index);
                     promise_context->applied.set_value();
                 }
             }
@@ -396,7 +400,8 @@ BoltHandler =
         session->msgs.Push({BoltMsg::Reset, std::move(fields)});
     } else if (msg == BoltMsg::Route) {
         if (!bolt_raft::BoltRaftServer::Instance().Started()) {
-            LOG_WARN() << FMA_FMT("receive bolt route message, but bolt raft server is not started");
+            LOG_WARN() << FMA_FMT(
+                "receive bolt route message, but bolt raft server is not started");
             conn.Close();
             return;
         }

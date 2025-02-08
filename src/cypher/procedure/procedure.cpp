@@ -3428,7 +3428,7 @@ void BuiltinProcedure::DbBoltListRaftNodes(RTContext *ctx, const Record *record,
     CYPHER_ARG_CHECK(args.empty(), FMA_FMT("Function requires 0 arguments, but {} are "
                                            "given. Usage: db.bolt.listRaftPeers()",
                                            args.size()))
-    auto infos= bolt_raft::BoltRaftServer::Instance().raft_driver().GetNodeInfosWithLeader();
+    auto infos = bolt_raft::BoltRaftServer::Instance().raft_driver().GetNodeInfosWithLeader();
     for (auto& [_, node] : infos.nodes()) {
         Record r;
         r.AddConstant(lgraph::FieldData::Int64(node.node_id()));

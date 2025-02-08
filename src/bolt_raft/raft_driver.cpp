@@ -20,12 +20,12 @@
 #include <boost/endian/conversion.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/asio.hpp>
-#include "raft_driver.h"
 #include "tools/json.hpp"
 #include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
 #include "fma-common/assert.h"
-#include "bolt_raft.pb.h"
+#include "bolt_raft/raft_driver.h"
+#include "bolt_raft/bolt_raft.pb.h"
 
 using boost::asio::async_write;
 using boost::asio::ip::tcp;

@@ -1230,7 +1230,6 @@ static std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{
                   {"status", {0, lgraph_api::LGraphType::STRING}}
               }, true, true)
-
 };
 
 class ProcedureTable {

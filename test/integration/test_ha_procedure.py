@@ -503,7 +503,7 @@ class TestHAProcedure:
         procedures = json.loads(ret[1])
         #TODO when this assert failed , you should add the additional procedure test code or remove the deleted procedure test code
         log.info("procedures count : %s", len(procedures))
-        assert len(procedures) == 109
+        assert len(procedures) == 114
         ha_client.logout()
 
     def test_graph(self):

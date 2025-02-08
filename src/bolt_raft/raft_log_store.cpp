@@ -15,9 +15,10 @@
 // written by botu.wzy
 
 #include <boost/endian/conversion.hpp>
-#include "raft_log_store.h"
 #include "tools/lgraph_log.h"
 #include "fma-common/string_formatter.h"
+#include "bolt_raft/raft_log_store.h"
+
 namespace bolt_raft {
 std::string raft_log_key(uint64_t log_id) {
     std::string ret;
@@ -26,10 +27,10 @@ std::string raft_log_key(uint64_t log_id) {
     return ret;
 }
 
-const std::string raft_hardstate_key = "hardState";
-const std::string raft_applyindex_key = "applyIndex";
-const std::string raft_confstate_key = "confState";
-const std::string raft_nodeinfos_key = "nodeInfos";
+const char raft_hardstate_key[] = "hardState";
+const char raft_applyindex_key[] = "applyIndex";
+const char raft_confstate_key[] = "confState";
+const char raft_nodeinfos_key[] = "nodeInfos";
 
 bool RaftLogStorage::Init() {
     std::string value;

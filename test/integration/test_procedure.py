@@ -471,7 +471,7 @@ class TestProcedure:
         procedures = json.loads(ret[1])
         #TODO when this assert failed , you should add the additional procedure test code or remove the deleted procedure test code
         log.info("procedures count : %s", len(procedures))
-        assert len(procedures) == 109
+        assert len(procedures) == 114
 
 
     @pytest.mark.parametrize("server", [SERVEROPT], indirect=True)

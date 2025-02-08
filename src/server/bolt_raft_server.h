@@ -14,6 +14,7 @@
 
 // written by botu.wzy
 
+#pragma once
 #include <thread>
 #include <shared_mutex>
 #include "fma-common/type_traits.h"

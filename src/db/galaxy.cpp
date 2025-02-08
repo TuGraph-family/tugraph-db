@@ -787,7 +787,8 @@ void lgraph::Galaxy::CheckTuGraphVersion(KvTransaction& txn) {
 
 void lgraph::Galaxy::UpdateBoltRaftApplyIndex(uint64_t index) {
     auto txn = store_->CreateWriteTxn(false);
-    db_info_table_->SetValue(*txn, Value::ConstRef("bolt_raft_apply_index"), Value::ConstRef(index));
+    db_info_table_->SetValue(
+        *txn, Value::ConstRef("bolt_raft_apply_index"), Value::ConstRef(index));
     txn->Commit();
 }
 

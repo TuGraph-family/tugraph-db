@@ -21,11 +21,11 @@ namespace cypher {
 
 class ClauseReadOnlyDecider : public cypher::AstNodeVisitorImpl {
  public:
-    ClauseReadOnlyDecider() {}
+    ClauseReadOnlyDecider() = default;
 
-    virtual ~ClauseReadOnlyDecider() = default;
+    ~ClauseReadOnlyDecider() override = default;
 
-    bool IsReadOnly() {
+    [[nodiscard]] bool IsReadOnly() const {
         return read_only_;
     }
 
@@ -63,7 +63,7 @@ class ClauseReadOnlyDecider : public cypher::AstNodeVisitorImpl {
     std::any visit(geax::frontend::InQueryProcedureCall* node) override;
 
     bool read_only_ = true;
-    cypher::RTContext* ctx_;
+    cypher::RTContext* ctx_{};
 };
 
 }  // namespace cypher

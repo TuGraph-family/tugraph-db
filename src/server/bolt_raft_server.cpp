@@ -14,7 +14,7 @@
 
 // written by botu.wzy
 
-#include "bolt_raft_server.h"
+#include "server/bolt_raft_server.h"
 #include "bolt_raft/raft_driver.h"
 #include "bolt_raft/io_service.h"
 #include "bolt_raft/connection.h"

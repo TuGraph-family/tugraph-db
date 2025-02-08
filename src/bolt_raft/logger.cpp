@@ -20,9 +20,10 @@
 
 namespace eraft {
 using namespace lgraph_log;
+#define log_buffer_size 1024
 char *args_format(const char *format, va_list args) {
-    thread_local std::unique_ptr<char[]> buf(new char[1024]);
-    vsnprintf(buf.get(), 1024, format, args);
+    thread_local std::unique_ptr<char[]> buf(new char[log_buffer_size]);
+    vsnprintf(buf.get(), log_buffer_size, format, args);
     return buf.get();
 }
 void log_debug(const char *file, int line, const char *msg, ...) {

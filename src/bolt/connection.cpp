@@ -266,8 +266,8 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec) {
                 unpacker_.Next();
                 fields.push_back(bolt::ServerHydrator(unpacker_));
             }
-            LOG_DEBUG() << FMA_FMT("msg: {}, fields: {}",
-                                   ToString(tag), Print(fields).substr(0,1024));
+            LOG_DEBUG() << FMA_FMT(
+                "msg: {}, fields: {}", ToString(tag), Print(fields).substr(0, 1024));
             handle_(*this, tag, std::move(fields), std::move(chunk_));
         } catch (const std::exception& e) {
             LOG_ERROR() << "Exception in bolt connection: " << e.what();
