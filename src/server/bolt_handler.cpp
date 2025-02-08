@@ -105,7 +105,7 @@ parser::Expression ConvertParameters(std::any data) {
         ret.data = std::make_shared<std::vector<parser::Expression>>(std::move(list_exp));
     } else {
         THROW_CODE(InputError,
-                   "Unexpected cypher parameter type : {}", data.type().name());
+                   "unexpected cypher parameter type : {}", data.type().name());
     }
     return ret;
 }
@@ -114,6 +114,7 @@ using namespace std::chrono;
 
 void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request) {
     auto sm = bolt_raft::BoltRaftServer::Instance().StateMachine();
+    std::string cypher;
     try {
         Unpacker unpacker;
         unpacker.Reset(std::string_view(request.raw_data().data(), request.raw_data().size()));
@@ -126,7 +127,7 @@ void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request) {
             unpacker.Next();
             fields.push_back(bolt::ServerHydrator(unpacker));
         }
-        auto& cypher = std::any_cast<const std::string&>(fields[0]);
+        cypher = std::any_cast<const std::string&>(fields[0]);
         auto& extra = std::any_cast<const std::unordered_map<std::string, std::any>&>(fields[2]);
         std::string graph;
         auto db_iter = extra.find("db");
@@ -151,11 +152,11 @@ void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request) {
                                               ConvertParameters(std::move(pair.second)));
             }
         }
-        LOG_DEBUG() << "Raft apply cypher: " << cypher;
+        LOG_DEBUG() << "apply cypher: " << cypher;
         cypher::ElapsedTime elapsed;
         sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER, cypher, elapsed);
     } catch (std::exception& e) {
-        LOG_ERROR() << "ApplyRaftRequest exception: " << e.what();
+        LOG_ERROR() << FMA_FMT("failed to apply cypher, cypher: {}, exception: {}", cypher, e.what());
     }
     sm->GetGalaxy()->UpdateBoltRaftApplyIndex(index);
 }
@@ -194,7 +195,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                 conn->PostResponse(std::move(ps.MutableBuffer()));
                 session->state = SessionState::READY;
             } else {
-                LOG_ERROR() << FMA_FMT("Unexpected msg:{} in FAILED state, "
+                LOG_ERROR() << FMA_FMT("unexpected msg:{} in FAILED state, "
                     "close the connection", ToString(type));
                 conn->Close();
                 return;
@@ -217,14 +218,14 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                 session->state = SessionState::READY;
                 continue;
             } else {
-                LOG_ERROR() << FMA_FMT("Unexpected msg:{} in INTERRUPTED state, "
+                LOG_ERROR() << FMA_FMT("unexpected msg:{} in INTERRUPTED state, "
                     "close the connection", ToString(type));
                 conn->Close();
                 return;
             }
         } else if (session->state == SessionState::READY) {
             if (type == bolt::BoltMsg::Begin) {
-                std::string err = FMA_FMT("Receive {}, but explicit transactions are "
+                std::string err = FMA_FMT("receive {}, but explicit transactions are "
                     "not currently supported.", ToString(type));
                 LOG_ERROR() << err;
                 bolt::PackStream ps;
@@ -287,17 +288,17 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                             promise_context = bolt_raft::BoltRaftServer::Instance().raft_driver().ProposeRaftRequest(std::move(request));
                             auto err = promise_context->proposed.get_future().get();
                             if (err != nullptr) {
-                                LOG_ERROR() << FMA_FMT("Failed to propose, err: {}", err.String());
+                                LOG_ERROR() << FMA_FMT("failed to propose, err: {}", err.String());
                                 THROW_CODE(RaftProposeError, err.String());
                             }
                             promise_context->commited.get_future().wait();
                         }
                     }
                     cypher::ElapsedTime elapsed;
-                    LOG_DEBUG() << "Bolt run " << cypher;
+                    LOG_DEBUG() << "bolt run " << cypher;
                     sm->GetCypherScheduler()->Eval(&ctx, lgraph_api::GraphQueryType::CYPHER,
                                                    cypher, elapsed);
-                    LOG_DEBUG() << "Cypher execution completed";
+                    LOG_DEBUG() << "cypher execution completed";
                 } catch (const lgraph_api::LgraphException& e) {
                     LOG_ERROR() << e.what();
                     RespondFailure(e.code(), e.msg());
@@ -346,7 +347,7 @@ BoltHandler =
         auto galaxy = BoltServer::Instance().StateMachine()->GetGalaxy();
         if (!galaxy->ValidateUser(principal, credentials)) {
             LOG_ERROR() << FMA_FMT(
-                "Bolt authentication failed, user:{}, password:{}", principal, credentials);
+                "bolt authentication failed, user:{}, password:{}", principal, credentials);
             bolt::PackStream ps;
             ps.AppendFailure({{"code", "error"},
                               {"message", "Authentication failed"}});

@@ -34,25 +34,25 @@ bool RaftLogStorage::Init() {
         batch.Put(meta_cf_, raft_confstate_key, value);
         s = db_->Write(rocksdb::WriteOptions(), &batch);
         if (!s.ok()) {
-            LOG_FATAL() << "failed to write db";
+            LOG_FATAL() << "failed to write db in RaftLogStorage init, err: " << s.ToString();
         }
         return false;
     }
     if (!s.ok()) {
-        LOG_FATAL() << "failed to get hardstate from db: " << s.ToString();
+        LOG_FATAL() << "failed to get hardstate from db, err: " << s.ToString();
     }
 
     if (!hardstate.ParseFromString(value)) {
-        LOG_FATAL() << "hardstate ParseFromString failed";
+        LOG_FATAL() << "failed to parse HardState from string";
     }
     s = db_->Get(rocksdb::ReadOptions(), meta_cf_, raft_confstate_key, &value);
     if (!s.ok()) {
         LOG_FATAL() << "failed to get confstate from db: " << s.ToString();
     }
     if (!confstate.ParseFromString(value)) {
-        LOG_FATAL() << "confstate ParseFromString failed";
+        LOG_FATAL() << "failed to parse ConfState from string";
     }
-    LOG_INFO() << FMA_FMT("Read raft state from db, hardstate:[{}], confstate:[{}]", hardstate.ShortDebugString(), confstate.ShortDebugString());
+    LOG_INFO() << FMA_FMT("read raft state from db, hardstate:[{}], confstate:[{}]", hardstate.ShortDebugString(), confstate.ShortDebugString());
     first_entry_index_ = get_first_log_entry().index();
     last_entry_index_ = get_last_log_entry().index();
     conf_state_ = std::move(confstate);
@@ -74,7 +74,7 @@ void RaftLogStorage::Close() {
 
 void RaftLogStorage::Compact(uint64_t index) {
     if (index >= last_entry_index_) {
-        LOG_FATAL() << FMA_FMT("Compact out of range, compact:{}, last:{}", index, last_entry_index_);
+        LOG_FATAL() << FMA_FMT("compact raft log out of range, compact:{}, last:{}", index, last_entry_index_);
     }
     auto min = raft_log_key(0);
     auto max = raft_log_key(index);
@@ -151,7 +151,7 @@ std::optional<std::string> RaftLogStorage::GetNodeInfos() {
     if (s.ok()) {
         ret = val;
     } else if (!s.IsNotFound()) {
-        LOG_FATAL() << FMA_FMT("Failed to get nodes info: {}", s.ToString());
+        LOG_FATAL() << FMA_FMT("failed to get nodes info: {}", s.ToString());
     }
     return ret;
 }
@@ -169,7 +169,7 @@ uint64_t RaftLogStorage::GetApplyIndex() {
     if (s.ok()) {
         apply_index = std::stoull(val);
     } else if (!s.IsNotFound()) {
-        LOG_FATAL() << FMA_FMT("get applyindex failed: {}", s.ToString());
+        LOG_FATAL() << FMA_FMT("failed to get apply index: {}", s.ToString());
     }
     return apply_index;
 }

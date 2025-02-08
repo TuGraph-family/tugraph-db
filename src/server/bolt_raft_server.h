@@ -1,3 +1,19 @@
+/**
+ * Copyright 2025 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+ // written by botu.wzy
+
 #include <thread>
 #include <shared_mutex>
 #include "fma-common/type_traits.h"
@@ -17,7 +33,7 @@ class BoltRaftServer final {
     bool Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
                const std::string& init_peers, const std::string& log_path);
     void Stop();
-    bool Started() {return started_;}
+    bool Started() const {return started_;}
     RaftDriver& raft_driver() {return *raft_driver_;}
     ~BoltRaftServer() { Stop(); }
     lgraph::StateMachine* StateMachine() {

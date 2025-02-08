@@ -118,7 +118,7 @@ void NodeClient::do_read_some() {
                 }
                 reconnect();
             } else {
-                LOG_ERROR() <<"unexpected read";
+                LOG_ERROR() <<"unexpected read in node client do_read_some";
                 reconnect();
             }
         });
@@ -199,7 +199,7 @@ eraft::Error RaftDriver::Run() {
     std::filesystem::create_directories(log_path_);
     auto s = rocksdb::DB::Open(options, log_path_, cfs, &cf_handles, &db);
     if (!s.ok()) {
-        return eraft::Error("Open raft db error: " + s.ToString());
+        return eraft::Error("failed to open raft db, error: " + s.ToString());
     }
     storage_ = std::make_shared<RaftLogStorage>(db, cf_handles[0], cf_handles[1]);
     auto applied = std::max(apply_id_, storage_->GetApplyIndex());
@@ -213,7 +213,7 @@ eraft::Error RaftDriver::Run() {
         client->Connect();
         node_clients_.emplace(node.node_id(), std::move(client));
     }
-    LOG_INFO() << FMA_FMT("Raft nodes info: {}", node_infos_.ShortDebugString());
+    LOG_INFO() << FMA_FMT("raft nodes info: {}", node_infos_.ShortDebugString());
     bool exist = storage_->Init();
     eraft::Config config;
     config.id_ = node_id_;
@@ -382,7 +382,7 @@ void RaftDriver::CheckAndCompactLog() {
             if (applied - first >= 2000000) {
                 auto compacted = (first + applied) / 2;
                 storage_->Compact(compacted);
-                LOG_INFO() << FMA_FMT("Compact raft log, compacted:{}, applied:{}", compacted, applied);
+                LOG_INFO() << FMA_FMT("compact raft log, compacted index:{}, applied index:{}", compacted, applied);
             }
         }
     });
@@ -413,7 +413,7 @@ void RaftDriver::CheckReady() {
         storage_->SetHardState(ready.hardState_, batch);
     }
     if (!eraft::IsEmptySnap(ready.snapshot_)) {
-        LOG_FATAL() << "Snapshot should be empty";
+        LOG_FATAL() << "snapshot should be empty";
     }
     storage_->WriteBatch(batch);
     {
@@ -428,19 +428,19 @@ void RaftDriver::CheckReady() {
                     }
                 } else {
                     if (!mark_unreachable_.count(msg.to())) {
-                        LOG_WARN() << FMA_FMT("Report raft node {} is unreachable, {}", msg.to(),
+                        LOG_WARN() << FMA_FMT("report raft node {} is unreachable, {}", msg.to(),
                                               msg.ShortDebugString());
                         rn_->ReportUnreachable(msg.to());
                         mark_unreachable_.insert(msg.to());
                     }
                 }
             } else {
-                LOG_WARN() << FMA_FMT("send msg, but peer client id {} not exists", msg.to());
+                LOG_WARN() << FMA_FMT("send msg but peer client id {} not exists", msg.to());
             }
         }
     }
     if (!eraft::IsEmptySnap(ready.snapshot_)) {
-        LOG_FATAL() << "Snapshot should be empty";
+        LOG_FATAL() << "snapshot should be empty";
     }
     if (!ready.committedEntries_.empty()) {
         bool has_confchange = false;
@@ -452,11 +452,11 @@ void RaftDriver::CheckReady() {
         }
         if (!has_confchange) {
             apply_service_.post(
-                [this, committedEntries = std::move(ready.committedEntries_)]() mutable {
-                    Apply(std::move(committedEntries));
+                [this, committedEntries = std::move(ready.committedEntries_)]() {
+                    Apply(committedEntries);
                 });
         } else {
-            LOG_INFO() << "There are ConfChange in committed Entries, Entries size: "
+            LOG_INFO() << "there is ConfChange in committed entries, entries size: "
                        << ready.committedEntries_.size();
             Apply(ready.committedEntries_);
         }
@@ -464,7 +464,7 @@ void RaftDriver::CheckReady() {
     rn_->Advance({});
 }
 
-void RaftDriver::Apply(std::vector<raftpb::Entry> entries) {
+void RaftDriver::Apply(const std::vector<raftpb::Entry>& entries) {
     for (const auto& entry : entries) {
         switch (entry.type()) {
         case raftpb::EntryNormal: {
@@ -495,7 +495,7 @@ void RaftDriver::Apply(std::vector<raftpb::Entry> entries) {
         case raftpb::EntryConfChange: {
                 raftpb::ConfChange cc;
                 if (!cc.ParseFromString(entry.data())) {
-                    LOG_FATAL() << "failed to parse ConfChange";
+                    LOG_FATAL() << "failed to parse ConfChange data";
                 }
                 auto confstate = rn_->ApplyConfChange(raftpb::ConfChangeWrap(cc));
                 NodeInfo node_info;
@@ -504,9 +504,9 @@ void RaftDriver::Apply(std::vector<raftpb::Entry> entries) {
                 case  raftpb::ConfChangeType::ConfChangeAddLearnerNode:
                 case  raftpb::ConfChangeType::ConfChangeAddNode: {
                         if (cc.type() == raftpb::ConfChangeType::ConfChangeAddNode) {
-                            LOG_INFO() << FMA_FMT("Add node: {}", node_info.ShortDebugString());
+                            LOG_INFO() << FMA_FMT("add node: {}", node_info.ShortDebugString());
                         } else {
-                            LOG_INFO() << FMA_FMT("Add learner: {}", node_info.ShortDebugString());
+                            LOG_INFO() << FMA_FMT("add learner: {}", node_info.ShortDebugString());
                         }
                         std::unique_lock<std::shared_mutex> lock(nodes_mutex_);
                         if (!node_infos_.nodes().count(node_info.node_id())) {
@@ -520,26 +520,26 @@ void RaftDriver::Apply(std::vector<raftpb::Entry> entries) {
                         break;
                     }
                 case  raftpb::ConfChangeType::ConfChangeRemoveNode: {
-                        LOG_INFO() << FMA_FMT("Remove node: {}", node_info.node_id());
+                        LOG_INFO() << FMA_FMT("remove node: {}", node_info.node_id());
                         std::unique_lock<std::shared_mutex> lock(nodes_mutex_);
                         if (node_infos_.nodes().count(node_info.node_id())) {
                             node_clients_.at(node_info.node_id())->Close();
                             node_clients_.erase(node_info.node_id());
                             node_infos_.mutable_nodes()->erase(node_info.node_id());
                         } else {
-                            LOG_ERROR() << FMA_FMT("No such node id {}", node_info.node_id());
+                            LOG_ERROR() << FMA_FMT("no such node id {}", node_info.node_id());
                         }
                         break;
                     }
                 case  raftpb::ConfChangeType::ConfChangeUpdateNode: {
-                        LOG_INFO() << FMA_FMT("Update node: %s", cc.ShortDebugString());
+                        LOG_INFO() << FMA_FMT("update node: %s", cc.ShortDebugString());
                         break;
                     }
                 default: {
                         break;
                     }}
 
-                LOG_INFO() << FMA_FMT("New ConfState: {}", confstate->ShortDebugString());
+                LOG_INFO() << FMA_FMT("new conf state: {}", confstate->ShortDebugString());
                 rocksdb::WriteBatch wb;
                 storage_->SetConfState(*confstate, wb);
                 storage_->SetNodeInfos(node_infos_.SerializeAsString(), wb);
@@ -561,7 +561,7 @@ void RaftDriver::Apply(std::vector<raftpb::Entry> entries) {
                 break;
             }
         default: {
-                LOG_ERROR() << FMA_FMT("Unhandled entry : {}", entry.ShortDebugString());
+                LOG_ERROR() << FMA_FMT("unhandled entry : {}", entry.ShortDebugString());
             }
         }
     }

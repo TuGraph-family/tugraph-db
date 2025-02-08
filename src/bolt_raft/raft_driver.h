@@ -94,7 +94,7 @@ private:
     void Tick();
     void CheckAndCompactLog();
     void CheckReady();
-    void Apply(std::vector<raftpb::Entry> entries);
+    void Apply(const std::vector<raftpb::Entry>& entries);
 
     std::vector<std::thread> threads_;
     boost::asio::io_service raft_service_;

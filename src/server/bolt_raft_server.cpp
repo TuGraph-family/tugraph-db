@@ -1,3 +1,19 @@
+/**
+ * Copyright 2025 AntGroup CO., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+ // written by botu.wzy
+
 #include "bolt_raft_server.h"
 #include "bolt_raft/raft_driver.h"
 #include "bolt_raft/io_service.h"
@@ -49,7 +65,7 @@ bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
             protobuf_handler_ = [this](raftpb::Message rpc_msg) {
                 raft_driver_->Step(std::move(rpc_msg));
             };
-            bolt_raft::IOService<bolt_raft::ProtobufConnection, decltype(protobuf_handler_)> bolt_raft_service(
+            bolt_raft::IOService<bolt_raft::RaftConnection, decltype(protobuf_handler_)> bolt_raft_service(
                 listener_, port, 1, protobuf_handler_);
             boost::asio::io_service::work holder(listener_);
             LOG_INFO() << "bolt raft server run";
@@ -58,7 +74,7 @@ bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
             started_ = true;
             listener_.run();
         } catch (const std::exception& e) {
-            LOG_WARN() << "bolt raft server expection: " << e.what();
+            LOG_WARN() << "failed to start bolt raft server, expection: " << e.what();
             if (!promise_done) {
                 promise.set_value(false);
             }

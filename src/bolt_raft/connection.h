@@ -33,11 +33,11 @@ class Connection : private boost::asio::noncopyable {
     std::atomic<bool> has_closed_;
 };
 
-class ProtobufConnection
+class RaftConnection
     : public Connection,
-      public std::enable_shared_from_this<ProtobufConnection> {
+      public std::enable_shared_from_this<RaftConnection> {
  public:
-    ProtobufConnection(boost::asio::io_service& io_service,
+    RaftConnection(boost::asio::io_service& io_service,
                        std::function<void(raftpb::Message)> handler)
         : Connection(io_service), handler_(std::move(handler)) {
     }
@@ -57,27 +57,27 @@ class ProtobufConnection
     uint8_t buffer4_[4] = {0};
 };
 
-inline void ProtobufConnection::Start() {
+inline void RaftConnection::Start() {
     read_magic();
 }
 
-inline void ProtobufConnection::read_msg_size() {
+inline void RaftConnection::read_msg_size() {
     async_read(socket(), boost::asio::buffer(&msg_size_, sizeof(msg_size_)),
                [this, self = shared_from_this()](const boost::system::error_code& ec, size_t) {
                    read_msg_size_done(ec);
                });
 }
 
-inline void ProtobufConnection::read_magic() {
+inline void RaftConnection::read_magic() {
     async_read(socket(), boost::asio::buffer(buffer4_),
                [this, self = shared_from_this()](const boost::system::error_code& ec, size_t) {
                    read_magic_done(ec);
                });
 }
 
-inline void ProtobufConnection::read_magic_done(const boost::system::error_code& ec) {
+inline void RaftConnection::read_magic_done(const boost::system::error_code& ec) {
     if (ec) {
-        LOG_WARN() << FMA_FMT("read_magic_done error {}", ec.message());
+        LOG_WARN() << FMA_FMT("raft connection read_magic_done error {}", ec.message());
         Close();
         return;
     }
@@ -90,9 +90,9 @@ inline void ProtobufConnection::read_magic_done(const boost::system::error_code&
 }
 
 
-inline void ProtobufConnection::read_msg_size_done(const boost::system::error_code &ec) {
+inline void RaftConnection::read_msg_size_done(const boost::system::error_code &ec) {
     if (ec) {
-        LOG_WARN() << FMA_FMT("read_msg_size_done error {}", ec.message());
+        LOG_WARN() << FMA_FMT("raft connection read_msg_size_done error {}", ec.message());
         Close();
         return;
     }
@@ -112,16 +112,16 @@ inline void ProtobufConnection::read_msg_size_done(const boost::system::error_co
     read_msg_body();
 }
 
-inline void ProtobufConnection::read_msg_body() {
+inline void RaftConnection::read_msg_body() {
     async_read(socket(), boost::asio::buffer(msg_body_),
                [this, self = shared_from_this()](const boost::system::error_code &ec, size_t) {
                    read_msg_body_done(ec);
                });
 }
 
-inline void ProtobufConnection::read_msg_body_done(const boost::system::error_code &ec) {
+inline void RaftConnection::read_msg_body_done(const boost::system::error_code &ec) {
     if (ec) {
-        LOG_WARN() << FMA_FMT("read_msg_body_done error {}", ec.message());
+        LOG_WARN() << FMA_FMT("raft connection read_msg_body_done error {}", ec.message());
         Close();
         return;
     }
