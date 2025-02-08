@@ -284,7 +284,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                             bolt_raft::RaftRequest request;
                             request.set_user(session->user);
                             request.set_raw_data((const char*)msg.value().raw_data.data(), msg.value().raw_data.size());
-                            promise_context = bolt_raft::BoltRaftServer::Instance().raft_driver().Propose(std::move(request));
+                            promise_context = bolt_raft::BoltRaftServer::Instance().raft_driver().ProposeRaftRequest(std::move(request));
                             auto err = promise_context->proposed.get_future().get();
                             if (err != nullptr) {
                                 LOG_ERROR() << FMA_FMT("Failed to propose, err: {}", err.String());

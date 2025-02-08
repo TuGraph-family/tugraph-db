@@ -20,6 +20,7 @@ public:
     void Close();
     std::string ip() { return endpoint_.address().to_string(); }
     int port() { return endpoint_.port(); }
+    bool connected() {return connected_;}
 private:
     void do_send();
     void do_read_some();
@@ -34,7 +35,7 @@ private:
     boost::posix_time::millisec interval_;
     boost::asio::deadline_timer timer_;
     std::atomic<bool> has_closed_{false};
-    bool connected_ = false;
+    std::atomic<bool> connected_ = false;
     const uint8_t magic_code[4] = {0x17, 0xB0, 0x60, 0x60};
     uint8_t buffer4_[4] = {0};
 };
@@ -82,14 +83,14 @@ public:
                std::string log_path);
     eraft::Error Run();
     void Stop();
-    void Message(raftpb::Message msg);
-    std::shared_ptr<PromiseContext>  Propose(bolt_raft::RaftRequest request);
+    void Step(raftpb::Message msg);
+    std::shared_ptr<PromiseContext>  ProposeRaftRequest(bolt_raft::RaftRequest request);
     std::shared_ptr<PromiseContext>  ProposeConfChange(raftpb::ConfChange& cc);
     NodeInfos GetNodeInfosWithLeader();
     RaftStatus GetRaftStatus();
 
 private:
-   std::shared_ptr<PromiseContext> PostMessage(uint64_t uuid, raftpb::Message msg);
+   std::shared_ptr<PromiseContext> Propose(uint64_t uuid, raftpb::Message msg);
     void Tick();
     void CheckAndCompactLog();
     void CheckReady();
@@ -117,5 +118,6 @@ private:
     Generator id_generator_;
     std::mutex promise_mutex_;
     std::unordered_map<uint64_t, std::shared_ptr<PromiseContext>> pending_promise_;
+    std::unordered_set<uint64_t> mark_unreachable_;
 };
 }

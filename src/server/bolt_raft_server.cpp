@@ -47,7 +47,7 @@ bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
                 return;
             }
             protobuf_handler_ = [this](raftpb::Message rpc_msg) {
-                raft_driver_->Message(std::move(rpc_msg));
+                raft_driver_->Step(std::move(rpc_msg));
             };
             bolt_raft::IOService<bolt_raft::ProtobufConnection, decltype(protobuf_handler_)> bolt_raft_service(
                 listener_, port, 1, protobuf_handler_);

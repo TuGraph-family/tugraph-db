@@ -152,7 +152,7 @@ void NodeClient::Connect() {
                 LOG_WARN() << FMA_FMT("async connect {} error: {}", boost::lexical_cast<std::string>(endpoint_).c_str(), ec.message().c_str());
                 reconnect();
             } else {
-                LOG_INFO() << FMA_FMT("connect {} success", boost::lexical_cast<std::string>(endpoint_).c_str());
+                LOG_INFO() << FMA_FMT("connect to {} successfully", boost::lexical_cast<std::string>(endpoint_).c_str());
                 socket_set_options(socket_);
                 send_magic_code();
             }
@@ -276,19 +276,8 @@ void RaftDriver::Stop() {
     LOG_INFO() << "bolt raft driver stopped";
 }
 
-void RaftDriver::Message(raftpb::Message msg) {
-    // Ignore unexpected local messages receiving over network.
-    if (eraft::IsLocalMsg(msg.type()) && !eraft::IsLocalMsgTarget(msg.from())) {
-        LOG_WARN() << "ignore unexpected local messages receiving over network : " << msg.ShortDebugString();
-        return;
-    }
+void RaftDriver::Step(raftpb::Message msg) {
     raft_service_.post([this, msg = std::move(msg)]() mutable {
-        if (eraft::IsResponseMsg(msg.type()) &&
-            !eraft::IsLocalMsgTarget(msg.from()) &&
-            rn_->raft_->trk_.progress_.data().count(msg.from()) == 0) {
-            // Filter out response message from unknown From.
-            return;
-        }
         auto err = rn_->Step(std::move(msg));
         if (err != nullptr) {
             LOG_WARN() << FMA_FMT("failed to step message, err: {}",err.String().c_str());
@@ -298,7 +287,7 @@ void RaftDriver::Message(raftpb::Message msg) {
     });
 }
 
-std::shared_ptr<PromiseContext> RaftDriver::PostMessage(uint64_t uuid, raftpb::Message msg) {
+std::shared_ptr<PromiseContext> RaftDriver::Propose(uint64_t uuid, raftpb::Message msg) {
     auto context = std::make_shared<PromiseContext>();
     raft_service_.post([this, uuid, context, msg = std::move(msg)]() mutable {
         if (rn_->raft_->id_ != rn_->raft_->lead_) {
@@ -306,7 +295,7 @@ std::shared_ptr<PromiseContext> RaftDriver::PostMessage(uint64_t uuid, raftpb::M
             return;
         }
         msg.set_from(rn_->raft_->id_);
-        auto err = rn_->Step(std::move(msg));
+        auto err = rn_->raft_->Step(std::move(msg));
         if (err != nullptr) {
             LOG_WARN() << FMA_FMT("failed to step raft message, err: {}",err.String().c_str());
             return;
@@ -343,17 +332,17 @@ std::shared_ptr<PromiseContext> RaftDriver::ProposeConfChange(raftpb::ConfChange
     entry->set_type(raftpb::EntryType::EntryConfChange);
     entry->set_data(cc.SerializeAsString());
     msg.set_type(raftpb::MessageType::MsgProp);
-    return PostMessage(cc.id(), std::move(msg));
+    return Propose(cc.id(), std::move(msg));
 }
 
-std::shared_ptr<PromiseContext> RaftDriver::Propose(bolt_raft::RaftRequest request) {
+std::shared_ptr<PromiseContext> RaftDriver::ProposeRaftRequest(bolt_raft::RaftRequest request) {
     request.set_id(id_generator_.Next());
     raftpb::Message msg;
     auto entry = msg.add_entries();
     entry->set_type(raftpb::EntryType::EntryNormal);
     entry->set_data(request.SerializeAsString());
     msg.set_type(raftpb::MessageType::MsgProp);
-    return PostMessage(request.id(), std::move(msg));
+    return Propose(request.id(), std::move(msg));
 }
 
 NodeInfos RaftDriver::GetNodeInfosWithLeader() {
@@ -432,7 +421,19 @@ void RaftDriver::CheckReady() {
         for (const auto& msg : ready.messages_) {
             auto iter = node_clients_.find(msg.to());
             if (iter != node_clients_.end()) {
-                iter->second->Send(MessageToNetString(msg));
+                if (iter->second->connected()) {
+                    iter->second->Send(MessageToNetString(msg));
+                    if (mark_unreachable_.count(msg.to())) {
+                        mark_unreachable_.erase(msg.to());
+                    }
+                } else {
+                    if (!mark_unreachable_.count(msg.to())) {
+                        LOG_WARN() << FMA_FMT("Report raft node {} is unreachable, {}", msg.to(),
+                                              msg.ShortDebugString());
+                        rn_->ReportUnreachable(msg.to());
+                        mark_unreachable_.insert(msg.to());
+                    }
+                }
             } else {
                 LOG_WARN() << FMA_FMT("send msg, but peer client id {} not exists", msg.to());
             }
