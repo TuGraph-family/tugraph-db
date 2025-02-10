@@ -145,7 +145,7 @@ static const size_t MAX_NUM_FIELDS = 1024;  // max number of fields in vertex/ed
 static const size_t MAX_NUM_LABELS = 4096;  // max number of vertex and edge labels in one graph
 
 static const size_t MAX_COMPILE_TIME_MS = 1000 * 1000;  // max compile time when loading plugin
-static const size_t MAX_UNZIP_TIME_MS = 100 * 1000;     // max unzip time when loading plugin
+static const size_t MAX_UNZIP_TIME_MS = 120 * 1000;     // max unzip time when loading plugin
 
 #ifdef _WIN32
 static const size_t DEFAULT_GRAPH_SIZE = (size_t)1 << 30;
