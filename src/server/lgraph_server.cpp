@@ -250,6 +250,7 @@ int LGraphServer::Start() {
         if (config_->thread_limit != 0) {
             static bool cpprest_threadpool_init = false;
             if (!cpprest_threadpool_init) {
+                LOG_INFO() << "Init cpprest threadpool with thread " << config_->thread_limit;
                 // avoid to init threadpool twice, some test cases can cause this issue.
                 crossplat::threadpool::initialize_with_threads(config_->thread_limit);
                 cpprest_threadpool_init = true;
