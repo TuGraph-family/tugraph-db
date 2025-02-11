@@ -248,12 +248,10 @@ int LGraphServer::Start() {
 #ifndef _WIN32
         // set REST thread limit
         if (config_->thread_limit != 0) {
-            static bool cpprest_threadpool_init = false;
-            if (!cpprest_threadpool_init) {
-                LOG_INFO() << "Init cpprest threadpool with thread " << config_->thread_limit;
-                // avoid to init threadpool twice, some test cases can cause this issue.
+            try {
                 crossplat::threadpool::initialize_with_threads(config_->thread_limit);
-                cpprest_threadpool_init = true;
+            } catch (const std::exception& e) {
+                LOG_WARN() << "failed to init cpprest threadpool, exception:" << e.what();
             }
         }
         rpc_service_ = std::make_unique<RPCService>(state_machine_.get());
