@@ -80,7 +80,8 @@ X(ReachMaximumEid, "Edge eid exceeds the limit.")      \
 X(ReachMaximumCompositeIndexField, "The size of composite index fields exceeds the limit.") \
 X(PluginDisabled, "Plugin disabled!") \
 X(BoltDataException, "Bolt data exception") \
-X(VectorIndexException, "Vector index exception")
+X(VectorIndexException, "Vector index exception") \
+X(BoltRaftError, "Bolt Raft error")
 
 enum class ErrorCode {
 #define X(code, msg) code,

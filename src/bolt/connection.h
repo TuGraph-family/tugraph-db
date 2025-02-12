@@ -82,7 +82,8 @@ class BoltConnection
  public:
     BoltConnection(boost::asio::io_service& io_service,
                    std::function<void(BoltConnection& conn, BoltMsg msg,
-                                     const std::vector<std::any>& fields)> handle)
+                                     const std::vector<std::any>& fields,
+                                      std::vector<uint8_t > raw_data)> handle)
             : Connection(io_service),
           handle_(std::move(handle)) {}
     void Start() override;
@@ -115,7 +116,7 @@ class BoltConnection
     void DoSend();
 
     std::function<void(BoltConnection& conn, BoltMsg msg,
-                       std::vector<std::any> fields)> handle_;
+                       std::vector<std::any> fields, std::vector<uint8_t> raw_data)> handle_;
     const uint8_t bolt_magic_[4] = {0x60, 0x60, 0xB0, 0x17};
     const uint8_t ws_magic_[4] = {'G', 'E', 'T', ' '};  // websocket
     uint8_t buffer4_[4] = {0};

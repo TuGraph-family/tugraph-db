@@ -206,7 +206,7 @@ void BoltConnection::ReadVersionNegotiationDone(const boost::system::error_code 
             break;
         }
     }
-    if (LoggerManager::GetInstance().GetLevel() >= severity_level::DEBUG) {
+    if (LoggerManager::GetInstance().GetLevel() <= severity_level::DEBUG) {
         for (int i = 0; i < 4; i++) {
             LOG_DEBUG() << "protocol version " + std::to_string(i)
                         << ": major:" << (int)buffer16_[i*4+3] << ", minor:"
@@ -266,9 +266,9 @@ void BoltConnection::ReadChunkSizeDone(const boost::system::error_code& ec) {
                 unpacker_.Next();
                 fields.push_back(bolt::ServerHydrator(unpacker_));
             }
-            LOG_DEBUG() << FMA_FMT("msg: {}, fields: {}",
-                                   ToString(tag), Print(fields));
-            handle_(*this, tag, std::move(fields));
+            LOG_DEBUG() << FMA_FMT(
+                "msg: {}, fields: {}", ToString(tag), Print(fields).substr(0, 1024));
+            handle_(*this, tag, std::move(fields), std::move(chunk_));
         } catch (const std::exception& e) {
             LOG_ERROR() << "Exception in bolt connection: " << e.what();
             Close();

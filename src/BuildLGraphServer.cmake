@@ -44,6 +44,7 @@ add_library(${TARGET_SERVER_LIB} STATIC
         plugin/cpp_plugin.cpp
         server/bolt_handler.cpp
         server/bolt_server.cpp
+        server/bolt_raft_server.cpp
         server/lgraph_server.cpp
         server/state_machine.cpp
         server/ha_state_machine.cpp

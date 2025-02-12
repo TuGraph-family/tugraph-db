@@ -21,6 +21,7 @@
 #include "server/state_machine.h"
 
 namespace bolt {
+
 class BoltServer final {
  public:
     static BoltServer& Instance() {

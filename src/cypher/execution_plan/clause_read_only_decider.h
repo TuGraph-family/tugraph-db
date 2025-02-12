@@ -21,15 +21,16 @@ namespace cypher {
 
 class ClauseReadOnlyDecider : public cypher::AstNodeVisitorImpl {
  public:
-    ClauseReadOnlyDecider() {}
+    ClauseReadOnlyDecider() = default;
 
-    virtual ~ClauseReadOnlyDecider() = default;
+    ~ClauseReadOnlyDecider() override = default;
 
-    bool IsReadOnly() {
+    [[nodiscard]] bool IsReadOnly() const {
         return read_only_;
     }
 
-    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* root) {
+    geax::frontend::GEAXErrorCode Build(geax::frontend::AstNode* root, cypher::RTContext* ctx) {
+        ctx_ = ctx;
         return std::any_cast<geax::frontend::GEAXErrorCode>(root->accept(*this));
     }
 
@@ -57,29 +58,12 @@ class ClauseReadOnlyDecider : public cypher::AstNodeVisitorImpl {
         return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
     }
 
-    std::any visit(geax::frontend::NamedProcedureCall* node) override {
-        std::string func_name = std::get<std::string>(node->name());
-        if (func_name == "db.plugin.callPlugin") {
-            read_only_ = false;
-        } else {
-            auto pp = cypher::global_ptable.GetProcedure(func_name);
-            if (pp && !pp->read_only) read_only_ = false;
-        }
-        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-    }
+    std::any visit(geax::frontend::NamedProcedureCall* node) override;
 
-    std::any visit(geax::frontend::InQueryProcedureCall* node) override {
-        std::string func_name = std::get<std::string>(node->name());
-        if (func_name == "db.plugin.callPlugin") {
-            read_only_ = false;
-        } else {
-            auto pp = cypher::global_ptable.GetProcedure(func_name);
-            if (pp && !pp->read_only) read_only_ = false;
-        }
-        return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
-    }
+    std::any visit(geax::frontend::InQueryProcedureCall* node) override;
 
     bool read_only_ = true;
+    cypher::RTContext* ctx_{};
 };
 
 }  // namespace cypher

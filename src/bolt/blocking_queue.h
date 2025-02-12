@@ -25,10 +25,10 @@ namespace bolt {
 template <typename T>
 class BlockingQueue {
  public:
-    void Push(T const& value) {
+    void Push(T&& value) {
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            queue_.push_front(value);
+            queue_.push_front(std::move(value));
         }
         condition_.notify_one();
     }

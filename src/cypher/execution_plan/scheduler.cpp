@@ -37,6 +37,7 @@
 #include "cypher/rewriter/GenAnonymousAliasRewriter.h"
 #include "cypher/rewriter/MultiPathPatternRewriter.h"
 #include "cypher/rewriter/PushDownFilterAstRewriter.h"
+#include "cypher/execution_plan/clause_read_only_decider.h"
 
 #include "server/bolt_session.h"
 
@@ -149,7 +150,22 @@ void Scheduler::EvalCypher(RTContext *ctx, const std::string &script, ElapsedTim
     elapsed.t_exec = elapsed.t_total - elapsed.t_compile;
 }
 
+bool Scheduler::ReadOnlyCypher(cypher::RTContext *ctx, const std::string &script) {
+    geax::common::ObjectArenaAllocator objAlloc;
+    antlr4::ANTLRInputStream input(script);
+    parser::LcypherLexer lexer(&input);
+    antlr4::CommonTokenStream tokens(&lexer);
+    parser::LcypherParser parser(&tokens);
+    parser.addErrorListener(&parser::CypherErrorListener::INSTANCE);
+    parser::CypherBaseVisitorV2 visitor(objAlloc, parser.oC_Cypher(), ctx);
+    geax::frontend::AstNode *node = visitor.result();
+    ClauseReadOnlyDecider decider;
+    decider.Build(node, ctx);
+    return decider.IsReadOnly();
+}
+
 void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTime &elapsed) {
+    using namespace lgraph_log;
     auto t0 = fma_common::GetTime();
     thread_local LRUCacheThreadUnsafe<std::string, std::shared_ptr<ExecutionPlanV2>> tls_plan_cache;
     std::shared_ptr<ExecutionPlanV2> plan;
@@ -169,24 +185,23 @@ void Scheduler::EvalCypher2(RTContext *ctx, const std::string &script, ElapsedTi
         node->accept(multi_path_pattern_rewriter);
         cypher::PushDownFilterAstRewriter push_down_filter_ast_writer(objAlloc_, ctx);
         node->accept(push_down_filter_ast_writer);
-
-        geax::frontend::AstDumper dumper;
-        auto ret = dumper.handle(node);
-        if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
-            LOG_DEBUG() << "dumper.handle(node) cypher: " << script;
-            LOG_DEBUG() << "dumper.handle(node) ret: " << ToString(ret);
-            LOG_DEBUG() << "dumper.handle(node) error_msg: " << dumper.error_msg();
-            THROW_CODE(CypherException, dumper.error_msg());
-        } else {
-            LOG_DEBUG() << "--- dumper.handle(node) dump ---";
-            LOG_DEBUG() << dumper.dump();
+        if (LoggerManager::GetInstance().GetLevel() <= severity_level::DEBUG) {
+            geax::frontend::AstDumper dumper;
+            auto ret = dumper.handle(node);
+            if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
+                LOG_DEBUG() << FMA_FMT("failed to dump ast, cypher:{}, ret:{}, error_msg:{}",
+                                       script, ToString(ret), dumper.error_msg());
+                // THROW_CODE(CypherException, dumper.error_msg());
+            } else {
+                LOG_DEBUG() << "--- Dump AST---";
+                LOG_DEBUG() << dumper.dump().substr(0, 1024);
+            }
         }
-
         plan = std::make_shared<ExecutionPlanV2>();
         plan->PreValidate(ctx, visitor.GetNodeProperty(), visitor.GetRelProperty());
-        ret = plan->Build(node, ctx);
+        auto ret = plan->Build(node, ctx);
         if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
-            LOG_DEBUG() << "build execution_plan_v2 failed: " << plan->ErrorMsg();
+            LOG_WARN() << "failed to build plan: " << plan->ErrorMsg();
             THROW_CODE(CypherException, plan->ErrorMsg());
         }
         plan->Validate(ctx);

@@ -166,7 +166,7 @@ class Service {
             }
             return 0;
         } else {
-            umask(0);
+            // umask(0);
             int sid = setsid();
             if (sid < 0) {
                 LOG_WARN() << "Failed to create session id: " << strerror(errno);

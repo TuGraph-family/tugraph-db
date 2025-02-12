@@ -56,6 +56,7 @@ set(LGRAPH_CYPHER_SRC   # find cypher/ -name "*.cpp" | sort
         cypher/execution_plan/ops/op_traversal.cpp
         cypher/execution_plan/ops/op_gql_remove.cpp
         cypher/execution_plan/scheduler.cpp
+        cypher/execution_plan/clause_read_only_decider.cpp
         cypher/filter/filter.cpp
         cypher/filter/iterator.cpp
         cypher/graph/graph.cpp

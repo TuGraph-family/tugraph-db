@@ -16,12 +16,13 @@
 * written by botu.wzy
 */
 #include "server/bolt_server.h"
+#include "bolt_raft/io_service.h"
+#include "bolt_raft/raft_driver.h"
 
 namespace bolt {
-boost::asio::io_service workers;
 static boost::asio::io_service listener(BOOST_ASIO_CONCURRENCY_HINT_UNSAFE);
 extern std::function<void(bolt::BoltConnection &conn, bolt::BoltMsg msg,
-                          std::vector<std::any> fields)> BoltHandler;
+                          std::vector<std::any> fields, std::vector<uint8_t> raw_data)> BoltHandler;
 bool BoltServer::Start(lgraph::StateMachine* sm, int port, int io_thread_num) {
     sm_ = sm;
     bolt::MarkersInit();
@@ -36,6 +37,7 @@ bool BoltServer::Start(lgraph::StateMachine* sm, int port, int io_thread_num) {
             LOG_INFO() << "bolt server run";
             promise.set_value(true);
             promise_done = true;
+            pthread_setname_np(pthread_self(), "bolt_listener");
             listener.run();
         } catch (const std::exception& e) {
             LOG_WARN() << "bolt server expection: " << e.what();
@@ -52,12 +54,10 @@ void BoltServer::Stop() {
         return;
     }
     listener.stop();
-    workers.stop();
     for (auto& t : threads_) {
         t.join();
     }
     stopped_ = true;
     LOG_INFO() << "bolt server stopped.";
 }
-
 }  // namespace bolt
