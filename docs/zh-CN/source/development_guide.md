@@ -298,6 +298,10 @@ JSON 格式
 lgraph_export -d your_db_path -e export_data -g default -f json -u admin -p 73@TuGraph
 ```
 
+### bolt集群模式
+
+[集群配置](./5.installation&running/9.bolt_cluster.md)
+
 ### 跨版本迁移数据
 [lgraph_export 使用介绍](./6.utility-tools/2.data-export.md)
 
