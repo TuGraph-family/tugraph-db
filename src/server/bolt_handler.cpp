@@ -292,7 +292,7 @@ void BoltFSM(std::shared_ptr<BoltConnection> conn) {
                             auto err = promise_context->proposed.get_future().get();
                             if (err != nullptr) {
                                 LOG_ERROR() << FMA_FMT("failed to propose, err: {}", err.String());
-                                THROW_CODE(RaftProposeError, err.String());
+                                THROW_CODE(BoltRaftError, err.String());
                             }
                             promise_context->commited.get_future().wait();
                         }
