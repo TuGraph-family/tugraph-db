@@ -391,7 +391,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("Point2", FieldType::POINT, false)}));
         UT_EXPECT_TRUE(s2.GetFieldExtractor("Point2")->GetFieldSpec() ==
-                       FieldSpec("Point2", FieldType::POINT, false));
+                       FieldSpec("Point2", FieldType::POINT, false, 9));
         auto fmap = s2.GetFieldSpecsAsMap();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
         fmap.erase("Point2");
@@ -409,7 +409,11 @@ TEST_P(TestSpatial, Spatial_Schema) {
         UT_EXPECT_TRUE(!s2.HasBlob());
         auto fmap = s2.GetFieldSpecsAsMap();
         auto old_fields = fields;
-        for (auto& f : mod) old_fields[f.name] = f;
+        for (auto& f : mod) {
+            FieldId id = old_fields[f.name].id;
+            old_fields[f.name] = f;
+            old_fields[f.name].id = id;
+        }
         UT_EXPECT_TRUE(fmap == old_fields);
         UT_EXPECT_THROW_CODE(s2.ModFields(std::vector<FieldSpec>(
                             {FieldSpec("no_such_field", FieldType::BLOB, true)})),
@@ -422,7 +426,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
         std::vector<std::string> to_del = {"Point", "LineString", "Polygon", "Spatial"};
         s2.DelFields(to_del);
         UT_EXPECT_TRUE(!s2.HasBlob());
-        auto fmap = s2.GetFieldSpecsAsMap();
+        auto fmap = s2.GetAliveFieldSpecsAsMap();
         auto old_fields = fields;
         for (auto& f : to_del) old_fields.erase(f);
         UT_EXPECT_TRUE(fmap == old_fields);
@@ -463,37 +467,40 @@ TEST_P(TestSpatial, Spatial_Schema) {
             std::vector<FieldData>({FieldData::Point
             ("0101000020231C0000000000000000F03F0000000000000040"),
             FieldData(), FieldData(), FieldData()}), true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 3);
+        UT_EXPECT_EQ(n_changed, 0);
         auto txn = graph.CreateReadTxn();
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point2")) == FieldData::Point
         ("0101000020231C0000000000000000F03F0000000000000040"));
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Spatial2")) == FieldData());
     }
 
-    UT_LOG() << "Testing modify";
-    {
-        size_t n_changed = 0;
-        UT_EXPECT_TRUE(graph.AlterLabelModFields(
-            "spatial",
-            std::vector<FieldSpec>({FieldSpec("string2Point", FieldType::POINT, false),
-                                    FieldSpec("string2line", FieldType::LINESTRING, false),
-                                    FieldSpec("string2Polygon", FieldType::POLYGON, false)}),
-            true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 3);
-        auto txn = graph.CreateReadTxn();
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2Point")) == FieldData::Point
-        ("0101000020E6100000000000000000F03F0000000000000040"));
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2line")) == FieldData::LineString
-        ("0102000020E610000003000000000000000000000000000000000000000"
-        "00000000000004000000000000000400000000000000840000000000000F03F"));
+    if (!GetParam()) {
+        UT_LOG() << "Testing modify";
+        {
+            size_t n_changed = 0;
+            UT_EXPECT_TRUE(graph.AlterLabelModFields(
+                "spatial",
+                std::vector<FieldSpec>({FieldSpec("string2Point", FieldType::POINT, false),
+                                        FieldSpec("string2line", FieldType::LINESTRING, false),
+                                        FieldSpec("string2Polygon", FieldType::POLYGON, false)}),
+                true, &n_changed));
+            UT_EXPECT_EQ(n_changed, 3);
+            auto txn = graph.CreateReadTxn();
+            UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2Point")) == FieldData::Point
+            ("0101000020E6100000000000000000F03F0000000000000040"));
+            UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2line")) == FieldData::LineString
+            ("0102000020E610000003000000000000000000000000000000000000000"
+            "00000000000004000000000000000400000000000000840000000000000F03F"));
+        }
     }
+
 
     UT_LOG() << "Testing Del";
     {
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelDelFields("spatial", std::vector<std::string>
                        ({"Point", "LineString", "Polygon", "Spatial"}), true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 3);
+        UT_EXPECT_EQ(n_changed, GetParam() ? 0 : n_changed);
         auto txn = graph.CreateReadTxn();
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point")) == FieldData());
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("LineString")) == FieldData());

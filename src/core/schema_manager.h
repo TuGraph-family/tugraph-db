@@ -35,6 +35,7 @@ class SchemaManager {
     std::vector<Schema> schemas_;
     std::unordered_map<std::string, size_t> name_to_idx_;
     bool label_in_record_ = true;
+    bool enable_fast_schema = false;
 
  public:
     /**
@@ -216,6 +217,7 @@ class SchemaManager {
             temporal = dynamic_cast<const EdgeOptions&>(options).temporal_field;
             temporal_order = dynamic_cast<const EdgeOptions&>(options).temporal_field_order;
         }
+        ls->SetFastAlterSchema(options.fast_alter_schema);
         ls->SetSchema(is_vertex, n_fields, fields, primary, temporal, temporal_order,
                       edge_constraints);
         ls->SetLabel(label);
@@ -297,11 +299,11 @@ class SchemaManager {
         return ::lgraph::_detail::UnalignedGet<LabelId>(record.Data());
     }
 
-    const _detail::FieldExtractor* GetExtractor(const Value& record,
+    const _detail::FieldExtractorV1* GetExtractor(const Value& record,
                                                 const std::string& field) const {
         auto ls = GetSchema(record);
         if (!ls) return nullptr;
-        return ls->GetFieldExtractor(field);
+        return ls->GetFieldExtractorV1(ls->GetFieldExtractor(field));
     }
 
     const Schema* GetSchema(const std::string& label) const {

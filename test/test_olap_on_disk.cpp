@@ -129,12 +129,13 @@ R"(0,1,1
 class TestOlapOnDisk : public TuGraphTestWithParam<struct ParamConfig> {};
 
 TEST_P(TestOlapOnDisk, OlapOnDisk) {
+    ParamConfig config = GetParam();
     // configure test data
     WriteOlapDiskFiles();
     system("mkdir ut_data && mv test_data ut_data/");
     size_t index = 0;
-    std::string input_dirs = GetParam().input_dir;
-    bool id_mappings = GetParam().id_mapping;
+    std::string input_dirs = config.input_dir;
+    bool id_mappings = config.id_mapping;
 
     int argc = 3;
     const char* args[3] = {"unit_test", "--input_dir", "./"};

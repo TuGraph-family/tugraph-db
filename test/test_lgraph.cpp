@@ -194,7 +194,7 @@ TEST_F(TestLGraph, LGraph) {
         LightningGraph db(config);
         db.DropAllData();
         // not ok
-        UT_EXPECT_ANY_THROW(db.AddLabel(
+        UT_EXPECT_ANY_THROW(db.AddLabel(E
             "_102834_basd", std::vector<FieldSpec>(), true, VertexOptions()));
         // ok
         std::vector<FieldSpec> fields;
