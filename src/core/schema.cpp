@@ -1293,7 +1293,7 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
         for (size_t i = 0; i < n_fields; i++) {
             const FieldSpec& fs = fields[i];
             if (field_data_helper::IsFixedLengthFieldType(fs.type))
-                fields_.push_back(std::make_unique<_detail::FieldExtractorV1>(fs));
+                fields_.push_back(std::make_shared<_detail::FieldExtractorV1>(fs));
         }
         for (size_t i = 0; i < n_fields; i++) {
             const FieldSpec& fs = fields[i];
@@ -1378,9 +1378,9 @@ void Schema::AddFields(const std::vector<FieldSpec>& add_fields) {
             throw FieldAlreadyExistsException(f.name);
         if (fast_alter_schema) {
             fields_.push_back(
-                std::make_unique<_detail::FieldExtractorV2>(FieldSpec(f), fields_.size()));
+                std::make_shared<_detail::FieldExtractorV2>(FieldSpec(f), fields_.size()));
         } else {
-            fields_.push_back(std::make_unique<_detail::FieldExtractorV1>(FieldSpec(f)));
+            fields_.push_back(std::make_shared<_detail::FieldExtractorV1>(FieldSpec(f)));
         }
     }
     lgraph::CheckValidFieldNum(fields_.size());
@@ -1459,6 +1459,16 @@ std::map<std::string, FieldSpec> Schema::GetFieldSpecsAsMap() const {
     std::map<std::string, FieldSpec> ret;
     for (auto& field : fields_) {
         ret.emplace_hint(ret.end(), std::make_pair(field->Name(), field->GetFieldSpec()));
+    }
+    return ret;
+}
+
+std::map<std::string, FieldSpec> Schema::GetFiledSpecsAsMapIgnoreFieldId() const {
+    std::map<std::string, FieldSpec> ret;
+    for (auto& field : fields_) {
+        FieldSpec field_spec = field->GetFieldSpec();
+        field_spec.id = 0;
+        ret.emplace_hint(ret.end(), std::make_pair(field_spec.name, field_spec));
     }
     return ret;
 }

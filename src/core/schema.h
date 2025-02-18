@@ -98,7 +98,7 @@ class Schema {
     // Conditionally instantiate either FieldExtractorV2 or FieldExtractorV1 based on
     // whether fast_alter_schema is enabled or disabled.
 
-    std::vector<std::unique_ptr<_detail::FieldExtractorBase>> fields_;
+    std::vector<std::shared_ptr<_detail::FieldExtractorBase>> fields_;
     std::unordered_map<std::string, size_t> name_to_idx_;
 
     // these for fields only work for fast_alter_schema = false;
@@ -275,6 +275,7 @@ class Schema {
 
     std::map<std::string, FieldSpec> GetFieldSpecsAsMap() const;
     std::map<std::string, FieldSpec> GetAliveFieldSpecsAsMap() const;
+    std::map<std::string, FieldSpec> GetFiledSpecsAsMapIgnoreFieldId() const;
 
     size_t GetNumFields() const { return fields_.size(); }
     bool GetFastAlterSchema() const {return fast_alter_schema;}

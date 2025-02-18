@@ -91,7 +91,7 @@ TEST_F(TestSnapshot, Snapshot) {
     Configuration config;
     config.Add(n, "n_snapshot,n", true).Comment("Number of times to do snapshot");
     config.ParseAndFinalize(argc, argv);
-    { CreateTestDB(true); }
+    { CreateTestDB(false); }
     {
         // create snapshot
 
