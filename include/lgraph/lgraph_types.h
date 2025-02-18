@@ -1379,8 +1379,8 @@ struct FieldSpec {
           optional(nu),
           deleted(false),
           id(id),
-            set_default_value(false),
-            default_value(FieldData()) {}
+          set_default_value(false),
+          default_value(FieldData()) {}
     FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& dv)
         : name(n),
           type(t),
@@ -1395,8 +1395,8 @@ struct FieldSpec {
           optional(spec.optional),
           deleted(spec.deleted),
           id(spec.id),
-            set_default_value(spec.set_default_value),
-          default_value(spec.default_value){}
+          set_default_value(spec.set_default_value),
+          default_value(spec.default_value) {}
 
     inline bool operator==(const FieldSpec& rhs) const {
         return name == rhs.name && type == rhs.type && optional == rhs.optional &&
