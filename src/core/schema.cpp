@@ -27,9 +27,10 @@ Schema::Schema(const Schema& rhs) {
     label_in_record_ = rhs.label_in_record_;
     deleted_ = rhs.deleted_;
     is_vertex_ = rhs.is_vertex_;
-    fields_.reserve(rhs.fields_.size());
-    for (const auto& field : rhs.fields_) {
-        fields_.emplace_back(field->Clone());
+    fields_.resize(rhs.fields_.size());
+    const int size = rhs.fields_.size();
+    for (int i = 0; i < size; i++) {
+        fields_[i] = rhs.fields_[i]->Clone();
     }
     name_to_idx_ = rhs.name_to_idx_;
     n_fixed_ = rhs.n_fixed_;
@@ -59,9 +60,10 @@ Schema& Schema::operator=(const Schema& rhs) {
     deleted_ = rhs.deleted_;
     is_vertex_ = rhs.is_vertex_;
     fields_.clear();
-    fields_.reserve(rhs.fields_.size());
-    for (const auto& field : rhs.fields_) {
-        fields_.emplace_back(field->Clone());
+    fields_.resize(rhs.fields_.size());
+    const int size = rhs.fields_.size();
+    for (int i = 0; i <size; i++) {
+        fields_[i] = rhs.fields_[i]->Clone();
     }
     name_to_idx_ = rhs.name_to_idx_;
     n_fixed_ = rhs.n_fixed_;

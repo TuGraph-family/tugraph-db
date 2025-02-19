@@ -80,8 +80,8 @@ class FieldExtractorV2 : public FieldExtractorBase {
 
     ~FieldExtractorV2() override = default;
 
-    std::unique_ptr<FieldExtractorBase> Clone() const override {
-        return std::make_unique<FieldExtractorV2>(*this);
+    std::shared_ptr<FieldExtractorBase> Clone() const override {
+        return std::make_shared<FieldExtractorV2>(*this);
     }
 
     bool DataInRecord(const Value &record) const override;

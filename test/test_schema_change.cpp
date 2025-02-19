@@ -191,7 +191,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
         std::vector<std::string> to_del = {"blob", "name2"};
         s2.DelFields(to_del);
         UT_EXPECT_TRUE(!s2.HasBlob());
-        auto fmap = s2.GetFieldSpecsAsMap();
+        auto fmap = s2.GetAliveFieldSpecsAsMap();
         auto old_fields = fields;
         for (auto& f : to_del) old_fields.erase(f);
         UT_EXPECT_TRUE(fmap == old_fields);

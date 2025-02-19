@@ -101,7 +101,7 @@ class FieldExtractorBase {
         return *this;
     }
 
-    virtual std::unique_ptr<FieldExtractorBase> Clone() const = 0;
+    virtual std::shared_ptr<FieldExtractorBase> Clone() const = 0;
 
     // Get field info and index info.
     const FieldSpec& GetFieldSpec() const { return def_; }

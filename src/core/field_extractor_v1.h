@@ -57,6 +57,7 @@ class FieldExtractorV1 : public FieldExtractorBase {
         offset_ = rhs.offset_;
         nullable_array_off_ = rhs.nullable_array_off_;
         null_bit_off_ = rhs.null_bit_off_;
+        field_id_ = rhs.field_id_;
     }
 
     FieldExtractorV1(FieldExtractorV1&& rhs) noexcept : FieldExtractorBase(std::move(rhs)) {
@@ -64,6 +65,7 @@ class FieldExtractorV1 : public FieldExtractorBase {
         offset_ = rhs.offset_;
         null_bit_off_ = rhs.null_bit_off_;
         nullable_array_off_ = rhs.nullable_array_off_;
+        field_id_ = rhs.field_id_;
     }
 
     FieldExtractorV1& operator=(const FieldExtractorV1& rhs) {
@@ -73,6 +75,7 @@ class FieldExtractorV1 : public FieldExtractorBase {
         offset_ = rhs.offset_;
         null_bit_off_ = rhs.null_bit_off_;
         nullable_array_off_ = rhs.nullable_array_off_;
+        field_id_ = rhs.field_id_;
         return *this;
     }
 
@@ -83,13 +86,14 @@ class FieldExtractorV1 : public FieldExtractorBase {
         offset_ = rhs.offset_;
         null_bit_off_ = rhs.null_bit_off_;
         nullable_array_off_ = rhs.nullable_array_off_;
+        field_id_ = rhs.field_id_;
         return *this;
     }
 
     ~FieldExtractorV1() override = default;
 
-    std::unique_ptr<FieldExtractorBase> Clone() const override {
-        return std::make_unique<FieldExtractorV1>(*this);
+    std::shared_ptr<FieldExtractorBase> Clone() const override {
+        return std::make_shared<FieldExtractorV1>(*this);
     }
 
     // for test only
