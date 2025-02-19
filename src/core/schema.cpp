@@ -1437,13 +1437,12 @@ std::vector<FieldSpec> Schema::GetFieldSpecs() const {
 
 std::vector<FieldSpec> Schema::GetAliveFieldSpecs() const {
     std::vector<FieldSpec> schema;
-    schema.reserve(name_to_idx_.size());
-    for (auto& f : name_to_idx_) {
-        schema.emplace_back(fields_[f.second]->GetFieldSpec());
+    for (auto& f : fields_) {
+        if (f->IsDeleted()) {
+            continue;
+        }
+        schema.emplace_back(f->GetFieldSpec());
     }
-    std::sort(schema.begin(), schema.end(), [] (const FieldSpec& a, const FieldSpec& b) {
-        return a.id < b.id;
-    });
     return schema;
 }
 

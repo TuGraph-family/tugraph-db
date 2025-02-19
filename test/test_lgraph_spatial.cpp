@@ -391,7 +391,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("Point2", FieldType::POINT, false)}));
         UT_EXPECT_TRUE(s2.GetFieldExtractor("Point2")->GetFieldSpec() ==
-                       FieldSpec("Point2", FieldType::POINT, false, 9));
+                       FieldSpec("Point2", FieldType::POINT, false, enable_fast_alter ? 9 : 0));
         auto fmap = s2.GetFiledSpecsAsMapIgnoreFieldId();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
         fmap.erase("Point2");

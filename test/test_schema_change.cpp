@@ -156,7 +156,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("id3", FieldType::INT32, false)}));
         UT_EXPECT_TRUE(s2.GetFieldExtractor("id3")->GetFieldSpec() ==
-                       FieldSpec("id3", FieldType::INT32, false, 6));
+                       FieldSpec("id3", FieldType::INT32, false, (enable_fast_alter ? 6 : 0)));
         auto fmap = s2.GetFieldSpecsAsMap();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
         fmap.erase("id3");
