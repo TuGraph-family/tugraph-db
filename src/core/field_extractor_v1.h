@@ -37,6 +37,7 @@ class FieldExtractorV1 : public FieldExtractorBase {
     friend class lgraph::Schema;
     // layout
     bool is_vfield_ = false;
+    size_t field_id_ = 0;
     union {
         size_t data_off = 0;
         struct {
@@ -150,6 +151,13 @@ class FieldExtractorV1 : public FieldExtractorBase {
             _SetFixedSizeValueRaw(dst_record, extr->GetConstRef(src_record));
         }
     }
+
+
+    FieldId GetFieldId() const override {
+        return field_id_;
+    }
+
+    void SetFieldId(FieldId id) override { field_id_ = id; }
 
  private:
     void SetFixedLayoutInfo(size_t offset) {

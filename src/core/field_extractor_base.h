@@ -130,11 +130,7 @@ class FieldExtractorBase {
 
     VectorIndex* GetVectorIndex() const { return vector_index_.get(); }
 
-    FieldId GetFieldId() const { return def_.id; }
-
     // Set field info and index info.
-    void SetFieldId(FieldId id) { def_.id = id; }
-
     void SetVertexIndex(VertexIndex* index) { vertex_index_.reset(index); }
 
     void SetEdgeIndex(EdgeIndex* edgeindex) { edge_index_.reset(edgeindex); }
@@ -142,6 +138,8 @@ class FieldExtractorBase {
     void SetVectorIndex(VectorIndex* vectorindex) { vector_index_.reset(vectorindex); }
 
     void SetFullTextIndex(bool fulltext_indexed) { fulltext_indexed_ = fulltext_indexed; }
+
+    void SetFieldSpecId(FieldId field_id) {def_.id = field_id;}
 
     void MarkDeleted() {
         def_.deleted = true;
@@ -178,6 +176,10 @@ class FieldExtractorBase {
     virtual bool DataInRecord(const Value& record) const = 0;
 
     virtual Value GetDefaultValue() const = 0;
+
+    virtual FieldId GetFieldId() const = 0;
+
+    virtual void SetFieldId(FieldId id) = 0;
 
     // Get copy from record.
     ENABLE_IF_FIXED_FIELD(T, void) GetCopy(const Value& record, T& data) const {

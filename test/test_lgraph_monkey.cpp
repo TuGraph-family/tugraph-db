@@ -114,13 +114,13 @@ static std::pair<std::string, std::vector<FieldSpec>> RandomSchema(size_t n_fiel
         fields.emplace(RandomString(10));
     }
     std::vector<FieldSpec> fs;
-    int i = 0;
+    // int i = 0;
     for (auto& fn : fields) {
         FieldSpec f;
         f.name = fn;
         f.optional = true;
         f.type = FieldType::INT64;
-        f.id = i++;
+        // f.id = i++;
         fs.push_back(f);
     }
     if (n_fields >= 1) {

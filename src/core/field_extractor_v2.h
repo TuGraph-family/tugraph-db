@@ -153,6 +153,14 @@ class FieldExtractorV2 : public FieldExtractorBase {
     size_t GetDataSize(const Value& record) const override;
 
     void* GetFieldPointer(const Value& record) const override;
+
+    FieldId GetFieldId() const override {
+        return GetFieldSpec().id;
+    }
+
+    void SetFieldId(FieldId id) override {
+        SetFieldSpecId(id);
+    }
 };
 
 }  // namespace _detail
