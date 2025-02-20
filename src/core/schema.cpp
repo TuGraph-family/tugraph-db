@@ -1295,11 +1295,11 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
         for (size_t i = 0; i < n_fields; i++) {
             const FieldSpec& fs = fields[i];
             if (!field_data_helper::IsFixedLengthFieldType(fs.type))
-                fields_.push_back(std::make_unique<_detail::FieldExtractorV1>(fs));
+                fields_.push_back(std::make_shared<_detail::FieldExtractorV1>(fs));
         }
     } else {
         for (size_t i = 0; i < n_fields; i++) {
-            fields_.push_back(std::make_unique<_detail::FieldExtractorV2>(fields[i], i));
+            fields_.push_back(std::make_shared<_detail::FieldExtractorV2>(fields[i], i));
         }
     }
     is_vertex_ = is_vertex;

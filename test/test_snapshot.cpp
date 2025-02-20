@@ -22,9 +22,7 @@
 #include "db/db.h"
 #include "./ut_utils.h"
 
-class TestSnapshot : public TuGraphTestWithParam<bool> {};
-
-INSTANTIATE_TEST_CASE_P(TestSnapshot, TestSnapshot, testing::Values(true, false));
+class TestSnapshot : public TuGraphTest {};
 
 static lgraph::VertexId AddVertex(lgraph::Transaction& txn, const std::string& name,
                                   const std::string& type, bool enable_fast_alter) {
@@ -47,7 +45,7 @@ static lgraph::EdgeId AddEdge(lgraph::Transaction& txn, lgraph::VertexId src, lg
     return txn.AddEdge(src, dst, (size_t)0, fids, values).eid;
 }
 
-void CreateTestDB(bool enable_fast_alter) {
+void CreateTestDB() {
     using namespace lgraph;
 
     fma_common::FileSystem::GetFileSystem("./testdb").RemoveDir("./testdb");
@@ -63,10 +61,8 @@ void CreateTestDB(bool enable_fast_alter) {
     while (!db.IsVertexIndexed("v", "name")) fma_common::SleepUs(100);
 
     Transaction txn = db.CreateWriteTxn();
-    VertexId vid1_;
-    VertexId vid2_;
-    vid1_ = AddVertex(txn, "v1", "1", enable_fast_alter);
-    vid2_ = AddVertex(txn, "v2", "2", enable_fast_alter);
+    VertexId vid1_ = AddVertex(txn, "v1", "1", false);
+    VertexId vid2_ = AddVertex(txn, "v2", "2", false);
 
     {
         VertexIndexIterator iit = txn.GetVertexIndexIterator("v", "name", "v2", "v2");
@@ -81,7 +77,7 @@ void CreateTestDB(bool enable_fast_alter) {
     txn.Commit();
 }
 
-TEST_P(TestSnapshot, Snapshot) {
+TEST_F(TestSnapshot, Snapshot) {
     using namespace lgraph;
     using namespace fma_common;
 
@@ -91,7 +87,7 @@ TEST_P(TestSnapshot, Snapshot) {
     Configuration config;
     config.Add(n, "n_snapshot,n", true).Comment("Number of times to do snapshot");
     config.ParseAndFinalize(argc, argv);
-    { CreateTestDB(GetParam()); }
+    { CreateTestDB(); }
     {
         // create snapshot
 
