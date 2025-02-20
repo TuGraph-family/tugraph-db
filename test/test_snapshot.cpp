@@ -24,7 +24,7 @@
 
 class TestSnapshot : public TuGraphTestWithParam<bool> {};
 
-// INSTANTIATE_TEST_CASE_P(TestSnapshot, TestSnapshot, testing::Values(true, false));
+INSTANTIATE_TEST_CASE_P(TestSnapshot, TestSnapshot, testing::Values(true, false));
 
 static lgraph::VertexId AddVertex(lgraph::Transaction& txn, const std::string& name,
                                   const std::string& type, bool enable_fast_alter) {
@@ -81,7 +81,7 @@ void CreateTestDB(bool enable_fast_alter) {
     txn.Commit();
 }
 
-TEST_F(TestSnapshot, Snapshot) {
+TEST_P(TestSnapshot, Snapshot) {
     using namespace lgraph;
     using namespace fma_common;
 
@@ -91,7 +91,7 @@ TEST_F(TestSnapshot, Snapshot) {
     Configuration config;
     config.Add(n, "n_snapshot,n", true).Comment("Number of times to do snapshot");
     config.ParseAndFinalize(argc, argv);
-    { CreateTestDB(false); }
+    { CreateTestDB(GetParam()); }
     {
         // create snapshot
 

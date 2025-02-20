@@ -38,7 +38,6 @@ namespace _detail {
 class FieldExtractorBase {
     friend class Schema;
     FieldSpec def_;
-    FieldId field_id_ = 0;
     bool is_vfield_ = false;
     std::unique_ptr<VertexIndex> vertex_index_;
     std::unique_ptr<EdgeIndex> edge_index_;

@@ -96,6 +96,8 @@ struct LabelOptions {
     // store property data in detached model
     // Default: false
     bool detach_property = false;
+    // use fast alter schema format
+    // Default: false
     bool fast_alter_schema = false;
     virtual std::string to_string() const = 0;
     virtual void clear() = 0;
@@ -1337,7 +1339,6 @@ struct FieldSpec {
     FieldData default_value;
     /** @brief   is set init value? */
 
-
     FieldSpec()
         : name(),
           type(FieldType::NUL),
@@ -1345,7 +1346,7 @@ struct FieldSpec {
           deleted(false),
           id(0),
           set_default_value(false),
-    default_value(FieldData()) {}
+          default_value(FieldData()) {}
 
     /**
      * @brief   Constructor
@@ -1354,7 +1355,6 @@ struct FieldSpec {
      * @param   t   Field type
      * @param   nu  True if field is optional
      * @param   id  Field id
-     * @param   iv Init value
      * @param   dv Default value
      */
     FieldSpec(const std::string& n, FieldType t, bool nu)

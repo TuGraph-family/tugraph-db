@@ -132,7 +132,7 @@ static void RemoveFieldId(std::map<std::string, lgraph::FieldSpec>& vec) {
 
 class TestSchemaChange : public TuGraphTestWithParam<bool> {};
 
-INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false));
+INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(true, false));
 
 TEST_P(TestSchemaChange, ModifyFields) {
     using namespace lgraph;
@@ -455,11 +455,11 @@ TEST_P(TestSchemaChange, UpdateConstraints) {
     }
 }
 
-TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
+TEST_F(TestSchemaChange, ModAndAddfieldWithData) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
-    bool enable_fast_alter = GetParam();
+    bool enable_fast_alter = false;
 
     DBConfig conf;
     conf.dir = dir;

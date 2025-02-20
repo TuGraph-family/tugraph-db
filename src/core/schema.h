@@ -386,7 +386,6 @@ class Schema {
     //    const Value& record, const FieldT& field_name_or_num) const {
     //    auto extractor = GetFieldExtractor(field_name_or_num);
     //    if(extractor->GetIsNull(record)) return FieldData();
-    //    if(extractor->GetIsNull(record)) return FieldData();
     //    return GetFieldDataFromField(extractor, record);
     //}
 
@@ -398,8 +397,8 @@ class Schema {
         _detail::FieldExtractorBase* extractor = TryGetFieldExtractor(field_name_or_num);
         if (!extractor || extractor->IsDeleted()) return FieldData();
         if (fast_alter_schema) {
-            if (dynamic_cast<_detail::FieldExtractorV2*>(extractor)->GetRecordCount(record) <
-                extractor->GetFieldId() + 1) {
+            if (GetFieldExtractorV2(extractor)->GetRecordCount(record) <=
+                extractor->GetFieldId()) {
                 if (extractor->HasDefaultValue()) {
                     return extractor->GetDefaultFieldData();
                 }
@@ -429,11 +428,7 @@ class Schema {
             const DataT& data = values[i];
             _detail::FieldExtractorBase* extr = GetFieldExtractor(name_or_num);
             is_set[extr->GetFieldId()] = true;
-            if (fast_alter_schema) {
-                ParseAndSet(v, data, extr);
-            } else {
-                GetFieldExtractorV1(extr)->ParseAndSet(v, data);
-            }
+            ParseAndSet(v, data, extr);
         }
         for (size_t i = 0; i < fields_.size(); i++) {
             auto& f = fields_[i];
@@ -716,8 +711,6 @@ class Schema {
         s = BinaryRead(buf, deleted_);
         if (!s) return 0;
         bytes_read += s;
-        s = BinaryRead(buf, fast_alter_schema);
-        bytes_read += s;
         std::vector<FieldSpec> fds;
         s = BinaryRead(buf, fds);
         if (!s) return 0;
@@ -740,6 +733,8 @@ class Schema {
         s = BinaryRead(buf, detach_property_);
         if (!s) return 0;
         bytes_read += s;
+        s = BinaryRead(buf, fast_alter_schema);
+        bytes_read += s;
         SetSchema(is_vertex_, fds, primary_field_, temporal_field_, temporal_order_,
                   edge_constraints_);
         return bytes_read;
@@ -749,11 +744,10 @@ class Schema {
     size_t Serialize(StreamT& buf) const {
         return BinaryWrite(buf, label_) + BinaryWrite(buf, label_id_) +
                BinaryWrite(buf, label_in_record_) + BinaryWrite(buf, deleted_) +
-                   BinaryWrite(buf, fast_alter_schema) +
                BinaryWrite(buf, GetFieldSpecs()) + BinaryWrite(buf, is_vertex_) +
                BinaryWrite(buf, primary_field_) + BinaryWrite(buf, temporal_field_) +
                BinaryWrite(buf, temporal_order_) + BinaryWrite(buf, edge_constraints_) +
-               BinaryWrite(buf, detach_property_);
+               BinaryWrite(buf, detach_property_) + BinaryWrite(buf, fast_alter_schema);
     }
 
     std::string ToString() const { return fma_common::ToString(GetFieldSpecsAsMap()); }

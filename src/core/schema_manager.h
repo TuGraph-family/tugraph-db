@@ -35,7 +35,6 @@ class SchemaManager {
     std::vector<Schema> schemas_;
     std::unordered_map<std::string, size_t> name_to_idx_;
     bool label_in_record_ = true;
-    bool enable_fast_schema = false;
 
  public:
     /**

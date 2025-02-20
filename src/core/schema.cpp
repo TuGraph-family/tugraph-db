@@ -311,12 +311,11 @@ std::vector<std::vector<std::string>> Schema::GetRelationalCompositeIndexKey(
 
 bool Schema::VertexUniqueIndexConflict(KvTransaction& txn, const Value& record) {
     for (auto& idx : indexed_fields_) {
-        VertexIndex* index;
         auto& fe = fields_[idx];
-        index = fe->GetVertexIndex();
-        if (fe->GetIsNull(record)) continue;
+        VertexIndex* index = fe->GetVertexIndex();
         FMA_ASSERT(index);
         if (!index->IsUnique()) continue;
+        if (fe->GetIsNull(record)) continue;
         if (index->UniqueIndexConflict(txn, fe->GetConstRef(record))) {
             return true;
         }
@@ -1099,7 +1098,7 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
         }
     } else {
         size_t num_fields = fields_.size();
-        // version - [label] - count - null_array - offset_array
+        // [label] - count - null_array - offset_array
         size_t min_size =  (label_in_record_ ? sizeof(LabelId) : 0) +
                           sizeof(FieldId) + (num_fields + 7) / 8;
         // Fixed-value and Variable-value. Variable-value will store an offset at Fixed-value area
@@ -1117,27 +1116,23 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
         char* ptr = v.Data();
         DataOffset offset = 0;
 
-        // 2. Set version id.
-        // ::lgraph::_detail::UnalignedSet<VersionId>(ptr + offset,
-        // ::lgraph::_detail::SCHEMA_VERSION); offset += sizeof(VersionId);
-
-        // 3. Set label id.
+        // 1. Set label id.
         if (label_in_record_) {
             ::lgraph::_detail::UnalignedSet<LabelId>(ptr + offset, label_id_);
             offset += sizeof(LabelId);
         }
 
-        // 4. Set fields count.
+        // 2. Set fields count.
         ::lgraph::_detail::UnalignedSet<FieldId>(ptr + offset, static_cast<FieldId>(num_fields));
         offset += sizeof(FieldId);
 
-        // 5. Set nullable array
+        // 3. Set nullable array
         memset(ptr + offset, 0xFF, (num_fields + 7) / 8);
         offset += (num_fields + 7) / 8;
 
         if (num_fields == 0) return v;
 
-        // 6. Set fields' offset.
+        // 4. Set fields' offset.
         DataOffset offset_begin = offset;
         DataOffset data_offset = offset + num_fields * sizeof(DataOffset);  // data area begin.
         char* offset_ptr = ptr + offset_begin;                              // offset area begin.
@@ -1156,7 +1151,7 @@ Value Schema::CreateEmptyRecord(size_t size_hint) const {
                                                               : sizeof(DataOffset);
         ::lgraph::_detail::UnalignedSet<DataOffset>(offset_ptr, data_offset);
 
-        // 7. Set variable fields offset. They are stored at fixed-area, and their sizes are all
+        // 5. Set variable fields offset. They are stored at fixed-area, and their sizes are all
         // zero.
         for (const auto& field : fields_) {
             if (!field->IsFixedType()) {
@@ -1286,10 +1281,10 @@ void Schema::SetSchema(bool is_vertex, size_t n_fields, const FieldSpec* fields,
                        const TemporalFieldOrder& temporal_order,
                        const EdgeConstraints& edge_constraints) {
     lgraph::CheckValidFieldNum(n_fields);
+    fields_.clear();
     name_to_idx_.clear();
     // assign id to fields, starting from fixed length types
     // then variable length types
-    fields_.clear();
     fields_.reserve(n_fields);
     if (!fast_alter_schema) {
         for (size_t i = 0; i < n_fields; i++) {
@@ -1344,7 +1339,7 @@ void Schema::DelFields(const std::vector<std::string>& del_fields) {
     }
 
     auto composite_index_key = GetRelationalCompositeIndexKey(del_ids);
-    for (const auto& k : composite_index_key) {
+    for (const auto &k : composite_index_key) {
         UnVertexCompositeIndex(k);
     }
 
@@ -1401,17 +1396,17 @@ void Schema::ModFields(const std::vector<FieldSpec>& mod_fields) {
         if (fast_alter_schema) {
             auto& extractor = fields_[fid];
             extractor.reset();
-            extractor = std::make_unique<_detail::FieldExtractorV2>(f);
+            extractor = std::make_shared<_detail::FieldExtractorV2>(f);
             extractor->SetFieldId(fid);
         } else {
             auto& extractor = fields_[fid];
             extractor.reset();
-            extractor = std::make_unique<_detail::FieldExtractorV1>(f);
+            extractor = std::make_shared<_detail::FieldExtractorV1>(f);
         }
         mod_ids.push_back(fid);
     }
     auto composite_index_key = GetRelationalCompositeIndexKey(mod_ids);
-    for (const auto& k : composite_index_key) {
+    for (const auto &k : composite_index_key) {
         UnVertexCompositeIndex(k);
     }
     RefreshLayout();
@@ -1498,7 +1493,7 @@ _detail::FieldExtractorBase* Schema::TryGetFieldExtractor(const std::string& fie
 
 std::vector<CompositeIndexSpec> Schema::GetCompositeIndexSpec() const {
     std::vector<CompositeIndexSpec> compositeIndexSpecList;
-    for (const auto& kv : composite_index_map) {
+    for (const auto &kv : composite_index_map) {
         std::vector<std::string> ids;
         boost::split(ids, kv.first, boost::is_any_of(_detail::COMPOSITE_INDEX_KEY_SEPARATOR));
         std::vector<std::string> fields;

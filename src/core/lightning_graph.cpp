@@ -892,13 +892,16 @@ bool LightningGraph::AlterLabelAddFields(const std::string& label,
     auto setup_and_gen_new_schema = [&](Schema* curr_schema) -> Schema {
         if (curr_schema->GetFastAlterSchema()) {
             Schema new_schema(*curr_schema);
+            // check type complatible
+            for (size_t i = 0; i < to_add.size(); i++) {
+                if (!FieldTypeComplatible(default_values[i].GetType(), to_add[i].type)) {
+                    throw ParseIncompatibleTypeException(to_add[i].name, to_add[i].type,
+                                                         default_values[i].type);
+                }
+            }
             new_schema.AddFields(to_add);
             for (size_t i = 0; i < to_add.size(); i++) {
                 auto extractor = new_schema.GetFieldExtractor(to_add[i].name);
-                if (!FieldTypeComplatible(default_values[i].GetType(), extractor->Type())) {
-                    throw ParseIncompatibleTypeException(extractor->Name(), extractor->Type(),
-                                                         default_values[i].type);
-                }
                 extractor->SetDefaultValue(default_values[i]);
             }
             return new_schema;
