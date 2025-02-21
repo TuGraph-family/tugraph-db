@@ -733,8 +733,12 @@ class Schema {
         s = BinaryRead(buf, detach_property_);
         if (!s) return 0;
         bytes_read += s;
-        s = BinaryRead(buf, fast_alter_schema);
-        bytes_read += s;
+        if (buf.GetSize() > 0) {
+            s = BinaryRead(buf, fast_alter_schema);
+            bytes_read += s;
+            s = BinaryReadFieldInfoV2IntoFieldVec(buf, fds);
+            bytes_read += s;
+        }
         SetSchema(is_vertex_, fds, primary_field_, temporal_field_, temporal_order_,
                   edge_constraints_);
         return bytes_read;
@@ -747,7 +751,8 @@ class Schema {
                BinaryWrite(buf, GetFieldSpecs()) + BinaryWrite(buf, is_vertex_) +
                BinaryWrite(buf, primary_field_) + BinaryWrite(buf, temporal_field_) +
                BinaryWrite(buf, temporal_order_) + BinaryWrite(buf, edge_constraints_) +
-               BinaryWrite(buf, detach_property_) + BinaryWrite(buf, fast_alter_schema);
+               BinaryWrite(buf, detach_property_) + BinaryWrite(buf, fast_alter_schema) +
+               BinaryWriteFieldInfoV2(buf, GetFieldSpecs());
     }
 
     std::string ToString() const { return fma_common::ToString(GetFieldSpecsAsMap()); }
@@ -776,5 +781,39 @@ class Schema {
 
     void RefreshLayout();
     void RefreshLayoutForFastSchema();
+
+    template <typename StreamT>
+    static size_t BinaryWriteFieldInfoV2(StreamT& buf, std::vector<FieldSpec> spec) {
+        size_t write_size = 0;
+        write_size += BinaryWrite(buf, spec.size());
+        for (size_t i = 0; i < spec.size(); i++) {
+            write_size += BinaryWrite(buf, spec[i].name) + BinaryWrite(buf, spec[i].deleted) +
+                          BinaryWrite(buf, spec[i].id) +
+                          BinaryWrite(buf, spec[i].set_default_value) +
+                          BinaryWrite(buf, spec[i].default_value);
+        }
+        return write_size;
+    }
+
+    template <typename StreamT>
+    static size_t BinaryReadFieldInfoV2IntoFieldVec(StreamT& buf, std::vector<FieldSpec>& spec) {
+        size_t read_size = 0;
+        size_t spec_size = 0;
+        read_size += BinaryRead(buf, spec_size);
+        FMA_ASSERT(spec_size == spec.size()) << "Deserialize field info v2 fatal: spec_size"
+                                             << spec_size << " != spec.size()" << spec.size();
+        for (size_t i = 0; i < spec.size(); i++) {
+            std::string field_name;
+            read_size += BinaryRead(buf, field_name);
+            FMA_ASSERT(spec[i].name == field_name)
+                << "Deserialize field info v2 fatal:"
+                << "field_name" << field_name << " != spec[i].name" << spec[i].name;
+            read_size += BinaryRead(buf, spec[i].deleted) + BinaryRead(buf, spec[i].id) +
+                         BinaryRead(buf, spec[i].set_default_value) +
+                         BinaryRead(buf, spec[i].default_value);
+        }
+        return read_size;
+    }
+
 };  // Schema
 }  // namespace lgraph
