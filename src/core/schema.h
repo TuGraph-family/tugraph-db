@@ -814,6 +814,5 @@ class Schema {
         }
         return read_size;
     }
-
 };  // Schema
 }  // namespace lgraph
