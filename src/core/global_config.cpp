@@ -191,7 +191,7 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     audit_log_dir = "";
     backup_log_dir = "";
     snapshot_dir = "";
-    thread_limit = 2;
+    thread_limit = 0;
     unlimited_token = false;
     enable_realtime_count = true;
     reset_admin_password = false;
