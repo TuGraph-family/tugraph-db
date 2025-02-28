@@ -35,7 +35,7 @@
 #include "core/global_config.h"
 #include "core/task_tracker.h"
 #include "core/schema.h"
-#include "core/field_extractor.h"
+#include "core/field_extractor_base.h"
 #include "db/acl.h"
 #include "plugin/plugin_desc.h"
 #include "server/state_machine.h"
@@ -606,16 +606,17 @@ inline web::json::value ValueToJson(const std::vector<std::pair<std::string, std
     return arr;
 }
 
-inline web::json::value ValueToJson(const std::vector<lgraph::_detail::FieldExtractor>& fields) {
+inline web::json::value ValueToJson(
+    const std::vector<lgraph::_detail::FieldExtractorBase*> fields) {
     auto arr = web::json::value::array();
     for (int idx = 0; idx < (int)fields.size(); ++idx) {
         web::json::value js;
-        js[_TU("name")] = ValueToJson(fields[idx].GetFieldSpec().name);
-        js[_TU("type")] = ValueToJson(to_string(fields[idx].GetFieldSpec().type));
-        js[_TU("optional")] = ValueToJson(fields[idx].GetFieldSpec().optional);
-        if (fields[idx].GetVertexIndex()) {
+        js[_TU("name")] = ValueToJson(fields[idx]->GetFieldSpec().name);
+        js[_TU("type")] = ValueToJson(to_string(fields[idx]->GetFieldSpec().type));
+        js[_TU("optional")] = ValueToJson(fields[idx]->GetFieldSpec().optional);
+        if (fields[idx]->GetVertexIndex()) {
             js[_TU("index")] = ValueToJson(true);
-            switch (fields[idx].GetVertexIndex()->GetType()) {
+            switch (fields[idx]->GetVertexIndex()->GetType()) {
             case IndexType::NonuniqueIndex:
                 js[_TU("unique")] = ValueToJson(false);
                 break;
@@ -626,9 +627,9 @@ inline web::json::value ValueToJson(const std::vector<lgraph::_detail::FieldExtr
                 js[_TU("unique")] = ValueToJson(false);
                 break;
             }
-        } else if (fields[idx].GetEdgeIndex()) {
+        } else if (fields[idx]->GetEdgeIndex()) {
             js[_TU("index")] = ValueToJson(true);
-            switch (fields[idx].GetEdgeIndex()->GetType()) {
+            switch (fields[idx]->GetEdgeIndex()->GetType()) {
             case IndexType::NonuniqueIndex:
                 js[_TU("unique")] = ValueToJson(false);
                 js[_TU("pair_unique")] = ValueToJson(false);

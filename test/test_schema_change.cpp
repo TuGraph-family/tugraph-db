@@ -17,6 +17,7 @@
 #include "gtest/gtest.h"
 
 #include "core/lightning_graph.h"
+#include "core/schema_common.h"
 #include "./graph_factory.h"
 #include "./test_tools.h"
 #include "./random_port.h"
@@ -45,14 +46,15 @@ static std::string RandomString(size_t n) {
     return str;
 }
 
-static void CreateSampleDB(const std::string& dir, bool detach_property) {
+static void CreateSampleDB(const std::string& dir, bool fast_alter_schema) {
     using namespace lgraph;
     lgraph::DBConfig conf;
     conf.dir = dir;
     lgraph::LightningGraph lg(conf);
     VertexOptions vo;
     vo.primary_field = "id";
-    vo.detach_property = detach_property;
+    vo.detach_property = false;
+    vo.fast_alter_schema = fast_alter_schema;
     UT_EXPECT_TRUE(lg.AddLabel(
         "person",
         std::vector<FieldSpec>(
@@ -65,7 +67,8 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     EdgeOptions options;
     options.temporal_field = "ts";
     options.temporal_field_order = lgraph::TemporalFieldOrder::ASC;
-    options.detach_property = detach_property;
+    options.detach_property = false;
+    options.fast_alter_schema = fast_alter_schema;
     UT_EXPECT_TRUE(lg.AddLabel("knows",
                                std::vector<FieldSpec>({FieldSpec("weight", FieldType::FLOAT, true),
                                                        FieldSpec("ts", FieldType::INT64, true)}),
@@ -95,14 +98,15 @@ static void CreateSampleDB(const std::string& dir, bool detach_property) {
     txn.Commit();
 }
 
-static void CreateLargeSampleDB(const std::string& dir, bool detach_property) {
+static void CreateLargeSampleDB(const std::string& dir, bool fast_alter_schema) {
     using namespace lgraph;
     lgraph::DBConfig conf;
     conf.dir = dir;
     lgraph::LightningGraph lg(conf);
     VertexOptions vo;
     vo.primary_field = "name";
-    vo.detach_property = detach_property;
+    vo.detach_property = false;
+    vo.fast_alter_schema = fast_alter_schema;
     UT_EXPECT_TRUE(
         lg.AddLabel("large",
                     std::vector<FieldSpec>({FieldSpec("name", FieldType::STRING, false),
@@ -120,17 +124,25 @@ static void CreateLargeSampleDB(const std::string& dir, bool detach_property) {
     txn.Commit();
 }
 
+static void RemoveFieldId(std::map<std::string, lgraph::FieldSpec>& vec) {
+    for (auto& f : vec) {
+        f.second.id = 0;
+    }
+}
+
 class TestSchemaChange : public TuGraphTestWithParam<bool> {};
 
-INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(false));
+INSTANTIATE_TEST_CASE_P(TestSchemaChange, TestSchemaChange, testing::Values(true, false));
 
 TEST_P(TestSchemaChange, ModifyFields) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
+    bool enable_fast_alter = GetParam();
 
     UT_LOG() << "Test Schema::AddFields, DelFields and ModFields";
     Schema s1;
+    s1.SetFastAlterSchema(enable_fast_alter);
     s1.SetSchema(
         true,
         std::vector<FieldSpec>(
@@ -144,7 +156,7 @@ TEST_P(TestSchemaChange, ModifyFields) {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("id3", FieldType::INT32, false)}));
         UT_EXPECT_TRUE(s2.GetFieldExtractor("id3")->GetFieldSpec() ==
-                       FieldSpec("id3", FieldType::INT32, false));
+                       FieldSpec("id3", FieldType::INT32, false, (enable_fast_alter ? 6 : 0)));
         auto fmap = s2.GetFieldSpecsAsMap();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
         fmap.erase("id3");
@@ -179,12 +191,12 @@ TEST_P(TestSchemaChange, ModifyFields) {
         std::vector<std::string> to_del = {"blob", "name2"};
         s2.DelFields(to_del);
         UT_EXPECT_TRUE(!s2.HasBlob());
-        auto fmap = s2.GetFieldSpecsAsMap();
+        auto fmap = s2.GetAliveFieldSpecsAsMap();
         auto old_fields = fields;
         for (auto& f : to_del) old_fields.erase(f);
         UT_EXPECT_TRUE(fmap == old_fields);
         UT_EXPECT_THROW_CODE(s2.DelFields(std::vector<std::string>({"no_such_field"})),
-                        FieldNotFound);
+                             FieldNotFound);
     }
     {
         Schema s2(s1);
@@ -196,10 +208,12 @@ TEST_P(TestSchemaChange, ModifyFields) {
         auto fmap = s2.GetFieldSpecsAsMap();
         auto old_fields = fields;
         for (auto& f : mod) old_fields[f.name] = f;
+        RemoveFieldId(old_fields);
+        RemoveFieldId(fmap);
         UT_EXPECT_TRUE(fmap == old_fields);
         UT_EXPECT_THROW_CODE(s2.ModFields(std::vector<FieldSpec>(
-                            {FieldSpec("no_such_field", FieldType::BLOB, true)})),
-                        FieldNotFound);
+                                 {FieldSpec("no_such_field", FieldType::BLOB, true)})),
+                             FieldNotFound);
         UT_EXPECT_THROW_CODE(
             s2.ModFields(std::vector<FieldSpec>({FieldSpec("blob", FieldType::NUL, true)})),
             FieldCannotBeNullType);
@@ -210,7 +224,7 @@ TEST_P(TestSchemaChange, DelFields) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
-
+    bool enable_fast_alter = GetParam();
     auto DumpGraph = [](LightningGraph& g, Transaction& txn) {
         std::string str;
         for (auto it = txn.GetVertexIterator(); it.IsValid(); it.Next()) {
@@ -230,7 +244,7 @@ TEST_P(TestSchemaChange, DelFields) {
     DBConfig conf;
     conf.dir = dir;
     UT_LOG() << "Testing del field";
-    CreateSampleDB(dir, GetParam());
+    CreateSampleDB(dir, enable_fast_alter);
     auto orig_v_schema = GetCurrSchema(dir, true);
     auto orig_e_schema = GetCurrSchema(dir, false);
     {
@@ -238,7 +252,7 @@ TEST_P(TestSchemaChange, DelFields) {
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelDelFields("person", std::vector<std::string>({"age", "img"}),
                                                  true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 2);
+        UT_EXPECT_EQ(n_changed, enable_fast_alter ? 0 : 2);
     }
     {
         LightningGraph graph(conf);
@@ -250,6 +264,10 @@ TEST_P(TestSchemaChange, DelFields) {
         auto schema = txn.GetSchemaAsMap(true, std::string("person"));
         orig_v_schema.erase("age");
         orig_v_schema.erase("img");
+        if (!enable_fast_alter) {
+            RemoveFieldId(orig_v_schema);
+            RemoveFieldId(schema);
+        }
         UT_EXPECT_TRUE(orig_v_schema == schema);
         auto indexes = txn.ListVertexIndexByLabel("person");
         auto edge_indexes = txn.ListEdgeIndexByLabel("knows");
@@ -280,7 +298,7 @@ TEST_P(TestSchemaChange, DelFields) {
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelDelFields("knows", std::vector<std::string>({"weight"}),
                                                  false, &n_changed));
-        UT_EXPECT_EQ(n_changed, 4);
+        UT_EXPECT_EQ(n_changed, enable_fast_alter ? 0 : 4);
     }
     {
         LightningGraph graph(conf);
@@ -308,11 +326,11 @@ TEST_P(TestSchemaChange, ModData) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
-
+    bool enable_fast_alter = GetParam();
     DBConfig conf;
     conf.dir = dir;
     UT_LOG() << "Testing mod with data";
-    CreateSampleDB(dir, GetParam());
+    CreateSampleDB(dir, enable_fast_alter);
     auto orig_v_schema = GetCurrSchema(dir, true);
     auto orig_e_schema = GetCurrSchema(dir, false);
     {
@@ -332,41 +350,69 @@ TEST_P(TestSchemaChange, ModData) {
                 "person", std::vector<FieldSpec>({FieldSpec("img", FieldType::STRING, true)}), true,
                 &n_changed),
             InputError);  // blob cannot be converted to other types
-        UT_EXPECT_THROW_CODE(
-            graph.AlterLabelModFields(
-                "person", std::vector<FieldSpec>({FieldSpec("age", FieldType::STRING, true)}), true,
-                &n_changed),
-            ParseIncompatibleType);  // cannot convert float to string
+        if (!enable_fast_alter) {
+            UT_EXPECT_THROW_CODE(
+                graph.AlterLabelModFields(
+                    "person", std::vector<FieldSpec>({FieldSpec("age", FieldType::STRING, true)}),
+                    true, &n_changed),
+                ParseIncompatibleType);  // cannot convert float to string
+        }
+        if (enable_fast_alter) {  // only support convert floating to floating or integer to
+                                  // integer.
+            UT_EXPECT_THROW_CODE(
+                graph.AlterLabelModFields(
+                    "person", std::vector<FieldSpec>({FieldSpec("age", FieldType::STRING, true)}),
+                    true, &n_changed),
+                InputError);  // cannot convert float to string
+            UT_EXPECT_THROW_CODE(
+                graph.AlterLabelModFields(
+                    "person", std::vector<FieldSpec>({FieldSpec("desc", FieldType::BLOB, true)}),
+                    true, &n_changed),
+                InputError);
+        }
     }
     {
         LightningGraph graph(conf);
         size_t n_changed = 0;
         UT_EXPECT_TRUE(graph.AlterLabelModFields(
-            "person",
-            std::vector<FieldSpec>({FieldSpec("age", FieldType::INT16, false),
-                                    FieldSpec("desc", FieldType::BLOB, true)}),
-            true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 2);
+            "person", std::vector<FieldSpec>({FieldSpec("age", FieldType::DOUBLE, false)}), true,
+            &n_changed));
+        UT_EXPECT_EQ(n_changed, enable_fast_alter ? 0 : 2);
         UT_EXPECT_TRUE(graph.AlterLabelModFields(
             "knows", std::vector<FieldSpec>({FieldSpec("weight", FieldType::DOUBLE, true)}), false,
             &n_changed));
-        UT_EXPECT_EQ(n_changed, 4);
+        UT_EXPECT_EQ(n_changed, enable_fast_alter ? 0 : 4);
+        if (!enable_fast_alter) {
+            UT_EXPECT_TRUE(graph.AlterLabelModFields(
+                "person", std::vector<FieldSpec>({FieldSpec("desc", FieldType::BLOB, true)}), true,
+                &n_changed));
+            UT_EXPECT_EQ(n_changed, enable_fast_alter ? 0 : 2);
+        }
     }
-    orig_v_schema["age"] = FieldSpec("age", FieldType::INT16, false);
-    orig_v_schema["desc"] = FieldSpec("desc", FieldType::BLOB, true);
+    orig_v_schema["age"] = FieldSpec("age", FieldType::DOUBLE, false, 2);
+    if (!enable_fast_alter) orig_v_schema["desc"] = FieldSpec("desc", FieldType::BLOB, true, 4);
     orig_e_schema["weight"].type = FieldType::DOUBLE;
     {
         auto curr_v_schema = GetCurrSchema(dir, true);
-        UT_EXPECT_TRUE(curr_v_schema == orig_v_schema);
         auto curr_e_schema = GetCurrSchema(dir, false);
+        if (!enable_fast_alter) {  // for field_extractor_v1, fieldId in fieldSpec can be ignored.
+            RemoveFieldId(orig_v_schema);
+            RemoveFieldId(orig_e_schema);
+            RemoveFieldId(curr_e_schema);
+            RemoveFieldId(curr_v_schema);
+        }
+        UT_EXPECT_TRUE(curr_v_schema == orig_v_schema);
+
         UT_EXPECT_TRUE(curr_e_schema == orig_e_schema);
         LightningGraph graph(conf);
         auto txn = graph.CreateReadTxn();
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("age")) == FieldData::Int16(11));
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("desc")) ==
-                       FieldData::Blob("desc for p1"));
-        UT_EXPECT_TRUE(txn.GetVertexField(1, std::string("desc")) ==
-                       FieldData::Blob(std::string(4096, 'b')));
+        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("age")) == FieldData::Double(11.5));
+        if (!enable_fast_alter) {
+            UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("desc")) ==
+                           FieldData::Blob("desc for p1"));
+            UT_EXPECT_TRUE(txn.GetVertexField(1, std::string("desc")) ==
+                           FieldData::Blob(std::string(4096, 'b')));
+        }
         UT_EXPECT_TRUE(txn.GetVertexField(1, std::string("img2")) ==
                        FieldData::Blob(std::string(8192, 'c')));
         auto vit0 = txn.GetVertexIterator(0);
@@ -409,10 +455,11 @@ TEST_P(TestSchemaChange, UpdateConstraints) {
     }
 }
 
-TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
+TEST_F(TestSchemaChange, ModAndAddfieldWithData) {
     using namespace lgraph;
     std::string dir = "./testdb";
     AutoCleanDir cleaner(dir);
+    bool enable_fast_alter = false;
 
     DBConfig conf;
     conf.dir = dir;
@@ -420,7 +467,7 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
     UT_LOG() << "Testing mod with large data";
     {
         AutoCleanDir cleaner(dir);
-        CreateLargeSampleDB(dir, GetParam());
+        CreateLargeSampleDB(dir, enable_fast_alter);
         {
             LightningGraph graph(conf);
             size_t n_changed = 0;
@@ -436,7 +483,7 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
     UT_LOG() << "Testing add field with data";
     {
         AutoCleanDir cleaner(dir);
-        CreateSampleDB(dir, GetParam());
+        CreateSampleDB(dir, enable_fast_alter);
         auto orig_v_schema = GetCurrSchema(dir, true);
         auto orig_e_schema = GetCurrSchema(dir, false);
         {
@@ -472,20 +519,33 @@ TEST_P(TestSchemaChange, ModAndAddfieldWithData) {
                 std::vector<FieldSpec>({FieldSpec("income", FieldType::INT64, true),
                                         FieldSpec("addr", FieldType::STRING, true)}),
                 std::vector<FieldData>({FieldData::Int64(100), FieldData()}), true, &n_changed));
-            UT_EXPECT_EQ(n_changed, 2);
+            UT_EXPECT_EQ(n_changed, enable_fast_alter ? 0 : 2);
             UT_EXPECT_TRUE(graph.AlterLabelAddFields(
                 "knows", std::vector<FieldSpec>({FieldSpec("since", FieldType::DATE, true)}),
-                std::vector<FieldData>({FieldData::DateTime("2020-01-01 00:00:01")}), false,
-                &n_changed));
-            UT_EXPECT_EQ(n_changed, 4);
+                std::vector<FieldData>({FieldData::Date("2020-01-01")}), false, &n_changed));
+            UT_EXPECT_EQ(n_changed, enable_fast_alter ? 0 : 4);
         }
-        orig_v_schema["income"] = FieldSpec("income", FieldType::INT64, true);
-        orig_v_schema["addr"] = FieldSpec("addr", FieldType::STRING, true);
-        orig_e_schema["since"] = FieldSpec("since", FieldType::DATE, true);
+        orig_v_schema["income"] = enable_fast_alter ? FieldSpec("income", FieldType::INT64, true, 6,
+                                                                FieldData::Int64(100))
+                                                    : FieldSpec("income", FieldType::INT64, true);
+        orig_v_schema["addr"] = enable_fast_alter
+                                    ? FieldSpec("addr", FieldType::STRING, true, 7, FieldData())
+                                    : FieldSpec("addr", FieldType::STRING, true);
+        orig_e_schema["since"] = enable_fast_alter ? FieldSpec("since", FieldType::DATE, true, 2,
+                                                               FieldData::Date("2020-01-01"))
+                                                   : FieldSpec("since", FieldType::DATE, true);
         {
             auto curr_v_schema = GetCurrSchema(dir, true);
-            UT_EXPECT_TRUE(curr_v_schema == orig_v_schema);
             auto curr_e_schema = GetCurrSchema(dir, false);
+            if (!enable_fast_alter) {  // for field_extractor_v1, fieldId in fieldSpec can be
+                                       // ignored.
+                RemoveFieldId(orig_v_schema);
+                RemoveFieldId(orig_e_schema);
+                RemoveFieldId(curr_e_schema);
+                RemoveFieldId(curr_v_schema);
+            }
+
+            UT_EXPECT_TRUE(curr_v_schema == orig_v_schema);
             UT_EXPECT_TRUE(curr_e_schema == orig_e_schema);
             LightningGraph graph(conf);
             auto txn = graph.CreateReadTxn();
@@ -529,6 +589,7 @@ TEST_P(TestSchemaChange, DelLabel) {
             for (auto eit = vit.GetOutEdgeIterator(); eit.IsValid(); eit.Next()) ne++;
         }
     };
+    bool enable_fast_alter = GetParam();
     UT_LOG() << "Testing del label";
     {
         AutoCleanDir cleaner(dir);
@@ -567,6 +628,7 @@ TEST_P(TestSchemaChange, DelLabel) {
     UT_LOG() << "Testing illegal field name";
     {
         Schema s1;
+        s1.SetFastAlterSchema(enable_fast_alter);
         s1.SetSchema(true,
                      std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false),
                                              FieldSpec("id2", FieldType::INT32, false),
@@ -589,6 +651,7 @@ TEST_P(TestSchemaChange, DelLabel) {
     UT_LOG() << "Testing delete field name";
     {
         Schema s;
+        s.SetFastAlterSchema(enable_fast_alter);
         s.SetSchema(false,
                     std::vector<FieldSpec>({FieldSpec("id", FieldType::INT32, false),
                                             FieldSpec("id2", FieldType::INT32, false),
@@ -604,4 +667,114 @@ TEST_P(TestSchemaChange, DelLabel) {
         UT_EXPECT_EQ(s.GetTemporalFieldId(), s.GetFieldId("id"));
     }
     fma_common::SleepS(1);  // waiting for memory reclaiming by async task
+}
+
+TEST_F(TestSchemaChange, UpdateSchemaAndData) {
+    using namespace lgraph;
+    std::string dir = "./testdb";
+
+    AutoCleanDir cleaner(dir);
+
+    DBConfig conf;
+    conf.dir = dir;
+
+    UT_LOG() << "Test add and delete field with data";
+    {
+        CreateSampleDB(dir, true);
+        LightningGraph graph(conf);
+        size_t n_changed = 0;
+        graph.AlterLabelDelFields("person", std::vector<std::string>{"img2"}, true, &n_changed);
+        auto txn = graph.CreateReadTxn();
+        auto vit = txn.GetVertexIterator(0);
+        auto field_data = txn.GetVertexFields(vit);
+        UT_EXPECT_EQ(field_data.size(), 5);
+        txn.Commit();
+        graph.AlterLabelAddFields("person",
+                                  std::vector<FieldSpec>{FieldSpec{"cond", FieldType::INT32, true}},
+                                  std::vector<FieldData>{FieldData::Int32(10)}, true, &n_changed);
+        txn = graph.CreateReadTxn();
+        auto vit_ = txn.GetVertexIterator(0);
+        field_data = txn.GetVertexFields(vit_);
+        UT_EXPECT_EQ(field_data.size(), 6);
+    }
+
+    UT_LOG() << "Test insert data with new schema";
+    {
+        LightningGraph graph(conf);
+        auto txn = graph.CreateWriteTxn();
+        txn.AddVertex(std::string("person"),
+                      std::vector<std::string>({"id", "name", "age", "img", "desc", "cond"}),
+                      std::vector<std::string>({"3", "p1", "11.5", "", "simple desc", "20"}));
+        txn.AddVertex(std::string("person"),
+                      std::vector<std::string>({"id", "name", "age", "img", "desc", "cond"}),
+                      std::vector<std::string>({"4", "p1", "11.5", "", "desc", "40"}));
+        txn.Commit();
+        txn = graph.CreateReadTxn();
+        auto vit = txn.GetVertexIterator(0);
+        auto field_data = txn.GetVertexFields(vit);
+        UT_EXPECT_EQ(field_data.size(), 6);
+        vit.Next();
+        field_data = txn.GetVertexFields(vit);
+        UT_EXPECT_EQ(field_data.size(), 6);
+        vit.Next();
+        field_data = txn.GetVertexFields(vit);
+        UT_EXPECT_EQ(field_data.size(), 6);
+    }
+
+    UT_LOG() << "Test Update data with new Schema";
+    {
+        LightningGraph graph(conf);
+        auto txn = graph.CreateWriteTxn();
+        auto itr = txn.GetVertexIterator(0);
+        try {
+            txn.SetVertexProperty(itr, std::vector<std::string>{"desc"},
+                                  std::vector<FieldData>{FieldData::String("test")});
+        } catch (const FieldNotFoundException& e) {
+            UT_EXPECT_TRUE(true);
+        } catch (const LgraphException& e) {
+            UT_EXPECT_TRUE(false);
+        }
+        // shorter than orig
+        txn.SetVertexProperty(itr, std::vector<std::string>{"name"},
+                              std::vector<FieldData>{FieldData::String("p")});
+        // larger than orig
+        txn.SetVertexProperty(
+            itr, std::vector<std::string>{"desc"},
+            std::vector<FieldData>{FieldData::String("this is a desc larger than before")});
+        // set value that not exists in record
+        txn.SetVertexProperty(itr, std::vector<std::string>{"cond"},
+                              std::vector<FieldData>{FieldData::Int32(100)});
+        txn.Commit();
+        auto read_txn = graph.CreateReadTxn();
+        auto read_itr = read_txn.GetVertexIterator(0);
+        auto field_data = read_txn.GetVertexFields(read_itr);
+        std::unordered_map<std::string, FieldData> ret;
+        for (const auto& pair : field_data) {
+            ret.insert(pair);
+        }
+        UT_EXPECT_EQ(ret["id"], FieldData::Int32(1));
+        UT_EXPECT_EQ(ret["name"], FieldData::String("p"));
+        UT_EXPECT_EQ(ret["age"], FieldData::Float(11.5));
+        UT_EXPECT_EQ(ret["desc"], FieldData::String("this is a desc larger than before"));
+        UT_EXPECT_EQ(ret["cond"], FieldData::Int32(100));
+        UT_EXPECT_EQ(ret.size(), 6);
+    }
+
+    UT_LOG() << "Test Read data after modify";
+    {
+        LightningGraph graph(conf);
+        auto txn = graph.CreateReadTxn();
+        auto itr = txn.GetVertexIterator(3);
+        auto field_data = txn.GetVertexFields(itr);
+        std::unordered_map<std::string, FieldData> ret;
+        for (const auto& pair : field_data) {
+            ret.insert(pair);
+        }
+        UT_EXPECT_EQ(ret["id"], FieldData::Int32(4));
+        UT_EXPECT_EQ(ret["name"], FieldData::String("p1"));
+        UT_EXPECT_EQ(ret["age"], FieldData::Float(11.5));
+        UT_EXPECT_EQ(ret["desc"], FieldData::String("desc"));
+        UT_EXPECT_EQ(ret["cond"], FieldData::Int32(40));
+        UT_EXPECT_EQ(ret.size(), 6);
+    }
 }

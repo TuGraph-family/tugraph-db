@@ -96,6 +96,9 @@ struct LabelOptions {
     // store property data in detached model
     // Default: false
     bool detach_property = false;
+    // use fast alter schema format
+    // Default: false
+    bool fast_alter_schema = false;
     virtual std::string to_string() const = 0;
     virtual void clear() = 0;
     virtual ~LabelOptions() {}
@@ -195,6 +198,28 @@ enum FieldType {
     SPATIAL = 15,     // spatial data, it's now unused but may be used in the future.
     FLOAT_VECTOR = 16  // float vector
 };
+
+inline bool const is_integer_type(FieldType type) {
+    switch (type) {
+    case INT8:
+    case INT16:
+    case INT32:
+    case INT64:
+        return true;
+    default:
+        return false;
+    }
+}
+
+inline bool const is_float_type(FieldType type) {
+    switch (type) {
+    case FLOAT:
+    case DOUBLE:
+        return true;
+    default:
+        return false;
+    }
+}
 
 /**
  * @brief   Get the name of the given FieldType.
@@ -1304,8 +1329,24 @@ struct FieldSpec {
     FieldType type;
     /** @brief   is this field optional? */
     bool optional;
+    /** @brief   is this field deleted? */
+    bool deleted;
+    /** @brief   id of this field, starts from 0 */
+    uint16_t id;
+    /** @brief   the value of the field is set when it is created. */
+    bool set_default_value;
+    /** @brief  the default value when inserting data. */
+    FieldData default_value;
+    /** @brief   is set init value? */
 
-    FieldSpec(): name(), type(FieldType::NUL), optional(false) {}
+    FieldSpec()
+        : name(),
+          type(FieldType::NUL),
+          optional(false),
+          deleted(false),
+          id(0),
+          set_default_value(false),
+          default_value(FieldData()) {}
 
     /**
      * @brief   Constructor
@@ -1313,18 +1354,62 @@ struct FieldSpec {
      * @param   n   Field name
      * @param   t   Field type
      * @param   nu  True if field is optional
+     * @param   id  Field id
+     * @param   dv Default value
      */
-    FieldSpec(const std::string& n, FieldType t, bool nu) : name(n), type(t), optional(nu) {}
-    FieldSpec(std::string&& n, FieldType t, bool nu) : name(std::move(n)), type(t), optional(nu) {}
+    FieldSpec(const std::string& n, FieldType t, bool nu)
+        : name(n),
+          type(t),
+          optional(nu),
+          deleted(false),
+          id(0),
+          set_default_value(false),
+          default_value(FieldData()) {}
+    FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id)
+        : name(n),
+          type(t),
+          optional(nu),
+          deleted(false),
+          id(id),
+          set_default_value(false),
+          default_value(FieldData()) {}
+    FieldSpec(std::string&& n, FieldType t, bool nu, uint16_t id)
+        : name(std::move(n)),
+          type(t),
+          optional(nu),
+          deleted(false),
+          id(id),
+          set_default_value(false),
+          default_value(FieldData()) {}
+    FieldSpec(const std::string& n, FieldType t, bool nu, uint16_t id, const FieldData& dv)
+        : name(n),
+          type(t),
+          optional(nu),
+          deleted(false),
+          id(id),
+          set_default_value(true),
+          default_value(dv) {}
+    FieldSpec(const FieldSpec& spec)
+        : name(spec.name),
+          type(spec.type),
+          optional(spec.optional),
+          deleted(spec.deleted),
+          id(spec.id),
+          set_default_value(spec.set_default_value),
+          default_value(spec.default_value) {}
 
     inline bool operator==(const FieldSpec& rhs) const {
-        return name == rhs.name && type == rhs.type && optional == rhs.optional;
+        return name == rhs.name && type == rhs.type && optional == rhs.optional &&
+            deleted == rhs.deleted && id == rhs.id  &&
+            set_default_value == rhs.set_default_value && default_value == rhs.default_value;
     }
 
     /** @brief   Get the string representation of the FieldSpec. */
     std::string ToString() const {
         return "lgraph_api::FieldSpec(name=[" + name + "],type=" + lgraph_api::to_string(type) +
-               "),optional=" + std::to_string(optional);
+               "),optional=" + std::to_string(optional) + ",fieldid=" + std::to_string(id) +
+               ",isDeleted=" + std::to_string(deleted) +
+               (set_default_value ? ",default_value=" + default_value.ToString() : "");
     }
 };
 

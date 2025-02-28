@@ -369,7 +369,7 @@ TEST_P(TestSpatial, Spatial) {
 
 TEST_P(TestSpatial, Spatial_Schema) {
     using namespace lgraph;
-
+    bool enable_fast_alter = false;
     UT_LOG() << "Test Schema::AddspatialFields, DelspatialFields and ModspatialFields";
     Schema s1;
     s1.SetSchema(
@@ -385,14 +385,14 @@ TEST_P(TestSpatial, Spatial_Schema) {
              FieldSpec("string2Polygon", FieldType::STRING, true),
              FieldSpec("string2Spatial", FieldType::SPATIAL, true)}),
         "id", "", {}, {});
-    std::map<std::string, FieldSpec> fields = s1.GetFieldSpecsAsMap();
+    std::map<std::string, FieldSpec> fields = s1.GetFiledSpecsAsMapIgnoreFieldId();
     // Add fields;
     {
         Schema s2(s1);
         s2.AddFields(std::vector<FieldSpec>({FieldSpec("Point2", FieldType::POINT, false)}));
         UT_EXPECT_TRUE(s2.GetFieldExtractor("Point2")->GetFieldSpec() ==
-                       FieldSpec("Point2", FieldType::POINT, false));
-        auto fmap = s2.GetFieldSpecsAsMap();
+                       FieldSpec("Point2", FieldType::POINT, false, enable_fast_alter ? 9 : 0));
+        auto fmap = s2.GetFiledSpecsAsMapIgnoreFieldId();
         UT_EXPECT_EQ(fmap.size(), fields.size() + 1);
         fmap.erase("Point2");
         UT_EXPECT_TRUE(fmap == fields);
@@ -407,9 +407,17 @@ TEST_P(TestSpatial, Spatial_Schema) {
                                       FieldSpec("string2Spatial", FieldType::SPATIAL, false)};
         s2.ModFields(mod);
         UT_EXPECT_TRUE(!s2.HasBlob());
-        auto fmap = s2.GetFieldSpecsAsMap();
+        auto fmap = s2.GetFiledSpecsAsMapIgnoreFieldId();
         auto old_fields = fields;
-        for (auto& f : mod) old_fields[f.name] = f;
+        for (auto& f : mod) {
+            if (enable_fast_alter) {
+                FieldId id = old_fields[f.name].id;
+                old_fields[f.name].id = id;
+            }
+            old_fields[f.name] = f;
+        }
+
+
         UT_EXPECT_TRUE(fmap == old_fields);
         UT_EXPECT_THROW_CODE(s2.ModFields(std::vector<FieldSpec>(
                             {FieldSpec("no_such_field", FieldType::BLOB, true)})),
@@ -422,7 +430,7 @@ TEST_P(TestSpatial, Spatial_Schema) {
         std::vector<std::string> to_del = {"Point", "LineString", "Polygon", "Spatial"};
         s2.DelFields(to_del);
         UT_EXPECT_TRUE(!s2.HasBlob());
-        auto fmap = s2.GetFieldSpecsAsMap();
+        auto fmap = s2.GetFiledSpecsAsMapIgnoreFieldId();
         auto old_fields = fields;
         for (auto& f : to_del) old_fields.erase(f);
         UT_EXPECT_TRUE(fmap == old_fields);
@@ -470,30 +478,34 @@ TEST_P(TestSpatial, Spatial_Schema) {
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Spatial2")) == FieldData());
     }
 
-    UT_LOG() << "Testing modify";
-    {
-        size_t n_changed = 0;
-        UT_EXPECT_TRUE(graph.AlterLabelModFields(
-            "spatial",
-            std::vector<FieldSpec>({FieldSpec("string2Point", FieldType::POINT, false),
-                                    FieldSpec("string2line", FieldType::LINESTRING, false),
-                                    FieldSpec("string2Polygon", FieldType::POLYGON, false)}),
-            true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 3);
-        auto txn = graph.CreateReadTxn();
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2Point")) == FieldData::Point
-        ("0101000020E6100000000000000000F03F0000000000000040"));
-        UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2line")) == FieldData::LineString
-        ("0102000020E610000003000000000000000000000000000000000000000"
-        "00000000000004000000000000000400000000000000840000000000000F03F"));
+    if (!enable_fast_alter) {
+        UT_LOG() << "Testing modify";
+        {
+            size_t n_changed = 0;
+            UT_EXPECT_TRUE(graph.AlterLabelModFields(
+                "spatial",
+                std::vector<FieldSpec>({FieldSpec("string2Point", FieldType::POINT, false),
+                                        FieldSpec("string2line", FieldType::LINESTRING, false),
+                                        FieldSpec("string2Polygon", FieldType::POLYGON, false)}),
+                true, &n_changed));
+            UT_EXPECT_EQ(n_changed, 3);
+            auto txn = graph.CreateReadTxn();
+            UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2Point")) ==
+                           FieldData::Point("0101000020E6100000000000000000F03F0000000000000040"));
+            UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("string2line")) ==
+                           FieldData::LineString(
+                               "0102000020E610000003000000000000000000000000000000000000000"
+                               "00000000000004000000000000000400000000000000840000000000000F03F"));
+        }
     }
 
     UT_LOG() << "Testing Del";
     {
         size_t n_changed = 0;
-        UT_EXPECT_TRUE(graph.AlterLabelDelFields("spatial", std::vector<std::string>
-                       ({"Point", "LineString", "Polygon", "Spatial"}), true, &n_changed));
-        UT_EXPECT_EQ(n_changed, 3);
+        UT_EXPECT_TRUE(graph.AlterLabelDelFields(
+            "spatial", std::vector<std::string>({"Point", "LineString", "Polygon", "Spatial"}),
+            true, &n_changed));
+        UT_EXPECT_EQ(n_changed, enable_fast_alter ? 0 : n_changed);
         auto txn = graph.CreateReadTxn();
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("Point")) == FieldData());
         UT_EXPECT_TRUE(txn.GetVertexField(0, std::string("LineString")) == FieldData());
