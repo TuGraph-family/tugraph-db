@@ -68,6 +68,9 @@ typedef int32_t PackDataOffset;  // offset used in a packed data (maximum 1024)
 typedef uint16_t LabelId;
 typedef int64_t TemporalId;
 
+typedef uint16_t FieldId;   // Field id in schema Fields
+typedef uint8_t VersionId;  // Schema version
+
 enum CompareOp { LBR_EQ = 0, LBR_NEQ = 1, LBR_LT = 2, LBR_LE = 3, LBR_GT = 4, LBR_GE = 5 };
 
 enum LogicalOp { LBR_EMPTY = 0, LBR_AND = 1, LBR_OR = 2, LBR_NOT = 3, LBR_XOR = 4 };
@@ -308,6 +311,7 @@ static const size_t MAX_IN_PLACE_BLOB_SIZE = 512;
 static const size_t MAX_BLOB_SIZE = ((size_t)1 << 32) - 1;
 static const size_t MAX_KEY_SIZE = 480;
 static const size_t MAX_HOST_ADDR_LEN = 256;
+static const uint8_t SCHEMA_VERSION = 0;
 
 template <size_t NBYTE>
 inline int64_t GetNByteIdFromBuf(const char* p) {

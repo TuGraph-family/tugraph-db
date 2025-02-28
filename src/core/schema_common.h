@@ -20,6 +20,130 @@
 
 namespace fma_common {
 template <typename StreamT>
+class BinaryWriterForFieldData {
+ public:
+    static size_t Write(StreamT& s, const ::lgraph_api::FieldData& data) {
+        typedef ::lgraph_api::FieldType type;
+        size_t data_size = 0;
+        data_size += BinaryWrite<StreamT, int32_t>(s, static_cast<int32_t>(data.type));
+        switch (data.type) {
+        case type::NUL:
+            break;
+        case type::BOOL:
+            data_size += BinaryWrite<StreamT, bool>(s, data.data.boolean);
+            break;
+        case type::INT8:
+            data_size += BinaryWrite<StreamT, int8_t>(s, data.data.int8);
+            break;
+        case type::INT16:
+            data_size += BinaryWrite<StreamT, int16_t>(s, data.data.int16);
+            break;
+        case type::INT32:
+            data_size += BinaryWrite<StreamT, int32_t>(s, data.data.int32);
+            break;
+        case type::INT64:
+            data_size += BinaryWrite<StreamT, int64_t>(s, data.data.int64);
+            break;
+        case type::FLOAT:
+            data_size += BinaryWrite<StreamT, float>(s, data.data.sp);
+            break;
+        case type::DOUBLE:
+            data_size += BinaryWrite<StreamT, double>(s, data.data.dp);
+            break;
+        case type::DATE:
+            data_size += BinaryWrite<StreamT, int32_t>(s, data.data.int32);
+            break;
+        case type::DATETIME:
+            data_size += BinaryWrite<StreamT, int64_t>(s, data.data.int64);
+            break;
+        case type::STRING:
+        case type::POINT:
+        case type::LINESTRING:
+        case type::POLYGON:
+        case type::SPATIAL:
+        case type::BLOB:
+            data_size += BinaryWriter<StreamT, std::string>::Write(s, *(std::string*)data.data.buf);
+            break;
+        case type::FLOAT_VECTOR:
+            data_size += BinaryWriter<StreamT, std::vector<float>>::Write(
+                s, *(std::vector<float>*)data.data.vp);
+
+            break;
+        }
+        return data_size;
+    }
+};
+
+template <typename StreamT>
+class BinaryReaderForFieldData {
+ public:
+    static size_t Read(StreamT& s, ::lgraph_api::FieldData& data) {
+        typedef ::lgraph_api::FieldType type;
+        size_t read_size = 0;
+        int32_t field_type;
+        BinaryRead<StreamT, int32_t>(s, field_type);
+        read_size += sizeof(int32_t);
+        data.type = static_cast<::lgraph_api::FieldType>(field_type);
+        std::vector<float> float_vec;
+        std::string value;
+        switch (data.type) {
+        case type::NUL:
+            break;
+        case type::BOOL:
+            read_size += BinaryRead<StreamT, bool>(s, data.data.boolean);
+
+            break;
+        case type::INT8:
+            read_size += BinaryRead<StreamT, int8_t>(s, data.data.int8);
+
+            break;
+        case type::INT16:
+            read_size += BinaryRead<StreamT, int16_t>(s, data.data.int16);
+
+            break;
+        case type::INT32:
+            read_size += BinaryRead<StreamT, int32_t>(s, data.data.int32);
+            break;
+        case type::INT64:
+            read_size += BinaryRead<StreamT, int64_t>(s, data.data.int64);
+            break;
+        case type::FLOAT:
+            read_size += BinaryRead<StreamT, float>(s, data.data.sp);
+            break;
+        case type::DOUBLE:
+            read_size += BinaryRead<StreamT, double>(s, data.data.dp);
+            break;
+        case type::DATE:
+            read_size += BinaryRead<StreamT, int32_t>(s, data.data.int32);
+            break;
+        case type::DATETIME:
+            read_size += BinaryRead<StreamT, int64_t>(s, data.data.int64);
+            break;
+        case type::STRING:
+        case type::POINT:
+        case type::LINESTRING:
+        case type::POLYGON:
+        case type::SPATIAL:
+        case type::BLOB:
+            read_size += BinaryRead<StreamT, std::string>(s, value);
+            data.data.buf = new std::string(value);
+            break;
+        case type::FLOAT_VECTOR:
+            read_size += BinaryRead<StreamT, std::vector<float>>(s, float_vec);
+            data.data.vp = new std::vector<float>(std::move(float_vec));
+            break;
+        }
+        return read_size;
+    }
+};
+
+template <typename StreamT>
+class BinaryReader<StreamT, ::lgraph_api::FieldData> : public BinaryReaderForFieldData<StreamT> {};
+
+template <typename StreamT>
+class BinaryWriter<StreamT, ::lgraph_api::FieldData> : public BinaryWriterForFieldData<StreamT> {};
+
+template <typename StreamT>
 struct BinaryReader<StreamT, lgraph::FieldSpec> {
     static size_t Read(StreamT& stream, lgraph::FieldSpec& fs) {
         return BinaryRead(stream, fs.name) + BinaryRead(stream, fs.type) +

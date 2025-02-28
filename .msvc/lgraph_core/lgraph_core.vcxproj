@@ -24,7 +24,9 @@
     <ClCompile Include="..\..\src\core\audit_logger.cpp" />
     <ClCompile Include="..\..\src\core\data_type.cpp" />
     <ClCompile Include="..\..\src\core\edge_index.cpp" />
-    <ClCompile Include="..\..\src\core\field_extractor.cpp" />
+    <ClCompile Include="..\..\src\core\field_extractor_v1.cpp" />
+    <CICompile Include="..\..\src\core\field_extractor_v2.cpp"/>
+    <CICompile Include="..\..\src\core\field_extractor_base.cpp"/>
     <ClCompile Include="..\..\src\core\full_text_index.cpp" />
     <ClCompile Include="..\..\src\core\global_config.cpp" />
     <ClCompile Include="..\..\src\core\graph.cpp" />

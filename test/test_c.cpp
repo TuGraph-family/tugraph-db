@@ -242,8 +242,9 @@ TEST_F(TestC, FieldSpec) {
     ASSERT_EQ(lgraph_api_field_spec_get_type(fs), lgraph_api_field_type_bool);
     lgraph_api_field_spec_set_optional(fs, true);
     ASSERT_TRUE(lgraph_api_field_spec_get_optional(fs));
-    CHECK_AND_FREESTR(lgraph_api_field_spec_to_string(fs),
-                      "lgraph_api::FieldSpec(name=[hello],type=BOOL),optional=1");
+    CHECK_AND_FREESTR(
+        lgraph_api_field_spec_to_string(fs),
+        "lgraph_api::FieldSpec(name=[hello],type=BOOL),optional=1,fieldid=0,isDeleted=0");
 
     lgraph_api_field_spec_t* fs2 =
         lgraph_api_create_field_spec_name_type_optional("hello", lgraph_api_field_type_bool, true);

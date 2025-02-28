@@ -2211,10 +2211,10 @@ void BuiltinProcedure::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *rec
         node["detach_property"] = s->DetachProperty();
         for (auto& fd : s->GetFields()) {
             nlohmann::json property;
-            property["name"] = fd.Name();
-            property["type"] = lgraph_api::to_string(fd.Type());
-            property["optional"] = fd.IsOptional();
-            auto vi = fd.GetVertexIndex();
+            property["name"] = fd->Name();
+            property["type"] = lgraph_api::to_string(fd->Type());
+            property["optional"] = fd->IsOptional();
+            auto vi = fd->GetVertexIndex();
             if (vi) {
                 property["index"] = true;
                 property["unique"] = vi->IsUnique();
@@ -2235,10 +2235,10 @@ void BuiltinProcedure::DbmsGraphGetGraphSchema(RTContext *ctx, const Record *rec
         }
         for (auto& fd : s->GetFields()) {
             nlohmann::json property;
-            property["name"] = fd.Name();
-            property["type"] = lgraph_api::to_string(fd.Type());
-            property["optional"] = fd.IsOptional();
-            auto vi = fd.GetEdgeIndex();
+            property["name"] = fd->Name();
+            property["type"] = lgraph_api::to_string(fd->Type());
+            property["optional"] = fd->IsOptional();
+            auto vi = fd->GetEdgeIndex();
             if (vi) {
                 property["index"] = true;
                 property["unique"] = vi->IsUnique();
