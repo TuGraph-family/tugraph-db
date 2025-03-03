@@ -59,12 +59,12 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
           return "docs-3-6-0";
         }
 
-        if (["4.0.1", "4.0.0"].includes(version)) {
+        if (["4.0.1", "4.1.0"].includes(version)) {
           return "docs-4-1-0";
         }
 
-        if (["4.3.2", "4.3.1", "4.3.0", "4.2.0"].includes(version)) {
-          return "docs-4-5-0";
+        if (["4.5.1", "4.3.2", "4.3.1", "4.3.0", "4.2.0"].includes(version)) {
+          return "docs-4-5-1";
         }
 
         return `docs-${version.replace(/\./g, "-")}`;
@@ -244,8 +244,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
                 searchParameters: {
                   facetFilters: [
                     formatDocSearchVersion(
-                      `docusaurus_tag:docs-${
-                        getCurrentVersion()?.value
+                      `docusaurus_tag:docs-${getCurrentVersion()?.value
                       }_${getCurrentLanguage()}-current`
                     ),
                   ],
