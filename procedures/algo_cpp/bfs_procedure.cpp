@@ -59,6 +59,16 @@ extern "C" bool Process(GraphDB& db, const std::string& request, std::string& re
     start_time = get_time();
     // TODO(any): write parent back to graph
     if (output_file != "") {
+        auto active_all = olapondb.AllocVertexSubset();
+        active_all.Fill();
+        olapondb.ProcessVertexActive<int>(
+            [&] (size_t vid) {
+                if (parent[vid] != (size_t)-1) {
+                    parent[vid] = olapondb.OriginalVid(parent[vid]);
+                }
+                return 0;
+            },
+            active_all);
         olapondb.WriteToFile<size_t>(parent, output_file, [&](size_t vid, size_t vdata) -> bool {
             return vdata != (size_t)-1;
         });
