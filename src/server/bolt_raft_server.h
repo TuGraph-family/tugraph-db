@@ -32,7 +32,7 @@ class BoltRaftServer final {
     DISABLE_COPY(BoltRaftServer);
     DISABLE_MOVE(BoltRaftServer);
     bool Start(lgraph::StateMachine* sm, int port, uint64_t node_id, const std::string& init_peers,
-               const std::string& log_path, uint64_t keep_log_num);
+               const RaftLogStoreConfig& store_config, const RaftConfig& config);
     void Stop();
     bool Started() const { return started_; }
     RaftDriver& raft_driver() { return *raft_driver_; }

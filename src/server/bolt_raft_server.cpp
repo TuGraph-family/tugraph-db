@@ -27,12 +27,12 @@ void ApplyRaftRequest(uint64_t index, const bolt_raft::RaftRequest& request);
 
 namespace bolt_raft {
 bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
-                           const std::string& init_peers, const std::string& log_path,
-                           uint64_t keep_log_num) {
+                           const std::string& init_peers, const RaftLogStoreConfig& store_config,
+                           const RaftConfig& config) {
     sm_ = sm;
     std::promise<bool> promise;
     std::future<bool> future = promise.get_future();
-    threads_.emplace_back([this, port, node_id, init_peers, log_path, keep_log_num, &promise]() {
+    threads_.emplace_back([this, port, node_id, init_peers, store_config, config, &promise]() {
         bool promise_done = false;
         try {
             std::vector<eraft::Peer> peers;
@@ -52,7 +52,7 @@ bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
             auto apply_index = sm_->GetGalaxy()->GetBoltRaftApplyIndex();
             LOG_INFO() << "read apply index from metadb, apply index: " << apply_index;
             raft_driver_ = std::make_unique<RaftDriver>(bolt::ApplyRaftRequest, apply_index,
-                                                        node_id, peers, log_path, keep_log_num);
+                                                        node_id, peers, store_config, config);
             auto err = raft_driver_->Run();
             if (err != nullptr) {
                 LOG_ERROR() << "raft driver failed to run, error: " << err.String();
@@ -83,12 +83,17 @@ bool BoltRaftServer::Start(lgraph::StateMachine* sm, int port, uint64_t node_id,
 
 void BoltRaftServer::Stop() {
     if (!started_) {
+        for (auto& t : threads_) {
+            t.join();
+        }
+        threads_.clear();
         return;
     }
     listener_.stop();
     for (auto& t : threads_) {
         t.join();
     }
+    threads_.clear();
     raft_driver_->Stop();
     started_ = false;
     LOG_INFO() << "bolt raft server stopped.";
