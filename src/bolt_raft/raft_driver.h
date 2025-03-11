@@ -91,11 +91,27 @@ struct RaftStatus {
     uint64_t last_log = 0;
 };
 
+struct RaftConfig {
+    int64_t tick_interval = 0;
+    int64_t election_tick = 0;
+    int64_t heartbeat_tick = 0;
+    bool Check();
+};
+
+struct RaftLogStoreConfig {
+    std::string path;
+    uint64_t block_cache = 0;
+    uint64_t total_threads = 0;
+    uint64_t keep_logs = 0;
+    uint64_t gc_interval = 0;
+    bool Check();
+};
+
 class RaftDriver {
  public:
     RaftDriver(std::function<void(uint64_t index, const RaftRequest&)> apply, uint64_t apply_id,
-               int64_t node_id, std::vector<eraft::Peer> init_peers, std::string log_path,
-               uint64_t keep_log_num);
+               int64_t node_id, std::vector<eraft::Peer> init_peers,
+               const RaftLogStoreConfig& store_config, const RaftConfig& config);
     eraft::Error Run();
     void Stop();
     void Step(raftpb::Message msg);
@@ -120,7 +136,6 @@ class RaftDriver {
     uint64_t apply_id_;
     uint64_t node_id_;
     std::vector<eraft::Peer> init_peers_;
-    std::string log_path_;
     boost::posix_time::millisec tick_interval_;
     boost::asio::deadline_timer tick_timer_;
     boost::posix_time::millisec compact_interval_;
@@ -134,6 +149,7 @@ class RaftDriver {
     std::mutex promise_mutex_;
     std::unordered_map<uint64_t, std::shared_ptr<PromiseContext>> pending_promise_;
     std::unordered_set<uint64_t> mark_unreachable_;
-    uint64_t keep_log_num_;
+    RaftLogStoreConfig store_config_;
+    RaftConfig raft_config_;
 };
 }  // namespace bolt_raft

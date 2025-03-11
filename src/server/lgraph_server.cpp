@@ -325,7 +325,7 @@ int LGraphServer::Start() {
                 return -1;
             }
             if (config_->bolt_raft_port > 0) {
-                std::string log_path = config_->bolt_raft_log_path;
+                std::string log_path = config_->bolt_raft_logstore_path;
                 if (log_path.empty()) {
                     log_path = config_->db_dir + "/raftlog";
                 }
@@ -337,14 +337,26 @@ int LGraphServer::Start() {
                     LOG_ERROR() << "bolt_raft_init_peers is empty";
                     return -1;
                 }
-                if (config_->bolt_raft_log_keep_num < 100000) {
-                    LOG_ERROR() << "bolt_raft_log_keep_num should be greater than 100000";
+                bolt_raft::RaftConfig rc;
+                rc.tick_interval = config_->bolt_raft_tick_interval;
+                rc.heartbeat_tick = config_->bolt_raft_heartbeat_tick;
+                rc.election_tick = config_->bolt_raft_election_tick;
+                if (!rc.Check()) {
+                    return -1;
+                }
+                bolt_raft::RaftLogStoreConfig rsc;
+                rsc.path = log_path;
+                rsc.block_cache = config_->bolt_raft_logstore_cache;
+                rsc.total_threads = config_->bolt_raft_logstore_threads;
+                rsc.keep_logs = config_->bolt_raft_logstore_keep_logs;
+                rsc.gc_interval = config_->bolt_raft_logstore_gc_interval;
+                if (!rsc.Check()) {
                     return -1;
                 }
                 if (!bolt_raft::BoltRaftServer::Instance().Start(
                         state_machine_.get(), config_->bolt_raft_port,
                         config_->bolt_raft_node_id, config_->bolt_raft_init_peers,
-                        log_path, config_->bolt_raft_log_keep_num)) {
+                        rsc, rc)) {
                     return -1;
                 }
             }

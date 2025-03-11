@@ -222,7 +222,15 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     enable_plugin = false;
     bolt_raft_port = 0;
     bolt_raft_node_id = 0;
-    bolt_raft_log_keep_num = 1000000;
+
+    bolt_raft_tick_interval = 100;
+    bolt_raft_election_tick = 10;
+    bolt_raft_heartbeat_tick = 1;
+
+    bolt_raft_logstore_cache = 1024;  // MB
+    bolt_raft_logstore_threads = 4;
+    bolt_raft_logstore_keep_logs = 1000000;
+    bolt_raft_logstore_gc_interval = 10;  // Minute
 
     // parse options
     fma_common::Configuration argparser;
@@ -351,9 +359,22 @@ fma_common::Configuration lgraph::GlobalConfig::InitConfig
     .Comment("Bolt raft node id.");
     argparser.Add(bolt_raft_init_peers, "bolt_raft_init_peers", true)
     .Comment("Bolt raft initial member information.");
-    argparser.Add(bolt_raft_log_path, "bolt_raft_log_path", true)
-        .Comment("Bolt raft log path."),
-    argparser.Add(bolt_raft_log_keep_num, "bolt_raft_log_keep_num", true)
-        .Comment("Bolt raft log number kept.");
+
+    argparser.Add(bolt_raft_tick_interval, "bolt_raft_tick_interval", true)
+        .Comment("Bolt raft tick interval.");
+    argparser.Add(bolt_raft_heartbeat_tick, "bolt_raft_heartbeat_tick", true)
+        .Comment("Bolt raft heartbeat tick.");
+    argparser.Add(bolt_raft_election_tick, "bolt_raft_election_tick", true)
+        .Comment("Bolt raft election tick.");
+
+    argparser.Add(bolt_raft_logstore_cache, "bolt_raft_logstore_cache", true)
+        .Comment("Bolt raft logstore cache in MB.");
+    argparser.Add(bolt_raft_logstore_threads, "bolt_raft_logstore_threads", true)
+        .Comment("Bolt raft logstore threads.");
+    argparser.Add(bolt_raft_logstore_keep_logs, "bolt_raft_logstore_keep_logs", true)
+        .Comment("Maximum number of raft logs to keep.");
+    argparser.Add(bolt_raft_logstore_gc_interval, "bolt_raft_logstore_gc_interval", true)
+        .Comment("Interval of checking and GC raft log.");
+
     return argparser;
 }

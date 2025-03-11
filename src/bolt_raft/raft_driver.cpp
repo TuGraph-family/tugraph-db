@@ -190,33 +190,82 @@ std::string MessageToNetString(const google::protobuf::Message& msg) {
     return str;
 }
 
+bool RaftConfig::Check() {
+    if (tick_interval < 100) {
+        LOG_WARN() << "tick_interval should be greater than 100";
+        return false;
+    }
+    if (heartbeat_tick < 1) {
+        LOG_WARN() << "heartbeat_tick should be greater than 1";
+        return false;
+    }
+    if (election_tick < 10) {
+        LOG_WARN() << "election_tick should be greater than 10";
+        return false;
+    }
+    return true;
+}
+
+bool RaftLogStoreConfig::Check() {
+    if (path.empty()) {
+        LOG_WARN() << "raft logstore path is empty.";
+        return false;
+    }
+    if (block_cache < 10) {
+        LOG_WARN() << "block_cache should be greater than 10 MB";
+        return false;
+    }
+    if (total_threads < 2) {
+        LOG_WARN() << "total_threads should be greater than 2";
+        return false;
+    }
+    if (keep_logs < 100000) {
+        LOG_WARN() << "keep_logs should be greater than 100000";
+        return false;
+    }
+    if (gc_interval < 1) {
+        LOG_WARN() << "gc_interval should be greater than 1";
+        return false;
+    }
+    return true;
+}
+
 RaftDriver::RaftDriver(std::function<void(uint64_t index, const RaftRequest&)> apply,
                        uint64_t apply_id, int64_t node_id, std::vector<eraft::Peer> init_peers,
-                       std::string log_path, uint64_t keep_log_num)
+                       const RaftLogStoreConfig& store_config, const RaftConfig& config)
     : apply_(std::move(apply)),
       apply_id_(apply_id),
       node_id_(node_id),
       init_peers_(std::move(init_peers)),
-      log_path_(std::move(log_path)),
-      tick_interval_(100),
+      tick_interval_(config.tick_interval),
       tick_timer_(timer_service_, tick_interval_),
-      compact_interval_(10 * 60 * 1000),
+      compact_interval_(store_config.gc_interval * 60 * 1000),
       compact_timer_(timer_service_, compact_interval_),
       id_generator_(node_id,
                     duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count()),
-      keep_log_num_(keep_log_num) {}
+      store_config_(store_config),
+      raft_config_(config) {}
 
 eraft::Error RaftDriver::Run() {
     rocksdb::Options options;
     options.create_if_missing = true;
     options.create_missing_column_families = true;
+    rocksdb::BlockBasedTableOptions table_options;
+    table_options.cache_index_and_filter_blocks = true;
+    table_options.block_cache = rocksdb::NewLRUCache(store_config_.block_cache * 1024 * 1024L);
+    table_options.data_block_index_type = rocksdb::BlockBasedTableOptions::kDataBlockBinaryAndHash;
+    table_options.partition_filters = true;
+    table_options.index_type = rocksdb::BlockBasedTableOptions::IndexType::kTwoLevelIndexSearch;
+    options.table_factory.reset(rocksdb::NewBlockBasedTableFactory(table_options));
+    options.IncreaseParallelism(store_config_.total_threads);
+    options.OptimizeLevelStyleCompaction();
     std::vector<rocksdb::ColumnFamilyDescriptor> cfs;
     cfs.emplace_back(rocksdb::kDefaultColumnFamilyName, options);
     cfs.emplace_back("meta", options);
     std::vector<rocksdb::ColumnFamilyHandle*> cf_handles;
     rocksdb::DB* db;
-    std::filesystem::create_directories(log_path_);
-    auto s = rocksdb::DB::Open(options, log_path_, cfs, &cf_handles, &db);
+    std::filesystem::create_directories(store_config_.path);
+    auto s = rocksdb::DB::Open(options, store_config_.path, cfs, &cf_handles, &db);
     if (!s.ok()) {
         return eraft::Error("failed to open raft db, error: " + s.ToString());
     }
@@ -237,8 +286,8 @@ eraft::Error RaftDriver::Run() {
     eraft::Config config;
     config.id_ = node_id_;
     config.applied_ = applied;
-    config.electionTick_ = 10;
-    config.heartbeatTick_ = 1;
+    config.electionTick_ = raft_config_.election_tick;
+    config.heartbeatTick_ = raft_config_.heartbeat_tick;
     config.storage_ = storage_;
     config.maxSizePerMsg_ = 1024 * 1024;
     config.maxInflightMsgs_ = 256;
@@ -252,6 +301,12 @@ eraft::Error RaftDriver::Run() {
         return err;
     }
     if (!exist) {
+        auto iter = std::find_if(
+            init_peers_.begin(), init_peers_.end(), [this](auto& peer){
+                return peer.id_ == node_id_;});
+        if (iter == init_peers_.end()) {
+            return eraft::Error(FMA_FMT("no id {} in initial peers", node_id_));
+        }
         err = rn_->Bootstrap(init_peers_);
         if (err != nullptr) {
             return err;
@@ -291,6 +346,7 @@ void RaftDriver::Stop() {
     for (auto& t : threads_) {
         t.join();
     }
+    threads_.clear();
     storage_->Close();
     LOG_INFO() << "bolt raft driver stopped";
 }
@@ -396,8 +452,8 @@ void RaftDriver::CheckAndCompactLog() {
         auto first = storage_->FirstIndex().first;
         auto applied = rn_->raft_->raftLog_->applied_;
         if (applied > first) {
-            if (applied - first >= keep_log_num_ + 100000) {
-                auto compacted = applied - keep_log_num_;
+            if (applied - first >= store_config_.keep_logs + 100000) {
+                auto compacted = applied - store_config_.keep_logs;
                 storage_->Compact(compacted);
                 LOG_INFO() << FMA_FMT("compact raft log, compacted index:{}, applied index:{}",
                                       compacted, applied);

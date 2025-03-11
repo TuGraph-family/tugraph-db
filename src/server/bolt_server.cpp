@@ -57,6 +57,7 @@ void BoltServer::Stop() {
     for (auto& t : threads_) {
         t.join();
     }
+    threads_.clear();
     stopped_ = true;
     LOG_INFO() << "bolt server stopped.";
 }

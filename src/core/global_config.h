@@ -84,11 +84,20 @@ struct BasicConfigs {
     // bolt
     int bolt_port = 0;
     int bolt_io_thread_num = 1;
+    // bolt raft
     int bolt_raft_port = 0;
     uint64_t bolt_raft_node_id = 0;
     std::string bolt_raft_init_peers;
-    std::string bolt_raft_log_path;
-    uint64_t bolt_raft_log_keep_num;
+    uint64_t bolt_raft_tick_interval = 100;
+    uint64_t bolt_raft_election_tick = 10;
+    uint64_t bolt_raft_heartbeat_tick = 1;
+
+    std::string bolt_raft_logstore_path;
+    uint64_t bolt_raft_logstore_cache = 1024;
+    uint64_t bolt_raft_logstore_threads = 4;
+    uint64_t bolt_raft_logstore_keep_logs = 0;
+    uint64_t bolt_raft_logstore_gc_interval = 0;
+
     // default disable plugin load/delete
     bool enable_plugin = false;
     BrowserOptions browser_options;
