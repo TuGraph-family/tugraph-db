@@ -318,7 +318,7 @@ int main(int argc, char** argv) {
                     }
                 }
             }
-            if (is_terminal && ret) {
+            if (is_terminal) {
                 linenoiseHistoryAdd(statement.c_str());
                 linenoiseHistorySave(history_file);
             }
