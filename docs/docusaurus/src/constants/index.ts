@@ -107,6 +107,7 @@ const ZH_NOT_FOUND_CONFIG = {
 };
 
 const versions = [
+  "4.5.2",
   "4.5.1",
   "4.3.2",
   "4.3.1",
