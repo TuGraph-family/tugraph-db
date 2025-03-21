@@ -47,10 +47,10 @@ const config: Config = {
         //   routeBasePath: "zh/latest",
         // },
         docs: {
-          id: "4-5-1_zh",
-          sidebarPath: "./versions_sidebars/version-4.5.1_zh.ts",
-          path: "./versions/version-4.5.1/zh-CN/source",
-          routeBasePath: "zh/4.5.1",
+          id: "4-5-2_zh",
+          sidebarPath: "./versions_sidebars/version-4.5.2_zh.ts",
+          path: "./versions/version-4.5.2/zh-CN/source",
+          routeBasePath: "zh/4.5.2",
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -69,6 +69,26 @@ const config: Config = {
     //     routeBasePath: "en/latest",
     //   } satisfies DocsOptions,
     // ],
+    [
+      "content-docs",
+      {
+        id: "4-5-2_en",
+        sidebarPath: "./versions_sidebars/version-4.5.2_en.ts",
+        path: "./versions/version-4.5.2/en-US/source",
+        routeBasePath: "en/4.5.2",
+        editCurrentVersion: false,
+      } satisfies DocsOptions,
+    ],
+    [
+      "content-docs",
+      {
+        id: "4-5-1_zh",
+        sidebarPath: "./versions_sidebars/version-4.5.1_zh.ts",
+        path: "./versions/version-4.5.1/zh-CN/source",
+        routeBasePath: "zh/4.5.1",
+        editCurrentVersion: false,
+      } satisfies DocsOptions,
+    ],
     [
       "content-docs",
       {
