@@ -23,14 +23,18 @@ add_executable(${TARGET_LGRAPH_IMPORT}
         lgraph_import.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/rpc/lgraph_rpc_client.cpp
         ${LGRAPH_ROOT_DIR}/src/client/cpp/restful/rest_client.cpp
-        ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp)
+        ${LGRAPH_ROOT_DIR}/src/import/import_client.cpp
+        ${LGRAPH_ROOT_DIR}/src/import/graphar_parser.cpp)
 
 # TODO: break circular dependency between cypher and state machine
 target_link_libraries(${TARGET_LGRAPH_IMPORT}
         lgraph_server_lib
         lgraph_cypher_lib
         lgraph_server_lib
-        librocksdb.a)
+        librocksdb.a
+        graphar
+        Arrow::arrow_static
+        ArrowDataset::arrow_dataset_static)
 
 if (NOT ENABLE_ASAN)
     target_link_libraries(${TARGET_LGRAPH_IMPORT} libjemalloc.a)

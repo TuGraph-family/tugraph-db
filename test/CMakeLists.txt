@@ -58,6 +58,7 @@ add_executable(unit_test
         test_import_planner.cpp
         test_import_v2.cpp
         test_import_v3.cpp
+        test_import_gar.cpp
         test_type_convert.cpp
         test_json_convert.cpp
         test_lgraph.cpp

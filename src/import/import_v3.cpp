@@ -20,6 +20,7 @@
 #include "import/import_config_parser.h"
 #include "import/blob_writer.h"
 #include "import/import_utils.h"
+#include "import/graphar_config.h"
 #include "db/galaxy.h"
 
 namespace lgraph {
@@ -60,9 +61,13 @@ void Importer::DoImportOffline() {
     Galaxy galaxy(Galaxy::Config{config_.db_dir, false, true, "fma.ai"}, true, gc);
     auto db = OpenGraph(galaxy, empty_db);
     db_ = &db;
-    std::ifstream ifs(config_.config_file);
     nlohmann::json conf;
-    ifs >> conf;
+    if (config_.is_graphar) {
+        ParserGraphArConf(conf, config_.config_file);
+    } else {
+        std::ifstream ifs(config_.config_file);
+        ifs >> conf;
+    }
 
     schemaDesc_ = import_v2::ImportConfParser::ParseSchema(conf);
     data_files_ = import_v2::ImportConfParser::ParseFiles(conf);
@@ -288,7 +293,9 @@ void Importer::VertexDataToSST() {
                 uint16_t key_col_id = file.FindIdxExcludeSkip(
                     schemaDesc_.FindVertexLabel(file.label).GetPrimaryField().name);
                 std::unique_ptr<import_v2::BlockParser> parser;
-                if (file.data_format == "CSV") {
+                if (file.data_format == "GraphAr") {
+                    parser.reset(new import_v2::GraphArParser(file));
+                } else if (file.data_format == "CSV") {
                     parser.reset(new import_v2::ColumnParser(
                         file.path, fts, config_.parse_block_size, config_.parse_block_threads,
                         file.n_header_line, config_.continue_on_error, config_.delimiter,
@@ -594,7 +601,9 @@ void Importer::EdgeDataToSST() {
                     }
                 }
                 std::unique_ptr<import_v2::BlockParser> parser;
-                if (file.data_format == "CSV") {
+                if (file.data_format == "GraphAr") {
+                    parser.reset(new import_v2::GraphArParser(file));
+                } else if (file.data_format == "CSV") {
                     parser.reset(new import_v2::ColumnParser(
                         file.path, fts, config_.parse_block_size, config_.parse_block_threads,
                         file.n_header_line, config_.continue_on_error, config_.delimiter,
