@@ -58,24 +58,42 @@ ResourceMonitor::ResourceMonitor(const std::string& host)
     exposer.RegisterCollectable(registry);
 }
 
+/**
+* input format:
+* [
+*   {
+*     "cpu": { ... },
+*     "memory": { ... },
+*     ...
+*   }
+* ]
+*/
 void ResourceMonitor::report_server_info(const std::string &info) {
     nlohmann::json value = nlohmann::json::parse(info);
-    cpu_total->Set(value["cpu"]["server"]);
-    cpu_self->Set(value["cpu"]["self"]);
-    mem_total->Set(value["memory"]["total"]);
-    mem_available->Set(value["memory"]["available"]);
-    mem_self->Set(value["memory"]["self"]);
-    disk_read_rate->Set(value["disk_rate"]["read"]);
-    disk_write_rate->Set(value["disk_rate"]["write"]);
-    disk_total->Set(value["disk_storage"]["total"]);
-    disk_available->Set(value["disk_storage"]["available"]);
-    disk_self->Set(value["disk_storage"]["self"]);
+    cpu_total->Set(value[0]["cpu"]["server"]);
+    cpu_self->Set(value[0]["cpu"]["self"]);
+    mem_total->Set(value[0]["memory"]["total"]);
+    mem_available->Set(value[0]["memory"]["available"]);
+    mem_self->Set(value[0]["memory"]["self"]);
+    disk_read_rate->Set(value[0]["disk_rate"]["read"]);
+    disk_write_rate->Set(value[0]["disk_rate"]["write"]);
+    disk_total->Set(value[0]["disk_storage"]["total"]);
+    disk_available->Set(value[0]["disk_storage"]["available"]);
+    disk_self->Set(value[0]["disk_storage"]["self"]);
 }
 
+/**
+* input format:
+* [
+*   {
+*     "request": { ... }
+*   }
+* ]
+*/
 void ResourceMonitor::report_tugraph_info(const std::string& info) {
     nlohmann::json value = nlohmann::json::parse(info);
-    total_request->Set(value["request"]["requests/second"]);
-    write_request->Set(value["request"]["writes/second"]);
+    total_request->Set(value[0]["request"]["requests/second"]);
+    write_request->Set(value[0]["request"]["writes/second"]);
 }
 
 }  // end of namespace monitor
