@@ -18,6 +18,7 @@
 #include <regex>
 #include <string>
 #include <unordered_map>
+#include <optional>
 #include "common/temporal/duration.h"
 
 class Value;

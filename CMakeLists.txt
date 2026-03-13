@@ -25,14 +25,13 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 include_directories(src)
 include_directories(deps/geax-front-end/include)
 
-set(FT_INDEX_LIB ${PROJECT_SOURCE_DIR}/src/graphdb/ftindex/target/release/libftindex.a)
-
 add_library(bolt STATIC
 		src/bolt/connection.cpp
 		src/bolt/hydrator.cpp
 		src/bolt/pack.cpp
 		src/bolt/bolt_server.cpp
 )
+set_target_properties(bolt PROPERTIES COMPILE_FLAGS "-O0")
 
 add_library(graphdb STATIC
 		src/graphdb/graph_db.cpp
@@ -49,7 +48,6 @@ add_library(graphdb STATIC
 		src/graphdb/embedding/id_mapper.cpp
 		src/graphdb/embedding/index.cpp
 		src/graphdb/embedding/mem_index_chunk.cpp
-		src/graphdb/embedding/vsag_index_chunk.cpp
 )
 
 add_library(common STATIC
@@ -134,10 +132,8 @@ set(THIRD_STATIC_LIBS
 	lz4.a
 	zstd.a
 	gflags.a
-	gtest.a
 	protobuf.a
 	date-tz.a
-	${FT_INDEX_LIB}
 	antlr4-runtime.a
 	faiss.a
 	openblas.a
@@ -153,7 +149,6 @@ add_executable(lgraph_server
         src/server/server_main.cpp
 )
 target_link_libraries(lgraph_server PRIVATE
-		vsag
 		-Wl,--start-group
 		${THIRD_STATIC_LIBS}
 		bolt
@@ -178,17 +173,16 @@ add_executable(test_case
 	test/test_transaction.cpp
 	test/test_index.cpp
 	test/test_concurrency.cpp
-	test/test_ftindex.cpp
 	test/test_galaxy.cpp
 	test/test_value.cpp
-	test/test_vector_index.cpp
 	test/test_var_len.cpp
 	test/test_plan.cpp
 	test/test_temporal.cpp
 	test/test_benchmark.cpp)
 target_compile_definitions(test_case PUBLIC FOLLY_SANITIZE)
 target_link_libraries(test_case PRIVATE
-		vsag
+		GTest::gtest
+		GTest::gtest_main
 		-Wl,--start-group
 		${THIRD_STATIC_LIBS}
 		bolt
@@ -223,16 +217,4 @@ target_link_libraries(lgraph_cli PRIVATE
 		-Wl,--end-group
 )
 
-if(NOT EXISTS ${FT_INDEX_LIB})
-	add_custom_target(
-		BuildFTIndex
-		COMMAND cargo build --release
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/graphdb/ftindex
-	)
-	add_dependencies(lgraph_server BuildFTIndex)
-	add_dependencies(test_case BuildFTIndex)
-endif()
-
 install(TARGETS lgraph_server lgraph_cli RUNTIME DESTINATION bin)
-install(FILES /usr/local/lib64/libvsag.so DESTINATION lib64/lgraph)
-

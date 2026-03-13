@@ -16,6 +16,8 @@
 #include "server/galaxy.h"
 #include "transaction/transaction.h"
 #include <filesystem>
+#include <thread>
+#include <chrono>
 #include "test_util.h"
 namespace fs = std::filesystem;
 std::string test_galaxy = "test_galaxy";

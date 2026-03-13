@@ -26,20 +26,17 @@ using namespace boost::endian;
 namespace graphdb {
 std::unordered_map<std::string, std::unique_ptr<VertexFullTextIndex>> &
 MetaInfo::GetVertexFullTextIndex() {
-    return vertex_ft_indexes;
+    static std::unordered_map<std::string, std::unique_ptr<VertexFullTextIndex>> empty;
+    return empty;
 }
 
 VertexFullTextIndex *MetaInfo::GetVertexFullTextIndex(const std::string &name) {
-    auto iter = vertex_ft_indexes.find(name);
-    if (iter != vertex_ft_indexes.end()) {
-        return iter->second.get();
-    } else {
-        return nullptr;
-    }
+    (void)name;
+    return nullptr;
 }
 
 void MetaInfo::DeleteVertexFullTextIndex(const std::string &name) {
-    vertex_ft_indexes.erase(name);
+    (void)name;
 }
 
 VertexPropertyIndex *MetaInfo::GetVertexPropertyIndex(uint32_t lid,
@@ -125,13 +122,8 @@ void MetaInfo::DeleteVertexPropertyIndex(const std::string &index_name) {
 }
 
 bool MetaInfo::AddVertexFullTextIndex(std::unique_ptr<VertexFullTextIndex> ft) {
-    std::string name = ft->Name();
-    if (vertex_ft_indexes.count(name)) {
-        return false;
-    } else {
-        vertex_ft_indexes.emplace(name, std::move(ft));
-        return true;
-    }
+    (void)ft;
+    return false;
 }
 
 void MetaInfo::AddVertexVectorIndex(std::unique_ptr<VertexVectorIndex> vvi) {
@@ -167,27 +159,7 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
         uint64_t index_key = (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
         vertex_property_indexes.emplace(index_key, std::move(vi));
     }
-    prefix.clear();
-    prefix.append(1, static_cast<char>(MetaDataType::VertexFullTextIndex));
-    for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
-         iter->Next()) {
-        auto val = iter->value();
-        meta::VertexFullTextIndex meta;
-        bool ret = meta.ParseFromString(val.ToString());
-        assert(ret);
-        LOG_INFO("vertex fulltext index: [{}]", meta.ShortDebugString());
-        std::unordered_set<uint32_t> lids, pids;
-        for(auto id : meta.label_ids()) {
-            lids.insert(native_to_big(id));
-        }
-        for(auto id : meta.property_ids()) {
-            pids.insert(native_to_big(id));
-        }
-        auto v_ft_index = std::make_unique<VertexFullTextIndex>(
-            db, service, graph_cf, id_generator, meta,
-            native_to_big(meta.index_id()), lids, pids, ft_commit_interval);
-        vertex_ft_indexes.emplace(meta.name(), std::move(v_ft_index));
-    }
+    // Fulltext index initialization disabled (ftindex removed).
     prefix.clear();
     prefix.append(1, static_cast<char>(MetaDataType::VertexVectorIndex));
     for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);

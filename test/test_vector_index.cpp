@@ -14,6 +14,8 @@
 
 #include <gtest/gtest.h>
 #include <filesystem>
+#include <random>
+#include <chrono>
 #include "test_util.h"
 #include "common/logger.h"
 #include "common/value.h"

@@ -77,24 +77,7 @@ Vertex Transaction::CreateVertex(
     if (db_->busy_index().Busy(lids, pids)) {
         THROW_CODE(IndexBusy);
     }
-    // full text index
-    for (auto& [ft_name, ft] : db_->meta_info().GetVertexFullTextIndex()) {
-        if (!ft->MatchLabelIds(lids)) {
-            continue;
-        }
-        meta::FullTextIndexUpdate add;
-        add.set_type(meta::UpdateType::Add);
-        add.set_vid(vid);
-        for (const auto& [pid, prop] : pid_values) {
-            if (prop->IsString() && !prop->AsString().empty() && ft->PropertyIds().count(pid)) {
-                add.add_fields(db_->id_generator().GetPropertyName(pid).value());
-                add.add_values(prop->AsString());
-            }
-        }
-        if (!add.fields().empty()) {
-            ft->AddIndex(this, vid, add);
-        }
-    }
+    // full text index disabled (ftindex removed)
     // vector index
     for (auto& [index_name, vvi] : db_->meta_info().GetVertexVectorIndex()) {
         if (!lids.count(vvi->lid())) {
@@ -357,8 +340,10 @@ void Transaction::Rollback() {
 
 std::unique_ptr<VertexScoreIterator> Transaction::QueryVertexByFTIndex(
     const std::string& index_name, const std::string& query, size_t top_n) {
-    return std::make_unique<GetVertexByFullTextIndex>(this, index_name, query,
-                                                      top_n);
+    (void)index_name;
+    (void)query;
+    (void)top_n;
+    THROW_CODE(FullTextIndexNotFound, "Fulltext index functionality is disabled");
 }
 
 std::unique_ptr<graphdb::VertexScoreIterator>

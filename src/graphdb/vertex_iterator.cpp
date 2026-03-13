@@ -202,25 +202,11 @@ GetVertexByFullTextIndex::GetVertexByFullTextIndex(
     Transaction *txn, const std::string &ft_index_name,
     const std::string &query, size_t top_n)
     : VertexScoreIterator(txn) {
-    auto ft = txn->db()->meta_info().GetVertexFullTextIndex(ft_index_name);
-    if (!ft) THROW_CODE(FullTextIndexNotFound, "No such fulltext index: {}", ft_index_name);
-    result_ = ft->Query(query, top_n);
-    if (!result_.empty()) {
-        ve_ = std::make_unique<VertexScore>(
-            Vertex(txn_, result_[iter_index_].id), result_[iter_index_].score);
-        valid_ = true;
-    }
-}
-
-void GetVertexByFullTextIndex::Next() {
-    assert(valid_);
+    (void)txn;
+    (void)ft_index_name;
+    (void)query;
+    (void)top_n;
     valid_ = false;
-    iter_index_++;
-    if (iter_index_ < result_.size()) {
-        ve_ = std::make_unique<VertexScore>(
-            Vertex(txn_, result_[iter_index_].id), result_[iter_index_].score);
-        valid_ = true;
-    }
 }
 
 GetVertexByKnnSearch::GetVertexByKnnSearch(txn::Transaction *txn,

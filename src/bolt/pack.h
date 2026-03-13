@@ -23,6 +23,7 @@
 #include <vector>
 #include <unordered_map>
 #include <optional>
+#include <limits>
 #include <boost/endian/conversion.hpp>
 #include "bolt/messages.h"
 

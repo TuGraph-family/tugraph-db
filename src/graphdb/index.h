@@ -18,9 +18,7 @@
 
 #pragma once
 #include <rocksdb/utilities/transaction_db.h>
-#include "ftindex/include/lib.rs.h"
 #include "proto/meta.pb.h"
-#include <vsag/vsag.h>
 #include "common/type_traits.h"
 #include "common/value.h"
 #include "graphdb/graph_cf.h"
@@ -59,23 +57,27 @@ struct VertexPropertyIndex {
 
 class VertexFullTextIndex {
    public:
-    VertexFullTextIndex(rocksdb::TransactionDB* db,
-                        boost::asio::io_service &service,
-                        GraphCF* graph_cf, IdGenerator* id_generator,
+    VertexFullTextIndex(rocksdb::TransactionDB*,
+                        boost::asio::io_service &,
+                        GraphCF*, IdGenerator*,
                         meta::VertexFullTextIndex meta,
-                        uint32_t index_id,
-                        const std::unordered_set<uint32_t>& lids,
-                        const std::unordered_set<uint32_t>& pids,
-                        size_t commit_interval);
-    void AddVertex(int64_t id, std::vector<std::string> fields,
-                   std::vector<std::string> values);
-    void DeleteVertex(int64_t id);
-    void ApplyWAL();
+                        uint32_t,
+                        const std::unordered_set<uint32_t>&,
+                        const std::unordered_set<uint32_t>&,
+                        size_t)
+        : meta_(std::move(meta)) {}
+
+    void AddVertex(int64_t, std::vector<std::string>,
+                   std::vector<std::string>) {}
+    void DeleteVertex(int64_t) {}
+    void ApplyWAL() {}
     [[nodiscard]] bool MatchLabelIds(
-        const std::unordered_set<uint32_t>& lids) const;
+        const std::unordered_set<uint32_t>&) const { return false; }
     [[nodiscard]] bool MatchPropertyIds(
-        const std::unordered_set<uint32_t>& pids) const;
-    ::rust::Vec<::IdScore> Query(const std::string& query, size_t top_n);
+        const std::unordered_set<uint32_t>&) const { return false; }
+    std::vector<std::pair<int64_t, float>> Query(const std::string&, size_t) {
+        return {};
+    }
     [[nodiscard]] const std::unordered_set<uint32_t>& LabelIds() const {
         return lids_;
     }
@@ -85,30 +87,20 @@ class VertexFullTextIndex {
     [[nodiscard]] const std::string& Name() const { return meta_.name(); }
     const meta::VertexFullTextIndex& meta() const {return meta_;}
     uint32_t index_id() const {return index_id_;}
-    void Load();
-    std::string IndexKey(int64_t vid);
-    std::string NextWALKey();
-   bool IsIndexed(txn::Transaction* txn, int64_t vid);
-   void AddIndex(txn::Transaction* txn, int64_t vid, const meta::FullTextIndexUpdate& wal);
-   void DeleteIndex(txn::Transaction* txn, int64_t vid, const meta::FullTextIndexUpdate& wal);
-   private:
-    void StartTimer();
-    void Commit(const std::string& payload);
+    void Load() {}
+    std::string IndexKey(int64_t) { return {}; }
+    std::string NextWALKey() { return {}; }
+    bool IsIndexed(txn::Transaction*, int64_t) { return false; }
+    void AddIndex(txn::Transaction*, int64_t,
+                  const meta::FullTextIndexUpdate&) {}
+    void DeleteIndex(txn::Transaction*, int64_t,
+                     const meta::FullTextIndexUpdate&) {}
 
-    rocksdb::TransactionDB* db_ = nullptr;
-    GraphCF* graph_cf_ = nullptr;
-    IdGenerator* id_generator_ = nullptr;
+   private:
     meta::VertexFullTextIndex meta_;
-    uint32_t index_id_;
-    std::atomic<uint64_t> next_wal_id_ = 1;
-    uint64_t apply_id_ = 0;
+    uint32_t index_id_ = 0;
     std::unordered_set<uint32_t> lids_;
     std::unordered_set<uint32_t> pids_;
-    ::FTIndex* ft_index_ = nullptr;
-    std::unique_ptr<::rust::Box<::FTIndex>> instance_;
-    std::mutex mutex_;
-    size_t interval_ = 5;
-    boost::asio::steady_timer timer_;
 };
 
 struct BusyIndex {
@@ -181,8 +173,6 @@ class VertexVectorIndex {
     uint32_t lid_;
     uint32_t pid_;
     meta::VertexVectorIndex meta_;
-    std::shared_ptr<vsag::Index> vsag_index_;
-    //std::unique_ptr<VsagIndex> vsag_index_;
     std::atomic<int64_t> next_vector_id_ = 1;
     std::atomic<uint64_t> next_wal_id_ = 1;
     uint64_t apply_id_ = 0;

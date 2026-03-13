@@ -20,7 +20,6 @@
 #include <rocksdb/utilities/transaction.h>
 #include "iterator.h"
 #include "graph_entity.h"
-#include "ftindex/include/lib.rs.h"
 namespace graphdb {
 class VertexIterator : public Iterator {
    public:
@@ -130,14 +129,14 @@ class GetVertexByFullTextIndex : public VertexScoreIterator {
     GetVertexByFullTextIndex(txn::Transaction* txn,
                              const std::string& ft_index_name,
                              const std::string& query, size_t top_n);
-    void Next() override;
+    void Next() override { valid_ = false; }
     VertexScore& GetVertexScore() override {
         assert(valid_);
         return *ve_;
     }
 
    private:
-    ::rust::Vec<::IdScore> result_;
+    std::vector<std::pair<int64_t, float>> result_;
     size_t iter_index_ = 0;
     std::unique_ptr<VertexScore> ve_;
 };

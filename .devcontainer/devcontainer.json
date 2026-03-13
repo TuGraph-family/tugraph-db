@@ -1,0 +1,24 @@
+{
+  "name": "TuGraph-DB",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/tugraph-db",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/tugraph-db,type=bind",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake"
+      ],
+      "settings": {
+        "cmake.buildDirectory": "${workspaceFolder}/build",
+        "cmake.configureOnOpen": true,
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+      }
+    }
+  },
+  "remoteUser": "root"
+}
