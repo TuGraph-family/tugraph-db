@@ -4,6 +4,15 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
+  "runArgs": [
+        "--ulimit=core=-1",
+        "--cap-add=SYS_ADMIN",
+        "--cap-add=SYS_PTRACE",
+        "--cap-add=PERFMON",
+        "--security-opt",
+        "seccomp=unconfined",
+        "--privileged"
+  ],
   "workspaceFolder": "/workspaces/tugraph-db",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/tugraph-db,type=bind",
   "customizations": {

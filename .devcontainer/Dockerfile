@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     vim \
     git \
+    gdb \
     wget \
     curl \
     ca-certificates \
@@ -132,6 +133,11 @@ RUN wget -q http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/date
 
 # Python test deps
 RUN pip3 install --break-system-packages --no-cache-dir behave neo4j pyyaml
+
+# Install cursor cli
+
+RUN curl https://cursor.com/install -fsS | bash
+RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
 # Library path
 RUN echo "/usr/local/lib" >> /etc/ld.so.conf && \
