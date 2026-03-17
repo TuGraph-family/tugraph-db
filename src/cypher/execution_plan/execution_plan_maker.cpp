@@ -762,8 +762,8 @@ std::any ExecutionPlanMaker::visit(geax::frontend::Ref* ) {
     return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
-std::any ExecutionPlanMaker::visit(geax::frontend::IsNull* ) {
-    NOT_SUPPORT();
+std::any ExecutionPlanMaker::visit(geax::frontend::IsNull* node) {
+    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 std::any ExecutionPlanMaker::visit(geax::frontend::IsDirected* ) { NOT_SUPPORT(); }
