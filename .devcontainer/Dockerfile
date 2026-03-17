@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libstdc++-14-dev \
     libopenblas-dev \
     liblapacke-dev \
+    locales \
     procps \
     iproute2 \
     findutils \
@@ -30,6 +31,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     unzip \
     && rm -rf /var/lib/apt/lists/*
+
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
 # googletest
 RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/gtest_v1.15.2.tar.gz -O /tmp/googletest.tar.gz && \
