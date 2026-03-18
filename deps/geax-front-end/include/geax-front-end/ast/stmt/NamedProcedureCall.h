@@ -18,35 +18,37 @@
 #ifndef GEAXFRONTEND_AST_STMT_NAMEDPROCEDURECALL_H_
 #define GEAXFRONTEND_AST_STMT_INLINEPROCEDURECALL_H_
 
-#include "geax-front-end/ast/stmt/ProcedureCall.h"
-#include "geax-front-end/ast/expr/Param.h"
-#include "geax-front-end/ast/expr/Expr.h"
 #include "geax-front-end/ast/clause/YieldField.h"
+#include "geax-front-end/ast/expr/Expr.h"
+#include "geax-front-end/ast/expr/Param.h"
+#include "geax-front-end/ast/stmt/ProcedureCall.h"
 
 namespace geax {
 namespace frontend {
 
 class NamedProcedureCall : public ProcedureCall {
-public:
-    NamedProcedureCall() : ProcedureCall(AstNodeType::kNamedProcedureCall) {}
-    ~NamedProcedureCall() = default;
+ public:
+  NamedProcedureCall() : ProcedureCall(AstNodeType::kNamedProcedureCall) {}
+  ~NamedProcedureCall() = default;
 
-    void setName(StringParam&& name) { name_ = std::move(name); }
-    const StringParam name() const { return name_; }
+  void setName(StringParam&& name) { name_ = std::move(name); }
+  const StringParam name() const { return name_; }
 
-    void appendArg(Expr* arg) { args_.emplace_back(arg); }
-    void setArgs(std::vector<Expr*>&& args) { args_ = std::move(args); }
-    const std::vector<Expr*>& args() const { return args_; }
+  void appendArg(Expr* arg) { args_.emplace_back(arg); }
+  void setArgs(std::vector<Expr*>&& args) { args_ = std::move(args); }
+  const std::vector<Expr*>& args() const { return args_; }
 
-    void setYield(YieldField* yield) { yield_ = yield; }
-    const std::optional<YieldField*>& yield() const { return yield_; }
+  void setYield(YieldField* yield) { yield_ = yield; }
+  const std::optional<YieldField*>& yield() const { return yield_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    StringParam name_;
-    std::vector<Expr*> args_;
-    std::optional<YieldField*> yield_;
+ private:
+  StringParam name_;
+  std::vector<Expr*> args_;
+  std::optional<YieldField*> yield_;
 };  // class NamedProcedureCall
 
 }  // namespace frontend

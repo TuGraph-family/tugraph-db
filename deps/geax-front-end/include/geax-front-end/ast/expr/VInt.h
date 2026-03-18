@@ -24,24 +24,26 @@ namespace geax {
 namespace frontend {
 
 class VInt : public Literal {
-public:
-    VInt() : Literal(AstNodeType::kVInt), val_(0) {}
-    ~VInt() = default;
+ public:
+  VInt() : Literal(AstNodeType::kVInt), val_(0) {}
+  ~VInt() = default;
 
-    void setVal(int64_t val) { val_ = val; }
-    int64_t val() const { return val_; }
+  void setVal(int64_t val) { val_ = val; }
+  int64_t val() const { return val_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    int64_t val_;
+  int64_t val_;
 };  // class VInt
 
 inline bool VInt::equals(const Expr& other) const {
-    const auto& expr = static_cast<const VInt&>(other);
-    return val_ == expr.val_;
+  const auto& expr = static_cast<const VInt&>(other);
+  return val_ == expr.val_;
 }
 
 }  // namespace frontend

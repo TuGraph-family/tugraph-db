@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BConcat : public BinaryOp {
-public:
-    BConcat() : BinaryOp(AstNodeType::kBConcat) {}
-    ~BConcat() = default;
+ public:
+  BConcat() : BinaryOp(AstNodeType::kBConcat) {}
+  ~BConcat() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BConcat
 
 }  // namespace frontend

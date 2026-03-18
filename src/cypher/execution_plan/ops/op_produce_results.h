@@ -18,47 +18,48 @@
 #pragma once
 
 #include <regex>
+
 #include "cypher/execution_plan/ops/op.h"
 
 namespace cypher {
 
 class ProduceResults : public OpBase {
-    enum {
-        Uninitialized,
-        RefreshAfterPass,
-        Resetted,
-        Consuming,
-    } state_;
+  enum {
+    Uninitialized,
+    RefreshAfterPass,
+    Resetted,
+    Consuming,
+  } state_;
 
  public:
-    ProduceResults() : OpBase(OpType::PRODUCE_RESULTS, "Produce Results") {
-        state_ = Uninitialized;
+  ProduceResults() : OpBase(OpType::PRODUCE_RESULTS, "Produce Results") {
+    state_ = Uninitialized;
+  }
+
+  OpResult Initialize(RTContext *ctx) override {
+    if (!children.empty()) {
+      children[0]->Initialize(ctx);
     }
+    return OP_OK;
+  }
 
-    OpResult Initialize(RTContext *ctx) override {
-        if (!children.empty()) {
-            children[0]->Initialize(ctx);
-        }
-        return OP_OK;
-    }
+  /* ProduceResults next operation
+   * called each time a new result record is required */
+  OpResult RealConsume(RTContext *ctx) override;
 
-    /* ProduceResults next operation
-     * called each time a new result record is required */
-    OpResult RealConsume(RTContext *ctx) override;
+  /* Restart */
+  OpResult ResetImpl(bool complete) override {
+    if (complete) state_ = Uninitialized;
+    return OP_OK;
+  }
 
-    /* Restart */
-    OpResult ResetImpl(bool complete) override {
-        if (complete) state_ = Uninitialized;
-        return OP_OK;
-    }
+  std::string ToString() const override {
+    std::string str(name);
+    return str;
+  }
 
-    std::string ToString() const override {
-        std::string str(name);
-        return str;
-    }
+  CYPHER_DEFINE_VISITABLE()
 
-    CYPHER_DEFINE_VISITABLE()
-
-    CYPHER_DEFINE_CONST_VISITABLE()
+  CYPHER_DEFINE_CONST_VISITABLE()
 };
 }  // namespace cypher

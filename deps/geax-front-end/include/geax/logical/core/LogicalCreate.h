@@ -15,9 +15,9 @@
 
 #pragma once
 
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/ast/utils/AstUtil.h"
@@ -27,25 +27,25 @@
 namespace geax::logical {
 class LogicalCreate : public LogicalOperator {
  public:
-    LogicalCreate(
-        const std::string& binding_var,
-        const std::vector<std::pair<std::string, frontend::Expr*>>& properties)
-        : LogicalOperator(LogicalOperatorType::Create),
-          binding_var_(binding_var),
-          properties_(properties) {}
-    ~LogicalCreate() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalCreate(
+      const std::string& binding_var,
+      const std::vector<std::pair<std::string, frontend::Expr*>>& properties)
+      : LogicalOperator(LogicalOperatorType::Create),
+        binding_var_(binding_var),
+        properties_(properties) {}
+  ~LogicalCreate() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalCreate(binding_var:" + binding_var_ +
-               ", properties:" + utils::ToString(properties_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalCreate(binding_var:" + binding_var_ +
+           ", properties:" + utils::ToString(properties_) + ")";
+  }
 
  private:
-    std::string binding_var_;
-    std::vector<std::pair<std::string, frontend::Expr*>> properties_;
+  std::string binding_var_;
+  std::vector<std::pair<std::string, frontend::Expr*>> properties_;
 };
 }  // namespace geax::logical

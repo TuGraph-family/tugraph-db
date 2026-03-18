@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class IsSourceOf : public BinaryOp {
-public:
-    IsSourceOf() : BinaryOp(AstNodeType::kIsSourceOf) {}
-    ~IsSourceOf() = default;
+ public:
+  IsSourceOf() : BinaryOp(AstNodeType::kIsSourceOf) {}
+  ~IsSourceOf() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class IsSourceOf
 
 }  // namespace frontend

@@ -1,5 +1,6 @@
-# Generated from CLion C/C++ Code Style settings
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+#Run manually to reformat a file:
+#clang-format -i --style=file <file>
 ---
 Language: Cpp
 BasedOnStyle: Google
-IndentWidth: 4

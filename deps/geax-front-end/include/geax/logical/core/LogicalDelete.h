@@ -22,19 +22,19 @@
 namespace geax::logical {
 class LogicalDelete : public LogicalOperator {
  public:
-    explicit LogicalDelete(const std::string& var_ref)
-        : LogicalOperator(LogicalOperatorType::Delete), var_ref_(var_ref) {}
-    ~LogicalDelete() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  explicit LogicalDelete(const std::string& var_ref)
+      : LogicalOperator(LogicalOperatorType::Delete), var_ref_(var_ref) {}
+  ~LogicalDelete() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalDelete(var_ref:" + var_ref_ + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalDelete(var_ref:" + var_ref_ + ")";
+  }
 
  private:
-    std::string var_ref_;
+  std::string var_ref_;
 };
 }  // namespace geax::logical

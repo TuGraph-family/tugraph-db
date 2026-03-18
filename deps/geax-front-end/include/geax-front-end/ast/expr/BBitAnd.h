@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BBitAnd : public BinaryOp {
-public:
-    BBitAnd() : BinaryOp(AstNodeType::kBBitAnd) {}
-    ~BBitAnd() = default;
+ public:
+  BBitAnd() : BinaryOp(AstNodeType::kBBitAnd) {}
+  ~BBitAnd() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BBitAnd
 
 }  // namespace frontend

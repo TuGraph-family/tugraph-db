@@ -12,8 +12,8 @@ namespace frontend {
 
 class RemoveItem : public AstNode {
  public:
-    explicit RemoveItem(AstNodeType type) : AstNode(type) {}
-    ~RemoveItem() = default;
+  explicit RemoveItem(AstNodeType type) : AstNode(type) {}
+  ~RemoveItem() = default;
 };
 
 }  // namespace frontend

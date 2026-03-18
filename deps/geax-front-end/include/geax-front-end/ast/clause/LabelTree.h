@@ -24,16 +24,16 @@ namespace geax {
 namespace frontend {
 
 class LabelTree : public AstNode {
-public:
-    explicit LabelTree(AstNodeType type) : AstNode(type) {}
-    ~LabelTree() = default;
+ public:
+  explicit LabelTree(AstNodeType type) : AstNode(type) {}
+  ~LabelTree() = default;
 
-    friend bool operator==(const LabelTree& lhs, const LabelTree& rhs) {
-        return lhs.type() == rhs.type() && lhs.equals(rhs);
-    }
+  friend bool operator==(const LabelTree& lhs, const LabelTree& rhs) {
+    return lhs.type() == rhs.type() && lhs.equals(rhs);
+  }
 
-protected:
-    virtual bool equals(const LabelTree& other) const = 0;
+ protected:
+  virtual bool equals(const LabelTree& other) const = 0;
 };
 
 }  // namespace frontend

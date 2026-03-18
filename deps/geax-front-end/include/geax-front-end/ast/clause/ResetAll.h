@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class ResetAll : public SessionResetCommand {
-public:
-    ResetAll() : SessionResetCommand(AstNodeType::kResetAll) {}
-    ~ResetAll() = default;
+ public:
+  ResetAll() : SessionResetCommand(AstNodeType::kResetAll) {}
+  ~ResetAll() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };
 
 }  // namespace frontend

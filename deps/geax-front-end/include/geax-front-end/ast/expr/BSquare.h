@@ -21,11 +21,13 @@ namespace geax {
 namespace frontend {
 
 class BSquare : public BinaryOp {
-public:
-    BSquare() : BinaryOp(AstNodeType::kBSquare) {}
-    ~BSquare() = default;
+ public:
+  BSquare() : BinaryOp(AstNodeType::kBSquare) {}
+  ~BSquare() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BSquare
 
 }  // namespace frontend

@@ -24,24 +24,26 @@ namespace geax {
 namespace frontend {
 
 class VString : public Literal {
-public:
-    VString() : Literal(AstNodeType::kVString) {}
-    ~VString() = default;
+ public:
+  VString() : Literal(AstNodeType::kVString) {}
+  ~VString() = default;
 
-    void setVal(std::string&& val) { val_ = std::move(val); }
-    const std::string& val() const { return val_; }
+  void setVal(std::string&& val) { val_ = std::move(val); }
+  const std::string& val() const { return val_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    std::string val_;
+  std::string val_;
 };  // class VString
 
 inline bool VString::equals(const Expr& other) const {
-    const auto& expr = static_cast<const VString&>(other);
-    return val_ == expr.val_;
+  const auto& expr = static_cast<const VString&>(other);
+  return val_ == expr.val_;
 }
 
 }  // namespace frontend

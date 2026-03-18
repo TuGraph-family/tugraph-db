@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class BindingTableExpr : public AstNode {
-public:
-    explicit BindingTableExpr(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~BindingTableExpr() = default;
+ public:
+  explicit BindingTableExpr(AstNodeType nodeType) : AstNode(nodeType) {}
+  ~BindingTableExpr() = default;
 };  // class BindingTableExpr
 
 }  // namespace frontend

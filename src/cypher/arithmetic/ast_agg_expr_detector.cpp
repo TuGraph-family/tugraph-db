@@ -13,79 +13,85 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-#include <any>
-#include "cypher/arithmetic/arithmetic_expression.h"
 #include "cypher/arithmetic/ast_agg_expr_detector.h"
+
+#include <any>
+
+#include "cypher/arithmetic/arithmetic_expression.h"
 
 namespace cypher {
 
-std::vector<geax::frontend::Expr*>& AstAggExprDetector::AggExprs() { return agg_exprs_; }
-
-bool AstAggExprDetector::Validate() {
-    if (std::any_cast<geax::frontend::GEAXErrorCode>(expr_->accept(*this)) !=
-        geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
-        return false;
-    }
-    if (agg_exprs_.size() > 0 && outside_var_) {
-        error_msg_ =
-            "Variables cannot be used outside of the Agg function, for example: sum(n) + m";
-        return false;
-    }
-    return true;
+std::vector<geax::frontend::Expr*>& AstAggExprDetector::AggExprs() {
+  return agg_exprs_;
 }
 
-bool AstAggExprDetector::HasValidAggFunc() {
-        return agg_exprs_.size() > 0;
-    }
+bool AstAggExprDetector::Validate() {
+  if (std::any_cast<geax::frontend::GEAXErrorCode>(expr_->accept(*this)) !=
+      geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
+    return false;
+  }
+  if (agg_exprs_.size() > 0 && outside_var_) {
+    error_msg_ =
+        "Variables cannot be used outside of the Agg function, for example: "
+        "sum(n) + m";
+    return false;
+  }
+  return true;
+}
 
-std::vector<geax::frontend::Expr*> AstAggExprDetector::GetAggExprs(geax::frontend::Expr* expr) {
-    AstAggExprDetector detector(expr);
-    expr->accept(detector);
-    return detector.AggExprs();
+bool AstAggExprDetector::HasValidAggFunc() { return agg_exprs_.size() > 0; }
+
+std::vector<geax::frontend::Expr*> AstAggExprDetector::GetAggExprs(
+    geax::frontend::Expr* expr) {
+  AstAggExprDetector detector(expr);
+  expr->accept(detector);
+  return detector.AggExprs();
 }
 
 std::any AstAggExprDetector::visit(geax::frontend::AggFunc* node) {
-    if (in_agg_func_ > 0) {
-        nested_agg_func_ = true;
-        error_msg_ = "Agg function cannot be nested";
-        return geax::frontend::GEAXErrorCode::GEAX_ERROR;
-    }
-    in_agg_func_ += 1;
-    auto agg_funcs = ArithOpNode::RegisterAggFuncs();
-    std::string func_name = ToString(node->funcName());
-    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
-    if (agg_funcs.find(func_name) != agg_funcs.end()) {
-        agg_exprs_.emplace_back(node);
-    }
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
-    in_agg_func_ -= 1;
-    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+  if (in_agg_func_ > 0) {
+    nested_agg_func_ = true;
+    error_msg_ = "Agg function cannot be nested";
+    return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+  }
+  in_agg_func_ += 1;
+  auto agg_funcs = ArithOpNode::RegisterAggFuncs();
+  std::string func_name = ToString(node->funcName());
+  std::transform(func_name.begin(), func_name.end(), func_name.begin(),
+                 ::tolower);
+  if (agg_funcs.find(func_name) != agg_funcs.end()) {
+    agg_exprs_.emplace_back(node);
+  }
+  ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->expr());
+  in_agg_func_ -= 1;
+  return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 std::any AstAggExprDetector::visit(geax::frontend::BAggFunc* node) {
-    if (in_agg_func_ > 0) {
-        nested_agg_func_ = true;
-        error_msg_ = "Agg function cannot be nested";
-        return geax::frontend::GEAXErrorCode::GEAX_ERROR;
-    }
-    in_agg_func_ += 1;
-    auto agg_funcs = ArithOpNode::RegisterAggFuncs();
-    std::string func_name = ToString(node->funcName());
-    std::transform(func_name.begin(), func_name.end(), func_name.begin(), ::tolower);
-    if (agg_funcs.find(func_name) != agg_funcs.end()) {
-        agg_exprs_.emplace_back(node);
-    }
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(node->lExpr()));
-    ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->rExpr());
-    in_agg_func_ -= 1;
-    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+  if (in_agg_func_ > 0) {
+    nested_agg_func_ = true;
+    error_msg_ = "Agg function cannot be nested";
+    return geax::frontend::GEAXErrorCode::GEAX_ERROR;
+  }
+  in_agg_func_ += 1;
+  auto agg_funcs = ArithOpNode::RegisterAggFuncs();
+  std::string func_name = ToString(node->funcName());
+  std::transform(func_name.begin(), func_name.end(), func_name.begin(),
+                 ::tolower);
+  if (agg_funcs.find(func_name) != agg_funcs.end()) {
+    agg_exprs_.emplace_back(node);
+  }
+  ACCEPT_AND_CHECK_WITH_ERROR_MSG(std::get<1>(node->lExpr()));
+  ACCEPT_AND_CHECK_WITH_ERROR_MSG(node->rExpr());
+  in_agg_func_ -= 1;
+  return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 std::any AstAggExprDetector::visit(geax::frontend::GetField* node) {
-    if (in_agg_func_ == 0) {
-        outside_var_ = true;
-    }
-    return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
+  if (in_agg_func_ == 0) {
+    outside_var_ = true;
+  }
+  return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }
 
 }  // namespace cypher

@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class VSome : public UnaryOp {
-public:
-    VSome() : UnaryOp(AstNodeType::kVSome) {}
-    ~VSome() = default;
+ public:
+  VSome() : UnaryOp(AstNodeType::kVSome) {}
+  ~VSome() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class VSome
 
 }  // namespace frontend

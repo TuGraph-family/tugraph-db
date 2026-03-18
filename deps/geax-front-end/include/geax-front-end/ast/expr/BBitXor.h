@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BBitXor : public BinaryOp {
-public:
-    BBitXor() : BinaryOp(AstNodeType::kBBitXor) {}
-    ~BBitXor() = default;
+ public:
+  BBitXor() : BinaryOp(AstNodeType::kBBitXor) {}
+  ~BBitXor() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BBitXor
 
 }  // namespace frontend

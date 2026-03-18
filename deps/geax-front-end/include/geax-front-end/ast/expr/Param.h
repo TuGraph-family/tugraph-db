@@ -30,25 +30,27 @@ using BoolParam = std::variant<bool, Param*>;
 using StringParam = std::variant<std::string, Param*>;
 
 class Param : public Expr {
-public:
-    Param() : Expr(AstNodeType::kParam) {}
-    ~Param() = default;
+ public:
+  Param() : Expr(AstNodeType::kParam) {}
+  ~Param() = default;
 
-    void setName(std::string&& name) { name_ = std::move(name); }
-    const std::string& name() const { return name_; }
-    std::string& name() { return name_; }
+  void setName(std::string&& name) { name_ = std::move(name); }
+  const std::string& name() const { return name_; }
+  std::string& name() { return name_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    std::string name_;
+  std::string name_;
 };  // class Param
 
 inline bool Param::equals(const Expr& other) const {
-    const auto& expr = static_cast<const Param&>(other);
-    return name_ == expr.name_;
+  const auto& expr = static_cast<const Param&>(other);
+  return name_ == expr.name_;
 }
 
 }  // namespace frontend

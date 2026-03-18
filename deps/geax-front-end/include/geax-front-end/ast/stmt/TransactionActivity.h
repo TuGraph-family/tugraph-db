@@ -28,17 +28,20 @@ namespace frontend {
  * This is one of the roots(session or transaction) of an AST.
  */
 class TransactionActivity : public AstNode {
-public:
-    TransactionActivity() : AstNode(AstNodeType::kTransactionActivity), transaction_(nullptr) {}
-    ~TransactionActivity() = default;
+ public:
+  TransactionActivity()
+      : AstNode(AstNodeType::kTransactionActivity), transaction_(nullptr) {}
+  ~TransactionActivity() = default;
 
-    void setTransaction(Transaction* transaction) { transaction_ = transaction; }
-    Transaction* transaction() const { return transaction_; }
+  void setTransaction(Transaction* transaction) { transaction_ = transaction; }
+  Transaction* transaction() const { return transaction_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    Transaction* transaction_;
+ private:
+  Transaction* transaction_;
 };
 
 }  // namespace frontend

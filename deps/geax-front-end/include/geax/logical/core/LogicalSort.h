@@ -14,9 +14,9 @@
 
 #pragma once
 
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/ast/utils/AstUtil.h"
@@ -28,30 +28,30 @@ namespace geax::logical {
 enum class Order { ASC, DESC, kMax };
 
 inline const char* ToString(Order order) {
-    static const frontend::StrArray<frontend::enumNum(Order::kMax)> kNameMap = {
-        "ASC",
-        "DESC",
-    };
-    const auto idx = static_cast<size_t>(order);
-    return idx < kNameMap.size() ? kNameMap[idx] : geax::frontend::kUnknown;
+  static const frontend::StrArray<frontend::enumNum(Order::kMax)> kNameMap = {
+      "ASC",
+      "DESC",
+  };
+  const auto idx = static_cast<size_t>(order);
+  return idx < kNameMap.size() ? kNameMap[idx] : geax::frontend::kUnknown;
 }
 
 class LogicalSort : public LogicalOperator {
  public:
-    explicit LogicalSort(
-        const std::vector<std::pair<frontend::Expr*, Order>>& sort)
-        : LogicalOperator(LogicalOperatorType::Sort), sort_(sort) {}
-    ~LogicalSort() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  explicit LogicalSort(
+      const std::vector<std::pair<frontend::Expr*, Order>>& sort)
+      : LogicalOperator(LogicalOperatorType::Sort), sort_(sort) {}
+  ~LogicalSort() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalSort(" + utils::ToString(sort_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalSort(" + utils::ToString(sort_) + ")";
+  }
 
  private:
-    std::vector<std::pair<frontend::Expr*, Order>> sort_;
+  std::vector<std::pair<frontend::Expr*, Order>> sort_;
 };
 }  // namespace geax::logical

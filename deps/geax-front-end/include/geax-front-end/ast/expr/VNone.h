@@ -24,14 +24,16 @@ namespace geax {
 namespace frontend {
 
 class VNone : public Literal {
-public:
-    VNone() : Literal(AstNodeType::kVNone) {}
-    ~VNone() = default;
+ public:
+  VNone() : Literal(AstNodeType::kVNone) {}
+  ~VNone() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr&) const override { return true; }
+ private:
+  bool equals(const Expr&) const override { return true; }
 };  // class VNone
 
 }  // namespace frontend

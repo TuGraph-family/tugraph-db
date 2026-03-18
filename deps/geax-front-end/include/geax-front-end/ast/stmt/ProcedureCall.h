@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class ProcedureCall : public AstNode {
-public:
-    explicit ProcedureCall(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~ProcedureCall() = default;
+ public:
+  explicit ProcedureCall(AstNodeType nodeType) : AstNode(nodeType) {}
+  ~ProcedureCall() = default;
 };  // class ProcedureCall
 
 }  // namespace frontend

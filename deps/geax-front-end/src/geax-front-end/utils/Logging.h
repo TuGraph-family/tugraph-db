@@ -12,15 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-
 #ifndef FRONTEND_UTILS_LOGGING_H_
 #define FRONTEND_UTILS_LOGGING_H_
 
 #include <unistd.h>
+
 #include <iostream>
 #ifdef ENABLE_GLOG
-#include <glog/logging.h>
 #include <gflags/gflags.h>
+#include <glog/logging.h>
 #endif
 #include "geax-front-end/utils/Copilot.h"
 
@@ -28,29 +28,27 @@
 #ifdef LOG
 #undef LOG
 #endif
-#define __LOG_INFO \
-    if (FLAGS_minloglevel <= google::GLOG_INFO) /* NOLINT */ \
-        COMPACT_GOOGLE_LOG_INFO.stream()
-#define __LOG_WARNING \
-    if (FLAGS_minloglevel <= google::GLOG_WARNING) /* NOLINT */ \
-        COMPACT_GOOGLE_LOG_WARNING.stream()
-#define __LOG_ERROR \
-    if (FLAGS_minloglevel <= google::GLOG_ERROR) /* NOLINT */ \
-        COMPACT_GOOGLE_LOG_ERROR.stream()
-#define __LOG_FATAL \
-    COMPACT_GOOGLE_LOG_FATAL.stream() /* NOLINT */
+#define __LOG_INFO                                         \
+  if (FLAGS_minloglevel <= google::GLOG_INFO) /* NOLINT */ \
+  COMPACT_GOOGLE_LOG_INFO.stream()
+#define __LOG_WARNING                                         \
+  if (FLAGS_minloglevel <= google::GLOG_WARNING) /* NOLINT */ \
+  COMPACT_GOOGLE_LOG_WARNING.stream()
+#define __LOG_ERROR                                         \
+  if (FLAGS_minloglevel <= google::GLOG_ERROR) /* NOLINT */ \
+  COMPACT_GOOGLE_LOG_ERROR.stream()
+#define __LOG_FATAL COMPACT_GOOGLE_LOG_FATAL.stream() /* NOLINT */
 #ifdef NDEBUG
 #define __LOG_DFATAL __LOG_ERROR
 #elif GOOGLE_STRIP_LOG <= 3
 #define __LOG_DFATAL COMPACT_GOOGLE_LOG_DFATAL.stream()
 #endif
 
-#define LOG(severity) __LOG_ ## severity
+#define LOG(severity) __LOG_##severity
 
 #else
 #define LOG(severity) std::cout
 #endif
-
 
 // Key-value format printers are prefixed with K*
 //
@@ -70,7 +68,7 @@
 // which will expand v to "v(address of pointer v)"
 #ifndef KP
 #define KP(v) KP_I(v)
-#define KP_I(v) #v << "(" << reinterpret_cast<const void*>(v) << ")"
+#define KP_I(v) #v << "(" << reinterpret_cast < const void*>(v) << ")"
 #endif
 // Multiple KVs
 // Maximumn number of args is 16.
@@ -136,13 +134,11 @@
 #define KD_I(v) K(v) << ", "
 #endif
 
-
 template <typename T>
-std::ostream&
-operator<<(std::enable_if_t<std::is_enum<T>::value,
-                            std::ostream>& strm,
-           const T& val) {
-    return strm << ToString(val);
+std::ostream& operator<<(
+    std::enable_if_t<std::is_enum<T>::value, std::ostream>& strm,
+    const T& val) {
+  return strm << ToString(val);
 }
 
 #endif  // FRONTEND_UTILS_LOGGING_H_

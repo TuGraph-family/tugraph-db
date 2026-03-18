@@ -48,9 +48,9 @@
 // JEMalloc provides it's own implementation of
 // malloc_usable_size, and that's what we should be using.
 #if defined(__FreeBSD__)
-#include <malloc_np.h> // @manual
+#include <malloc_np.h>  // @manual
 #else
-#include <jemalloc/jemalloc.h> // @manual
+#include <jemalloc/jemalloc.h>  // @manual
 #endif
 #else
 #if !defined(__FreeBSD__)
@@ -71,18 +71,13 @@ extern "C" size_t malloc_usable_size(void* ptr);
 
 namespace folly::clone {
 
-
 /**
  * Determine if we are using jemalloc or not.
  */
 #if defined(FOLLY_ASSUME_NO_JEMALLOC) || defined(FOLLY_SANITIZE)
-  inline bool usingJEMalloc() noexcept {
-    return false;
-  }
+inline bool usingJEMalloc() noexcept { return false; }
 #elif defined(USE_JEMALLOC) && !defined(FOLLY_SANITIZE)
-  inline bool usingJEMalloc() noexcept {
-    return true;
-  }
+inline bool usingJEMalloc() noexcept { return true; }
 #else
 inline bool usingJEMalloc() noexcept {
   // Checking for rallocx != nullptr is not sufficient; we may be in a
@@ -109,12 +104,8 @@ inline bool usingJEMalloc() noexcept {
     /* nolint */ volatile uint64_t* counter;
     size_t counterLen = sizeof(uint64_t*);
 
-    if (mallctl(
-            "thread.allocatedp",
-            static_cast<void*>(&counter),
-            &counterLen,
-            nullptr,
-            0) != 0) {
+    if (mallctl("thread.allocatedp", static_cast<void*>(&counter), &counterLen,
+                nullptr, 0) != 0) {
       return false;
     }
 
@@ -133,21 +124,16 @@ inline bool usingJEMalloc() noexcept {
     free(ptr);
 
     return (origAllocated != *counter);
-  }
-  ();
+  }();
 
   return result;
 }
 #endif
 
 #if defined(FOLLY_ASSUME_NO_TCMALLOC) || defined(FOLLY_SANITIZE)
-  inline bool usingTCMalloc() noexcept {
-    return false;
-  }
+inline bool usingTCMalloc() noexcept { return false; }
 #elif defined(USE_TCMALLOC) && !defined(FOLLY_SANITIZE)
-  inline bool usingTCMalloc() noexcept {
-    return true;
-  }
+inline bool usingTCMalloc() noexcept { return true; }
 #else
 inline bool usingTCMalloc() noexcept {
   static const bool result = []() noexcept {
@@ -175,8 +161,7 @@ inline bool usingTCMalloc() noexcept {
     free(ptr);
 
     return (before_bytes != after_bytes);
-  }
-  ();
+  }();
 
   return result;
 }
@@ -187,10 +172,9 @@ inline bool canSdallocx() noexcept {
   return rv;
 }
 
-
 inline void sizedFree(void* ptr, size_t size) {
 #if defined(FOLLY_SANITIZE)
-    free(ptr);
+  free(ptr);
 #else
   if (canSdallocx()) {
     sdallocx(ptr, size, 0);
@@ -200,7 +184,6 @@ inline void sizedFree(void* ptr, size_t size) {
 #endif
 }
 
-
-}
+}  // namespace folly::clone
 
 #endif  // GEAXFRONTEND_COMMON_FOLLYMALLOC_H_

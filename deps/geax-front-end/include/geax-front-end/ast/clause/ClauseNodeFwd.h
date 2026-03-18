@@ -40,6 +40,8 @@
 #include "geax-front-end/ast/clause/PathSearchPrefix.h"
 #include "geax-front-end/ast/clause/PropStruct.h"
 #include "geax-front-end/ast/clause/ReadConsistency.h"
+#include "geax-front-end/ast/clause/RemoveLabel.h"
+#include "geax-front-end/ast/clause/RemoveSingleProperty.h"
 #include "geax-front-end/ast/clause/ResetAll.h"
 #include "geax-front-end/ast/clause/ResetGraph.h"
 #include "geax-front-end/ast/clause/ResetParam.h"
@@ -59,7 +61,5 @@
 #include "geax-front-end/ast/clause/UpdateProperties.h"
 #include "geax-front-end/ast/clause/WhereClause.h"
 #include "geax-front-end/ast/clause/YieldField.h"
-#include "geax-front-end/ast/clause/RemoveSingleProperty.h"
-#include "geax-front-end/ast/clause/RemoveLabel.h"
 
 #endif  // GEAXFRONTEND_AST_CLAUSE_CLAUSENODEFWD_H_

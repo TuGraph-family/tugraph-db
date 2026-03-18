@@ -24,17 +24,19 @@ namespace geax {
 namespace frontend {
 
 class ResetParam : public SessionResetCommand {
-public:
-    ResetParam() : SessionResetCommand(AstNodeType::kResetParam) {}
-    ~ResetParam() = default;
+ public:
+  ResetParam() : SessionResetCommand(AstNodeType::kResetParam) {}
+  ~ResetParam() = default;
 
-    void setName(std::string&& name) { name_ = std::move(name); }
-    const std::string& name() const { return name_; }
+  void setName(std::string&& name) { name_ = std::move(name); }
+  const std::string& name() const { return name_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string name_;
+ private:
+  std::string name_;
 };
 
 }  // namespace frontend

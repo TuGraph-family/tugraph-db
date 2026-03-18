@@ -25,21 +25,25 @@ namespace geax {
 namespace frontend {
 
 class CallProcedureStatement : public AstNode {
-public:
-    CallProcedureStatement() : AstNode(AstNodeType::kCallProcedureStatement) {}
-    ~CallProcedureStatement() = default;
+ public:
+  CallProcedureStatement() : AstNode(AstNodeType::kCallProcedureStatement) {}
+  ~CallProcedureStatement() = default;
 
-    void setIsOption(bool isOption) { isOption_ = isOption; }
-    bool isOption() const { return isOption_; }
+  void setIsOption(bool isOption) { isOption_ = isOption; }
+  bool isOption() const { return isOption_; }
 
-    void setProcedureCall(ProcedureCall* procedureCall) { procedureCall_ = procedureCall; }
-    ProcedureCall* procedureCall() const { return procedureCall_; }
+  void setProcedureCall(ProcedureCall* procedureCall) {
+    procedureCall_ = procedureCall;
+  }
+  ProcedureCall* procedureCall() const { return procedureCall_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool isOption_{false};
-    ProcedureCall* procedureCall_;
+ private:
+  bool isOption_{false};
+  ProcedureCall* procedureCall_;
 };  // class CallProcedureStatement
 
 }  // namespace frontend

@@ -5,3 +5,4 @@ test/bdd/features/steps/__pycache__
 build
 .vscode
 .devcontainer
+.idea

@@ -25,19 +25,24 @@ namespace geax {
 namespace frontend {
 
 class CallQueryStatement : public SimpleQueryStatement {
-public:
-    CallQueryStatement() : SimpleQueryStatement(AstNodeType::kCallQueryStatement) {}
-    ~CallQueryStatement() = default;
+ public:
+  CallQueryStatement()
+      : SimpleQueryStatement(AstNodeType::kCallQueryStatement) {}
+  ~CallQueryStatement() = default;
 
-    void setProcedureStatement(CallProcedureStatement* procedureStatement) {
-        procedureStatement_ = procedureStatement;
-    }
-    CallProcedureStatement* procedureStatement() const { return procedureStatement_; }
+  void setProcedureStatement(CallProcedureStatement* procedureStatement) {
+    procedureStatement_ = procedureStatement;
+  }
+  CallProcedureStatement* procedureStatement() const {
+    return procedureStatement_;
+  }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    CallProcedureStatement* procedureStatement_;
+ private:
+  CallProcedureStatement* procedureStatement_;
 };  // class CallQueryStatement
 
 }  // namespace frontend

@@ -25,17 +25,19 @@ namespace geax {
 namespace frontend {
 
 class AllowAnonymousTable : public Hint {
-public:
-    AllowAnonymousTable() : Hint(AstNodeType::kAllowAnonymousTable) {}
-    ~AllowAnonymousTable() = default;
+ public:
+  AllowAnonymousTable() : Hint(AstNodeType::kAllowAnonymousTable) {}
+  ~AllowAnonymousTable() = default;
 
-    void setVal(BoolParam&& val) { val_ = std::move(val); }
-    const BoolParam val() const { return val_; }
+  void setVal(BoolParam&& val) { val_ = std::move(val); }
+  const BoolParam val() const { return val_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    BoolParam val_;
+ private:
+  BoolParam val_;
 };
 
 }  // namespace frontend

@@ -14,9 +14,9 @@
 
 #pragma once
 
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/ast/utils/AstUtil.h"
@@ -26,25 +26,25 @@
 namespace geax::logical {
 class LogicalAggregation : public LogicalOperator {
  public:
-    LogicalAggregation(
-        const std::vector<std::pair<frontend::Expr*, std::string>>& group,
-        const std::vector<std::pair<frontend::Expr*, std::string>>& aggregation)
-        : LogicalOperator(LogicalOperatorType::Aggregation),
-          group_(group),
-          aggregation_(aggregation) {}
-    ~LogicalAggregation() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalAggregation(
+      const std::vector<std::pair<frontend::Expr*, std::string>>& group,
+      const std::vector<std::pair<frontend::Expr*, std::string>>& aggregation)
+      : LogicalOperator(LogicalOperatorType::Aggregation),
+        group_(group),
+        aggregation_(aggregation) {}
+  ~LogicalAggregation() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalAggregation(group:" + utils::ToString(group_) +
-               ", aggregation:" + utils::ToString(aggregation_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalAggregation(group:" + utils::ToString(group_) +
+           ", aggregation:" + utils::ToString(aggregation_) + ")";
+  }
 
  private:
-    std::vector<std::pair<frontend::Expr*, std::string>> group_;
-    std::vector<std::pair<frontend::Expr*, std::string>> aggregation_;
+  std::vector<std::pair<frontend::Expr*, std::string>> group_;
+  std::vector<std::pair<frontend::Expr*, std::string>> aggregation_;
 };
 }  // namespace geax::logical

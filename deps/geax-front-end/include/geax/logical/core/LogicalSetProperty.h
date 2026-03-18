@@ -23,26 +23,26 @@
 namespace geax::logical {
 class LogicalSetProperty : public LogicalOperator {
  public:
-    LogicalSetProperty(const std::string& var_ref, const std::string& field,
-                       frontend::Expr* value)
-        : LogicalOperator(LogicalOperatorType::SetProperty),
-          var_ref_(var_ref),
-          field_(field),
-          value_(value) {}
-    ~LogicalSetProperty() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalSetProperty(const std::string& var_ref, const std::string& field,
+                     frontend::Expr* value)
+      : LogicalOperator(LogicalOperatorType::SetProperty),
+        var_ref_(var_ref),
+        field_(field),
+        value_(value) {}
+  ~LogicalSetProperty() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalSetProperty(var_ref:" + var_ref_ + ", field:" + field_ +
-               ", value:" + ToString(value_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalSetProperty(var_ref:" + var_ref_ + ", field:" + field_ +
+           ", value:" + ToString(value_) + ")";
+  }
 
  private:
-    std::string var_ref_;
-    std::string field_;
-    frontend::Expr* value_;
+  std::string var_ref_;
+  std::string field_;
+  frontend::Expr* value_;
 };
 }  // namespace geax::logical

@@ -33,6 +33,6 @@ bool checked_add(T* result, T a, T b) {
     return false;
   }
 }
-} // namespace folly::clone
+}  // namespace folly::clone
 
-#endif // GEAXFRONTEND_COMMON_FOLLYCHECKEDMATH_H_
+#endif  // GEAXFRONTEND_COMMON_FOLLYCHECKEDMATH_H_

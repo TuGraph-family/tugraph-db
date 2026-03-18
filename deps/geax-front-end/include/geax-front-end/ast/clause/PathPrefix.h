@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class PathPrefix : public AstNode {
-public:
-    explicit PathPrefix(AstNodeType type) : AstNode(type) {}
-    ~PathPrefix() = default;
+ public:
+  explicit PathPrefix(AstNodeType type) : AstNode(type) {}
+  ~PathPrefix() = default;
 };
 
 }  // namespace frontend

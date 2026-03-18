@@ -25,17 +25,20 @@ namespace geax {
 namespace frontend {
 
 class BindingTableInnerExpr : public BindingTableExpr {
-public:
-    BindingTableInnerExpr() : BindingTableExpr(AstNodeType::kBindingTableInnerExpr) {}
-    ~BindingTableInnerExpr() = default;
+ public:
+  BindingTableInnerExpr()
+      : BindingTableExpr(AstNodeType::kBindingTableInnerExpr) {}
+  ~BindingTableInnerExpr() = default;
 
-    void setExpr(Expr* expr) { expr_ = expr; }
-    Expr* expr() { return expr_; }
+  void setExpr(Expr* expr) { expr_ = expr; }
+  Expr* expr() { return expr_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    Expr* expr_;
+ private:
+  Expr* expr_;
 };  // class BindingTableInnerExpr
 
 }  // namespace frontend

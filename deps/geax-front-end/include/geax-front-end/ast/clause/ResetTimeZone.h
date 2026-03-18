@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class ResetTimeZone : public SessionResetCommand {
-public:
-    ResetTimeZone() : SessionResetCommand(AstNodeType::kResetTimeZone) {}
-    ~ResetTimeZone() = default;
+ public:
+  ResetTimeZone() : SessionResetCommand(AstNodeType::kResetTimeZone) {}
+  ~ResetTimeZone() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };
 
 }  // namespace frontend

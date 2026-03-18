@@ -28,17 +28,19 @@ namespace frontend {
  * An Node stands for a vertex pattern in the ast tree.
  */
 class Node : public AstNode {
-public:
-    Node() : AstNode(AstNodeType::kNode), filler_(nullptr) {}
-    ~Node() = default;
+ public:
+  Node() : AstNode(AstNodeType::kNode), filler_(nullptr) {}
+  ~Node() = default;
 
-    void setFiller(ElementFiller* filler) { filler_ = filler; }
-    ElementFiller* filler() const { return filler_; }
+  void setFiller(ElementFiller* filler) { filler_ = filler; }
+  ElementFiller* filler() const { return filler_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    ElementFiller* filler_;
+ private:
+  ElementFiller* filler_;
 };
 
 }  // namespace frontend

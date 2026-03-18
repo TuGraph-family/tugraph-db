@@ -25,19 +25,19 @@
 namespace geax::logical {
 class LogicalArgument : public LogicalOperator {
  public:
-    explicit LogicalArgument(const std::vector<std::string>& args)
-        : LogicalOperator(LogicalOperatorType::Argument), args_(args) {}
-    ~LogicalArgument() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  explicit LogicalArgument(const std::vector<std::string>& args)
+      : LogicalOperator(LogicalOperatorType::Argument), args_(args) {}
+  ~LogicalArgument() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalArgument(args:" + utils::ToString(args_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalArgument(args:" + utils::ToString(args_) + ")";
+  }
 
  private:
-    std::vector<std::string> args_;
+  std::vector<std::string> args_;
 };
 }  // namespace geax::logical

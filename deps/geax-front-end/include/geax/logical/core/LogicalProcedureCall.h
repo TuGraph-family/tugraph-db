@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/ast/utils/AstUtil.h"
@@ -25,24 +25,24 @@
 namespace geax::logical {
 class LogicalProcedureCall : public LogicalOperator {
  public:
-    LogicalProcedureCall(const std::string& name,
-                         const std::vector<frontend::Expr*>& args)
-        : LogicalOperator(LogicalOperatorType::ProcedureCall),
-          name_(name),
-          args_(args) {}
-    ~LogicalProcedureCall() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalProcedureCall(const std::string& name,
+                       const std::vector<frontend::Expr*>& args)
+      : LogicalOperator(LogicalOperatorType::ProcedureCall),
+        name_(name),
+        args_(args) {}
+  ~LogicalProcedureCall() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalProcedureCall(name:" + name_ +
-               ", args:" + utils::ToString(args_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalProcedureCall(name:" + name_ +
+           ", args:" + utils::ToString(args_) + ")";
+  }
 
  private:
-    std::string name_;
-    std::vector<frontend::Expr*> args_;
+  std::string name_;
+  std::vector<frontend::Expr*> args_;
 };
 }  // namespace geax::logical

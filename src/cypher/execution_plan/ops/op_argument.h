@@ -19,42 +19,43 @@
 #pragma once
 
 #include "cypher/execution_plan/ops/op.h"
-#include "cypher/parser/symbol_table.h"
 #include "cypher/graph/graph.h"
+#include "cypher/parser/symbol_table.h"
 
 namespace cypher {
 
 struct ArgIndex {
-    std::string alias;
-    // ASSERT the indexes in THIS record and INPUT record are the same.
-    size_t rec_idx;
-    SymbolNode::Type type;
+  std::string alias;
+  // ASSERT the indexes in THIS record and INPUT record are the same.
+  size_t rec_idx;
+  SymbolNode::Type type;
 
-    ArgIndex(const std::string &a, size_t idx, SymbolNode::Type t)
-        : alias(a), rec_idx(idx), type(t) {}
+  ArgIndex(const std::string &a, size_t idx, SymbolNode::Type t)
+      : alias(a), rec_idx(idx), type(t) {}
 };
 
 class Argument : public OpBase {
-    std::vector<ArgIndex> args_;
-    std::shared_ptr<Record> *input_record_ = nullptr;
-    const SymbolTable *sym_tab_ = nullptr;  // build time context
-    PatternGraph *pattern_graph_ = nullptr;
+  std::vector<ArgIndex> args_;
+  std::shared_ptr<Record> *input_record_ = nullptr;
+  const SymbolTable *sym_tab_ = nullptr;  // build time context
+  PatternGraph *pattern_graph_ = nullptr;
 
  public:
-    explicit Argument(const SymbolTable *sym_tab);
+  explicit Argument(const SymbolTable *sym_tab);
 
-    void Receive(std::shared_ptr<Record> *input_record, PatternGraph *pattern_graph);
+  void Receive(std::shared_ptr<Record> *input_record,
+               PatternGraph *pattern_graph);
 
-    OpResult Initialize(RTContext *ctx) override;
+  OpResult Initialize(RTContext *ctx) override;
 
-    OpResult RealConsume(RTContext *ctx) override;
+  OpResult RealConsume(RTContext *ctx) override;
 
-    OpResult ResetImpl(bool complete) override;
+  OpResult ResetImpl(bool complete) override;
 
-    std::string ToString() const override;
+  std::string ToString() const override;
 
-    CYPHER_DEFINE_VISITABLE()
+  CYPHER_DEFINE_VISITABLE()
 
-    CYPHER_DEFINE_CONST_VISITABLE()
+  CYPHER_DEFINE_CONST_VISITABLE()
 };
 }  // namespace cypher

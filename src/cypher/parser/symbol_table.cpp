@@ -16,23 +16,22 @@
 // Created by wt on 2019/12/31.
 //
 #include "cypher/parser/symbol_table.h"
-#include "common/logger.h"
+
 #include <spdlog/fmt/fmt.h>
+
+#include "common/logger.h"
 
 namespace cypher {
 static std::string ToString(const SymbolTable &sym_tab) {
-    std::string str = "Alias_ID_Map of Symbol Table:\n";
-    for (auto &a : sym_tab.symbols) {
-        auto s =
-            fmt::format("SYMBOL[{}]: ID {}, TYPE {}, SCOPE {}\n", a.first,
-                                                a.second.id, (int)a.second.type, (int)a.second.scope);
-        str.append(s);
-    }
-    return str;
+  std::string str = "Alias_ID_Map of Symbol Table:\n";
+  for (auto &a : sym_tab.symbols) {
+    auto s = fmt::format("SYMBOL[{}]: ID {}, TYPE {}, SCOPE {}\n", a.first,
+                         a.second.id, (int)a.second.type, (int)a.second.scope);
+    str.append(s);
+  }
+  return str;
 }
 
-void SymbolTable::DumpTable() const {
-        LOG_DEBUG(ToString(*this));
-}
+void SymbolTable::DumpTable() const { LOG_DEBUG(ToString(*this)); }
 
 }  // namespace cypher

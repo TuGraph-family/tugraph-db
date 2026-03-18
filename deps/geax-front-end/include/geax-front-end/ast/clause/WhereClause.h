@@ -25,17 +25,19 @@ namespace geax {
 namespace frontend {
 
 class WhereClause : public ElementPredicate {
-public:
-    WhereClause() : ElementPredicate(AstNodeType::kWhere), predicate_(nullptr) {}
-    ~WhereClause() = default;
+ public:
+  WhereClause() : ElementPredicate(AstNodeType::kWhere), predicate_(nullptr) {}
+  ~WhereClause() = default;
 
-    void setPredicate(Expr* predicate) { predicate_ = predicate; }
-    Expr* predicate() const { return predicate_; }
+  void setPredicate(Expr* predicate) { predicate_ = predicate; }
+  Expr* predicate() const { return predicate_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    Expr* predicate_;
+ private:
+  Expr* predicate_;
 };  // class WhereClause
 
 }  // namespace frontend

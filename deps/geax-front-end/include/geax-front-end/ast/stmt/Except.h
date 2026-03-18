@@ -24,17 +24,19 @@ namespace geax {
 namespace frontend {
 
 class Except : public QueryConjunctionType {
-public:
-    Except() : QueryConjunctionType(AstNodeType::kExcept), isDistinct_(true) {}
-    ~Except() = default;
+ public:
+  Except() : QueryConjunctionType(AstNodeType::kExcept), isDistinct_(true) {}
+  ~Except() = default;
 
-    void setDistince(const bool& isDistinct) { isDistinct_ = isDistinct; }
-    const bool distinct() const { return isDistinct_; }
+  void setDistince(const bool& isDistinct) { isDistinct_ = isDistinct; }
+  const bool distinct() const { return isDistinct_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool isDistinct_;
+ private:
+  bool isDistinct_;
 };  // class Except
 
 }  // namespace frontend

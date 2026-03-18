@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class Neg : public UnaryOp {
-public:
-    Neg() : UnaryOp(AstNodeType::kNeg) {}
-    ~Neg() = default;
+ public:
+  Neg() : UnaryOp(AstNodeType::kNeg) {}
+  ~Neg() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class Neg
 
 }  // namespace frontend

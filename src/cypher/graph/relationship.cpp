@@ -17,15 +17,17 @@
 //
 
 #include "cypher/graph/relationship.h"
+
 #include "common/exceptions.h"
 
 namespace cypher {
 
 Relationship::Relationship() : id_(-1), derivation_(UNKNOWN) {}
 
-Relationship::Relationship(RelpID id, const std::set<std::string> &types, NodeID lhs, NodeID rhs,
-                           parser::LinkDirection direction, const std::string &alias,
-                           Derivation derivation)
+Relationship::Relationship(RelpID id, const std::set<std::string> &types,
+                           NodeID lhs, NodeID rhs,
+                           parser::LinkDirection direction,
+                           const std::string &alias, Derivation derivation)
     : id_(id),
       types_(types),
       lhs_(lhs),
@@ -34,9 +36,11 @@ Relationship::Relationship(RelpID id, const std::set<std::string> &types, NodeID
       direction_(direction),
       derivation_(derivation) {}
 
-Relationship::Relationship(RelpID id, const std::set<std::string> &types, geax::frontend::Edge* ast_node_, NodeID src, NodeID dst,
-                           parser::LinkDirection direction, const std::string &alias, int min_hop,
-                           int max_hop, Derivation derivation)
+Relationship::Relationship(RelpID id, const std::set<std::string> &types,
+                           geax::frontend::Edge *ast_node_, NodeID src,
+                           NodeID dst, parser::LinkDirection direction,
+                           const std::string &alias, int min_hop, int max_hop,
+                           Derivation derivation)
     : id_(id),
       types_(types),
       lhs_(src),
@@ -46,33 +50,32 @@ Relationship::Relationship(RelpID id, const std::set<std::string> &types, geax::
       derivation_(derivation),
       ast_node_(ast_node_),
       min_hop_(min_hop),
-      max_hop_(max_hop) {
-}
+      max_hop_(max_hop) {}
 
 RelpID Relationship::ID() const { return id_; }
 
 const std::set<std::string> &Relationship::Types() const { return types_; }
 
 NodeID Relationship::Src() const {
-    switch (direction_) {
+  switch (direction_) {
     case parser::LinkDirection::LEFT_TO_RIGHT:
-        return lhs_;
+      return lhs_;
     case parser::LinkDirection::RIGHT_TO_LEFT:
-        return rhs_;
+      return rhs_;
     default:
-        THROW_CODE(CypherException, "Failed to get src node.");
-    }
+      THROW_CODE(CypherException, "Failed to get src node.");
+  }
 }
 
 NodeID Relationship::Dst() const {
-    switch (direction_) {
+  switch (direction_) {
     case parser::LinkDirection::LEFT_TO_RIGHT:
-        return rhs_;
+      return rhs_;
     case parser::LinkDirection::RIGHT_TO_LEFT:
-        return lhs_;
+      return lhs_;
     default:
-        THROW_CODE(CypherException, "Failed to get dst node.");
-    }
+      THROW_CODE(CypherException, "Failed to get dst node.");
+  }
 }
 
 const std::string &Relationship::Alias() const { return alias_; }
@@ -80,7 +83,7 @@ const std::string &Relationship::Alias() const { return alias_; }
 bool Relationship::Empty() const { return (id_ < 0); }
 
 bool Relationship::Undirected() const {
-    return direction_ == parser::LinkDirection::DIR_NOT_SPECIFIED;
+  return direction_ == parser::LinkDirection::DIR_NOT_SPECIFIED;
 }
 
 bool Relationship::VarLen() const { return CheckVarLen(min_hop_, max_hop_); }
@@ -90,6 +93,6 @@ int Relationship::MinHop() const { return min_hop_; }
 int Relationship::MaxHop() const { return max_hop_; }
 
 bool Relationship::CheckVarLen(int min_hop, int max_hop) {
-    return min_hop >= 0 && max_hop >= min_hop;
+  return min_hop >= 0 && max_hop >= min_hop;
 }
 }  // namespace cypher

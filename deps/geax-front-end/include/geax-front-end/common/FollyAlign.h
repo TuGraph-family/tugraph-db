@@ -34,22 +34,10 @@ struct max_align_t_ {
     return r;
   }
 };
-using max_align_v_ = max_align_t_<
-    long double,
-    double,
-    float,
-    long long int,
-    long int,
-    int,
-    short int,
-    bool,
-    char,
-    char16_t,
-    char32_t,
-    wchar_t,
-    void*,
-    std::max_align_t>;
-
+using max_align_v_ =
+    max_align_t_<long double, double, float, long long int, long int, int,
+                 short int, bool, char, char16_t, char32_t, wchar_t, void*,
+                 std::max_align_t>;
 
 // max_align_v is the alignment of max_align_t.
 //
@@ -86,6 +74,6 @@ using max_align_v_ = max_align_t_<
 constexpr std::size_t max_align_v = max_align_v_::value();
 struct alignas(max_align_v) max_align_t {};
 
-} // namespace folly::clone
+}  // namespace folly::clone
 
 #endif  // GEAXFRONTEND_COMMON_FOLLYALIGN_H_

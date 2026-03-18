@@ -24,52 +24,54 @@ class VertexIterator;
 }
 namespace cypher {
 class NodeScan : public OpBase {
-    /* NOTE: Nodes in pattern graph are stored in std::vector, whose reference
-     * will become INVALID after reallocation.
-     * TODO(anyone) Make sure not add nodes to the pattern graph, otherwise use NodeId instead.  */
-    friend class LocateNodeByVid;
-    friend class LocateNodeByIndexedProp;
+  /* NOTE: Nodes in pattern graph are stored in std::vector, whose reference
+   * will become INVALID after reallocation.
+   * TODO(anyone) Make sure not add nodes to the pattern graph, otherwise use
+   * NodeId instead.  */
+  friend class LocateNodeByVid;
+  friend class LocateNodeByIndexedProp;
 
-    Node *node_ = nullptr;
-    std::unique_ptr<graphdb::VertexIterator> vit_ = nullptr;
-    std::optional<std::string> node_label_;
-    std::optional<std::unordered_map<std::string, Value>> node_props_;
-    //lgraph::VIter *it_ = nullptr;           // also can be derived from node
-    std::string alias_;                     // also can be derived from node
-    std::string label_;                     // also can be derived from node
-    size_t node_rec_idx_;                      // index of node in record
-    size_t rec_length_;                        // number of entries in a record.
-    const SymbolTable *sym_tab_ = nullptr;  // build time context
-    std::string vertex_iter_;
-   OpResult HandOff();
-   void ExtractProperties(RTContext *ctx, std::unordered_map<std::string, Value>& properties,
-                                           const geax::frontend::ElementFiller* filler);
-   void ExtractPropertyKeys(std::unordered_set<std::string>& keys,
-                          const geax::frontend::ElementFiller* filler);
+  Node *node_ = nullptr;
+  std::unique_ptr<graphdb::VertexIterator> vit_ = nullptr;
+  std::optional<std::string> node_label_;
+  std::optional<std::unordered_map<std::string, Value>> node_props_;
+  // lgraph::VIter *it_ = nullptr;           // also can be derived from node
+  std::string alias_;                     // also can be derived from node
+  std::string label_;                     // also can be derived from node
+  size_t node_rec_idx_;                   // index of node in record
+  size_t rec_length_;                     // number of entries in a record.
+  const SymbolTable *sym_tab_ = nullptr;  // build time context
+  std::string vertex_iter_;
+  OpResult HandOff();
+  void ExtractProperties(RTContext *ctx,
+                         std::unordered_map<std::string, Value> &properties,
+                         const geax::frontend::ElementFiller *filler);
+  void ExtractPropertyKeys(std::unordered_set<std::string> &keys,
+                           const geax::frontend::ElementFiller *filler);
 
  public:
-    NodeScan(txn::Transaction* txn, Node *node, const SymbolTable *sym_tab);
+  NodeScan(txn::Transaction *txn, Node *node, const SymbolTable *sym_tab);
 
-    OpResult Initialize(RTContext *ctx) override;
-    OpResult NoChildInitialize(RTContext *ctx);
-    OpResult WithChildInitialize(RTContext *ctx);
+  OpResult Initialize(RTContext *ctx) override;
+  OpResult NoChildInitialize(RTContext *ctx);
+  OpResult WithChildInitialize(RTContext *ctx);
 
-    OpResult RealConsume(RTContext *ctx) override;
-    OpResult NoChildRealConsume(RTContext *ctx);
-    OpResult WithChildRealConsume(RTContext *ctx);
+  OpResult RealConsume(RTContext *ctx) override;
+  OpResult NoChildRealConsume(RTContext *ctx);
+  OpResult WithChildRealConsume(RTContext *ctx);
 
-    OpResult ResetImpl(bool complete) override;
+  OpResult ResetImpl(bool complete) override;
 
-    std::string ToString() const override {
-        return fmt::format("{} [{},{}]", name, alias_, vertex_iter_);
-    }
+  std::string ToString() const override {
+    return fmt::format("{} [{},{}]", name, alias_, vertex_iter_);
+  }
 
-    Node *GetNode() const { return node_; }
+  Node *GetNode() const { return node_; }
 
-    const SymbolTable *SymTab() const { return sym_tab_; }
+  const SymbolTable *SymTab() const { return sym_tab_; }
 
-    CYPHER_DEFINE_VISITABLE()
+  CYPHER_DEFINE_VISITABLE()
 
-    CYPHER_DEFINE_CONST_VISITABLE()
+  CYPHER_DEFINE_CONST_VISITABLE()
 };
 }  // namespace cypher

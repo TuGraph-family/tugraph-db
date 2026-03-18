@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class SessionSetCommand : public AstNode {
-public:
-    explicit SessionSetCommand(AstNodeType type) : AstNode(type) {}
-    ~SessionSetCommand() = default;
+ public:
+  explicit SessionSetCommand(AstNodeType type) : AstNode(type) {}
+  ~SessionSetCommand() = default;
 };
 
 }  // namespace frontend

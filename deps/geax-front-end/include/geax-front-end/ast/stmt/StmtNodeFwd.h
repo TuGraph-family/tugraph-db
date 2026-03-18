@@ -38,6 +38,7 @@
 #include "geax-front-end/ast/stmt/FocusedResultStatement.h"
 #include "geax-front-end/ast/stmt/ForStatement.h"
 #include "geax-front-end/ast/stmt/FullTransaction.h"
+#include "geax-front-end/ast/stmt/InQueryProcedureCall.h"
 #include "geax-front-end/ast/stmt/InlineProcedureCall.h"
 #include "geax-front-end/ast/stmt/InsertStatement.h"
 #include "geax-front-end/ast/stmt/JoinQueryExpression.h"
@@ -46,6 +47,7 @@
 #include "geax-front-end/ast/stmt/LinearDataModifyingStatement.h"
 #include "geax-front-end/ast/stmt/ManagerStatement.h"
 #include "geax-front-end/ast/stmt/MatchStatement.h"
+#include "geax-front-end/ast/stmt/MergeStatement.h"
 #include "geax-front-end/ast/stmt/NamedProcedureCall.h"
 #include "geax-front-end/ast/stmt/NormalTransaction.h"
 #include "geax-front-end/ast/stmt/PrimitiveResultStatement.h"
@@ -64,8 +66,6 @@
 #include "geax-front-end/ast/stmt/StartTransaction.h"
 #include "geax-front-end/ast/stmt/StatementWithYield.h"
 #include "geax-front-end/ast/stmt/TransactionActivity.h"
-#include "geax-front-end/ast/stmt/MergeStatement.h"
 #include "geax-front-end/ast/stmt/UnwindStatement.h"
-#include "geax-front-end/ast/stmt/InQueryProcedureCall.h"
 
 #endif  // GEAXFRONTEND_AST_STMT_STMTNODEFWD_H_

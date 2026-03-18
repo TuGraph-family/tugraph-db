@@ -22,13 +22,13 @@
 namespace geax::logical {
 class LogicalOptional : public LogicalOperator {
  public:
-    LogicalOptional() : LogicalOperator(LogicalOperatorType::Optional) {}
-    ~LogicalOptional() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalOptional() : LogicalOperator(LogicalOperatorType::Optional) {}
+  ~LogicalOptional() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override { return "LogicalOptional()"; }
+  }
+  std::string toString() const override { return "LogicalOptional()"; }
 };
 }  // namespace geax::logical

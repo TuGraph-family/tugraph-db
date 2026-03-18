@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class RollBackTransaction : public EndTransaction {
-public:
-    RollBackTransaction() : EndTransaction(AstNodeType::kRollBackTransaction) {}
-    ~RollBackTransaction() = default;
+ public:
+  RollBackTransaction() : EndTransaction(AstNodeType::kRollBackTransaction) {}
+  ~RollBackTransaction() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };
 
 }  // namespace frontend

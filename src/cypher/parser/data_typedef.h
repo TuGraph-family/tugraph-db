@@ -17,25 +17,25 @@
 //
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 namespace parser {
 // class declarations
 struct Expression;
 
 enum LinkDirection {
-    LEFT_TO_RIGHT,
-    RIGHT_TO_LEFT,
-    DIR_NOT_SPECIFIED,
-    UNKNOWN,
+  LEFT_TO_RIGHT,
+  RIGHT_TO_LEFT,
+  DIR_NOT_SPECIFIED,
+  UNKNOWN,
 };
 
 enum CmdType {
-    QUERY,
-    EXPLAIN,
-    PROFILE,
+  QUERY,
+  EXPLAIN,
+  PROFILE,
 };
 
 static const char *const ANONYMOUS = "@ANON_";
@@ -55,11 +55,14 @@ typedef std::tuple<std::string, VEC_STR, TUP_PROPERTIES> TUP_NODE_PATTERN;
 typedef std::tuple<std::string, VEC_STR, std::array<int, 2>, TUP_PROPERTIES>
     TUP_RELATIONSHIP_DETAIL;
 // link direction, relationship_detail
-typedef std::tuple<LinkDirection, TUP_RELATIONSHIP_DETAIL> TUP_RELATIONSHIP_PATTERN;
+typedef std::tuple<LinkDirection, TUP_RELATIONSHIP_DETAIL>
+    TUP_RELATIONSHIP_PATTERN;
 // relationship_pattern, node_pattern
-typedef std::tuple<TUP_RELATIONSHIP_PATTERN, TUP_NODE_PATTERN> TUP_PATTERN_ELEMENT_CHAIN;
+typedef std::tuple<TUP_RELATIONSHIP_PATTERN, TUP_NODE_PATTERN>
+    TUP_PATTERN_ELEMENT_CHAIN;
 // node_pattern, pattern_element_chain
-typedef std::tuple<TUP_NODE_PATTERN, std::vector<TUP_PATTERN_ELEMENT_CHAIN>> TUP_PATTERN_ELEMENT;
+typedef std::tuple<TUP_NODE_PATTERN, std::vector<TUP_PATTERN_ELEMENT_CHAIN>>
+    TUP_PATTERN_ELEMENT;
 // variable, [anonymous_]pattern_element
 typedef std::tuple<std::string, TUP_PATTERN_ELEMENT> TUP_PATTERN_PART;
 // pattern_parts
@@ -67,15 +70,16 @@ typedef std::vector<TUP_PATTERN_PART> VEC_PATTERN;
 // expression, as_variable
 typedef std::tuple<Expression, std::string, bool> TUP_RETURN_ITEM;
 // return_items, sort_items(return_item_idx, asc), skip, limit
-typedef std::tuple<std::vector<TUP_RETURN_ITEM>, std::vector<std::pair<int, bool>>, Expression,
-                   Expression>
+typedef std::tuple<std::vector<TUP_RETURN_ITEM>,
+                   std::vector<std::pair<int, bool>>, Expression, Expression>
     TUP_RETURN_BODY;
 // distinct, return_body
 typedef std::tuple<bool, TUP_RETURN_BODY> TUP_RETURN;
 // expression, as_variable
 typedef TUP_RETURN_ITEM TUP_UNWIND;
 // variable, property_expression, sign(=/+=), expression, node_labels
-typedef std::tuple<std::string, Expression, std::string, Expression, VEC_STR> TUP_SET_ITEM;
+typedef std::tuple<std::string, Expression, std::string, Expression, VEC_STR>
+    TUP_SET_ITEM;
 // vector of set items
 typedef std::vector<TUP_SET_ITEM> VEC_SET;
 // vector of delete

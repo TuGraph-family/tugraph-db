@@ -26,28 +26,33 @@ namespace geax {
 namespace frontend {
 
 class JoinQueryExpression : public AstNode {
-public:
-    JoinQueryExpression() : AstNode(AstNodeType::kJoinQuery), head_(nullptr) {}
-    ~JoinQueryExpression() = default;
+ public:
+  JoinQueryExpression() : AstNode(AstNodeType::kJoinQuery), head_(nullptr) {}
+  ~JoinQueryExpression() = default;
 
-    void setHead(CompositeQueryStatement* head) { head_ = head; }
-    CompositeQueryStatement* head() const { return head_; }
+  void setHead(CompositeQueryStatement* head) { head_ = head; }
+  CompositeQueryStatement* head() const { return head_; }
 
-    void appendBody(JoinRightPart* part, std::optional<PrimitiveResultStatement*>&& result) {
-        body_.emplace_back(part, std::move(result));
-    }
-    void setBody(
-        std::vector<std::tuple<JoinRightPart*, std::optional<PrimitiveResultStatement*>>>&&
-            body) {
-        body_ = std::move(body);
-    }
-    const auto& body() const { return body_; }
+  void appendBody(JoinRightPart* part,
+                  std::optional<PrimitiveResultStatement*>&& result) {
+    body_.emplace_back(part, std::move(result));
+  }
+  void setBody(
+      std::vector<std::tuple<
+          JoinRightPart*, std::optional<PrimitiveResultStatement*>>>&& body) {
+    body_ = std::move(body);
+  }
+  const auto& body() const { return body_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    CompositeQueryStatement* head_;
-    std::vector<std::tuple<JoinRightPart*, std::optional<PrimitiveResultStatement*>>> body_;
+ private:
+  CompositeQueryStatement* head_;
+  std::vector<
+      std::tuple<JoinRightPart*, std::optional<PrimitiveResultStatement*>>>
+      body_;
 };  // class JoinQueryExpression
 
 }  // namespace frontend

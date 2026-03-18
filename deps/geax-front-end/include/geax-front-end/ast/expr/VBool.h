@@ -24,24 +24,26 @@ namespace geax {
 namespace frontend {
 
 class VBool : public Literal {
-public:
-    VBool() : Literal(AstNodeType::kVBool), val_(false) {}
-    ~VBool() = default;
+ public:
+  VBool() : Literal(AstNodeType::kVBool), val_(false) {}
+  ~VBool() = default;
 
-    void setVal(bool val) { val_ = val; }
-    bool val() const { return val_; }
+  void setVal(bool val) { val_ = val; }
+  bool val() const { return val_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    bool val_;
+  bool val_;
 };  // class VBool
 
 inline bool VBool::equals(const Expr& other) const {
-    const auto& expr = static_cast<const VBool&>(other);
-    return val_ == expr.val_;
+  const auto& expr = static_cast<const VBool&>(other);
+  return val_ == expr.val_;
 }
 
 }  // namespace frontend

@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class SimpleQueryStatement : public AstNode {
-public:
-    explicit SimpleQueryStatement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~SimpleQueryStatement() = default;
+ public:
+  explicit SimpleQueryStatement(AstNodeType nodeType) : AstNode(nodeType) {}
+  ~SimpleQueryStatement() = default;
 };  // class SimpleQueryStatement
 
 }  // namespace frontend

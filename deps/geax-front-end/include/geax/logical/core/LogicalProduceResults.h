@@ -22,14 +22,14 @@
 namespace geax::logical {
 class LogicalProduceResults : public LogicalOperator {
  public:
-    LogicalProduceResults()
-        : LogicalOperator(LogicalOperatorType::ProduceResults) {}
-    ~LogicalProduceResults() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalProduceResults()
+      : LogicalOperator(LogicalOperatorType::ProduceResults) {}
+  ~LogicalProduceResults() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override { return "LogicalProduceResults()"; }
+  }
+  std::string toString() const override { return "LogicalProduceResults()"; }
 };
 }  // namespace geax::logical

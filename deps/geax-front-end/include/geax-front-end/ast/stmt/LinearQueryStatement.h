@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class LinearQueryStatement : public AstNode {
-public:
-    explicit LinearQueryStatement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~LinearQueryStatement() = default;
+ public:
+  explicit LinearQueryStatement(AstNodeType nodeType) : AstNode(nodeType) {}
+  ~LinearQueryStatement() = default;
 };  // class LinearQueryStatement
 
 }  // namespace frontend

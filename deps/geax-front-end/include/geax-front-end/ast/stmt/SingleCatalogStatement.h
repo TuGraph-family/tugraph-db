@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class SingleCatalogStatement : public AstNode {
-public:
-    explicit SingleCatalogStatement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~SingleCatalogStatement() = default;
+ public:
+  explicit SingleCatalogStatement(AstNodeType nodeType) : AstNode(nodeType) {}
+  ~SingleCatalogStatement() = default;
 };  // class SingleCatalogStatement
 
 }  // namespace frontend

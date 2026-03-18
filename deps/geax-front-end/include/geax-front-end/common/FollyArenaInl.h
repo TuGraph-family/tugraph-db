@@ -67,9 +67,8 @@ void* Arena<Alloc>::allocateSlow(size_t size) {
 
 template <class Alloc>
 void Arena<Alloc>::merge(Arena<Alloc>&& other) {
-  FOLLY_SAFE_CHECK(
-      blockGoodAllocSize() == other.blockGoodAllocSize(),
-      "cannot merge arenas of different minBlockSize");
+  FOLLY_SAFE_CHECK(blockGoodAllocSize() == other.blockGoodAllocSize(),
+                   "cannot merge arenas of different minBlockSize");
   blocks_.splice_after(blocks_.before_begin(), other.blocks_);
   other.blocks_.clear();
   largeBlocks_.splice_after(largeBlocks_.before_begin(), other.largeBlocks_);
@@ -80,4 +79,4 @@ void Arena<Alloc>::merge(Arena<Alloc>&& other) {
   bytesUsed_ += other.bytesUsed_;
   other.bytesUsed_ = 0;
 }
-} // namespace folly::clone
+}  // namespace folly::clone

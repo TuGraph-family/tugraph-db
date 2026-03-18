@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class ElementPredicate : public AstNode {
-public:
-    explicit ElementPredicate(AstNodeType type) : AstNode(type) {}
-    ~ElementPredicate() = default;
+ public:
+  explicit ElementPredicate(AstNodeType type) : AstNode(type) {}
+  ~ElementPredicate() = default;
 };
 
 }  // namespace frontend

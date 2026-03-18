@@ -18,6 +18,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+
 #include "common/temporal/duration.h"
 
 // forword declaration to avoid include value.h here
@@ -26,54 +27,56 @@ class Value;
 namespace common {
 
 class Date {
-   private:
-    int64_t days_since_epoch_ = 0;
+ private:
+  int64_t days_since_epoch_ = 0;
 
-    void fromYearMonthDay(int year, unsigned month, unsigned day);
-    void fromYearMonthDay(const Date& base_date, std::optional<int> year,
-                          std::optional<unsigned> month, std::optional<unsigned> day);
-    void fromYearWeekDow(int year, unsigned week, unsigned dow);
-    void fromYearWeekDow(const Date& base_date, std::optional<int> year,
-                         std::optional<unsigned> week,
-                         std::optional<unsigned> dow);
-    void fromYearQuarterDoq(int year, int quarter, int doq);
-    void fromYearQuarterDoq(const Date& base_date, std::optional<int> year,
-                            std::optional<int> quarter, std::optional<int> doq);
-    void fromYearDoy(int year, int doy);
-    void fromYearDoy(const Date& base_date, std::optional<int> year, std::optional<int> doy);
-    void fromTimeZone(std::string timezone);
+  void fromYearMonthDay(int year, unsigned month, unsigned day);
+  void fromYearMonthDay(const Date& base_date, std::optional<int> year,
+                        std::optional<unsigned> month,
+                        std::optional<unsigned> day);
+  void fromYearWeekDow(int year, unsigned week, unsigned dow);
+  void fromYearWeekDow(const Date& base_date, std::optional<int> year,
+                       std::optional<unsigned> week,
+                       std::optional<unsigned> dow);
+  void fromYearQuarterDoq(int year, int quarter, int doq);
+  void fromYearQuarterDoq(const Date& base_date, std::optional<int> year,
+                          std::optional<int> quarter, std::optional<int> doq);
+  void fromYearDoy(int year, int doy);
+  void fromYearDoy(const Date& base_date, std::optional<int> year,
+                   std::optional<int> doy);
+  void fromTimeZone(std::string timezone);
 
-   public:
-    Date();
+ public:
+  Date();
 
-    /**
-     * Construct a Date object from a temporal value
-     *
-     * \param   str: a string representation of a temporal value
-     */
-    explicit Date(const std::string& str);
-    explicit Date(int64_t days) : days_since_epoch_(days){};
+  /**
+   * Construct a Date object from a temporal value
+   *
+   * \param   str: a string representation of a temporal value
+   */
+  explicit Date(const std::string& str);
+  explicit Date(int64_t days) : days_since_epoch_(days){};
 
-    /**
-     * Construct a Date object from a user supplied map
-     *
-     * \param   params: a map containing the single key 'timezone', or a map
-     *                  containing temporal values ('date', 'year', 'month',
-     *                  'day', 'week', 'dayOfWeek', 'quarter',
-     *                  'dayOfQuarter', 'ordinalDay') as components.
-     */
-    explicit Date(const Value& params);
-    [[nodiscard]] int64_t GetStorage() const { return days_since_epoch_; }
-    [[nodiscard]] std::string ToString() const;
-    [[nodiscard]] Value GetUnit(std::string unit) const;
-    bool operator<(const Date& rhs) const noexcept;
-    bool operator<=(const Date& rhs) const noexcept;
-    bool operator>(const Date& rhs) const noexcept;
-    bool operator>=(const Date& rhs) const noexcept;
-    bool operator==(const Date& rhs) const noexcept;
-    bool operator!=(const Date& rhs) const noexcept;
-    Date operator-(const Duration& duration) const;
-    Date operator+(const Duration& duration) const;
+  /**
+   * Construct a Date object from a user supplied map
+   *
+   * \param   params: a map containing the single key 'timezone', or a map
+   *                  containing temporal values ('date', 'year', 'month',
+   *                  'day', 'week', 'dayOfWeek', 'quarter',
+   *                  'dayOfQuarter', 'ordinalDay') as components.
+   */
+  explicit Date(const Value& params);
+  [[nodiscard]] int64_t GetStorage() const { return days_since_epoch_; }
+  [[nodiscard]] std::string ToString() const;
+  [[nodiscard]] Value GetUnit(std::string unit) const;
+  bool operator<(const Date& rhs) const noexcept;
+  bool operator<=(const Date& rhs) const noexcept;
+  bool operator>(const Date& rhs) const noexcept;
+  bool operator>=(const Date& rhs) const noexcept;
+  bool operator==(const Date& rhs) const noexcept;
+  bool operator!=(const Date& rhs) const noexcept;
+  Date operator-(const Duration& duration) const;
+  Date operator+(const Duration& duration) const;
 };
 
 }  // namespace common

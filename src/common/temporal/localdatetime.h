@@ -15,6 +15,7 @@
 #pragma once
 
 #include <string>
+
 #include "common/temporal/duration.h"
 
 // forword declaration to avoid include value.h here
@@ -22,42 +23,40 @@ class Value;
 
 namespace common {
 class LocalDateTime {
-   private:
-    int64_t nanoseconds_since_epoch_ = 0;
+ private:
+  int64_t nanoseconds_since_epoch_ = 0;
 
-   public:
-    LocalDateTime();
-    /**
-     * Construct a Local DateTime object from a temporal value
-     *
-     * \param   str: a string representation of a temporal value
-     */
-    explicit LocalDateTime(const std::string& str);
-    explicit LocalDateTime(int64_t nanoseconds)
-        : nanoseconds_since_epoch_(nanoseconds){};
+ public:
+  LocalDateTime();
+  /**
+   * Construct a Local DateTime object from a temporal value
+   *
+   * \param   str: a string representation of a temporal value
+   */
+  explicit LocalDateTime(const std::string& str);
+  explicit LocalDateTime(int64_t nanoseconds)
+      : nanoseconds_since_epoch_(nanoseconds){};
 
-    /**
-     * Construct a Local DateTime object from a user supplied map
-     *
-     * \param params: a map containing the single key 'timezone', or a map
-     *                containing temporal values ('year', 'month', 'day',
-     *                'hour', 'minute', 'second',
-     *                'millisecond', 'microsecond', 'nanosecond') as components.
-     */
-    explicit LocalDateTime(const Value& params);
-    [[nodiscard]] int64_t GetStorage() const {
-        return nanoseconds_since_epoch_;
-    }
-    [[nodiscard]] std::string ToString() const;
-    [[nodiscard]] Value GetUnit(std::string unit) const;
-    bool operator<(const LocalDateTime& rhs) const noexcept;
-    bool operator<=(const LocalDateTime& rhs) const noexcept;
-    bool operator>(const LocalDateTime& rhs) const noexcept;
-    bool operator>=(const LocalDateTime& rhs) const noexcept;
-    bool operator==(const LocalDateTime& rhs) const noexcept;
-    bool operator!=(const LocalDateTime& rhs) const noexcept;
-    LocalDateTime operator-(const Duration& duration) const;
-    LocalDateTime operator+(const Duration& duration) const;
+  /**
+   * Construct a Local DateTime object from a user supplied map
+   *
+   * \param params: a map containing the single key 'timezone', or a map
+   *                containing temporal values ('year', 'month', 'day',
+   *                'hour', 'minute', 'second',
+   *                'millisecond', 'microsecond', 'nanosecond') as components.
+   */
+  explicit LocalDateTime(const Value& params);
+  [[nodiscard]] int64_t GetStorage() const { return nanoseconds_since_epoch_; }
+  [[nodiscard]] std::string ToString() const;
+  [[nodiscard]] Value GetUnit(std::string unit) const;
+  bool operator<(const LocalDateTime& rhs) const noexcept;
+  bool operator<=(const LocalDateTime& rhs) const noexcept;
+  bool operator>(const LocalDateTime& rhs) const noexcept;
+  bool operator>=(const LocalDateTime& rhs) const noexcept;
+  bool operator==(const LocalDateTime& rhs) const noexcept;
+  bool operator!=(const LocalDateTime& rhs) const noexcept;
+  LocalDateTime operator-(const Duration& duration) const;
+  LocalDateTime operator+(const Duration& duration) const;
 };
 
 }  // namespace common

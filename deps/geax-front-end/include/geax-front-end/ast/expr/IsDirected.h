@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class IsDirected : public UnaryOp {
-public:
-    IsDirected() : UnaryOp(AstNodeType::kIsDirected) {}
-    ~IsDirected() = default;
+ public:
+  IsDirected() : UnaryOp(AstNodeType::kIsDirected) {}
+  ~IsDirected() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class IsDirected
 
 }  // namespace frontend

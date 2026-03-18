@@ -23,12 +23,15 @@
 namespace geax {
 namespace frontend {
 class ShowProcessListStatement : public Statement {
-public:
-    ShowProcessListStatement() : Statement(AstNodeType::kShowProcessListStatement) {}
+ public:
+  ShowProcessListStatement()
+      : Statement(AstNodeType::kShowProcessListStatement) {}
 
-    virtual ~ShowProcessListStatement() = default;
+  virtual ~ShowProcessListStatement() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class ShowProcessListStatement
 
 }  // namespace frontend

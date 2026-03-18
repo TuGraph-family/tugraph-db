@@ -25,26 +25,28 @@ namespace geax {
 namespace frontend {
 
 class IsLabeled : public UnaryOp {
-public:
-    IsLabeled() : UnaryOp(AstNodeType::kIsLabeled), labelTree_(nullptr) {}
-    ~IsLabeled() = default;
+ public:
+  IsLabeled() : UnaryOp(AstNodeType::kIsLabeled), labelTree_(nullptr) {}
+  ~IsLabeled() = default;
 
-    void setLabelTree(LabelTree* labelTree) { labelTree_ = labelTree; }
-    LabelTree* labelTree() const { return labelTree_; }
+  void setLabelTree(LabelTree* labelTree) { labelTree_ = labelTree; }
+  LabelTree* labelTree() const { return labelTree_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    LabelTree* labelTree_;
+  LabelTree* labelTree_;
 };  // class IsLabeled
 
 inline bool IsLabeled::equals(const Expr& other) const {
-    const auto& expr = static_cast<const IsLabeled&>(other);
-    bool ret = UnaryOp::equals(other) && (nullptr != labelTree_) && (nullptr != expr.labelTree_) &&
-               *labelTree_ == *expr.labelTree_;
-    return ret;
+  const auto& expr = static_cast<const IsLabeled&>(other);
+  bool ret = UnaryOp::equals(other) && (nullptr != labelTree_) &&
+             (nullptr != expr.labelTree_) && *labelTree_ == *expr.labelTree_;
+  return ret;
 }
 
 }  // namespace frontend

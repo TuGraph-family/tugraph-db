@@ -25,35 +25,40 @@ namespace geax {
 namespace frontend {
 
 class UpdateProperties : public SetItem {
-public:
-     enum Mode {
-        Property = 0, // set a.name = b;
-        Assign,       // set a = b;
-        Append        // set a += b;
-     };
-    UpdateProperties() : SetItem(AstNodeType::kUpdateProperties),
-                          mode_(Mode::Property), structs_(nullptr), variable_(nullptr) {}
-    ~UpdateProperties() = default;
+ public:
+  enum Mode {
+    Property = 0,  // set a.name = b;
+    Assign,        // set a = b;
+    Append         // set a += b;
+  };
+  UpdateProperties()
+      : SetItem(AstNodeType::kUpdateProperties),
+        mode_(Mode::Property),
+        structs_(nullptr),
+        variable_(nullptr) {}
+  ~UpdateProperties() = default;
 
-    void setV(std::string&& v) { v_ = std::move(v); }
-    const std::string& v() const { return v_; }
+  void setV(std::string&& v) { v_ = std::move(v); }
+  const std::string& v() const { return v_; }
 
-    void setStructs(PropStruct* structs) { structs_ = structs; }
-    PropStruct* structs() const { return structs_; }
+  void setStructs(PropStruct* structs) { structs_ = structs; }
+  PropStruct* structs() const { return structs_; }
 
-    void setMode(Mode m) {mode_ = m;}
-    Mode mode() {return mode_;}
+  void setMode(Mode m) { mode_ = m; }
+  Mode mode() { return mode_; }
 
-    void setVariable(Expr* val) {variable_ = val;}
-    Expr* variable() {return variable_;}
+  void setVariable(Expr* val) { variable_ = val; }
+  Expr* variable() { return variable_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string v_;
-    Mode mode_;
-    PropStruct* structs_;
-    Expr* variable_;
+ private:
+  std::string v_;
+  Mode mode_;
+  PropStruct* structs_;
+  Expr* variable_;
 };
 
 }  // namespace frontend

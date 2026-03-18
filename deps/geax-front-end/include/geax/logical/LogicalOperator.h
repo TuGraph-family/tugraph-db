@@ -14,73 +14,73 @@
 
 #pragma once
 
-#include <iostream>
 #include <cstdint>
+#include <iostream>
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
-#include "geax/logical/LogicalOperatorVisitor.h"
 #include "geax-front-end/GEAXErrorCode.h"
+#include "geax/logical/LogicalOperatorVisitor.h"
 
 namespace geax::logical {
 
 enum class LogicalOperatorType : uint32_t {
-    // core
-    AllNodesScan,
-    NodeByLabelsScan,
-    NodeSeek,
-    ExpandAll,
-    VarLengthExpand,
-    Create,
-    Delete,
-    SetProperty,
-    Apply,
-    SemiApply,
-    AntiSemiApply,
-    Argument,
-    ProcedureCall,
-    CartesianProduct,
-    ProduceResults,
-    Optional,
-    Filter,
-    Projection,
-    Sort,
-    Limit,
-    Skip,
-    Distinct,
-    Aggregation,
-    // extensions
-    Join,
-    SemiJoin,
-    AntiJoin,
-    Union,
-    Intersect,
-    Minus,
-    GetEdges,
-    ExtractEdge,
+  // core
+  AllNodesScan,
+  NodeByLabelsScan,
+  NodeSeek,
+  ExpandAll,
+  VarLengthExpand,
+  Create,
+  Delete,
+  SetProperty,
+  Apply,
+  SemiApply,
+  AntiSemiApply,
+  Argument,
+  ProcedureCall,
+  CartesianProduct,
+  ProduceResults,
+  Optional,
+  Filter,
+  Projection,
+  Sort,
+  Limit,
+  Skip,
+  Distinct,
+  Aggregation,
+  // extensions
+  Join,
+  SemiJoin,
+  AntiJoin,
+  Union,
+  Intersect,
+  Minus,
+  GetEdges,
+  ExtractEdge,
 };
 
 class LogicalOperator : public std::enable_shared_from_this<LogicalOperator> {
  public:
-    explicit LogicalOperator(LogicalOperatorType type) : type_(type) {}
-    virtual ~LogicalOperator() = default;
-    virtual std::any accept(LogicalOperatorVisitor* visitor) = 0;
-    virtual std::string toString() const = 0;
-    LogicalOperatorType type() const { return type_; }
-    void addChild(std::shared_ptr<LogicalOperator> child) {
-        children_.push_back(child);
-        child->parent_ = shared_from_this();
-    }
-    const std::vector<std::shared_ptr<LogicalOperator>>& children() const {
-        return children_;
-    }
-    std::weak_ptr<LogicalOperator> parent() const { return parent_; }
+  explicit LogicalOperator(LogicalOperatorType type) : type_(type) {}
+  virtual ~LogicalOperator() = default;
+  virtual std::any accept(LogicalOperatorVisitor* visitor) = 0;
+  virtual std::string toString() const = 0;
+  LogicalOperatorType type() const { return type_; }
+  void addChild(std::shared_ptr<LogicalOperator> child) {
+    children_.push_back(child);
+    child->parent_ = shared_from_this();
+  }
+  const std::vector<std::shared_ptr<LogicalOperator>>& children() const {
+    return children_;
+  }
+  std::weak_ptr<LogicalOperator> parent() const { return parent_; }
 
  protected:
-    LogicalOperatorType type_;
-    std::vector<std::shared_ptr<LogicalOperator>> children_;
-    std::weak_ptr<LogicalOperator> parent_;
+  LogicalOperatorType type_;
+  std::vector<std::shared_ptr<LogicalOperator>> children_;
+  std::weak_ptr<LogicalOperator> parent_;
 };
 
 };  // namespace geax::logical

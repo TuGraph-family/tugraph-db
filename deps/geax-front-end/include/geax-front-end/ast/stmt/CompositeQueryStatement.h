@@ -26,30 +26,35 @@ namespace geax {
 namespace frontend {
 
 /**
- * NOTE(yaochi): I think `composite` is more precise than `set`, since `otherwise` is also
- * included here.
+ * NOTE(yaochi): I think `composite` is more precise than `set`, since
+ * `otherwise` is also included here.
  */
 class CompositeQueryStatement : public AstNode {
-public:
-    CompositeQueryStatement() : AstNode(AstNodeType::kCompositeStatement), head_(nullptr) {}
-    ~CompositeQueryStatement() = default;
+ public:
+  CompositeQueryStatement()
+      : AstNode(AstNodeType::kCompositeStatement), head_(nullptr) {}
+  ~CompositeQueryStatement() = default;
 
-    void setHead(LinearQueryStatement* head) { head_ = head; }
-    LinearQueryStatement* head() const { return head_; }
+  void setHead(LinearQueryStatement* head) { head_ = head; }
+  LinearQueryStatement* head() const { return head_; }
 
-    void appendBody(QueryConjunctionType* type, LinearQueryStatement* statement) {
-        body_.emplace_back(type, statement);
-    }
-    void setBody(std::vector<std::tuple<QueryConjunctionType*, LinearQueryStatement*>>&& body) {
-        body_ = std::move(body);
-    }
-    const auto& body() const { return body_; }
+  void appendBody(QueryConjunctionType* type, LinearQueryStatement* statement) {
+    body_.emplace_back(type, statement);
+  }
+  void setBody(
+      std::vector<std::tuple<QueryConjunctionType*, LinearQueryStatement*>>&&
+          body) {
+    body_ = std::move(body);
+  }
+  const auto& body() const { return body_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    LinearQueryStatement* head_;
-    std::vector<std::tuple<QueryConjunctionType*, LinearQueryStatement*>> body_;
+ private:
+  LinearQueryStatement* head_;
+  std::vector<std::tuple<QueryConjunctionType*, LinearQueryStatement*>> body_;
 };  // class CompositeQueryStatement
 
 }  // namespace frontend

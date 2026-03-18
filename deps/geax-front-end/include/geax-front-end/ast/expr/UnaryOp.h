@@ -24,24 +24,25 @@ namespace geax {
 namespace frontend {
 
 class UnaryOp : public Expr {
-public:
-    explicit UnaryOp(AstNodeType type) : Expr(type), expr_(nullptr) {}
-    ~UnaryOp() = default;
+ public:
+  explicit UnaryOp(AstNodeType type) : Expr(type), expr_(nullptr) {}
+  ~UnaryOp() = default;
 
-    void setExpr(Expr* expr) { expr_ = expr; }
-    Expr* expr() const { return expr_; }
+  void setExpr(Expr* expr) { expr_ = expr; }
+  Expr* expr() const { return expr_; }
 
-protected:
-    bool equals(const Expr& other) const override;
+ protected:
+  bool equals(const Expr& other) const override;
 
-private:
-    Expr* expr_;
+ private:
+  Expr* expr_;
 };  // class UnaryOp
 
 inline bool UnaryOp::equals(const Expr& other) const {
-    const auto& expr = static_cast<const UnaryOp&>(other);
-    bool ret = (nullptr != expr_) && (nullptr != expr.expr_) && *expr_ == *expr.expr_;
-    return ret;
+  const auto& expr = static_cast<const UnaryOp&>(other);
+  bool ret =
+      (nullptr != expr_) && (nullptr != expr.expr_) && *expr_ == *expr.expr_;
+  return ret;
 }
 
 }  // namespace frontend

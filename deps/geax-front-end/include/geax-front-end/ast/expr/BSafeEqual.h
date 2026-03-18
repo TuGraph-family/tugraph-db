@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BSafeEqual : public BinaryOp {
-public:
-    BSafeEqual() : BinaryOp(AstNodeType::kBSafeEqual) {}
-    ~BSafeEqual() = default;
+ public:
+  BSafeEqual() : BinaryOp(AstNodeType::kBSafeEqual) {}
+  ~BSafeEqual() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BSafeEqual
 
 }  // namespace frontend

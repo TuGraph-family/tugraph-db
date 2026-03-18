@@ -33,30 +33,34 @@ namespace frontend {
  * A ElementFiller represents a common part of vertex and edge patterns.
  */
 class ElementFiller : public AstNode {
-public:
-    ElementFiller() : AstNode(AstNodeType::kElementFiller) {}
-    ~ElementFiller() = default;
+ public:
+  ElementFiller() : AstNode(AstNodeType::kElementFiller) {}
+  ~ElementFiller() = default;
 
-    void setV(std::string&& v) { v_ = std::move(v); }
-    const std::optional<std::string>& v() const { return v_; }
+  void setV(std::string&& v) { v_ = std::move(v); }
+  const std::optional<std::string>& v() const { return v_; }
 
-    void setLabel(LabelTree* label) { label_ = label; }
-    const std::optional<LabelTree*>& label() const { return label_; }
+  void setLabel(LabelTree* label) { label_ = label; }
+  const std::optional<LabelTree*>& label() const { return label_; }
 
-    void appendPredicate(ElementPredicate* predicate) {
-        elementPredicates_.emplace_back(predicate);
-    }
-    void setPredicates(std::vector<ElementPredicate*>&& elementPredicates) {
-        elementPredicates_ = std::move(elementPredicates);
-    }
-    const std::vector<ElementPredicate*>& predicates() const { return elementPredicates_; }
+  void appendPredicate(ElementPredicate* predicate) {
+    elementPredicates_.emplace_back(predicate);
+  }
+  void setPredicates(std::vector<ElementPredicate*>&& elementPredicates) {
+    elementPredicates_ = std::move(elementPredicates);
+  }
+  const std::vector<ElementPredicate*>& predicates() const {
+    return elementPredicates_;
+  }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::optional<std::string> v_;  // also called element variable
-    std::optional<LabelTree*> label_;
-    std::vector<ElementPredicate*> elementPredicates_;
+ private:
+  std::optional<std::string> v_;  // also called element variable
+  std::optional<LabelTree*> label_;
+  std::vector<ElementPredicate*> elementPredicates_;
 };
 
 }  // namespace frontend

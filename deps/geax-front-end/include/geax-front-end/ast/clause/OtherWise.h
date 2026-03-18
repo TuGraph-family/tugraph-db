@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class OtherWise : public QueryConjunctionType {
-public:
-    OtherWise() : QueryConjunctionType(AstNodeType::kOtherWise) {}
-    ~OtherWise() = default;
+ public:
+  OtherWise() : QueryConjunctionType(AstNodeType::kOtherWise) {}
+  ~OtherWise() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class OtherWise
 
 }  // namespace frontend

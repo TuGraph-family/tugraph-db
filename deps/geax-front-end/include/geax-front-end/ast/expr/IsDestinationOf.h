@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class IsDestinationOf : public BinaryOp {
-public:
-    IsDestinationOf() : BinaryOp(AstNodeType::kIsDestinationOf) {}
-    ~IsDestinationOf() = default;
+ public:
+  IsDestinationOf() : BinaryOp(AstNodeType::kIsDestinationOf) {}
+  ~IsDestinationOf() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class IsDestinationOf
 
 }  // namespace frontend

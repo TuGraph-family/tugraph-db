@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BBitLeftShift : public BinaryOp {
-public:
-    BBitLeftShift() : BinaryOp(AstNodeType::kBBitRightShift) {}
-    ~BBitLeftShift() = default;
+ public:
+  BBitLeftShift() : BinaryOp(AstNodeType::kBBitRightShift) {}
+  ~BBitLeftShift() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BBitLeftShift
 
 }  // namespace frontend

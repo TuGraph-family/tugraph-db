@@ -25,31 +25,37 @@ namespace geax {
 namespace frontend {
 
 class FocusedQueryStatement : public LinearQueryStatement {
-public:
-    FocusedQueryStatement()
-        : LinearQueryStatement(AstNodeType::kFocusedQueryStatement), resultStatement_(nullptr) {}
-    ~FocusedQueryStatement() = default;
+ public:
+  FocusedQueryStatement()
+      : LinearQueryStatement(AstNodeType::kFocusedQueryStatement),
+        resultStatement_(nullptr) {}
+  ~FocusedQueryStatement() = default;
 
-    void appendQuery(std::string&& graphRef, SimpleQueryStatement* queryStatement) {
-        queryList_.emplace_back(std::move(graphRef), queryStatement);
-    }
-    void setQueryList(std::vector<std::tuple<std::string, SimpleQueryStatement*>>&& queryList) {
-        queryList_ = std::move(queryList);
-    }
-    const std::vector<std::tuple<std::string, SimpleQueryStatement*>>& queryList() const {
-        return queryList_;
-    }
+  void appendQuery(std::string&& graphRef,
+                   SimpleQueryStatement* queryStatement) {
+    queryList_.emplace_back(std::move(graphRef), queryStatement);
+  }
+  void setQueryList(
+      std::vector<std::tuple<std::string, SimpleQueryStatement*>>&& queryList) {
+    queryList_ = std::move(queryList);
+  }
+  const std::vector<std::tuple<std::string, SimpleQueryStatement*>>& queryList()
+      const {
+    return queryList_;
+  }
 
-    void setResultStatement(PrimitiveResultStatement* resultStatement) {
-        resultStatement_ = resultStatement;
-    }
-    PrimitiveResultStatement* resultStatement() const { return resultStatement_; }
+  void setResultStatement(PrimitiveResultStatement* resultStatement) {
+    resultStatement_ = resultStatement;
+  }
+  PrimitiveResultStatement* resultStatement() const { return resultStatement_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::vector<std::tuple<std::string, SimpleQueryStatement*>> queryList_;
-    PrimitiveResultStatement* resultStatement_;
+ private:
+  std::vector<std::tuple<std::string, SimpleQueryStatement*>> queryList_;
+  PrimitiveResultStatement* resultStatement_;
 };  // class FocusedQueryStatement
 
 }  // namespace frontend

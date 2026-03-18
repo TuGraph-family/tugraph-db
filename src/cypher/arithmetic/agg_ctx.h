@@ -22,10 +22,10 @@
 namespace cypher {
 class AggCtx {
  public:
-    // void *fctx;
-    std::string err;
-    Entry result;
-    virtual int Step(const std::vector<Entry> &args) = 0;
-    virtual int ReduceNext() = 0;
+  // void *fctx;
+  std::string err;
+  Entry result;
+  virtual int Step(const std::vector<Entry> &args) = 0;
+  virtual int ReduceNext() = 0;
 };
 }  // namespace cypher

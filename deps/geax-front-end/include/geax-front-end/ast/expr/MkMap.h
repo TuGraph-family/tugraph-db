@@ -24,32 +24,38 @@ namespace geax {
 namespace frontend {
 
 class MkMap : public Expr {
-public:
-    MkMap() : Expr(AstNodeType::kMkMap) {}
-    ~MkMap() = default;
+ public:
+  MkMap() : Expr(AstNodeType::kMkMap) {}
+  ~MkMap() = default;
 
-    void appendElem(Expr* k, Expr* v) { elems_.emplace_back(k, v); }
-    void setElems(std::vector<std::tuple<Expr*, Expr*>>&& elems) { elems_ = std::move(elems); }
-    const std::vector<std::tuple<Expr*, Expr*>>& elems() const { return elems_; }
+  void appendElem(Expr* k, Expr* v) { elems_.emplace_back(k, v); }
+  void setElems(std::vector<std::tuple<Expr*, Expr*>>&& elems) {
+    elems_ = std::move(elems);
+  }
+  const std::vector<std::tuple<Expr*, Expr*>>& elems() const { return elems_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    std::vector<std::tuple<Expr*, Expr*>> elems_;
+  std::vector<std::tuple<Expr*, Expr*>> elems_;
 };  // class MkMap
 
 inline bool MkMap::equals(const Expr& other) const {
-    const auto& expr = static_cast<const MkMap&>(other);
-    bool ret = elems_.size() == expr.elems_.size();
-    for (auto i = 0u; i < elems_.size() && ret; ++i) {
-        ret = (nullptr != std::get<0>(elems_[i])) && (nullptr != std::get<0>(expr.elems_[i])) &&
-              (nullptr != std::get<1>(elems_[i])) && (nullptr != std::get<1>(expr.elems_[i]));
-        ret = ret && *std::get<0>(elems_[i]) == *std::get<0>(expr.elems_[i]);
-        ret = ret && (*std::get<1>(elems_[i]) == *std::get<1>(expr.elems_[i]));
-    }
-    return ret;
+  const auto& expr = static_cast<const MkMap&>(other);
+  bool ret = elems_.size() == expr.elems_.size();
+  for (auto i = 0u; i < elems_.size() && ret; ++i) {
+    ret = (nullptr != std::get<0>(elems_[i])) &&
+          (nullptr != std::get<0>(expr.elems_[i])) &&
+          (nullptr != std::get<1>(elems_[i])) &&
+          (nullptr != std::get<1>(expr.elems_[i]));
+    ret = ret && *std::get<0>(elems_[i]) == *std::get<0>(expr.elems_[i]);
+    ret = ret && (*std::get<1>(elems_[i]) == *std::get<1>(expr.elems_[i]));
+  }
+  return ret;
 }
 
 }  // namespace frontend

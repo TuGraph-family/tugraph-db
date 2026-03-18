@@ -25,17 +25,20 @@ namespace geax {
 namespace frontend {
 
 class SetTimeZoneClause : public SessionSetCommand {
-public:
-    SetTimeZoneClause() : SessionSetCommand(AstNodeType::kSetTimeZone), initExpr_(nullptr) {}
-    ~SetTimeZoneClause() = default;
+ public:
+  SetTimeZoneClause()
+      : SessionSetCommand(AstNodeType::kSetTimeZone), initExpr_(nullptr) {}
+  ~SetTimeZoneClause() = default;
 
-    void setInitExpr(Expr* initExpr) { initExpr_ = initExpr; }
-    Expr* initExpr() const { return initExpr_; }
+  void setInitExpr(Expr* initExpr) { initExpr_ = initExpr; }
+  Expr* initExpr() const { return initExpr_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    Expr* initExpr_;
+ private:
+  Expr* initExpr_;
 };
 
 }  // namespace frontend

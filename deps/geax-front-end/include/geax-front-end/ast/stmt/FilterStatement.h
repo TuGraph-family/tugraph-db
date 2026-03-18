@@ -25,18 +25,21 @@ namespace geax {
 namespace frontend {
 
 class FilterStatement : public SimpleQueryStatement {
-public:
-    FilterStatement()
-        : SimpleQueryStatement(AstNodeType::kFilterStatement), predicate_(nullptr) {}
-    ~FilterStatement() = default;
+ public:
+  FilterStatement()
+      : SimpleQueryStatement(AstNodeType::kFilterStatement),
+        predicate_(nullptr) {}
+  ~FilterStatement() = default;
 
-    void setPredicate(Expr* predicate) { predicate_ = predicate; }
-    Expr* predicate() const { return predicate_; }
+  void setPredicate(Expr* predicate) { predicate_ = predicate; }
+  Expr* predicate() const { return predicate_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    Expr* predicate_;
+ private:
+  Expr* predicate_;
 };  // class FilterStatement
 
 }  // namespace frontend

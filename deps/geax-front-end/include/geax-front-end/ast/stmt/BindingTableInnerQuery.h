@@ -25,17 +25,20 @@ namespace geax {
 namespace frontend {
 
 class BindingTableInnerQuery : public BindingTableExpr {
-public:
-    BindingTableInnerQuery() : BindingTableExpr(AstNodeType::kBindingTableInnerQuery) {}
-    ~BindingTableInnerQuery() = default;
+ public:
+  BindingTableInnerQuery()
+      : BindingTableExpr(AstNodeType::kBindingTableInnerQuery) {}
+  ~BindingTableInnerQuery() = default;
 
-    void setBody(ProcedureBody* body) { body_ = body; }
-    ProcedureBody* body() { return body_; }
+  void setBody(ProcedureBody* body) { body_ = body; }
+  ProcedureBody* body() { return body_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    ProcedureBody* body_;
+ private:
+  ProcedureBody* body_;
 };  // class BindingTableInnerQuery
 
 }  // namespace frontend

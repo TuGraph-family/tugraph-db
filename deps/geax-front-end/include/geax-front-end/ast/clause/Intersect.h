@@ -24,17 +24,20 @@ namespace geax {
 namespace frontend {
 
 class Intersect : public QueryConjunctionType {
-public:
-    Intersect() : QueryConjunctionType(AstNodeType::kIntersect), isDistinct_(true) {}
-    ~Intersect() = default;
+ public:
+  Intersect()
+      : QueryConjunctionType(AstNodeType::kIntersect), isDistinct_(true) {}
+  ~Intersect() = default;
 
-    void setDistinct(bool isDistinct) { isDistinct_ = isDistinct; }
-    bool distinct() const { return isDistinct_; }
+  void setDistinct(bool isDistinct) { isDistinct_ = isDistinct; }
+  bool distinct() const { return isDistinct_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool isDistinct_;
+ private:
+  bool isDistinct_;
 };  // class Intersect
 
 }  // namespace frontend

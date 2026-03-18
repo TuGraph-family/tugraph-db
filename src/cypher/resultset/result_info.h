@@ -16,63 +16,64 @@
 // Created by wt on 6/12/18.
 //
 #pragma once
+#include "cypher/parser/symbol_table.h"
 #include "cypher/resultset/record.h"
 #include "cypher/resultset/resultset_statistics.h"
-#include "cypher/parser/symbol_table.h"
 
 namespace cypher {
 
 /* A column within the result-info
  * a column can be referred to either by its name or alias */
 struct Column {
-    std::string name;
-    std::string alias; /* AS ${alias} */
-    bool aggregated;   /* 1 if column is aggregated, 0 otherwise. */
-    //lgraph_api::LGraphType type;
+  std::string name;
+  std::string alias; /* AS ${alias} */
+  bool aggregated;   /* 1 if column is aggregated, 0 otherwise. */
+  // lgraph_api::LGraphType type;
 
-    Column(const std::string &n, const std::string &a, bool ag)
-        : name(n), alias(a), aggregated(ag) {}
+  Column(const std::string &n, const std::string &a, bool ag)
+      : name(n), alias(a), aggregated(ag) {}
 
-    explicit Column(const std::string &n)
-        : name(n), alias(""), aggregated(false) {}
+  explicit Column(const std::string &n)
+      : name(n), alias(""), aggregated(false) {}
 
-    std::string ToString() const {
-        std::string str;
-        if (!alias.empty()) {
-            str = alias;
-        } else {
-            str = name;
-        }
-        return str;
+  std::string ToString() const {
+    std::string str;
+    if (!alias.empty()) {
+      str = alias;
+    } else {
+      str = name;
     }
+    return str;
+  }
 };
 
 struct ResultSetHeader {
-    std::vector<Column> colums; /* Vector of Columns, desired elements specified in return clause */
+  std::vector<Column> colums; /* Vector of Columns, desired elements specified
+                                 in return clause */
 
-    std::string ToString() const {
-        std::string str;
-        if (colums.empty()) return str;
-        auto it = colums.begin();
-        str.append(it->ToString());
-        it++;
-        for (; it != colums.end(); it++) {
-            str.append(",").append(it->ToString());
-        }
-        return str;
+  std::string ToString() const {
+    std::string str;
+    if (colums.empty()) return str;
+    auto it = colums.begin();
+    str.append(it->ToString());
+    it++;
+    for (; it != colums.end(); it++) {
+      str.append(",").append(it->ToString());
     }
+    return str;
+  }
 };
 
 struct ResultInfo {
-    // std::vector<Record> records;
-    //std::vector<std::string> header;
-    ResultSetHeader header;  /* Describes how records should look like. */
-    bool aggregated = false; /* Rather or not this is an aggregated result set. */
-    bool ordered = false;    /* Rather or not this result set is ordered. */
-    std::vector<std::pair<int, bool>> sort_items;
-    int64_t skip = -1;
-    int64_t limit = -1;    /* Max number of records in result-set. */
-    bool distinct = false; /* Rather or not each record is unique. */
-    ResultSetStatistics statistics;
+  // std::vector<Record> records;
+  // std::vector<std::string> header;
+  ResultSetHeader header;  /* Describes how records should look like. */
+  bool aggregated = false; /* Rather or not this is an aggregated result set. */
+  bool ordered = false;    /* Rather or not this result set is ordered. */
+  std::vector<std::pair<int, bool>> sort_items;
+  int64_t skip = -1;
+  int64_t limit = -1;    /* Max number of records in result-set. */
+  bool distinct = false; /* Rather or not each record is unique. */
+  ResultSetStatistics statistics;
 };
 }  // namespace cypher

@@ -24,21 +24,23 @@ namespace geax {
 namespace frontend {
 
 class EdgeOnJoin : public Hint {
-public:
-    EdgeOnJoin() : Hint(AstNodeType::kEdgeOnJoin) {}
-    ~EdgeOnJoin() = default;
+ public:
+  EdgeOnJoin() : Hint(AstNodeType::kEdgeOnJoin) {}
+  ~EdgeOnJoin() = default;
 
-    void setEdge(std::string&& edge) { edge_ = std::move(edge); }
-    const std::string& edge() const { return edge_; }
+  void setEdge(std::string&& edge) { edge_ = std::move(edge); }
+  const std::string& edge() const { return edge_; }
 
-    void setJoinKey(std::string&& joinKey) { joinKey_ = std::move(joinKey); }
-    const std::string& joinKey() const { return joinKey_; }
+  void setJoinKey(std::string&& joinKey) { joinKey_ = std::move(joinKey); }
+  const std::string& joinKey() const { return joinKey_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string edge_;
-    std::string joinKey_;
+ private:
+  std::string edge_;
+  std::string joinKey_;
 };
 
 }  // namespace frontend

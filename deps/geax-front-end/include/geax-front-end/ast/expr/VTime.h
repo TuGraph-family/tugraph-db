@@ -24,24 +24,26 @@ namespace geax {
 namespace frontend {
 
 class VTime : public Literal {
-public:
-    VTime() : Literal(AstNodeType::kVTime) {}
-    ~VTime() = default;
+ public:
+  VTime() : Literal(AstNodeType::kVTime) {}
+  ~VTime() = default;
 
-    void setVal(std::string&& val) { val_ = std::move(val); }
-    const std::string& val() const { return val_; }
+  void setVal(std::string&& val) { val_ = std::move(val); }
+  const std::string& val() const { return val_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    std::string val_;
+  std::string val_;
 };  // class VTime
 
 inline bool VTime::equals(const Expr& other) const {
-    const auto& expr = static_cast<const VTime&>(other);
-    return val_ == expr.val_;
+  const auto& expr = static_cast<const VTime&>(other);
+  return val_ == expr.val_;
 }
 
 }  // namespace frontend

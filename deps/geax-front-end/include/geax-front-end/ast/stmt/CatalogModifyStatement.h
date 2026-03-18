@@ -18,27 +18,33 @@
 #ifndef GEAXFRONTEND_AST_STMT_CATALOGMODIFYSTATEMENT_H_
 #define GEAXFRONTEND_AST_STMT_CATALOGMODIFYSTATEMENT_H_
 
-#include "geax-front-end/ast/stmt/Statement.h"
 #include "geax-front-end/ast/stmt/SingleCatalogStatement.h"
+#include "geax-front-end/ast/stmt/Statement.h"
 
 namespace geax {
 namespace frontend {
 
 class CatalogModifyStatement : public Statement {
-public:
-    CatalogModifyStatement() : Statement(AstNodeType::kCatalogModifyStatement) {}
-    ~CatalogModifyStatement() = default;
+ public:
+  CatalogModifyStatement() : Statement(AstNodeType::kCatalogModifyStatement) {}
+  ~CatalogModifyStatement() = default;
 
-    void appendStatement(SingleCatalogStatement* statement) { statements_.emplace_back(statement); }
-    void setStatements(std::vector<SingleCatalogStatement*>&& statements) {
-        statements_ = std::move(statements);
-    }
-    const std::vector<SingleCatalogStatement*>& statements() const { return statements_; }
+  void appendStatement(SingleCatalogStatement* statement) {
+    statements_.emplace_back(statement);
+  }
+  void setStatements(std::vector<SingleCatalogStatement*>&& statements) {
+    statements_ = std::move(statements);
+  }
+  const std::vector<SingleCatalogStatement*>& statements() const {
+    return statements_;
+  }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::vector<SingleCatalogStatement*> statements_;
+ private:
+  std::vector<SingleCatalogStatement*> statements_;
 };  // class CatalogModifyStatement
 
 }  // namespace frontend
