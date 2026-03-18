@@ -18,7 +18,6 @@
 
 #pragma once
 #include <rocksdb/utilities/transaction_db.h>
-#include <vsag/vsag.h>
 
 #include <boost/asio.hpp>
 #include <utility>
@@ -27,6 +26,7 @@
 #include "common/value.h"
 #include "ftindex/include/lib.rs.h"
 #include "graphdb/graph_cf.h"
+#include "graphdb/hnsw_index.h"
 #include "graphdb/id_generator.h"
 #include "proto/meta.pb.h"
 
@@ -186,8 +186,7 @@ class VertexVectorIndex {
   uint32_t lid_;
   uint32_t pid_;
   meta::VertexVectorIndex meta_;
-  std::shared_ptr<vsag::Index> vsag_index_;
-  // std::unique_ptr<VsagIndex> vsag_index_;
+  std::unique_ptr<FaissHnswIndex> hnsw_index_;
   std::atomic<int64_t> next_vector_id_ = 1;
   std::atomic<uint64_t> next_wal_id_ = 1;
   uint64_t apply_id_ = 0;

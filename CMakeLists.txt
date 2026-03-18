@@ -106,10 +106,6 @@ set(FTINDEX_DIR "${PROJECT_SOURCE_DIR}/src/graphdb/ftindex")
 set(FTINDEX_LIB "${FTINDEX_DIR}/target/release/libftindex.a")
 
 find_static_library(ROCKSDB_LIBRARY rocksdb)
-find_static_library(VSAG_LIBRARY vsag_static)
-find_static_library(SIMD_LIBRARY simd)
-find_static_library(DISKANN_LIBRARY diskann)
-find_static_library(CPUINFO_LIBRARY cpuinfo)
 find_static_library(LZ4_LIBRARY lz4)
 find_static_library(ZSTD_LIBRARY zstd)
 find_static_library(FAISS_LIBRARY faiss)
@@ -121,10 +117,6 @@ if(NOT ENABLE_ASAN)
   find_static_library(JEMALLOC_LIBRARY jemalloc)
 endif()
 
-add_imported_static_archive(vsag_archive "${VSAG_LIBRARY}")
-add_imported_static_archive(simd_archive "${SIMD_LIBRARY}")
-add_imported_static_archive(diskann_archive "${DISKANN_LIBRARY}")
-add_imported_static_archive(cpuinfo_archive "${CPUINFO_LIBRARY}")
 add_imported_static_archive(rocksdb_archive "${ROCKSDB_LIBRARY}")
 add_imported_static_archive(lz4_archive "${LZ4_LIBRARY}")
 add_imported_static_archive(zstd_archive "${ZSTD_LIBRARY}")
@@ -176,13 +168,6 @@ set(CORE_LINK_LIBS
     proto
 )
 
-set(VSAG_STATIC_LIBS
-    vsag_archive
-    simd_archive
-    diskann_archive
-    cpuinfo_archive
-)
-
 set(THIRD_PARTY_STATIC_LIBS
     rocksdb_archive
     spdlog::spdlog
@@ -203,7 +188,7 @@ if(NOT ENABLE_ASAN)
   list(APPEND THIRD_PARTY_STATIC_LIBS jemalloc_archive)
 endif()
 
-set(RUNTIME_GROUP_LIBS ${VSAG_STATIC_LIBS} ${THIRD_PARTY_STATIC_LIBS} ${CORE_LINK_LIBS})
+set(RUNTIME_GROUP_LIBS ${THIRD_PARTY_STATIC_LIBS} ${CORE_LINK_LIBS})
 
 set(RUNTIME_SYSTEM_LIBS
     -static-libstdc++
@@ -253,14 +238,8 @@ set(GRAPHDB_SOURCES
     src/graphdb/graph_entity.cpp
     src/graphdb/meta_info.cpp
     src/graphdb/index.cpp
+    src/graphdb/hnsw_index.cpp
     src/graphdb/uuid_generator.cpp
-    src/graphdb/embedding/delete_map.cpp
-    src/graphdb/embedding/delta.cpp
-    src/graphdb/embedding/faiss_index_chunk.cpp
-    src/graphdb/embedding/id_mapper.cpp
-    src/graphdb/embedding/index.cpp
-    src/graphdb/embedding/mem_index_chunk.cpp
-    src/graphdb/embedding/vsag_index_chunk.cpp
 )
 
 set(COMMON_SOURCES

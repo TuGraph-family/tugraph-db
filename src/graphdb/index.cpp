@@ -26,13 +26,28 @@
 #include "common/flags.h"
 #include "common/logger.h"
 #include "ftindex/include/lib.rs.h"
-#include "graphdb/vsag_init.h"
 #include "spdlog/stopwatch.h"
 #include "transaction/transaction.h"
 
 using namespace txn;
 using namespace boost::endian;
 namespace graphdb {
+
+namespace {
+
+const char* kFaissHnswIndexFileName = "hnsw.index.data";
+const char* kFaissHnswMetaFileName = "hnsw.index.meta";
+
+std::string FaissHnswIndexFilePath(const meta::VertexVectorIndex& meta) {
+  return meta.path() + "/" + kFaissHnswIndexFileName;
+}
+
+std::string FaissHnswMetaFilePath(const meta::VertexVectorIndex& meta) {
+  return meta.path() + "/" + kFaissHnswMetaFileName;
+}
+
+}  // namespace
+
 void VertexPropertyIndex::AddIndex(Transaction* txn, int64_t vid,
                                    rocksdb::Slice value) {
   if (meta_.is_unique()) {
@@ -371,56 +386,29 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
       meta_(std::move(meta)),
       interval_(commit_interval),
       timer_(service) {
-  nlohmann::json hnsw_parameters{
-      {"max_degree", meta_.hnsw_m()},
-      {"ef_construction", meta_.hnsw_ef_construction()}};
   if (meta_.distance_type() != meta::VectorDistanceType::L2 &&
       meta_.distance_type() != meta::VectorDistanceType::IP) {
     THROW_CODE(VectorIndexException, "invalid metric_type: {}",
                meta::VectorDistanceType_Name(meta_.distance_type()));
   }
-  std::string metric_type;
-  if (meta_.distance_type() == meta::VectorDistanceType::L2) {
-    metric_type = "l2";
-  } else {
-    metric_type = "ip";
-  }
-  nlohmann::json index_parameters{{"dtype", "float32"},
-                                  {"metric_type", metric_type},
-                                  {"dim", meta_.dimensions()},
-                                  {"hnsw", hnsw_parameters}};
-  EnsureVsagInitialized();
-  auto ret = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
-  if (ret.has_value()) {
-    vsag_index_ = std::move(ret.value());
-  } else {
-    THROW_CODE(VectorIndexException, "Failed to create vector index");
-  }
+  hnsw_index_ = std::make_unique<FaissHnswIndex>(
+      meta_.dimensions(), meta_.distance_type(), meta_.hnsw_m(),
+      meta_.hnsw_ef_construction());
 
   {
-    std::ifstream metafile(meta_.path() + "/hnsw.index._meta", std::ios::in);
+    std::ifstream metafile(FaissHnswMetaFilePath(meta_), std::ios::in);
     if (metafile) {
       LOG_INFO("Begin load vector index {} from data file", meta_.name());
       nlohmann::json meta_info;
       metafile >> meta_info;
       metafile.close();
-      vsag::BinarySet bs;
-      std::vector<std::string> keys = meta_info["keys"];
-      for (const auto& key : keys) {
-        std::ifstream file(meta_.path() + "/hnsw.index." + key, std::ios::in);
-        file.seekg(0, std::ios::end);
-        vsag::Binary b;
-        b.size = file.tellg();
-        b.data.reset(new int8_t[b.size]);
-        file.seekg(0, std::ios::beg);
-        file.read((char*)b.data.get(), b.size);
-        bs.Set(key, b);
-      }
-      vsag_index_->Deserialize(bs);
+      hnsw_index_ = FaissHnswIndex::Load(
+          FaissHnswIndexFilePath(meta_), meta_.dimensions(),
+          meta_.distance_type(), meta_.hnsw_m(), meta_.hnsw_ef_construction());
       uint64_t apply_id = meta_info["apply_id"];
       apply_id_ = native_to_big(apply_id);
       LOG_INFO("End load vector index {} from data file, num:{}", meta_.name(),
-               vsag_index_->GetNumElements());
+               hnsw_index_->GetNumElements());
     }
     LOG_INFO("vector index {}, apply_id:{}", meta_.name(),
              big_to_native(apply_id_));
@@ -498,38 +486,31 @@ void VertexVectorIndex::StartTimer() {
 }
 
 int64_t VertexVectorIndex::GetElementsNum() {
-  return vsag_index_->GetNumElements();
+  return hnsw_index_->GetNumElements();
 }
 
 int64_t VertexVectorIndex::GetMemoryUsage() {
-  return vsag_index_->GetMemoryUsage();
+  return hnsw_index_->GetMemoryUsage();
 }
 
-int64_t VertexVectorIndex::GetDeletedIdsNum() { return 0; }
+int64_t VertexVectorIndex::GetDeletedIdsNum() {
+  return deleted_vector_ids_.size();
+}
 
 std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
     const float* query, int top_k, int ef_search) {
-  auto dataset = vsag::Dataset::Make();
-  dataset->Dim(meta_.dimensions())
-      ->NumElements(1)
-      ->Float32Vectors(query)
-      ->Owner(false);
-  nlohmann::json parameters{
-      {"hnsw", {{"ef_search", ef_search}}},
-  };
   std::vector<std::pair<int64_t, float>> ret;
   std::shared_lock read(mutex_);
-  auto result = vsag_index_->KnnSearch(
-      dataset, top_k, parameters.dump(),
-      [this](int64_t id) -> bool { return deleted_vector_ids_.count(id) > 0; });
-  if (result.has_value()) {
-    for (int64_t i = 0; i < result.value()->GetDim(); ++i) {
-      auto vectorId = result.value()->GetIds()[i];
-      ret.emplace_back(vectorid_vid_.at(vectorId),
-                       result.value()->GetDistances()[i]);
+  auto result = hnsw_index_->KnnSearch(
+      query, top_k, ef_search, [this](int64_t label_id) -> bool {
+        return deleted_vector_ids_.count(label_id + 1) > 0;
+      });
+  for (size_t i = 0; i < result.ids.size(); ++i) {
+    if (result.ids[i] < 0) {
+      continue;
     }
-  } else {
-    THROW_CODE(VectorIndexException, result.error().message);
+    auto vector_id = result.ids[i] + 1;
+    ret.emplace_back(vectorid_vid_.at(vector_id), result.distances[i]);
   }
   return ret;
 }
@@ -611,60 +592,40 @@ void VertexVectorIndex::ApplyWAL() {
     for (int i = 0; i < update.vector_size(); i++) {
       embedding[i] = update.vector(i);
     }
-    auto* id = new int64_t[1];
-    id[0] = update.vector_id();
-    auto dataset = vsag::Dataset::Make();
-    dataset->Dim(meta_.dimensions())
-        ->NumElements(1)
-        ->Ids(id)
-        ->Float32Vectors(embedding.release());
     {
       std::unique_lock write(mutex_);
-      auto result = vsag_index_->Add(dataset);
-      if (result.has_value()) {
-        if (!result.value().empty()) {
-          THROW_CODE(VectorIndexException,
-                     "failed to insert {} ids into vector index",
-                     result.value().size());
-        }
-      } else {
-        THROW_CODE(VectorIndexException, result.error().message);
+      hnsw_index_->Add(embedding.get(), 1);
+      if (hnsw_index_->GetNumElements() != update.vector_id()) {
+        THROW_CODE(
+            VectorIndexException,
+            "faiss hnsw internal label mismatch, expect vector id {}, actual "
+            "element count {}",
+            update.vector_id(), hnsw_index_->GetNumElements());
       }
       vectorid_vid_.emplace(update.vector_id(), update.vid());
     }
-    if (vsag_index_->GetNumElements() % FLAGS_vt_serialize_interval == 0) {
-      if (auto bs = vsag_index_->Serialize(); bs.has_value()) {
-        LOG_INFO("Vector Index {} begin serialization", meta_.name());
-        auto keys = bs->GetKeys();
-        for (const auto& meta_key : keys) {
-          vsag::Binary b = bs->Get(meta_key);
-          std::string path = meta_.path() + "/hnsw.index." + meta_key;
-          std::ofstream file(path, std::ios::binary);
-          file.write((const char*)b.data.get(), b.size);
-          file.close();
-          LOG_INFO("write file: {}", path);
-        }
-        uint64_t apply_id = boost::endian::big_to_native(consumed_wal_id);
-        nlohmann::json meta_info{{"keys", keys}, {"apply_id", apply_id}};
-        std::string path = meta_.path() + "/hnsw.index._meta";
-        std::ofstream metafile(path, std::ios::out);
-        metafile << meta_info.dump();
-        metafile.close();
-        LOG_INFO("write file: {}", path);
-        LOG_INFO("Vector Index {} finish serialization, num:{}, apply_id: {}",
-                 meta_.name(), vsag_index_->GetNumElements(), apply_id);
-        rocksdb::WriteOptions wo;
-        rocksdb::TransactionDBWriteOptimizations two;
-        two.skip_concurrency_control = true;
-        two.skip_duplicate_key_check = true;
-        rocksdb::WriteBatch batch;
-        batch.DeleteRange(graph_cf_->wal, prefix, key);
-        auto s = db_->Write(wo, two, &batch);
-        if (!s.ok()) {
-          LOG_ERROR("VertexVectorIndex db DeleteRange error: {}", s.ToString());
-        }
-      } else if (bs.error().type == vsag::ErrorType::NO_ENOUGH_MEMORY) {
-        LOG_ERROR("no enough memory to serialize index {}", meta_.name());
+    if (hnsw_index_->GetNumElements() % FLAGS_vt_serialize_interval == 0) {
+      LOG_INFO("Vector Index {} begin serialization", meta_.name());
+      hnsw_index_->WriteToFile(FaissHnswIndexFilePath(meta_));
+      uint64_t apply_id = boost::endian::big_to_native(consumed_wal_id);
+      nlohmann::json meta_info{{"apply_id", apply_id}};
+      std::string path = FaissHnswMetaFilePath(meta_);
+      std::ofstream metafile(path, std::ios::out);
+      metafile << meta_info.dump();
+      metafile.close();
+      LOG_INFO("write file: {}", FaissHnswIndexFilePath(meta_));
+      LOG_INFO("write file: {}", path);
+      LOG_INFO("Vector Index {} finish serialization, num:{}, apply_id: {}",
+               meta_.name(), hnsw_index_->GetNumElements(), apply_id);
+      rocksdb::WriteOptions wo;
+      rocksdb::TransactionDBWriteOptimizations two;
+      two.skip_concurrency_control = true;
+      two.skip_duplicate_key_check = true;
+      rocksdb::WriteBatch batch;
+      batch.DeleteRange(graph_cf_->wal, prefix, key);
+      auto s = db_->Write(wo, two, &batch);
+      if (!s.ok()) {
+        LOG_ERROR("VertexVectorIndex db DeleteRange error: {}", s.ToString());
       }
     }
   }
@@ -735,22 +696,13 @@ void VertexVectorIndex::Load() {
                  rocksdb::Slice((const char*)&vector_id, sizeof(vector_id)));
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     vectorid_vid_.emplace(vector_id, vid);
-    auto* id = new int64_t[1];
-    id[0] = vector_id;
-    auto dataset = vsag::Dataset::Make();
-    dataset->Dim(meta_.dimensions())
-        ->NumElements(1)
-        ->Ids(id)
-        ->Float32Vectors(embedding.release());
-    auto result = vsag_index_->Add(dataset);
-    if (result.has_value()) {
-      if (!result.value().empty()) {
-        THROW_CODE(VectorIndexException,
-                   "failed to insert {} ids into vector index",
-                   result.value().size());
-      }
-    } else {
-      THROW_CODE(VectorIndexException, result.error().message);
+    hnsw_index_->Add(embedding.get(), 1);
+    if (hnsw_index_->GetNumElements() != vector_id) {
+      THROW_CODE(
+          VectorIndexException,
+          "faiss hnsw internal label mismatch, expect vector id {}, actual "
+          "element count {}",
+          vector_id, hnsw_index_->GetNumElements());
     }
     count++;
     if (count % 10000 == 0) {
@@ -759,31 +711,20 @@ void VertexVectorIndex::Load() {
   }
   SPDLOG_INFO("End to load vector index: {}, index num: {}", meta_.name(),
               count);
-  if (vsag_index_->GetNumElements() == 0) {
+  if (hnsw_index_->GetNumElements() == 0) {
     return;
   }
-  if (auto bs = vsag_index_->Serialize(); bs.has_value()) {
-    LOG_INFO("Vector Index {} begin serialization", meta_.name());
-    auto keys = bs->GetKeys();
-    for (const auto& meta_key : keys) {
-      vsag::Binary b = bs->Get(meta_key);
-      std::string path = meta_.path() + "/hnsw.index." + meta_key;
-      std::ofstream file(path, std::ios::binary);
-      file.write((const char*)b.data.get(), b.size);
-      file.close();
-      LOG_INFO("write file: {}", path);
-    }
-    nlohmann::json meta_info{{"keys", keys}, {"apply_id", 0}};
-    std::string path = meta_.path() + "/hnsw.index._meta";
-    std::ofstream metafile(path, std::ios::out);
-    metafile << meta_info.dump();
-    metafile.close();
-    LOG_INFO("write file: {}", path);
-    SPDLOG_INFO("Vector Index {} Serialize, num:{}", meta_.name(),
-                vsag_index_->GetNumElements());
-  } else if (bs.error().type == vsag::ErrorType::NO_ENOUGH_MEMORY) {
-    std::cerr << "no enough memory to serialize index" << std::endl;
-  }
+  LOG_INFO("Vector Index {} begin serialization", meta_.name());
+  hnsw_index_->WriteToFile(FaissHnswIndexFilePath(meta_));
+  nlohmann::json meta_info{{"apply_id", 0}};
+  std::string path = FaissHnswMetaFilePath(meta_);
+  std::ofstream metafile(path, std::ios::out);
+  metafile << meta_info.dump();
+  metafile.close();
+  LOG_INFO("write file: {}", FaissHnswIndexFilePath(meta_));
+  LOG_INFO("write file: {}", path);
+  SPDLOG_INFO("Vector Index {} Serialize, num:{}", meta_.name(),
+              hnsw_index_->GetNumElements());
 }
 
 }  // namespace graphdb
