@@ -87,7 +87,7 @@ void PrintWelcome() {
        << "\n";
   {
     tabulate::Table table;
-    table.format().trim_mode(tabulate::Format::TrimMode::kNone);
+    table.format().trim_mode(tabulate::Format::TrimMode::kNone).locale("C");
     info << "Compile Information:\n";
     table.add_row({"Branch", GIT_BRANCH});
     table.add_row({"Commit", GIT_COMMIT_HASH});
@@ -108,6 +108,7 @@ void PrintWelcome() {
       LOG_ERROR("Failed to read /proc/sys/kernel/core_pattern");
     }
     tabulate::Table table;
+    table.format().trim_mode(tabulate::Format::TrimMode::kNone).locale("C");
     table.add_row({"coredump file limit size", std::to_string(rlim.rlim_cur)});
     table.add_row({"coredump file path", path});
     info << "System environment Information:\n";
@@ -115,7 +116,7 @@ void PrintWelcome() {
   }
   {
     tabulate::Table table;
-    table.format().trim_mode(tabulate::Format::TrimMode::kNone);
+    table.format().trim_mode(tabulate::Format::TrimMode::kNone).locale("C");
     std::vector<gflags::CommandLineFlagInfo> flags;
     GetAllFlags(&flags);
     for (auto& flag : flags) {
