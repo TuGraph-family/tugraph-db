@@ -33,9 +33,8 @@ geax::frontend::GEAXErrorCode ExecutionPlan::Build(
     error_msg_ = pattern_graph_maker.ErrorMsg();
     return ret;
   }
-  LOG_DEBUG("\n{}", DumpGraph());
-  // build execution plan
 
+  // build execution plan
   ExecutionPlanMaker execution_plan_maker(pattern_graphs_, obj_alloc_);
   ret = execution_plan_maker.Build(astNode, root_, ctx);
   if (ret != geax::frontend::GEAXErrorCode::GEAX_SUCCEED) {
@@ -43,8 +42,6 @@ geax::frontend::GEAXErrorCode ExecutionPlan::Build(
     return ret;
   }
   result_info_ = execution_plan_maker.GetResultInfo();
-  LOG_DEBUG("\n{}", DumpPlan(0, false));
-
   ctx->result_info_ = std::make_unique<ResultInfo>(result_info_);
 
   return ret;

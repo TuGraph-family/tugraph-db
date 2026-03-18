@@ -11,7 +11,7 @@ Feature: test match
 
   Scenario: case02
     Given an empty graph
-    And having executed:
+    And having executed
       """
       CREATE (:A), (:B {name: 'b'}), ({name: 'c'})
       """
@@ -28,7 +28,7 @@ Feature: test match
 
   Scenario: case03
     Given an empty graph
-    And having executed:
+    And having executed
       """
       CREATE ({name: 'bar'}), ({name: 'monkey'}), ({firstname: 'bar'})
       """
@@ -43,7 +43,7 @@ Feature: test match
 
   Scenario: case04
     Given an empty graph
-    And having executed:
+    And having executed
       """
       CREATE ({num: 1}),
         ({num: 2}),
