@@ -18,18 +18,20 @@
 #ifndef GEAXFRONTEND_AST_STMT_INLINEPROCEDURECALL_H_
 #define GEAXFRONTEND_AST_STMT_INLINEPROCEDURECALL_H_
 
-#include "geax-front-end/ast/stmt/ProcedureCall.h"
 #include "geax-front-end/ast/stmt/JoinQueryExpression.h"
+#include "geax-front-end/ast/stmt/ProcedureCall.h"
 
 namespace geax {
 namespace frontend {
 
 class InlineProcedureCall : public ProcedureCall {
-public:
-    InlineProcedureCall() : ProcedureCall(AstNodeType::kInlineProcedureCall) {}
-    ~InlineProcedureCall() = default;
+ public:
+  InlineProcedureCall() : ProcedureCall(AstNodeType::kInlineProcedureCall) {}
+  ~InlineProcedureCall() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class InlineProcedureCall
 
 }  // namespace frontend

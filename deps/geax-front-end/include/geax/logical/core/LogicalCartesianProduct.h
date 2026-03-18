@@ -22,16 +22,14 @@
 namespace geax::logical {
 class LogicalCartesianProduct : public LogicalOperator {
  public:
-    LogicalCartesianProduct()
-        : LogicalOperator(LogicalOperatorType::CartesianProduct) {}
-    ~LogicalCartesianProduct() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalCartesianProduct()
+      : LogicalOperator(LogicalOperatorType::CartesianProduct) {}
+  ~LogicalCartesianProduct() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalCartesianProduct()";
-    }
+  }
+  std::string toString() const override { return "LogicalCartesianProduct()"; }
 };
 }  // namespace geax::logical

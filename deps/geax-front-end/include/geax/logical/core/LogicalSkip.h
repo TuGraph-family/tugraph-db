@@ -23,19 +23,19 @@
 namespace geax::logical {
 class LogicalSkip : public LogicalOperator {
  public:
-    explicit LogicalSkip(int64_t skip)
-        : LogicalOperator(LogicalOperatorType::Skip), skip_(skip) {}
-    ~LogicalSkip() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  explicit LogicalSkip(int64_t skip)
+      : LogicalOperator(LogicalOperatorType::Skip), skip_(skip) {}
+  ~LogicalSkip() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalSkip(" + utils::ToString(skip_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalSkip(" + utils::ToString(skip_) + ")";
+  }
 
  private:
-    int64_t skip_;
+  int64_t skip_;
 };
 }  // namespace geax::logical

@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class EndTransaction : public Transaction {
-public:
-    explicit EndTransaction(AstNodeType type) : Transaction(type) {}
-    ~EndTransaction() = default;
+ public:
+  explicit EndTransaction(AstNodeType type) : Transaction(type) {}
+  ~EndTransaction() = default;
 };
 
 }  // namespace frontend

@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BAdd : public BinaryOp {
-public:
-    BAdd() : BinaryOp(AstNodeType::kBAdd) {}
-    ~BAdd() = default;
+ public:
+  BAdd() : BinaryOp(AstNodeType::kBAdd) {}
+  ~BAdd() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BAdd
 
 }  // namespace frontend

@@ -36,33 +36,33 @@ namespace embedding {
  * LabelId.
  */
 class DeleteMap {
-   public:
-    enum Format : uint32_t { SPARSE = 0, DENSE = 1 };
+ public:
+  enum Format : uint32_t { SPARSE = 0, DENSE = 1 };
 
-    DeleteMap(int64_t total_bit_count);
-    ~DeleteMap() = default;
+  DeleteMap(int64_t total_bit_count);
+  ~DeleteMap() = default;
 
-    /**
-     * Set the label id as deleted
-     * return:
-     *  false if already set before
-     *  true if set successfully
-     */
-    bool SetDelete(int64_t id);
-    /**
-     * Is the lable id deleted?
-     */
-    bool IsDeleted(int64_t id) const;
+  /**
+   * Set the label id as deleted
+   * return:
+   *  false if already set before
+   *  true if set successfully
+   */
+  bool SetDelete(int64_t id);
+  /**
+   * Is the lable id deleted?
+   */
+  bool IsDeleted(int64_t id) const;
 
-    int64_t GetDeleteCount() const { return deleted_count_; }
+  int64_t GetDeleteCount() const { return deleted_count_; }
 
-   private:
-    std::unordered_set<int64_t> deleted_labels_;
-    int64_t total_bit_count_;
-    size_t deleted_count_{0};
-    Format format_{SPARSE};
-    std::vector<uint8_t> bitmap_;
-    std::shared_mutex mutex_;
+ private:
+  std::unordered_set<int64_t> deleted_labels_;
+  int64_t total_bit_count_;
+  size_t deleted_count_{0};
+  Format format_{SPARSE};
+  std::vector<uint8_t> bitmap_;
+  std::shared_mutex mutex_;
 };
 
 }  // namespace embedding

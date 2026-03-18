@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BDiv : public BinaryOp {
-public:
-    BDiv() : BinaryOp(AstNodeType::kBDiv) {}
-    ~BDiv() = default;
+ public:
+  BDiv() : BinaryOp(AstNodeType::kBDiv) {}
+  ~BDiv() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BDiv
 
 }  // namespace frontend

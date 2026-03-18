@@ -28,25 +28,30 @@ namespace frontend {
  * This is explain or profile a statement.
  */
 class ExplainActivity : public AstNode {
-public:
-    ExplainActivity() : AstNode(AstNodeType::kExplainActivity), procedureBody_(nullptr) {}
-    ~ExplainActivity() = default;
+ public:
+  ExplainActivity()
+      : AstNode(AstNodeType::kExplainActivity), procedureBody_(nullptr) {}
+  ~ExplainActivity() = default;
 
-    void setIsProfile(bool isProfile) { isProfile_ = isProfile; }
-    bool isProfile() const { return isProfile_; }
+  void setIsProfile(bool isProfile) { isProfile_ = isProfile; }
+  bool isProfile() const { return isProfile_; }
 
-    void setFormat(std::string&& format) { format_ = std::move(format); }
-    const std::optional<std::string> format() const { return format_; }
+  void setFormat(std::string&& format) { format_ = std::move(format); }
+  const std::optional<std::string> format() const { return format_; }
 
-    void setProcedureBody(ProcedureBody* procedureBody) { procedureBody_ = procedureBody; }
-    ProcedureBody* procedureBody() const { return procedureBody_; }
+  void setProcedureBody(ProcedureBody* procedureBody) {
+    procedureBody_ = procedureBody;
+  }
+  ProcedureBody* procedureBody() const { return procedureBody_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool isProfile_;
-    std::optional<std::string> format_;
-    ProcedureBody* procedureBody_;
+ private:
+  bool isProfile_;
+  std::optional<std::string> format_;
+  ProcedureBody* procedureBody_;
 };
 
 }  // namespace frontend

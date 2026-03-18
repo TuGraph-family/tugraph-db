@@ -31,14 +31,14 @@ namespace embedding {
 class IdSelector;
 
 struct FaissIDSelector : public faiss::IDSelector {
-   public:
-    FaissIDSelector(const IdSelector& sel) : sel_(sel) {}
-    virtual ~FaissIDSelector() = default;
+ public:
+  FaissIDSelector(const IdSelector& sel) : sel_(sel) {}
+  virtual ~FaissIDSelector() = default;
 
-    bool is_member(int64_t id) const override;
+  bool is_member(int64_t id) const override;
 
-   private:
-    const IdSelector& sel_;
+ private:
+  const IdSelector& sel_;
 };
 
 }  // namespace embedding

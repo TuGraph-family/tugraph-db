@@ -19,9 +19,10 @@
 
 #include <boost/intrusive/list.hpp>
 #include <boost/intrusive/slist.hpp>
-#include "geax-front-end/common/FollyMemory.h"
+
 #include "geax-front-end/common/FollyAlign.h"
 #include "geax-front-end/common/FollyCheckedMath.h"
+#include "geax-front-end/common/FollyMemory.h"
 
 namespace folly::clone {
 
@@ -30,11 +31,9 @@ struct ArenaAllocatorTraits;
 template <class Alloc>
 class Arena {
  public:
-  explicit Arena(
-      const Alloc& alloc,
-      size_t minBlockSize = kDefaultMinBlockSize,
-      size_t sizeLimit = kNoSizeLimit,
-      size_t maxAlign = kDefaultMaxAlign)
+  explicit Arena(const Alloc& alloc, size_t minBlockSize = kDefaultMinBlockSize,
+                 size_t sizeLimit = kNoSizeLimit,
+                 size_t maxAlign = kDefaultMaxAlign)
       : allocAndSize_(alloc, minBlockSize),
         currentBlock_(blocks_.last()),
         ptr_(nullptr),
@@ -44,7 +43,8 @@ class Arena {
         sizeLimit_(sizeLimit),
         maxAlign_(maxAlign) {
     if ((maxAlign_ & (maxAlign_ - 1)) || maxAlign_ > alignof(Block)) {
-      throw std::invalid_argument("Invalid maxAlign: " + std::to_string(maxAlign_));
+      throw std::invalid_argument("Invalid maxAlign: " +
+                                  std::to_string(maxAlign_));
     }
   }
 
@@ -91,7 +91,7 @@ class Arena {
 
   void clear() {
     bytesUsed_ = 0;
-    freeLargeBlocks(); // We don't reuse large blocks
+    freeLargeBlocks();  // We don't reuse large blocks
     if (blocks_.empty()) {
       return;
     }
@@ -161,8 +161,8 @@ class Arena {
   void freeBlocks() {
     blocks_.clear_and_dispose([this](Block* b) {
       b->~Block();
-      AllocTraits::deallocate(
-          alloc(), reinterpret_cast<char*>(b), blockGoodAllocSize());
+      AllocTraits::deallocate(alloc(), reinterpret_cast<char*>(b),
+                              blockGoodAllocSize());
     });
   }
 
@@ -202,8 +202,7 @@ class Arena {
   // cache_last<true> makes the list keep a pointer to the last element, so we
   // have push_back() and constant time splice_after()
   typedef boost::intrusive::slist<
-      Block,
-      boost::intrusive::member_hook<Block, BlockLink, &Block::link>,
+      Block, boost::intrusive::member_hook<Block, BlockLink, &Block::link>,
       boost::intrusive::constant_time_size<false>,
       boost::intrusive::cache_last<true>>
       BlockList;
@@ -252,7 +251,8 @@ struct ArenaAllocatorTraits {
 
 // template <>
 // struct ArenaAllocatorTraits<SysAllocator<char>> {
-//   static size_t goodSize(const SysAllocator<char>& /* alloc */, size_t size) {
+//   static size_t goodSize(const SysAllocator<char>& /* alloc */, size_t size)
+//   {
 //     return goodMallocSize(size);
 //   }
 // };
@@ -262,14 +262,13 @@ struct ArenaAllocatorTraits {
  */
 class SysArena : public Arena<SysAllocator<char>> {
  public:
-  explicit SysArena(
-      size_t minBlockSize = kDefaultMinBlockSize,
-      size_t sizeLimit = kNoSizeLimit,
-      size_t maxAlign = kDefaultMaxAlign)
+  explicit SysArena(size_t minBlockSize = kDefaultMinBlockSize,
+                    size_t sizeLimit = kNoSizeLimit,
+                    size_t maxAlign = kDefaultMaxAlign)
       : Arena<SysAllocator<char>>({}, minBlockSize, sizeLimit, maxAlign) {}
 };
 
-} // namespace folly::clone
+}  // namespace folly::clone
 
 #include "geax-front-end/common/FollyArenaInl.h"
 

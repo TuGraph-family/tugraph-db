@@ -25,29 +25,33 @@ namespace geax {
 namespace frontend {
 
 class Exists : public Expr {
-public:
-    Exists() : Expr(AstNodeType::kExists) {}
-    ~Exists() = default;
+ public:
+  Exists() : Expr(AstNodeType::kExists) {}
+  ~Exists() = default;
 
-    void appendPathChain(PathChain* pathChain) { pathChains_.emplace_back(pathChain); }
-    void setPathChains(std::vector<PathChain*>&& pathChains) {
-        pathChains_ = std::move(pathChains);
-    }
-    const std::vector<PathChain*>& pathChains() const { return pathChains_; }
+  void appendPathChain(PathChain* pathChain) {
+    pathChains_.emplace_back(pathChain);
+  }
+  void setPathChains(std::vector<PathChain*>&& pathChains) {
+    pathChains_ = std::move(pathChains);
+  }
+  const std::vector<PathChain*>& pathChains() const { return pathChains_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    std::vector<PathChain*> pathChains_;
+  std::vector<PathChain*> pathChains_;
 };  // class Exists
 
 inline bool Exists::equals(const Expr& other) const {
-    const auto& expr = static_cast<const Exists&>(other);
-    // TODO(ljr): PathChain equals
-    bool ret = pathChains_.size() == expr.pathChains_.size();
-    return ret;
+  const auto& expr = static_cast<const Exists&>(other);
+  // TODO(ljr): PathChain equals
+  bool ret = pathChains_.size() == expr.pathChains_.size();
+  return ret;
 }
 
 }  // namespace frontend

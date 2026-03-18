@@ -23,20 +23,20 @@
 namespace geax::logical {
 class LogicalAllNodesScan : public LogicalOperator {
  public:
-    explicit LogicalAllNodesScan(const std::string& binding_var)
-        : LogicalOperator(LogicalOperatorType::AllNodesScan),
-          binding_var_(binding_var) {}
-    ~LogicalAllNodesScan() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                              std::remove_reference<decltype(*this)>::type>(
+  explicit LogicalAllNodesScan(const std::string& binding_var)
+      : LogicalOperator(LogicalOperatorType::AllNodesScan),
+        binding_var_(binding_var) {}
+  ~LogicalAllNodesScan() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalAllNodesScan(binding_var:" + binding_var_ + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalAllNodesScan(binding_var:" + binding_var_ + ")";
+  }
 
  private:
-    std::string binding_var_;
+  std::string binding_var_;
 };
 }  // namespace geax::logical

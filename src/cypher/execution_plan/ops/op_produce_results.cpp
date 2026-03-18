@@ -17,24 +17,25 @@
 //
 
 #include "cypher/execution_plan/ops/op_produce_results.h"
+
 #include "cypher/execution_plan/runtime_context.h"
 
 namespace cypher {
 
 OpBase::OpResult ProduceResults::RealConsume(RTContext *ctx) {
-    if (state_ == Uninitialized) {
-        Initialize(ctx);
-        state_ = Consuming;
-    }
-    if (children.empty()) return OP_DEPLETED;
-    auto child = children[0];
-    auto res = child->Consume(ctx);
-    if (res != OP_OK) return res;
-    record = child->record;
-    while (record->values.size() > ctx->result_info_->header.colums.size()) {
-        record->values.pop_back();
-    }
-    return OP_OK;
+  if (state_ == Uninitialized) {
+    Initialize(ctx);
+    state_ = Consuming;
+  }
+  if (children.empty()) return OP_DEPLETED;
+  auto child = children[0];
+  auto res = child->Consume(ctx);
+  if (res != OP_OK) return res;
+  record = child->record;
+  while (record->values.size() > ctx->result_info_->header.colums.size()) {
+    record->values.pop_back();
+  }
+  return OP_OK;
 }
 
-}
+}  // namespace cypher

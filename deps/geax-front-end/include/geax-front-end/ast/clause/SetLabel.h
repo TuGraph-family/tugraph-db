@@ -25,23 +25,25 @@ namespace geax {
 namespace frontend {
 
 class SetLabel : public SetItem {
-public:
-    SetLabel() : SetItem(AstNodeType::kSetLabel) {}
-    ~SetLabel() = default;
+ public:
+  SetLabel() : SetItem(AstNodeType::kSetLabel) {}
+  ~SetLabel() = default;
 
-    void setV(std::string&& v) { v_ = std::move(v); }
-    const std::string& v() const { return v_; }
+  void setV(std::string&& v) { v_ = std::move(v); }
+  const std::string& v() const { return v_; }
 
-    void setLabels(std::vector<std::string> labels) {
-        labels_ = std::move(labels);
-    }
-    const std::vector<std::string>& labels() const { return labels_; }
+  void setLabels(std::vector<std::string> labels) {
+    labels_ = std::move(labels);
+  }
+  const std::vector<std::string>& labels() const { return labels_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string v_;
-    std::vector<std::string> labels_;
+ private:
+  std::string v_;
+  std::vector<std::string> labels_;
 };
 
 }  // namespace frontend

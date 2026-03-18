@@ -25,30 +25,35 @@ namespace geax {
 namespace frontend {
 
 class BindingTable : public BindingDefinition {
-public:
-    BindingTable() : BindingDefinition(AstNodeType::kBindingTable), query_(nullptr) {}
-    ~BindingTable() = default;
+ public:
+  BindingTable()
+      : BindingDefinition(AstNodeType::kBindingTable), query_(nullptr) {}
+  ~BindingTable() = default;
 
-    void setVal(std::string&& varName) { varName_ = std::move(varName); }
-    const std::string& varName() const { return varName_; }
+  void setVal(std::string&& varName) { varName_ = std::move(varName); }
+  const std::string& varName() const { return varName_; }
 
-    void appendType(std::string&& fieldname, std::string&& filedtype) {
-        types_.emplace_back(std::move(fieldname), std::move(filedtype));
-    }
-    void setTypes(std::vector<std::tuple<std::string, std::string>>&& types) {
-        types_ = std::move(types);
-    }
-    const std::vector<std::tuple<std::string, std::string>>& types() const { return types_; }
+  void appendType(std::string&& fieldname, std::string&& filedtype) {
+    types_.emplace_back(std::move(fieldname), std::move(filedtype));
+  }
+  void setTypes(std::vector<std::tuple<std::string, std::string>>&& types) {
+    types_ = std::move(types);
+  }
+  const std::vector<std::tuple<std::string, std::string>>& types() const {
+    return types_;
+  }
 
-    void setQuery(BindingTableExpr* query) { query_ = query; }
-    BindingTableExpr* query() { return query_; }
+  void setQuery(BindingTableExpr* query) { query_ = query; }
+  BindingTableExpr* query() { return query_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string varName_;
-    std::vector<std::tuple<std::string, std::string>> types_;
-    BindingTableExpr* query_;
+ private:
+  std::string varName_;
+  std::vector<std::tuple<std::string, std::string>> types_;
+  BindingTableExpr* query_;
 };  // class BindingTable
 
 }  // namespace frontend

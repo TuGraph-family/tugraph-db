@@ -24,14 +24,16 @@ namespace geax {
 namespace frontend {
 
 class VNull : public Literal {
-public:
-    VNull() : Literal(AstNodeType::kVNull) {}
-    ~VNull() = default;
+ public:
+  VNull() : Literal(AstNodeType::kVNull) {}
+  ~VNull() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr&) const override { return true; }
+ private:
+  bool equals(const Expr&) const override { return true; }
 };  // class VNull
 
 }  // namespace frontend

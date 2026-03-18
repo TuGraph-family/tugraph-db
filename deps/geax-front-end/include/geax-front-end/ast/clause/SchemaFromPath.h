@@ -24,17 +24,19 @@ namespace geax {
 namespace frontend {
 
 class SchemaFromPath : public SchemaRef {
-public:
-    SchemaFromPath() : SchemaRef(AstNodeType::kSchemaFromPath) {}
-    ~SchemaFromPath() = default;
+ public:
+  SchemaFromPath() : SchemaRef(AstNodeType::kSchemaFromPath) {}
+  ~SchemaFromPath() = default;
 
-    void setPath(std::string&& path) { path_ = std::move(path); }
-    const std::string& path() const { return path_; }
+  void setPath(std::string&& path) { path_ = std::move(path); }
+  const std::string& path() const { return path_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string path_;
+ private:
+  std::string path_;
 };  // class SchemaFromPath
 
 }  // namespace frontend

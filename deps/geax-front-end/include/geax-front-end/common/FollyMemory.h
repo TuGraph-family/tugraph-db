@@ -17,9 +17,9 @@
 #ifndef GEAXFRONTEND_COMMON_FOLLYMEMORY_H_
 #define GEAXFRONTEND_COMMON_FOLLYMEMORY_H_
 
-#include <type_traits>
 #include <cstddef>
 #include <stdexcept>
+#include <type_traits>
 
 #include "geax-front-end/common/FollyMalloc.h"
 
@@ -59,6 +59,6 @@ class SysAllocator {
   friend bool operator!=(Self const&, Self const&) noexcept { return false; }
 };
 
-} // namespace folly::clone
+}  // namespace folly::clone
 
 #endif  // GEAXFRONTEND_COMMON_FOLLYMEMORY_H_

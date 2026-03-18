@@ -24,9 +24,10 @@ namespace geax {
 namespace frontend {
 
 class PrimitiveDataModifyStatement : public AstNode {
-public:
-    explicit PrimitiveDataModifyStatement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~PrimitiveDataModifyStatement() = default;
+ public:
+  explicit PrimitiveDataModifyStatement(AstNodeType nodeType)
+      : AstNode(nodeType) {}
+  ~PrimitiveDataModifyStatement() = default;
 };  // class PrimitiveDataModifyStatement
 
 }  // namespace frontend

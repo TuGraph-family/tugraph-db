@@ -24,19 +24,19 @@
 namespace geax::logical {
 class LogicalLimit : public LogicalOperator {
  public:
-    explicit LogicalLimit(int64_t limit)
-        : LogicalOperator(LogicalOperatorType::Limit), limit_(limit) {}
-    ~LogicalLimit() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  explicit LogicalLimit(int64_t limit)
+      : LogicalOperator(LogicalOperatorType::Limit), limit_(limit) {}
+  ~LogicalLimit() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalLimit(limit:" + utils::ToString(limit_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalLimit(limit:" + utils::ToString(limit_) + ")";
+  }
 
  private:
-    int64_t limit_;
+  int64_t limit_;
 };
 }  // namespace geax::logical

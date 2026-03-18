@@ -18,35 +18,40 @@
 #ifndef GEAXFRONTEND_AST_CLAUSE_YIELDFIELD_H_
 #define GEAXFRONTEND_AST_CLAUSE_YIELDFIELD_H_
 
+#include <tuple>
+#include <vector>
+
 #include "geax-front-end/ast/AstNode.h"
 #include "geax-front-end/ast/expr/Expr.h"
-#include <vector>
-#include <tuple>
 
 namespace geax {
 namespace frontend {
 
 class YieldField : public AstNode {
  public:
-    YieldField() : AstNode(AstNodeType::kYieldField), predicate_(nullptr) {}
-    ~YieldField() = default;
+  YieldField() : AstNode(AstNodeType::kYieldField), predicate_(nullptr) {}
+  ~YieldField() = default;
 
-    void appendItem(std::string&& name, std::string&& alias) {
-        items_.emplace_back(std::move(name), std::move(alias));
-    }
-    void setItems(std::vector<std::tuple<std::string, std::string>>&& items) {
-        items_ = std::move(items);
-    }
-    const std::vector<std::tuple<std::string, std::string>>& items() const { return items_; }
+  void appendItem(std::string&& name, std::string&& alias) {
+    items_.emplace_back(std::move(name), std::move(alias));
+  }
+  void setItems(std::vector<std::tuple<std::string, std::string>>&& items) {
+    items_ = std::move(items);
+  }
+  const std::vector<std::tuple<std::string, std::string>>& items() const {
+    return items_;
+  }
 
-    void setPredicate(Expr* predicate) { predicate_ = predicate; }
-    Expr* predicate() const { return predicate_; }
+  void setPredicate(Expr* predicate) { predicate_ = predicate; }
+  Expr* predicate() const { return predicate_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
  private:
-    std::vector<std::tuple<std::string, std::string>> items_;
-    Expr* predicate_;
+  std::vector<std::tuple<std::string, std::string>> items_;
+  Expr* predicate_;
 };  // class YieldField
 
 }  // namespace frontend

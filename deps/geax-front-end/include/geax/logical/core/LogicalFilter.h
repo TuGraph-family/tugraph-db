@@ -25,19 +25,19 @@
 namespace geax::logical {
 class LogicalFilter : public LogicalOperator {
  public:
-    explicit LogicalFilter(const std::vector<frontend::Expr*>& filters)
-        : LogicalOperator(LogicalOperatorType::Filter), filters_(filters) {}
-    ~LogicalFilter() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  explicit LogicalFilter(const std::vector<frontend::Expr*>& filters)
+      : LogicalOperator(LogicalOperatorType::Filter), filters_(filters) {}
+  ~LogicalFilter() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalFilter(filters:" + utils::ToString(filters_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalFilter(filters:" + utils::ToString(filters_) + ")";
+  }
 
  private:
-    std::vector<frontend::Expr*> filters_;
+  std::vector<frontend::Expr*> filters_;
 };
 }  // namespace geax::logical

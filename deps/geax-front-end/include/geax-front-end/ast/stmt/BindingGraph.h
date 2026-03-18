@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BindingGraph : public BindingDefinition {
-public:
-    BindingGraph() : BindingDefinition(AstNodeType::kBindingGraph) {}
-    ~BindingGraph() = default;
+ public:
+  BindingGraph() : BindingDefinition(AstNodeType::kBindingGraph) {}
+  ~BindingGraph() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BindingGraph
 
 }  // namespace frontend

@@ -26,22 +26,28 @@ namespace geax {
 namespace frontend {
 
 class NormalTransaction : public Transaction {
-public:
-    NormalTransaction()
-        : Transaction(AstNodeType::kNormalTransaction), query_(nullptr) {}
-    ~NormalTransaction() = default;
+ public:
+  NormalTransaction()
+      : Transaction(AstNodeType::kNormalTransaction), query_(nullptr) {}
+  ~NormalTransaction() = default;
 
-    void setProcedureBody(ProcedureBody* query) { query_ = query; }
-    ProcedureBody* query() const { return query_; }
+  void setProcedureBody(ProcedureBody* query) { query_ = query; }
+  ProcedureBody* query() const { return query_; }
 
-    void setEndTransaction(EndTransaction* endTransaction) { endTransaction_ = endTransaction; }
-    const std::optional<EndTransaction*>& endTransaction() const { return endTransaction_; }
+  void setEndTransaction(EndTransaction* endTransaction) {
+    endTransaction_ = endTransaction;
+  }
+  const std::optional<EndTransaction*>& endTransaction() const {
+    return endTransaction_;
+  }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    ProcedureBody* query_;
-    std::optional<EndTransaction*> endTransaction_;
+ private:
+  ProcedureBody* query_;
+  std::optional<EndTransaction*> endTransaction_;
 };
 
 }  // namespace frontend

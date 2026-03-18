@@ -25,21 +25,24 @@ namespace geax {
 namespace frontend {
 
 class SetAllProperties : public SetItem {
-public:
-    SetAllProperties() : SetItem(AstNodeType::kSetAllProperties), structs_(nullptr) {}
-    ~SetAllProperties() = default;
+ public:
+  SetAllProperties()
+      : SetItem(AstNodeType::kSetAllProperties), structs_(nullptr) {}
+  ~SetAllProperties() = default;
 
-    void setV(std::string&& v) { v_ = std::move(v); }
-    const std::string& v() const { return v_; }
+  void setV(std::string&& v) { v_ = std::move(v); }
+  const std::string& v() const { return v_; }
 
-    void setStructs(PropStruct* structs) { structs_ = structs; }
-    PropStruct* structs() const { return structs_; }
+  void setStructs(PropStruct* structs) { structs_ = structs; }
+  PropStruct* structs() const { return structs_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string v_;
-    PropStruct* structs_;
+ private:
+  std::string v_;
+  PropStruct* structs_;
 };
 
 }  // namespace frontend

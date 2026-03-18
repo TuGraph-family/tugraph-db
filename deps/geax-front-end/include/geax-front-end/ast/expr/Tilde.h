@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class Tilde : public UnaryOp {
-public:
-    Tilde() : UnaryOp(AstNodeType::kTilde) {}
-    ~Tilde() = default;
+ public:
+  Tilde() : UnaryOp(AstNodeType::kTilde) {}
+  ~Tilde() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class Tilde
 
 }  // namespace frontend

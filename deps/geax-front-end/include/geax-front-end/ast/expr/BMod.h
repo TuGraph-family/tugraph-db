@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BMod : public BinaryOp {
-public:
-    BMod() : BinaryOp(AstNodeType::kBMod) {}
-    ~BMod() = default;
+ public:
+  BMod() : BinaryOp(AstNodeType::kBMod) {}
+  ~BMod() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BMod
 
 }  // namespace frontend

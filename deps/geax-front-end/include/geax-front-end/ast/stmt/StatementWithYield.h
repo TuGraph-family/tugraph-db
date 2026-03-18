@@ -26,22 +26,24 @@ namespace geax {
 namespace frontend {
 
 class StatementWithYield : public AstNode {
-public:
-    StatementWithYield()
-        : AstNode(AstNodeType::kStatementWithYield), statement_(nullptr) {}
-    ~StatementWithYield() = default;
+ public:
+  StatementWithYield()
+      : AstNode(AstNodeType::kStatementWithYield), statement_(nullptr) {}
+  ~StatementWithYield() = default;
 
-    void setYield(YieldField* yield) { yield_ = yield; }
-    const std::optional<YieldField*>& yield() const { return yield_; }
+  void setYield(YieldField* yield) { yield_ = yield; }
+  const std::optional<YieldField*>& yield() const { return yield_; }
 
-    void setStatement(Statement* statement) { statement_ = statement; }
-    Statement* statement() const { return statement_; }
+  void setStatement(Statement* statement) { statement_ = statement; }
+  Statement* statement() const { return statement_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::optional<YieldField*> yield_;
-    Statement* statement_;
+ private:
+  std::optional<YieldField*> yield_;
+  Statement* statement_;
 };  // class StatementWithYield
 
 }  // namespace frontend

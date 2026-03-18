@@ -25,39 +25,38 @@
 namespace geax::logical {
 class LogicalExpandAll : public LogicalOperator {
  public:
-    LogicalExpandAll(const std::string& src_ref, const std::string& binding_dst,
-                     const std::string& binding_edge,
-                     frontend::EdgeDirection dir, frontend::LabelTree* labels,
-                     std::vector<frontend::Expr*> filters)
-        : LogicalOperator(LogicalOperatorType::ExpandAll),
-          src_ref_(src_ref),
-          binding_dst_(binding_dst),
-          binding_edge_(binding_edge),
-          dir_(dir),
-          labels_(labels),
-          filters_(filters) {}
-    ~LogicalExpandAll() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalExpandAll(const std::string& src_ref, const std::string& binding_dst,
+                   const std::string& binding_edge, frontend::EdgeDirection dir,
+                   frontend::LabelTree* labels,
+                   std::vector<frontend::Expr*> filters)
+      : LogicalOperator(LogicalOperatorType::ExpandAll),
+        src_ref_(src_ref),
+        binding_dst_(binding_dst),
+        binding_edge_(binding_edge),
+        dir_(dir),
+        labels_(labels),
+        filters_(filters) {}
+  ~LogicalExpandAll() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        std::string str = "LogicalExpandAll(src_ref:" + src_ref_ +
-                          ", binding_dst:" + binding_dst_ +
-                          ", binding_edge:" + binding_edge_ +
-                          ", dir:" + ToString(dir_) +
-                          ", labels:" + ToString(labels_) +
-                          ", filters:" + utils::ToString(filters_) + ")";
-        return str;
-    }
+  }
+  std::string toString() const override {
+    std::string str =
+        "LogicalExpandAll(src_ref:" + src_ref_ +
+        ", binding_dst:" + binding_dst_ + ", binding_edge:" + binding_edge_ +
+        ", dir:" + ToString(dir_) + ", labels:" + ToString(labels_) +
+        ", filters:" + utils::ToString(filters_) + ")";
+    return str;
+  }
 
  private:
-    std::string src_ref_;
-    std::string binding_dst_;
-    std::string binding_edge_;
-    frontend::EdgeDirection dir_;
-    frontend::LabelTree* labels_;
-    std::vector<frontend::Expr*> filters_;
+  std::string src_ref_;
+  std::string binding_dst_;
+  std::string binding_edge_;
+  frontend::EdgeDirection dir_;
+  frontend::LabelTree* labels_;
+  std::vector<frontend::Expr*> filters_;
 };
 }  // namespace geax::logical

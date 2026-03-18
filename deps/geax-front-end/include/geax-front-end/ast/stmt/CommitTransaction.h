@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class CommitTransaction : public EndTransaction {
-public:
-    CommitTransaction() : EndTransaction(AstNodeType::kCommitTransaction) {}
-    ~CommitTransaction() = default;
+ public:
+  CommitTransaction() : EndTransaction(AstNodeType::kCommitTransaction) {}
+  ~CommitTransaction() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };
 
 }  // namespace frontend

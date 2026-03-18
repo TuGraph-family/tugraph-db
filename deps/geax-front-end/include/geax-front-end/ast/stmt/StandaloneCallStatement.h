@@ -25,19 +25,24 @@ namespace geax {
 namespace frontend {
 
 class StandaloneCallStatement : public Statement {
-public:
-    StandaloneCallStatement() : Statement(AstNodeType::kStandaloneCallStatement) {}
-    ~StandaloneCallStatement() = default;
+ public:
+  StandaloneCallStatement()
+      : Statement(AstNodeType::kStandaloneCallStatement) {}
+  ~StandaloneCallStatement() = default;
 
-    void setProcedureStatement(CallProcedureStatement* procedureStatement) {
-        procedureStatement_ = procedureStatement;
-    }
-    CallProcedureStatement* procedureStatement() const { return procedureStatement_; }
+  void setProcedureStatement(CallProcedureStatement* procedureStatement) {
+    procedureStatement_ = procedureStatement;
+  }
+  CallProcedureStatement* procedureStatement() const {
+    return procedureStatement_;
+  }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    CallProcedureStatement* procedureStatement_;
+ private:
+  CallProcedureStatement* procedureStatement_;
 };  // class StandaloneCallStatement
 
 }  // namespace frontend

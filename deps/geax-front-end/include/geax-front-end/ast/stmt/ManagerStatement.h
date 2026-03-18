@@ -23,12 +23,14 @@
 namespace geax {
 namespace frontend {
 class ManagerStatement : public Statement {
-public:
-    ManagerStatement() : Statement(AstNodeType::kManagerStatement) {}
+ public:
+  ManagerStatement() : Statement(AstNodeType::kManagerStatement) {}
 
-    virtual ~ManagerStatement() = default;
+  virtual ~ManagerStatement() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class ManagerStatement
 
 }  // namespace frontend

@@ -3,7 +3,7 @@ FROM alibaba-cloud-linux-3-registry.cn-hangzhou.cr.aliyuncs.com/alinux3/alinux3:
 RUN cd /etc/yum.repos.d && sed -i '/mirrors\.aliyun\.com/d' * && \
     sed -i 's/mirrors\.cloud\.aliyuncs\.com/mirrors.aliyun.com/g' * && yum clean all && yum makecache
 
-RUN dnf -y install gcc gcc-c++ git vim which passwd openssh-server rsync cmake procps gfortran python3-devel iproute findutils tar wget autoconf automake libtool libasan-static libstdc++-static
+RUN dnf -y install gcc gcc-c++ git vim libicu gdb libaio-devel which passwd openssh-server rsync cmake procps python3-devel iproute gfortran findutils tar wget autoconf automake libtool libasan-static libstdc++-static
 
 RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/gtest_v1.15.2.tar.gz -O /tmp/googletest.tar.gz && \
     cd /tmp && mkdir googletest && tar -xzf googletest.tar.gz --strip-components=1 -C googletest && cd googletest && \
@@ -33,7 +33,7 @@ RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/zstd_v1
     make -j10 && make install && \
     cd / && rm -rf /tmp/zstd*
 
-RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/rocksdb_v9.5.2.tar.gz -O /tmp/rocksdb.tar.gz && \
+RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/rocksdb_v10.6.2.tar.gz -O /tmp/rocksdb.tar.gz && \
     cd /tmp && mkdir rocksdb && tar -xzf rocksdb.tar.gz --strip-components=1 -C rocksdb && cd rocksdb && \
     mkdir build && cd build && \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -82,8 +82,13 @@ RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/boost_1
 RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/vsag_v0.11.5.tar.gz -O /tmp/vsag.tar.gz && \
     cd /tmp && mkdir vsag && tar -xzf vsag.tar.gz --strip-components=1 -C vsag && cd vsag && \
     mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
-    make -j10 && make install && \
+    make -j10 && make install && cp _deps/roaringbitmap-build/src/libroaring.a /usr/local/lib/ && \
     cd / && rm -rf /tmp/vsag*
+
+RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/libgfortran.a -O /tmp/libgfortran.a && \
+    cd /tmp && cp -f libgfortran.a /usr/local/lib/ && \
+    chmod 755 /usr/local/lib/libgfortran.a && \
+    cd / && rm -rf /tmp/libgfortran.a
 
 RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/OpenBLAS-0.3.28.tar.gz -O /tmp/openblas.tar.gz && \
     cd /tmp && mkdir openblas && tar -xzf openblas.tar.gz --strip-components=1 -C openblas && cd openblas && \
@@ -112,8 +117,11 @@ RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/date_v3
     cmake -DUSE_SYSTEM_TZ_DB=ON -DBUILD_TZ_LIB=ON .. && make -j10 && make install && \
     cd / && rm -rf /tmp/date*
 
-RUN export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static && export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-RUN pip3 install behave neo4j pyyaml
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+RUN curl -fsSL https://rpm.nodesource.com/setup_24.x | bash - && dnf install -y nodejs clang-tools-extra
+
+RUN pip3 install behave neo4j pyyaml cmake-format
 RUN ssh-keygen -A
 
 RUN echo $'# .bash_profile      \n\
@@ -123,3 +131,6 @@ if [ -f ~/.bashrc ]; then       \n\
 fi ' >> /root/.bash_profile
 
 RUN echo "/usr/local/lib64" >> /etc/ld.so.conf && ldconfig
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+

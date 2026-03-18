@@ -24,25 +24,28 @@ namespace geax {
 namespace frontend {
 
 class LabelNot : public LabelTree {
-public:
-    LabelNot() : LabelTree(AstNodeType::kLabelNot), expr_(nullptr) {}
-    ~LabelNot() = default;
+ public:
+  LabelNot() : LabelTree(AstNodeType::kLabelNot), expr_(nullptr) {}
+  ~LabelNot() = default;
 
-    void setExpr(LabelTree* expr) { expr_ = expr; }
-    LabelTree* expr() const { return expr_; }
+  void setExpr(LabelTree* expr) { expr_ = expr; }
+  LabelTree* expr() const { return expr_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const LabelTree& other) const override;
+ private:
+  bool equals(const LabelTree& other) const override;
 
-    LabelTree* expr_;
+  LabelTree* expr_;
 };
 
 inline bool LabelNot::equals(const LabelTree& other) const {
-    const auto& LabelTree = static_cast<const LabelNot&>(other);
-    bool ret = (nullptr != expr_) && (nullptr != LabelTree.expr_) && *expr_ == *LabelTree.expr_;
-    return ret;
+  const auto& LabelTree = static_cast<const LabelNot&>(other);
+  bool ret = (nullptr != expr_) && (nullptr != LabelTree.expr_) &&
+             *expr_ == *LabelTree.expr_;
+  return ret;
 }
 
 }  // namespace frontend

@@ -22,21 +22,21 @@
 namespace geax::logical {
 class LogicalExtractEdge : public LogicalOperator {
  public:
-    LogicalExtractEdge(const std::string& edge_ref,
-                       const std::string& binding_dst)
-        : LogicalOperator(LogicalOperatorType::ExtractEdge),
-          edge_ref_(edge_ref),
-          binding_dst_(binding_dst) {}
-    ~LogicalExtractEdge() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalExtractEdge(const std::string& edge_ref,
+                     const std::string& binding_dst)
+      : LogicalOperator(LogicalOperatorType::ExtractEdge),
+        edge_ref_(edge_ref),
+        binding_dst_(binding_dst) {}
+  ~LogicalExtractEdge() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
+  }
 
  private:
-    std::string edge_ref_;
-    std::string binding_dst_;
+  std::string edge_ref_;
+  std::string binding_dst_;
 };
 
 }  // namespace geax::logical

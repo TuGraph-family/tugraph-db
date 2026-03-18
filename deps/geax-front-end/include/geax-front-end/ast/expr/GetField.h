@@ -24,25 +24,29 @@ namespace geax {
 namespace frontend {
 
 class GetField : public UnaryOp {
-public:
-    GetField() : UnaryOp(AstNodeType::kGetField) {}
-    ~GetField() = default;
+ public:
+  GetField() : UnaryOp(AstNodeType::kGetField) {}
+  ~GetField() = default;
 
-    void setFieldName(std::string&& fieldName) { fieldName_ = std::move(fieldName); }
-    const std::string& fieldName() const { return fieldName_; }
+  void setFieldName(std::string&& fieldName) {
+    fieldName_ = std::move(fieldName);
+  }
+  const std::string& fieldName() const { return fieldName_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    std::string fieldName_;
+  std::string fieldName_;
 };  // class GetField
 
 inline bool GetField::equals(const Expr& other) const {
-    const auto& expr = static_cast<const GetField&>(other);
-    bool ret = UnaryOp::equals(other) && fieldName_ == expr.fieldName_;
-    return ret;
+  const auto& expr = static_cast<const GetField&>(other);
+  bool ret = UnaryOp::equals(other) && fieldName_ == expr.fieldName_;
+  return ret;
 }
 
 }  // namespace frontend

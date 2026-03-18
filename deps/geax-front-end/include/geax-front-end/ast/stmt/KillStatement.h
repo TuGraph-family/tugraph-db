@@ -22,23 +22,25 @@
 namespace geax {
 namespace frontend {
 class KillStatement : public Statement {
-public:
-    KillStatement() : Statement(AstNodeType::kKillStatement) {}
-    virtual ~KillStatement() = default;
+ public:
+  KillStatement() : Statement(AstNodeType::kKillStatement) {}
+  virtual ~KillStatement() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-    void setId(uint64_t id) { id_ = id; }
+  void setId(uint64_t id) { id_ = id; }
 
-    bool id() const { return id_; }
+  bool id() const { return id_; }
 
-    void setQuery(bool flag) { query_ = flag; }
+  void setQuery(bool flag) { query_ = flag; }
 
-    bool isQuery() const { return query_; }
+  bool isQuery() const { return query_; }
 
-private:
-    uint64_t id_;
-    bool query_{true};
+ private:
+  uint64_t id_;
+  bool query_{true};
 };  // class KillStatement
 
 }  // namespace frontend

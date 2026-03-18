@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class IsNormalized : public UnaryOp {
-public:
-    IsNormalized() : UnaryOp(AstNodeType::kIsNormalized) {}
-    ~IsNormalized() = default;
+ public:
+  IsNormalized() : UnaryOp(AstNodeType::kIsNormalized) {}
+  ~IsNormalized() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class IsNormalized
 
 }  // namespace frontend

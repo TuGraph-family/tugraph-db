@@ -53,11 +53,11 @@ extern void (*sdallocx)(void*, size_t, int);
 extern size_t (*nallocx)(size_t, int);
 extern int (*mallctl)(const char*, void*, size_t*, void*, size_t);
 extern int (*mallctlnametomib)(const char*, size_t*, size_t*);
-extern int (*mallctlbymib)(
-    const size_t*, size_t, void*, size_t*, void*, size_t);
+extern int (*mallctlbymib)(const size_t*, size_t, void*, size_t*, void*,
+                           size_t);
 #endif
-extern bool (*MallocExtension_Internal_GetNumericProperty)(
-    const char*, size_t, size_t*);
+extern bool (*MallocExtension_Internal_GetNumericProperty)(const char*, size_t,
+                                                           size_t*);
 #ifdef _MSC_VER
 // We emulate weak linkage for MSVC. The symbols we're
 // aliasing to are hiding in MallocImpl.cpp
@@ -70,8 +70,8 @@ extern bool (*MallocExtension_Internal_GetNumericProperty)(
 #pragma comment(linker, "/alternatename:_sdallocx=_sdallocxWeak")
 #pragma comment(linker, "/alternatename:_nallocx=_nallocxWeak")
 #pragma comment(linker, "/alternatename:_mallctl=_mallctlWeak")
-#pragma comment( \
-    linker, "/alternatename:_mallctlnametomib=_mallctlnametomibWeak")
+#pragma comment(linker, \
+                "/alternatename:_mallctlnametomib=_mallctlnametomibWeak")
 #pragma comment(linker, "/alternatename:_mallctlbymib=_mallctlbymibWeak")
 #pragma comment( \
     linker,      \

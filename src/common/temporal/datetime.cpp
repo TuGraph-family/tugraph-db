@@ -12,11 +12,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
+#include "common/temporal/datetime.h"
+
 #include <date/tz.h>
 
 #include "common/exceptions.h"
 #include "common/temporal/date.h"
-#include "common/temporal/datetime.h"
 #include "common/temporal/temporal_pattern.h"
 #include "common/temporal/time.h"
 #include "common/value.h"
@@ -24,173 +25,194 @@
 namespace common {
 
 DateTime::DateTime() {
-    auto t = make_zoned(date::current_zone(), std::chrono::system_clock::now());
-    nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
+  auto t = make_zoned(date::current_zone(), std::chrono::system_clock::now());
+  nanoseconds_since_epoch_ = t.get_local_time().time_since_epoch().count();
 }
 
 DateTime::DateTime(const std::string& str) {
-    std::smatch match;
-    if (!std::regex_match(str, match, DATETIME_REGEX)) {
-        THROW_CODE(InputError, "Failed to parse {} into DateTime");
-    }
-    auto pos = str.find('T');
-    int64_t days_since_epoch = 0;
-    int64_t nanoseconds_since_begin_of_day = 0;
-    if (pos == std::string::npos) {
-        days_since_epoch = Date(str).GetStorage();
-    } else {
-        days_since_epoch = Date(str.substr(0, pos)).GetStorage();
-        auto t = Time(str.substr(pos + 1), days_since_epoch);
-        nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
-        tz_offset_seconds_ = std::get<1>(t.GetStorage());
-        timezone_name_ = t.GetTimezoneName();
-    }
+  std::smatch match;
+  if (!std::regex_match(str, match, DATETIME_REGEX)) {
+    THROW_CODE(InputError, "Failed to parse {} into DateTime");
+  }
+  auto pos = str.find('T');
+  int64_t days_since_epoch = 0;
+  int64_t nanoseconds_since_begin_of_day = 0;
+  if (pos == std::string::npos) {
+    days_since_epoch = Date(str).GetStorage();
+  } else {
+    days_since_epoch = Date(str.substr(0, pos)).GetStorage();
+    auto t = Time(str.substr(pos + 1), days_since_epoch);
+    nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
+    tz_offset_seconds_ = std::get<1>(t.GetStorage());
+    timezone_name_ = t.GetTimezoneName();
+  }
 
-    nanoseconds_since_epoch_ =
-        std::chrono::nanoseconds(date::days(days_since_epoch)).count() +
-        nanoseconds_since_begin_of_day;
+  nanoseconds_since_epoch_ =
+      std::chrono::nanoseconds(date::days(days_since_epoch)).count() +
+      nanoseconds_since_begin_of_day;
 }
 
-std::string DateTime::GetTimezoneName() const {
-    return timezone_name_;
-}
+std::string DateTime::GetTimezoneName() const { return timezone_name_; }
 
 DateTime::DateTime(const Value& params) {
-    if (params.IsDateTime()) {
-        nanoseconds_since_epoch_ = std::get<0>(params.AsDateTime().GetStorage());
-        tz_offset_seconds_ = std::get<1>(params.AsDateTime().GetStorage());
-        return;
+  if (params.IsDateTime()) {
+    nanoseconds_since_epoch_ = std::get<0>(params.AsDateTime().GetStorage());
+    tz_offset_seconds_ = std::get<1>(params.AsDateTime().GetStorage());
+    return;
+  }
+  if (params.IsLocalDateTime()) {
+    nanoseconds_since_epoch_ = params.AsLocalDateTime().GetStorage();
+    return;
+  }
+  std::unordered_map<std::string, Value> dateParams;
+  std::unordered_map<std::string, Value> timeParams;
+  for (const auto& [key, v] : params.AsMap()) {
+    auto s = key;
+    std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+    // handle "timezone" in Time
+    if (s != DATE_TIMEZONE && validDateFields.count(s)) {
+      if (s == DATE_DATETIME) {
+        dateParams.emplace("date", v);
+        timeParams.emplace("time", v);
+      } else {
+        dateParams.emplace(s, v);
+      }
+    } else {
+      timeParams.emplace(s, v);
     }
-    if (params.IsLocalDateTime()) {
-        nanoseconds_since_epoch_ = params.AsLocalDateTime().GetStorage();
-        return;
-    }
-    std::unordered_map<std::string, Value> dateParams;
-    std::unordered_map<std::string, Value> timeParams;
-    for (const auto& [key, v] : params.AsMap()) {
-        auto s = key;
-        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-        // handle "timezone" in Time
-        if (s != DATE_TIMEZONE && validDateFields.count(s)) {
-            if (s == DATE_DATETIME) {
-                dateParams.emplace("date", v);
-                timeParams.emplace("time", v);
-            } else {
-                dateParams.emplace(s, v);
-            }
-        } else {
-            timeParams.emplace(s, v);
-        }
-    }
+  }
 
-    int64_t days_since_epoch = 0;
-    int64_t nanoseconds_since_begin_of_day = 0;
-    days_since_epoch = Date(Value(std::move(dateParams))).GetStorage();
-    if (!timeParams.empty()) {
-        timeParams.emplace("days_for_timezone", days_since_epoch);
-        if (!timeParams.count("hour") && !timeParams.count("time")) {
-            timeParams["hour"] = Value::Integer(0);
-        }
-        auto t = Time(Value(std::move(timeParams)));
-        nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
-        tz_offset_seconds_ = std::get<1>(t.GetStorage());
-        timezone_name_ = t.GetTimezoneName();
+  int64_t days_since_epoch = 0;
+  int64_t nanoseconds_since_begin_of_day = 0;
+  days_since_epoch = Date(Value(std::move(dateParams))).GetStorage();
+  if (!timeParams.empty()) {
+    timeParams.emplace("days_for_timezone", days_since_epoch);
+    if (!timeParams.count("hour") && !timeParams.count("time")) {
+      timeParams["hour"] = Value::Integer(0);
     }
+    auto t = Time(Value(std::move(timeParams)));
+    nanoseconds_since_begin_of_day = std::get<0>(t.GetStorage());
+    tz_offset_seconds_ = std::get<1>(t.GetStorage());
+    timezone_name_ = t.GetTimezoneName();
+  }
 
-    nanoseconds_since_epoch_ =
-        std::chrono::nanoseconds(date::days(days_since_epoch)).count() +
-        nanoseconds_since_begin_of_day;
+  nanoseconds_since_epoch_ =
+      std::chrono::nanoseconds(date::days(days_since_epoch)).count() +
+      nanoseconds_since_begin_of_day;
 }
 
 std::string DateTime::ToString() const {
-    date::local_time<std::chrono::nanoseconds> tp(
-        (std::chrono::nanoseconds(nanoseconds_since_epoch_)));
-    if (tz_offset_seconds_ == 0) {
-        return date::format("%Y-%m-%dT%H:%M:%S", tp) + "Z";
-    } else {
-        char time_offset[32];
-        auto abs_second = std::abs(tz_offset_seconds_);
-        sprintf(time_offset, "%c%02ld:%02ld:%02ld",
-                tz_offset_seconds_ < 0 ? '-' : '+', abs_second / 60 / 60,
-                abs_second / 60 % 60, abs_second % 60);
-        return date::format("%Y-%m-%dT%H:%M:%S", tp) + std::string(time_offset);
-    }
+  date::local_time<std::chrono::nanoseconds> tp(
+      (std::chrono::nanoseconds(nanoseconds_since_epoch_)));
+  if (tz_offset_seconds_ == 0) {
+    return date::format("%Y-%m-%dT%H:%M:%S", tp) + "Z";
+  } else {
+    char time_offset[32];
+    auto abs_second = std::abs(tz_offset_seconds_);
+    sprintf(time_offset, "%c%02ld:%02ld:%02ld",
+            tz_offset_seconds_ < 0 ? '-' : '+', abs_second / 60 / 60,
+            abs_second / 60 % 60, abs_second % 60);
+    return date::format("%Y-%m-%dT%H:%M:%S", tp) + std::string(time_offset);
+  }
 }
 
 Value DateTime::GetUnit(std::string unit) const {
-    std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
-    if (unit == "epochseconds") {
-        return Value::Integer((nanoseconds_since_epoch_ - tz_offset_seconds_ * NANOS_PER_SECOND) / NANOS_PER_SECOND);
-    } else if (unit == "epochmillis") {
-        return Value::Integer((nanoseconds_since_epoch_ - tz_offset_seconds_ * NANOS_PER_SECOND) / 1000000);
-    } else if (unit == "timezone") {
-        return Value::String(timezone_name_);
-    } else if (unit == "year" || unit == "month" || unit == "day" || unit == "weekyear" || unit == "week" ||
-        unit == "weekday" || unit == "ordinalday" || unit == "quarter" || unit == "dayofquarter") {
-        return Date(nanoseconds_since_epoch_ / NANOS_PER_SECOND / SECONDS_PER_DAY).GetUnit(unit);
-    } else {
-        return Time(nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY), tz_offset_seconds_).GetUnit(unit);
-    }
+  std::transform(unit.begin(), unit.end(), unit.begin(), ::tolower);
+  if (unit == "epochseconds") {
+    return Value::Integer(
+        (nanoseconds_since_epoch_ - tz_offset_seconds_ * NANOS_PER_SECOND) /
+        NANOS_PER_SECOND);
+  } else if (unit == "epochmillis") {
+    return Value::Integer(
+        (nanoseconds_since_epoch_ - tz_offset_seconds_ * NANOS_PER_SECOND) /
+        1000000);
+  } else if (unit == "timezone") {
+    return Value::String(timezone_name_);
+  } else if (unit == "year" || unit == "month" || unit == "day" ||
+             unit == "weekyear" || unit == "week" || unit == "weekday" ||
+             unit == "ordinalday" || unit == "quarter" ||
+             unit == "dayofquarter") {
+    return Date(nanoseconds_since_epoch_ / NANOS_PER_SECOND / SECONDS_PER_DAY)
+        .GetUnit(unit);
+  } else {
+    return Time(nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY),
+                tz_offset_seconds_)
+        .GetUnit(unit);
+  }
 }
 
 bool DateTime::operator<(const DateTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ < rhs.nanoseconds_since_epoch_;
+  return nanoseconds_since_epoch_ < rhs.nanoseconds_since_epoch_;
 }
 
 bool DateTime::operator<=(const DateTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ <= rhs.nanoseconds_since_epoch_;
+  return nanoseconds_since_epoch_ <= rhs.nanoseconds_since_epoch_;
 }
 
 bool DateTime::operator>(const DateTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ > rhs.nanoseconds_since_epoch_;
+  return nanoseconds_since_epoch_ > rhs.nanoseconds_since_epoch_;
 }
 
 bool DateTime::operator>=(const DateTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ >= rhs.nanoseconds_since_epoch_;
+  return nanoseconds_since_epoch_ >= rhs.nanoseconds_since_epoch_;
 }
 
 bool DateTime::operator==(const DateTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ == rhs.nanoseconds_since_epoch_;
+  return nanoseconds_since_epoch_ == rhs.nanoseconds_since_epoch_;
 }
 
 bool DateTime::operator!=(const DateTime& rhs) const noexcept {
-    return nanoseconds_since_epoch_ != rhs.nanoseconds_since_epoch_;
+  return nanoseconds_since_epoch_ != rhs.nanoseconds_since_epoch_;
 }
 
 DateTime DateTime::operator-(const Duration& duration) const {
-    auto days = nanoseconds_since_epoch_ / (NANOS_PER_SECOND * SECONDS_PER_DAY);
-    auto nanos = nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY) - duration.seconds * NANOS_PER_SECOND - duration.nanos;
-    if (nanos < 0) {
-        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
-        days -= day;
-        nanos += day * NANOS_PER_SECOND * SECONDS_PER_DAY;
-    }
-    if (nanos >= NANOS_PER_SECOND * SECONDS_PER_DAY) {
-        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
-        days += day;
-        nanos -= day * NANOS_PER_SECOND * SECONDS_PER_DAY;
-    }
-    date::year_month_day ymd((date::local_days((date::days(days)))));
-    ymd -= date::months(duration.months);
-    return DateTime((date::local_days(ymd).time_since_epoch().count() - duration.days) * NANOS_PER_SECOND * SECONDS_PER_DAY + nanos, tz_offset_seconds_);
+  auto days = nanoseconds_since_epoch_ / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+  auto nanos = nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY) -
+               duration.seconds * NANOS_PER_SECOND - duration.nanos;
+  if (nanos < 0) {
+    auto day =
+        int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+    days -= day;
+    nanos += day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+  }
+  if (nanos >= NANOS_PER_SECOND * SECONDS_PER_DAY) {
+    auto day =
+        int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+    days += day;
+    nanos -= day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+  }
+  date::year_month_day ymd((date::local_days((date::days(days)))));
+  ymd -= date::months(duration.months);
+  return DateTime(
+      (date::local_days(ymd).time_since_epoch().count() - duration.days) *
+              NANOS_PER_SECOND * SECONDS_PER_DAY +
+          nanos,
+      tz_offset_seconds_);
 }
 
 DateTime DateTime::operator+(const Duration& duration) const {
-    auto days = nanoseconds_since_epoch_ / (NANOS_PER_SECOND * SECONDS_PER_DAY);
-    auto nanos = nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY) + duration.seconds * NANOS_PER_SECOND + duration.nanos;
-    if (nanos < 0) {
-        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
-        days -= day;
-        nanos += day * NANOS_PER_SECOND * SECONDS_PER_DAY;
-    }
-    if (nanos >= NANOS_PER_SECOND * SECONDS_PER_DAY) {
-        auto day = int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
-        days += day;
-        nanos -= day * NANOS_PER_SECOND * SECONDS_PER_DAY;
-    }
-    date::year_month_day ymd((date::local_days((date::days(days)))));
-    ymd += date::months(duration.months);
-    return DateTime((date::local_days(ymd).time_since_epoch().count() + duration.days) * NANOS_PER_SECOND * SECONDS_PER_DAY + nanos, tz_offset_seconds_);
+  auto days = nanoseconds_since_epoch_ / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+  auto nanos = nanoseconds_since_epoch_ % (NANOS_PER_SECOND * SECONDS_PER_DAY) +
+               duration.seconds * NANOS_PER_SECOND + duration.nanos;
+  if (nanos < 0) {
+    auto day =
+        int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+    days -= day;
+    nanos += day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+  }
+  if (nanos >= NANOS_PER_SECOND * SECONDS_PER_DAY) {
+    auto day =
+        int64_t(-floor(nanos * 1.0 / (NANOS_PER_SECOND * SECONDS_PER_DAY)));
+    days += day;
+    nanos -= day * NANOS_PER_SECOND * SECONDS_PER_DAY;
+  }
+  date::year_month_day ymd((date::local_days((date::days(days)))));
+  ymd += date::months(duration.months);
+  return DateTime(
+      (date::local_days(ymd).time_since_epoch().count() + duration.days) *
+              NANOS_PER_SECOND * SECONDS_PER_DAY +
+          nanos,
+      tz_offset_seconds_);
 }
 
 }  // namespace common

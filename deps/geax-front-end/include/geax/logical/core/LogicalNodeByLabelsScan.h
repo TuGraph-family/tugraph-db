@@ -22,23 +22,23 @@
 namespace geax::logical {
 class LogicalNodeByLabelsScan : public LogicalOperator {
  public:
-    LogicalNodeByLabelsScan(const std::string& binding_var,
-                            frontend::LabelTree* labels)
-        : LogicalOperator(LogicalOperatorType::NodeByLabelsScan),
-          binding_var_(binding_var),
-          labels_(labels) {}
-    ~LogicalNodeByLabelsScan() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalNodeByLabelsScan(const std::string& binding_var,
+                          frontend::LabelTree* labels)
+      : LogicalOperator(LogicalOperatorType::NodeByLabelsScan),
+        binding_var_(binding_var),
+        labels_(labels) {}
+  ~LogicalNodeByLabelsScan() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalNodeByLabelsScan(binding_var:" + binding_var_ + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalNodeByLabelsScan(binding_var:" + binding_var_ + ")";
+  }
 
  private:
-    std::string binding_var_;
-    frontend::LabelTree* labels_;
+  std::string binding_var_;
+  frontend::LabelTree* labels_;
 };
 }  // namespace geax::logical

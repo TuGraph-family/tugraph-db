@@ -30,54 +30,59 @@ namespace frontend {
  */
 
 enum class ExprConjunctionType : uint8_t {
-    kMultiSet,
-    kUnion,
-    kMax,
+  kMultiSet,
+  kUnion,
+  kMax,
 };
 
 inline const char* ToString(const ExprConjunctionType type) {
-    static const StrArray<enumNum(ExprConjunctionType::kMax)> kArray = {
-        "multiSet",
-        "union",
-    };
-    const auto idx = static_cast<size_t>(type);
-    return idx < kArray.size() ? kArray[idx] : geax::frontend::kUnknown;
+  static const StrArray<enumNum(ExprConjunctionType::kMax)> kArray = {
+      "multiSet",
+      "union",
+  };
+  const auto idx = static_cast<size_t>(type);
+  return idx < kArray.size() ? kArray[idx] : geax::frontend::kUnknown;
 }
 
 inline bool ToEnum(std::string_view sv, ExprConjunctionType& mode) {
-    static const std::unordered_map<std::string_view, ExprConjunctionType> kMap = {
-        {"multiSet", ExprConjunctionType::kMultiSet},
-        {"union", ExprConjunctionType::kUnion},
-    };
-    auto it = kMap.find(sv);
-    return it == kMap.end() ? false : (mode = it->second, true);
+  static const std::unordered_map<std::string_view, ExprConjunctionType> kMap =
+      {
+          {"multiSet", ExprConjunctionType::kMultiSet},
+          {"union", ExprConjunctionType::kUnion},
+      };
+  auto it = kMap.find(sv);
+  return it == kMap.end() ? false : (mode = it->second, true);
 }
 
 class PathPattern : public AstNode {
-public:
-    PathPattern() : AstNode(AstNodeType::kPathPattern) {}
-    ~PathPattern() = default;
+ public:
+  PathPattern() : AstNode(AstNodeType::kPathPattern) {}
+  ~PathPattern() = default;
 
-    void appendChain(PathChain* chains) { chains_.emplace_back(chains); }
-    void setChains(std::vector<PathChain*>&& chains) { chains_ = std::move(chains); }
-    const std::vector<PathChain*>& chains() const { return chains_; }
+  void appendChain(PathChain* chains) { chains_.emplace_back(chains); }
+  void setChains(std::vector<PathChain*>&& chains) {
+    chains_ = std::move(chains);
+  }
+  const std::vector<PathChain*>& chains() const { return chains_; }
 
-    void setOpType(ExprConjunctionType type) { type_ = type; }
-    const std::optional<ExprConjunctionType> opType() const { return type_; }
+  void setOpType(ExprConjunctionType type) { type_ = type; }
+  const std::optional<ExprConjunctionType> opType() const { return type_; }
 
-    void setAlias(std::string&& alias) { alias_ = std::move(alias); }
-    const std::optional<std::string>& alias() { return alias_; }
+  void setAlias(std::string&& alias) { alias_ = std::move(alias); }
+  const std::optional<std::string>& alias() { return alias_; }
 
-    void setPrefix(PathPrefix* prefix) { prefix_ = prefix; }
-    const std::optional<PathPrefix*>& prefix() const { return prefix_; }
+  void setPrefix(PathPrefix* prefix) { prefix_ = prefix; }
+  const std::optional<PathPrefix*>& prefix() const { return prefix_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::optional<std::string> alias_;
-    std::optional<PathPrefix*> prefix_;
-    std::vector<PathChain*> chains_;
-    std::optional<ExprConjunctionType> type_;
+ private:
+  std::optional<std::string> alias_;
+  std::optional<PathPrefix*> prefix_;
+  std::vector<PathChain*> chains_;
+  std::optional<ExprConjunctionType> type_;
 };
 
 }  // namespace frontend

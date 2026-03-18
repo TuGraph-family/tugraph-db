@@ -24,17 +24,19 @@ namespace geax {
 namespace frontend {
 
 class ReadConsistency : public Hint {
-public:
-    ReadConsistency() : Hint(AstNodeType::kReadConsistency) {}
-    ~ReadConsistency() = default;
+ public:
+  ReadConsistency() : Hint(AstNodeType::kReadConsistency) {}
+  ~ReadConsistency() = default;
 
-    void setVal(std::string&& val) { val_ = std::move(val); }
-    const std::string& val() const { return val_; }
+  void setVal(std::string&& val) { val_ = std::move(val); }
+  const std::string& val() const { return val_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string val_;
+ private:
+  std::string val_;
 };
 
 }  // namespace frontend

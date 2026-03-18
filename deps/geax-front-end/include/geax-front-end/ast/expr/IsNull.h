@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class IsNull : public UnaryOp {
-public:
-    IsNull() : UnaryOp(AstNodeType::kIsNull) {}
-    ~IsNull() = default;
+ public:
+  IsNull() : UnaryOp(AstNodeType::kIsNull) {}
+  ~IsNull() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class IsNull
 
 }  // namespace frontend

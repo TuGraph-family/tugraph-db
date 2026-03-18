@@ -22,13 +22,13 @@
 namespace geax::logical {
 class LogicalDistinct : public LogicalOperator {
  public:
-    LogicalDistinct() : LogicalOperator(LogicalOperatorType::Distinct) {}
-    ~LogicalDistinct() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalDistinct() : LogicalOperator(LogicalOperatorType::Distinct) {}
+  ~LogicalDistinct() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override { return "LogicalDistinct()"; }
+  }
+  std::string toString() const override { return "LogicalDistinct()"; }
 };
 }  // namespace geax::logical

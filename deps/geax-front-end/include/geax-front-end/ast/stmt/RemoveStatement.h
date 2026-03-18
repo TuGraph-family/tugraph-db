@@ -25,17 +25,20 @@ namespace geax {
 namespace frontend {
 
 class RemoveStatement : public PrimitiveDataModifyStatement {
-public:
-    RemoveStatement() : PrimitiveDataModifyStatement(AstNodeType::kRemoveStatement) {}
-    ~RemoveStatement() = default;
-    void appendItem(RemoveItem* item) { items_.emplace_back(item); }
-    void setItems(std::vector<RemoveItem*>&& items) { items_ = std::move(items); }
-    const std::vector<RemoveItem*>& items() const { return items_; }
+ public:
+  RemoveStatement()
+      : PrimitiveDataModifyStatement(AstNodeType::kRemoveStatement) {}
+  ~RemoveStatement() = default;
+  void appendItem(RemoveItem* item) { items_.emplace_back(item); }
+  void setItems(std::vector<RemoveItem*>&& items) { items_ = std::move(items); }
+  const std::vector<RemoveItem*>& items() const { return items_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
  private:
-    std::vector<RemoveItem*> items_;
+  std::vector<RemoveItem*> items_;
 };  // class RemoveStatement
 
 }  // namespace frontend

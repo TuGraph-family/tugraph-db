@@ -17,5 +17,4 @@
 #include "geax-front-end/ast/Ast.h"
 #include "geax/logical/LogicalOperator.h"
 
-namespace geax::logical {
-}  // namespace geax::logical
+namespace geax::logical {}  // namespace geax::logical

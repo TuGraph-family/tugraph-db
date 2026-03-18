@@ -14,9 +14,9 @@
 
 #pragma once
 
-#include <vector>
 #include <string>
 #include <tuple>
+#include <vector>
 
 #include "geax-front-end/ast/Ast.h"
 #include "geax-front-end/ast/utils/AstUtil.h"
@@ -25,29 +25,29 @@
 namespace geax::logical {
 class LogicalProjection : public LogicalOperator {
  public:
-    LogicalProjection(
-        const std::vector<std::tuple<frontend::Expr*, std::string>>& items)
-        : LogicalOperator(LogicalOperatorType::Projection), items_(items) {}
-    ~LogicalProjection() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalProjection(
+      const std::vector<std::tuple<frontend::Expr*, std::string>>& items)
+      : LogicalOperator(LogicalOperatorType::Projection), items_(items) {}
+  ~LogicalProjection() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
+  }
+  std::string toString() const override {
+    std::string str = "LogicalProjection(items:[";
+    for (auto& item : items_) {
+      str +=
+          "(" + ToString(std::get<0>(item)) + ", " + std::get<1>(item) + "), ";
     }
-    std::string toString() const override {
-        std::string str = "LogicalProjection(items:[";
-        for (auto& item : items_) {
-            str += "(" + ToString(std::get<0>(item)) + ", " +
-                   std::get<1>(item) + "), ";
-        }
-        if (!items_.empty()) {
-            str.resize(str.size() - 2);
-        }
-        str += "])";
-        return str;
+    if (!items_.empty()) {
+      str.resize(str.size() - 2);
     }
+    str += "])";
+    return str;
+  }
 
  private:
-    std::vector<std::tuple<frontend::Expr*, std::string>> items_;
+  std::vector<std::tuple<frontend::Expr*, std::string>> items_;
 };
 }  // namespace geax::logical

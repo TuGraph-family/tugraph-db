@@ -40,9 +40,9 @@ namespace frontend {
  *      A CompositeQueryStatement includes linearQueryStatements
  */
 class Statement : public AstNode {
-public:
-    explicit Statement(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~Statement() = default;
+ public:
+  explicit Statement(AstNodeType nodeType) : AstNode(nodeType) {}
+  ~Statement() = default;
 };  // class Statement
 
 }  // namespace frontend

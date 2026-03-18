@@ -23,13 +23,12 @@
 namespace geax {
 namespace frontend {
 
-class GQLDMLParserTest : public ::testing::Test {
-};
+class GQLDMLParserTest : public ::testing::Test {};
 
 TEST_F(GQLDMLParserTest, base) {
-    GQLParserTest parser;
-    std::string testPath = "../../../../test/case/dml/";
-    ASSERT_EQ(parser.test(testPath), GEAXErrorCode::GEAX_SUCCEED);
+  GQLParserTest parser;
+  std::string testPath = "../../../../test/case/dml/";
+  ASSERT_EQ(parser.test(testPath), GEAXErrorCode::GEAX_SUCCEED);
 }
 
 }  // end of namespace frontend

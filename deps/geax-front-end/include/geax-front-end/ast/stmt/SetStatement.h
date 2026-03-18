@@ -25,18 +25,20 @@ namespace geax {
 namespace frontend {
 
 class SetStatement : public PrimitiveDataModifyStatement {
-public:
-    SetStatement() : PrimitiveDataModifyStatement(AstNodeType::kSetStatement) {}
-    ~SetStatement() = default;
+ public:
+  SetStatement() : PrimitiveDataModifyStatement(AstNodeType::kSetStatement) {}
+  ~SetStatement() = default;
 
-    void appendItem(SetItem* item) { items_.emplace_back(item); }
-    void setItems(std::vector<SetItem*>&& items) { items_ = std::move(items); }
-    const std::vector<SetItem*>& items() const { return items_; }
+  void appendItem(SetItem* item) { items_.emplace_back(item); }
+  void setItems(std::vector<SetItem*>&& items) { items_ = std::move(items); }
+  const std::vector<SetItem*>& items() const { return items_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::vector<SetItem*> items_;
+ private:
+  std::vector<SetItem*> items_;
 };  // class SetStatement
 
 }  // namespace frontend

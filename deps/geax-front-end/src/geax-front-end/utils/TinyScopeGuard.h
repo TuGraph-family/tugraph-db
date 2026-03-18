@@ -20,7 +20,7 @@
 namespace geax::frontend {
 
 class TinyScopeGuard {
-public:
+ public:
   template <class Callable>
   TinyScopeGuard(Callable &&undo_func) try
       : f(std::forward<Callable>(undo_func)) {
@@ -34,8 +34,7 @@ public:
   }
 
   ~TinyScopeGuard() {
-    if (f)
-      f(); // must not throw
+    if (f) f();  // must not throw
   }
 
   void dismiss() noexcept { f = nullptr; }
@@ -43,10 +42,10 @@ public:
   TinyScopeGuard(const TinyScopeGuard &) = delete;
   void operator=(const TinyScopeGuard &) = delete;
 
-private:
+ private:
   std::function<void()> f;
 };
 
-} // namespace geax::frontend
+}  // namespace geax::frontend
 
 #endif  // GEAXFRONTEND_UTILS_TINYSCOPEGUARD_H_

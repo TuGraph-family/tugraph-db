@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class SessionResetCommand : public AstNode {
-public:
-    explicit SessionResetCommand(AstNodeType type) : AstNode(type) {}
-    ~SessionResetCommand() = default;
+ public:
+  explicit SessionResetCommand(AstNodeType type) : AstNode(type) {}
+  ~SessionResetCommand() = default;
 };
 
 }  // namespace frontend

@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class Literal : public Expr {
-public:
-    explicit Literal(AstNodeType type) : Expr(type) {}
-    ~Literal() = default;
+ public:
+  explicit Literal(AstNodeType type) : Expr(type) {}
+  ~Literal() = default;
 };  // class Literal
 
 }  // namespace frontend

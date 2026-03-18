@@ -28,18 +28,22 @@ namespace frontend {
  * This is one of the roots(session or transaction) of an AST.
  */
 class SessionActivity : public AstNode {
-public:
-    SessionActivity() : AstNode(AstNodeType::kSessionActivity) {}
-    ~SessionActivity() = default;
+ public:
+  SessionActivity() : AstNode(AstNodeType::kSessionActivity) {}
+  ~SessionActivity() = default;
 
-    void appendSession(Session* session) { sessions_.emplace_back(session); }
-    void setSessions(std::vector<Session*>&& sessions) { sessions_ = std::move(sessions); }
-    const std::vector<Session*>& sessions() const { return sessions_; }
+  void appendSession(Session* session) { sessions_.emplace_back(session); }
+  void setSessions(std::vector<Session*>&& sessions) {
+    sessions_ = std::move(sessions);
+  }
+  const std::vector<Session*>& sessions() const { return sessions_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::vector<Session*> sessions_;
+ private:
+  std::vector<Session*> sessions_;
 };
 
 }  // namespace frontend

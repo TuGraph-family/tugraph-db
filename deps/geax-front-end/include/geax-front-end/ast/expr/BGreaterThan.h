@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BGreaterThan : public BinaryOp {
-public:
-    BGreaterThan() : BinaryOp(AstNodeType::kBGreaterThan) {}
-    ~BGreaterThan() = default;
+ public:
+  BGreaterThan() : BinaryOp(AstNodeType::kBGreaterThan) {}
+  ~BGreaterThan() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BGreaterThan
 
 }  // namespace frontend

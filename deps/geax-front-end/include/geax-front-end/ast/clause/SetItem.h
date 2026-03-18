@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class SetItem : public AstNode {
-public:
-    explicit SetItem(AstNodeType type) : AstNode(type) {}
-    ~SetItem() = default;
+ public:
+  explicit SetItem(AstNodeType type) : AstNode(type) {}
+  ~SetItem() = default;
 };
 
 }  // namespace frontend

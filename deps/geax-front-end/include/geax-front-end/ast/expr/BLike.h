@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BLike : public BinaryOp {
-public:
-    BLike() : BinaryOp(AstNodeType::kBLike) {}
-    ~BLike() = default;
+ public:
+  BLike() : BinaryOp(AstNodeType::kBLike) {}
+  ~BLike() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BLike
 
 }  // namespace frontend

@@ -22,15 +22,15 @@
 namespace geax::logical {
 class LogicalAntiSemiApply : public LogicalOperator {
  public:
-    LogicalAntiSemiApply()
-        : LogicalOperator(LogicalOperatorType::AntiSemiApply) {}
-    ~LogicalAntiSemiApply() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalAntiSemiApply()
+      : LogicalOperator(LogicalOperatorType::AntiSemiApply) {}
+  ~LogicalAntiSemiApply() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override { return "LogicalAntiSemiApply()"; }
+  }
+  std::string toString() const override { return "LogicalAntiSemiApply()"; }
 };
 
 }  // namespace geax::logical

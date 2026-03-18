@@ -13,21 +13,22 @@
  */
 
 #include "cypher/parser/cypher_error_listener.h"
+
 #include "cypher/cypher_exception.h"
 using namespace parser;
 
 CypherErrorListener CypherErrorListener::INSTANCE;
 
-void CypherErrorListener::syntaxError(antlr4::Recognizer *,
-                                      antlr4::Token *, size_t line,
-                                      size_t charPositionInLine, const std::string &msg,
-                                      std::exception_ptr ) {
-    std::string report;
-    report.append("line ")
-        .append(std::to_string(line))
-        .append(":")
-        .append(std::to_string(charPositionInLine))
-        .append(" ")
-        .append(msg);
-    THROW_CODE(ParserException, report);
+void CypherErrorListener::syntaxError(antlr4::Recognizer *, antlr4::Token *,
+                                      size_t line, size_t charPositionInLine,
+                                      const std::string &msg,
+                                      std::exception_ptr) {
+  std::string report;
+  report.append("line ")
+      .append(std::to_string(line))
+      .append(":")
+      .append(std::to_string(charPositionInLine))
+      .append(" ")
+      .append(msg);
+  THROW_CODE(ParserException, report);
 }

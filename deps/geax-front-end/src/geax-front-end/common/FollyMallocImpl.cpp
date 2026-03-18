@@ -43,10 +43,10 @@ void (*sdallocx)(void*, size_t, int) = nullptr;
 size_t (*nallocx)(size_t, int) = nullptr;
 int (*mallctl)(const char*, void*, size_t*, void*, size_t) = nullptr;
 int (*mallctlnametomib)(const char*, size_t*, size_t*) = nullptr;
-int (*mallctlbymib)(const size_t*, size_t, void*, size_t*, void*, size_t) =
-    nullptr;
+int (*mallctlbymib)(const size_t*, size_t, void*, size_t*, void*,
+                    size_t) = nullptr;
 #endif
-bool (*MallocExtension_Internal_GetNumericProperty)(
-    const char*, size_t, size_t*) = nullptr;
+bool (*MallocExtension_Internal_GetNumericProperty)(const char*, size_t,
+                                                    size_t*) = nullptr;
 #endif
 }

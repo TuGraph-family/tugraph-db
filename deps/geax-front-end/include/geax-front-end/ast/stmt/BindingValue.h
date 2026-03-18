@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BindingValue : public BindingDefinition {
-public:
-    BindingValue() : BindingDefinition(AstNodeType::kBindingValue) {}
-    ~BindingValue() = default;
+ public:
+  BindingValue() : BindingDefinition(AstNodeType::kBindingValue) {}
+  ~BindingValue() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BindingValue
 
 }  // namespace frontend

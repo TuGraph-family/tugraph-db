@@ -25,47 +25,53 @@ namespace geax {
 namespace frontend {
 
 enum class SessionParamType : uint8_t {
-    kTableType,
-    kGraphType,
-    kValueType,
-    kMax,
+  kTableType,
+  kGraphType,
+  kValueType,
+  kMax,
 };
 inline const char* ToString(SessionParamType dir) {
-    static const StrArray<enumNum(SessionParamType::kMax)> kNameMap = {"TableType", "GraphType",
-                                                                       "ValueType"};
-    const auto idx = static_cast<size_t>(dir);
-    return idx < kNameMap.size() ? kNameMap[idx] : geax::frontend::kUnknown;
+  static const StrArray<enumNum(SessionParamType::kMax)> kNameMap = {
+      "TableType", "GraphType", "ValueType"};
+  const auto idx = static_cast<size_t>(dir);
+  return idx < kNameMap.size() ? kNameMap[idx] : geax::frontend::kUnknown;
 }
 inline bool ToEnum(std::string_view sv, SessionParamType& dir) {
-    static const std::unordered_map<std::string_view, SessionParamType> kDirMap = {
-        {"TableType", SessionParamType::kTableType},
-        {"GraphType", SessionParamType::kGraphType},
-        {"ValueType", SessionParamType::kValueType},
-    };
-    auto it = kDirMap.find(sv);
-    return it == kDirMap.end() ? false : (dir = it->second, true);
+  static const std::unordered_map<std::string_view, SessionParamType> kDirMap =
+      {
+          {"TableType", SessionParamType::kTableType},
+          {"GraphType", SessionParamType::kGraphType},
+          {"ValueType", SessionParamType::kValueType},
+      };
+  auto it = kDirMap.find(sv);
+  return it == kDirMap.end() ? false : (dir = it->second, true);
 }
 
 class SetParamClause : public SessionSetCommand {
-public:
-    SetParamClause() : SessionSetCommand(AstNodeType::kSetParam), expr_(nullptr) {}
-    ~SetParamClause() = default;
+ public:
+  SetParamClause()
+      : SessionSetCommand(AstNodeType::kSetParam), expr_(nullptr) {}
+  ~SetParamClause() = default;
 
-    void setSessionParamType(SessionParamType paramType) { paramType_ = paramType; }
-    SessionParamType paramType() const { return paramType_; }
+  void setSessionParamType(SessionParamType paramType) {
+    paramType_ = paramType;
+  }
+  SessionParamType paramType() const { return paramType_; }
 
-    void setName(std::string&& name) { name_ = std::move(name); }
-    const std::string& name() const { return name_; }
+  void setName(std::string&& name) { name_ = std::move(name); }
+  const std::string& name() const { return name_; }
 
-    void setExpr(Expr* expr) { expr_ = expr; }
-    Expr* expr() const { return expr_; }
+  void setExpr(Expr* expr) { expr_ = expr; }
+  Expr* expr() const { return expr_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    SessionParamType paramType_;
-    std::string name_;
-    Expr* expr_;
+ private:
+  SessionParamType paramType_;
+  std::string name_;
+  Expr* expr_;
 };
 
 }  // namespace frontend

@@ -24,19 +24,22 @@
 namespace geax {
 namespace frontend {
 class TableFunctionClause : public ElementPredicate {
-public:
-    TableFunctionClause() : ElementPredicate(AstNodeType::kTableFunction), function_(nullptr) {}
-    ~TableFunctionClause() = default;
+ public:
+  TableFunctionClause()
+      : ElementPredicate(AstNodeType::kTableFunction), function_(nullptr) {}
+  ~TableFunctionClause() = default;
 
-    void setFunction(Expr* function) { function_ = function; }
-    Expr* function() const { return function_; }
+  void setFunction(Expr* function) { function_ = function; }
+  Expr* function() const { return function_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    Expr* function_;
+ private:
+  Expr* function_;
 };
-}  // end of namespace geabase
-}  // end of namespace alibaba
+}  // namespace frontend
+}  // namespace geax
 
 #endif  // GEAXFRONTEND_AST_CLAUSE_TABLEFUNCTIONCLAUSE_H_

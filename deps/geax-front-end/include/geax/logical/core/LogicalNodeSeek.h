@@ -25,30 +25,29 @@ namespace geax::logical {
 
 class LogicalNodeSeek : public LogicalOperator {
  public:
-    LogicalNodeSeek(const std::string& binding_var, const std::string& label,
-                    const std::string& field, frontend::Expr* value)
-        : LogicalOperator(LogicalOperatorType::NodeSeek),
-          binding_var_(binding_var),
-          label_(label),
-          field_(field),
-          value_(value) {}
-    ~LogicalNodeSeek() = default;
-    std::any accept(LogicalOperatorVisitor* visitor) override {
-        return visitor->visit(std::static_pointer_cast<
-                             std::remove_reference<decltype(*this)>::type>(
+  LogicalNodeSeek(const std::string& binding_var, const std::string& label,
+                  const std::string& field, frontend::Expr* value)
+      : LogicalOperator(LogicalOperatorType::NodeSeek),
+        binding_var_(binding_var),
+        label_(label),
+        field_(field),
+        value_(value) {}
+  ~LogicalNodeSeek() = default;
+  std::any accept(LogicalOperatorVisitor* visitor) override {
+    return visitor->visit(
+        std::static_pointer_cast<std::remove_reference<decltype(*this)>::type>(
             shared_from_this()));
-    }
-    std::string toString() const override {
-        return "LogicalNodeSeek(binding_var:" + binding_var_ +
-               ", label:" + label_ + ", field:" + field_ +
-               ", value:" + ToString(value_) + ")";
-    }
+  }
+  std::string toString() const override {
+    return "LogicalNodeSeek(binding_var:" + binding_var_ + ", label:" + label_ +
+           ", field:" + field_ + ", value:" + ToString(value_) + ")";
+  }
 
  private:
-    std::string binding_var_;
-    std::string label_;
-    std::string field_;
-    frontend::Expr* value_;
+  std::string binding_var_;
+  std::string label_;
+  std::string field_;
+  frontend::Expr* value_;
 };
 
 }  // namespace geax::logical

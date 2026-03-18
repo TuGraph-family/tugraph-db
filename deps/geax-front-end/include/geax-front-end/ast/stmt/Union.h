@@ -24,17 +24,19 @@ namespace geax {
 namespace frontend {
 
 class Union : public QueryConjunctionType {
-public:
-    Union() : QueryConjunctionType(AstNodeType::kUnion), isDistinct_(true) {}
-    ~Union() = default;
+ public:
+  Union() : QueryConjunctionType(AstNodeType::kUnion), isDistinct_(true) {}
+  ~Union() = default;
 
-    void setDistince(const bool& isDistinct) { isDistinct_ = isDistinct; }
-    const bool distinct() const { return isDistinct_; }
+  void setDistince(const bool& isDistinct) { isDistinct_ = isDistinct; }
+  const bool distinct() const { return isDistinct_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool isDistinct_;
+ private:
+  bool isDistinct_;
 };  // class Union
 
 }  // namespace frontend

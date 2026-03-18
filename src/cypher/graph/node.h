@@ -17,59 +17,59 @@
 //
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
+
 #include "cypher/graph/common.h"
-#include "graphdb/graph_entity.h"
 #include "geax-front-end/ast/clause/Node.h"
+#include "graphdb/graph_entity.h"
 namespace cypher {
 class RTContext;
 
 class Node {
-    NodeID id_;
-    std::string label_;
-    std::string alias_;
-    std::vector<RelpID> rhs_relps_;  // rhs relationship ids
-    std::vector<RelpID> lhs_relps_;  // lhs relationship ids
-    bool visited_ = false;
+  NodeID id_;
+  std::string label_;
+  std::string alias_;
+  std::vector<RelpID> rhs_relps_;  // rhs relationship ids
+  std::vector<RelpID> lhs_relps_;  // lhs relationship ids
+  bool visited_ = false;
 
  public:
-    geax::frontend::Node* ast_node_;
-    std::optional<graphdb::Vertex> vertex_;
-    enum Derivation {
-        MATCHED,   // node referred in match clause
-        ARGUMENT,  // unmatched node that is argument
-        CREATED,   // unmatched node in create clause
-        MERGED,    // unmatched node in merge clause
-        YIELD,     // node yield from inquery call
-        UNKNOWN,
-    } derivation_;
+  geax::frontend::Node *ast_node_;
+  std::optional<graphdb::Vertex> vertex_;
+  enum Derivation {
+    MATCHED,   // node referred in match clause
+    ARGUMENT,  // unmatched node that is argument
+    CREATED,   // unmatched node in create clause
+    MERGED,    // unmatched node in merge clause
+    YIELD,     // node yield from inquery call
+    UNKNOWN,
+  } derivation_;
 
-    Node();
-    Node(NodeID id, const std::string &label, const std::string &alias, Derivation derivation);
-    Node(const Node &) = default;
+  Node();
+  Node(NodeID id, const std::string &label, const std::string &alias,
+       Derivation derivation);
+  Node(const Node &) = default;
 
-    NodeID ID() const;
+  NodeID ID() const;
 
-    const std::string &Label() const;
+  const std::string &Label() const;
 
-    void SetLabel(const std::string &label) { label_ = label; }
+  void SetLabel(const std::string &label) { label_ = label; }
 
-    const std::string &Alias() const;
+  const std::string &Alias() const;
 
-    bool &Visited() { return visited_; }
+  bool &Visited() { return visited_; }
 
-    const std::vector<RelpID> &RhsRelps() const;
+  const std::vector<RelpID> &RhsRelps() const;
 
-    const std::vector<RelpID> &LhsRelps() const;
+  const std::vector<RelpID> &LhsRelps() const;
 
-    bool Empty() const;
+  bool Empty() const;
 
-    bool AddRelp(RelpID rid, bool is_rhs_relp);
+  bool AddRelp(RelpID rid, bool is_rhs_relp);
 
-    void SetAlias(const std::string &alias) {
-        alias_ = alias;
-    }
+  void SetAlias(const std::string &alias) { alias_ = alias; }
 };
 }  // namespace cypher

@@ -22,8 +22,8 @@ namespace cypher {
 
 Node::Node() : id_(-1), derivation_(UNKNOWN) {}
 
-Node::Node(cypher::NodeID id, const std::string &label, const std::string &alias,
-           Derivation derivation)
+Node::Node(cypher::NodeID id, const std::string &label,
+           const std::string &alias, Derivation derivation)
     : id_(id), label_(label), alias_(alias), derivation_(derivation) {}
 
 NodeID Node::ID() const { return id_; }
@@ -39,18 +39,18 @@ const std::vector<RelpID> &Node::LhsRelps() const { return lhs_relps_; }
 bool Node::Empty() const { return (id_ < 0); }
 
 bool Node::AddRelp(cypher::RelpID rid, bool is_rhs_relp) {
-    if (is_rhs_relp) {
-        for (auto r : rhs_relps_) {
-            if (r == rid) return false;
-        }
-        rhs_relps_.emplace_back(rid);
-    } else {
-        for (auto r : lhs_relps_) {
-            if (r == rid) return false;
-        }
-        lhs_relps_.emplace_back(rid);
+  if (is_rhs_relp) {
+    for (auto r : rhs_relps_) {
+      if (r == rid) return false;
     }
-    return true;
+    rhs_relps_.emplace_back(rid);
+  } else {
+    for (auto r : lhs_relps_) {
+      if (r == rid) return false;
+    }
+    lhs_relps_.emplace_back(rid);
+  }
+  return true;
 }
 
 }  // namespace cypher

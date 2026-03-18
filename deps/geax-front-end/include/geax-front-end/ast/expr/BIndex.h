@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BIndex : public BinaryOp {
-public:
-    BIndex() : BinaryOp(AstNodeType::kBIndex) {}
-    ~BIndex() = default;
+ public:
+  BIndex() : BinaryOp(AstNodeType::kBIndex) {}
+  ~BIndex() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BIndex
 
 }  // namespace frontend

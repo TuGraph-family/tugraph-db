@@ -16,69 +16,71 @@
 // Created by wt on 19-2-25.
 //
 #pragma once
-#include "geax-front-end/ast/expr/Ref.h"
-#include "cypher/parser/data_typedef.h"
-#include <stdexcept>
 #include <memory>
+#include <stdexcept>
+
+#include "cypher/parser/data_typedef.h"
+#include "geax-front-end/ast/expr/Ref.h"
 
 namespace cypher {
 
 struct SymbolNode {
-    size_t id;  // index in record
-    enum Type {
-        CONSTANT = 0,
-        NODE = 1,
-        RELATIONSHIP = 2,
-        PARAMETER = 3,
-        NAMED_PATH = 4,
-    } type;
-    enum Scope {
-        LOCAL,             // MATCH (n) RETURN n,1 AS num
-        ARGUMENT,          // WITH a
-        DERIVED_ARGUMENT,  // derived from argument, WITH a UNWIND a AS x
-    } scope;
+  size_t id;  // index in record
+  enum Type {
+    CONSTANT = 0,
+    NODE = 1,
+    RELATIONSHIP = 2,
+    PARAMETER = 3,
+    NAMED_PATH = 4,
+  } type;
+  enum Scope {
+    LOCAL,             // MATCH (n) RETURN n,1 AS num
+    ARGUMENT,          // WITH a
+    DERIVED_ARGUMENT,  // derived from argument, WITH a UNWIND a AS x
+  } scope;
 
-    SymbolNode(size_t i, Type t, Scope s) : id(i), type(t), scope(s) {}
+  SymbolNode(size_t i, Type t, Scope s) : id(i), type(t), scope(s) {}
 
-    inline static std::string to_string(const SymbolNode::Type& t) {
-        static std::unordered_map<SymbolNode::Type, std::string> type_map = {
-            {SymbolNode::Type::CONSTANT, "CONSTANT"},
-            {SymbolNode::Type::NODE, "NODE"},
-            {SymbolNode::Type::RELATIONSHIP, "RELATIONSHIP"},
-            {SymbolNode::Type::PARAMETER, "PARAMETER"},
-            {SymbolNode::Type::NAMED_PATH, "NAMED_PATH"},
-        };
-        auto it = type_map.find(t);
-        if (it == type_map.end()) {
-            throw std::runtime_error("Unknown SymbolNode::Type");
-        }
-        return it->second;
+  inline static std::string to_string(const SymbolNode::Type& t) {
+    static std::unordered_map<SymbolNode::Type, std::string> type_map = {
+        {SymbolNode::Type::CONSTANT, "CONSTANT"},
+        {SymbolNode::Type::NODE, "NODE"},
+        {SymbolNode::Type::RELATIONSHIP, "RELATIONSHIP"},
+        {SymbolNode::Type::PARAMETER, "PARAMETER"},
+        {SymbolNode::Type::NAMED_PATH, "NAMED_PATH"},
+    };
+    auto it = type_map.find(t);
+    if (it == type_map.end()) {
+      throw std::runtime_error("Unknown SymbolNode::Type");
     }
+    return it->second;
+  }
 
-    inline static std::string to_string(const SymbolNode::Scope& s) {
-        static std::unordered_map<SymbolNode::Scope, std::string> scope_map = {
-            {SymbolNode::Scope::LOCAL, "LOCAL"},
-            {SymbolNode::Scope::ARGUMENT, "ARGUMENT"},
-            {SymbolNode::Scope::DERIVED_ARGUMENT, "DERIVED_ARGUMENT"},
-        };
-        auto it = scope_map.find(s);
-        if (it == scope_map.end()) {
-            throw std::runtime_error("Unknown SymbolNode::Scope");
-        }
-        return it->second;
+  inline static std::string to_string(const SymbolNode::Scope& s) {
+    static std::unordered_map<SymbolNode::Scope, std::string> scope_map = {
+        {SymbolNode::Scope::LOCAL, "LOCAL"},
+        {SymbolNode::Scope::ARGUMENT, "ARGUMENT"},
+        {SymbolNode::Scope::DERIVED_ARGUMENT, "DERIVED_ARGUMENT"},
+    };
+    auto it = scope_map.find(s);
+    if (it == scope_map.end()) {
+      throw std::runtime_error("Unknown SymbolNode::Scope");
     }
+    return it->second;
+  }
 };
 
 struct AnnotationCollection {
-    std::unordered_map<std::string, std::vector<
-        std::shared_ptr<geax::frontend::Ref>>> path_elements;
+  std::unordered_map<std::string,
+                     std::vector<std::shared_ptr<geax::frontend::Ref>>>
+      path_elements;
 };
 
 struct SymbolTable {
-    std::unordered_map<std::string, SymbolNode> symbols;
-    AnnotationCollection anot_collection;
+  std::unordered_map<std::string, SymbolNode> symbols;
+  AnnotationCollection anot_collection;
 
-    void DumpTable() const;
+  void DumpTable() const;
 };
 
 }  // namespace cypher

@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BNotSmallerThan : public BinaryOp {
-public:
-    BNotSmallerThan() : BinaryOp(AstNodeType::kBNotSmallerThan) {}
-    ~BNotSmallerThan() = default;
+ public:
+  BNotSmallerThan() : BinaryOp(AstNodeType::kBNotSmallerThan) {}
+  ~BNotSmallerThan() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BNotSmallerThan
 
 }  // namespace frontend

@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class OpConcurrent : public Hint {
-public:
-    OpConcurrent() : Hint(AstNodeType::kOpConcurrent) {}
-    ~OpConcurrent() = default;
+ public:
+  OpConcurrent() : Hint(AstNodeType::kOpConcurrent) {}
+  ~OpConcurrent() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };
 
 }  // namespace frontend

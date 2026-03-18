@@ -28,35 +28,35 @@ namespace geax {
 namespace frontend {
 
 enum class EdgeDirection : uint8_t {
-    kUndirected,         // ~[]~, ~
-    kPointRight,         // -[]->, ->
-    kPointLeft,          // <-[]-, <-
-    kLeftOrUndirected,   // <~[]~, <~
-    kRightOrUndirected,  // ~[]~>, ~>
-    kLeftOrRight,        // <-[]->, <->
-    kAnyDirected,        // -[]-, -
-    kMax,
+  kUndirected,         // ~[]~, ~
+  kPointRight,         // -[]->, ->
+  kPointLeft,          // <-[]-, <-
+  kLeftOrUndirected,   // <~[]~, <~
+  kRightOrUndirected,  // ~[]~>, ~>
+  kLeftOrRight,        // <-[]->, <->
+  kAnyDirected,        // -[]-, -
+  kMax,
 };
 inline const char* ToString(EdgeDirection dir) {
-    static const StrArray<enumNum(EdgeDirection::kMax)> kNameMap = {
-        "Undirected",        "PointRight",  "PointLeft",   "LeftOrUndirected",
-        "RightOrUndirected", "LeftOrRight", "AnyDirected",
-    };
-    const auto idx = static_cast<size_t>(dir);
-    return idx < kNameMap.size() ? kNameMap[idx] : geax::frontend::kUnknown;
+  static const StrArray<enumNum(EdgeDirection::kMax)> kNameMap = {
+      "Undirected",        "PointRight",  "PointLeft",   "LeftOrUndirected",
+      "RightOrUndirected", "LeftOrRight", "AnyDirected",
+  };
+  const auto idx = static_cast<size_t>(dir);
+  return idx < kNameMap.size() ? kNameMap[idx] : geax::frontend::kUnknown;
 }
 inline bool ToEnum(std::string_view sv, EdgeDirection& dir) {
-    static const std::unordered_map<std::string_view, EdgeDirection> kDirMap = {
-        {"Undirected", EdgeDirection::kUndirected},
-        {"PointRight", EdgeDirection::kPointRight},
-        {"PointLeft", EdgeDirection::kPointLeft},
-        {"LeftOrUndirected", EdgeDirection::kLeftOrUndirected},
-        {"RightOrUndirected", EdgeDirection::kRightOrUndirected},
-        {"LeftOrRight", EdgeDirection::kLeftOrRight},
-        {"AnyDirected", EdgeDirection::kAnyDirected},
-    };
-    auto it = kDirMap.find(sv);
-    return it == kDirMap.end() ? false : (dir = it->second, true);
+  static const std::unordered_map<std::string_view, EdgeDirection> kDirMap = {
+      {"Undirected", EdgeDirection::kUndirected},
+      {"PointRight", EdgeDirection::kPointRight},
+      {"PointLeft", EdgeDirection::kPointLeft},
+      {"LeftOrUndirected", EdgeDirection::kLeftOrUndirected},
+      {"RightOrUndirected", EdgeDirection::kRightOrUndirected},
+      {"LeftOrRight", EdgeDirection::kLeftOrRight},
+      {"AnyDirected", EdgeDirection::kAnyDirected},
+  };
+  auto it = kDirMap.find(sv);
+  return it == kDirMap.end() ? false : (dir = it->second, true);
 }
 
 /**
@@ -65,29 +65,32 @@ inline bool ToEnum(std::string_view sv, EdgeDirection& dir) {
  * -[]-
  */
 class Edge : public EdgeLike {
-public:
-    Edge() : EdgeLike(AstNodeType::kEdge), filler_(nullptr) {}
-    ~Edge() = default;
+ public:
+  Edge() : EdgeLike(AstNodeType::kEdge), filler_(nullptr) {}
+  ~Edge() = default;
 
-    void setDirection(EdgeDirection direction) { direction_ = direction; }
-    EdgeDirection direction() const { return direction_; }
+  void setDirection(EdgeDirection direction) { direction_ = direction; }
+  EdgeDirection direction() const { return direction_; }
 
-    void setHopRange(IntParam&& low, std::optional<IntParam>&& high) {
-        hopRange_ = std::make_tuple(std::move(low), std::move(high));
-    }
-    const std::optional<std::tuple<IntParam, std::optional<IntParam>>>& hopRange() const {
-        return hopRange_;
-    }
+  void setHopRange(IntParam&& low, std::optional<IntParam>&& high) {
+    hopRange_ = std::make_tuple(std::move(low), std::move(high));
+  }
+  const std::optional<std::tuple<IntParam, std::optional<IntParam>>>& hopRange()
+      const {
+    return hopRange_;
+  }
 
-    void setFiller(ElementFiller* filler) { filler_ = filler; }
-    ElementFiller* filler() const { return filler_; }
+  void setFiller(ElementFiller* filler) { filler_ = filler; }
+  ElementFiller* filler() const { return filler_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    EdgeDirection direction_;
-    ElementFiller* filler_;
-    std::optional<std::tuple<IntParam, std::optional<IntParam>>> hopRange_;
+ private:
+  EdgeDirection direction_;
+  ElementFiller* filler_;
+  std::optional<std::tuple<IntParam, std::optional<IntParam>>> hopRange_;
 };
 
 }  // namespace frontend

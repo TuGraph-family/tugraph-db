@@ -25,18 +25,21 @@ namespace geax {
 namespace frontend {
 
 class ReplaceStatement : public PrimitiveDataModifyStatement {
-public:
-    ReplaceStatement() : PrimitiveDataModifyStatement(AstNodeType::kReplaceStatement) {}
-    ~ReplaceStatement() = default;
+ public:
+  ReplaceStatement()
+      : PrimitiveDataModifyStatement(AstNodeType::kReplaceStatement) {}
+  ~ReplaceStatement() = default;
 
-    void appendPath(PathChain* path) { paths_.emplace_back(path); }
-    void setPaths(std::vector<PathChain*>&& paths) { paths_ = std::move(paths); }
-    const std::vector<PathChain*>& paths() const { return paths_; }
+  void appendPath(PathChain* path) { paths_.emplace_back(path); }
+  void setPaths(std::vector<PathChain*>&& paths) { paths_ = std::move(paths); }
+  const std::vector<PathChain*>& paths() const { return paths_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::vector<PathChain*> paths_;
+ private:
+  std::vector<PathChain*> paths_;
 };  // class ReplaceStatement
 
 }  // namespace frontend

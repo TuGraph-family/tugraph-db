@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BEqual : public BinaryOp {
-public:
-    BEqual() : BinaryOp(AstNodeType::kBEqual) {}
-    ~BEqual() = default;
+ public:
+  BEqual() : BinaryOp(AstNodeType::kBEqual) {}
+  ~BEqual() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BEqual
 
 }  // namespace frontend

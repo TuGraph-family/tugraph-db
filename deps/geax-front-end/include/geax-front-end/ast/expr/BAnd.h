@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class BAnd : public BinaryOp {
-public:
-    BAnd() : BinaryOp(AstNodeType::kBAnd) {}
-    ~BAnd() = default;
+ public:
+  BAnd() : BinaryOp(AstNodeType::kBAnd) {}
+  ~BAnd() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };  // class BAnd
 
 }  // namespace frontend

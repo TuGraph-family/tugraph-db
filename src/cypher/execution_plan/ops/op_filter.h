@@ -17,70 +17,70 @@
 //
 #pragma once
 
-#include "cypher/filter/filter.h"
-#include "cypher/execution_plan/ops/op.h"
 #include "cypher/cypher_exception.h"
+#include "cypher/execution_plan/ops/op.h"
+#include "cypher/filter/filter.h"
 
 namespace cypher {
 
 class OpFilter : public OpBase {
-    friend class EdgeFilterPushdownExpand;
-    std::shared_ptr<lgraph::Filter> filter_;
-    /* FilterState
-     * Different states in which ExpandAll can be at. */
-    enum OpFilterState {
-        FilterUninitialized,  /* Filter wasn't initialized it. */
-        FilterRequestRefresh, /* */
-        FilterResetted,       /* Filter was just restarted. */
-    } _state;
+  friend class EdgeFilterPushdownExpand;
+  std::shared_ptr<lgraph::Filter> filter_;
+  /* FilterState
+   * Different states in which ExpandAll can be at. */
+  enum OpFilterState {
+    FilterUninitialized,  /* Filter wasn't initialized it. */
+    FilterRequestRefresh, /* */
+    FilterResetted,       /* Filter was just restarted. */
+  } _state;
 
  public:
-    explicit OpFilter(const std::shared_ptr<lgraph::Filter> &filter)
-        : OpBase(OpType::FILTER, "Filter"), filter_(filter) {
-        _state = FilterUninitialized;
+  explicit OpFilter(const std::shared_ptr<lgraph::Filter> &filter)
+      : OpBase(OpType::FILTER, "Filter"), filter_(filter) {
+    _state = FilterUninitialized;
+  }
+
+  const std::shared_ptr<lgraph::Filter> &Filter() const { return filter_; }
+
+  OpResult Initialize(RTContext *ctx) override {
+    CYPHER_THROW_ASSERT(!children.empty());
+    OpBase *child = children[0];
+    auto res = child->Initialize(ctx);
+    if (res != OP_OK) return res;
+    record = child->record;
+    return OP_OK;
+  }
+
+  OpResult RealConsume(RTContext *ctx) override {
+    OpResult res;
+    OpBase *child = children[0];
+    while (true) {
+      res = child->Consume(ctx);
+      if (res != OP_OK) return res;
+      if (filter_->DoFilter(ctx, *child->record)) {
+        break;
+      }
     }
+    return OP_OK;
+  }
 
-    const std::shared_ptr<lgraph::Filter> &Filter() const { return filter_; }
-
-    OpResult Initialize(RTContext *ctx) override {
-        CYPHER_THROW_ASSERT(!children.empty());
-        OpBase *child = children[0];
-        auto res = child->Initialize(ctx);
-        if (res != OP_OK) return res;
-        record = child->record;
-        return OP_OK;
+  OpResult ResetImpl(bool complete) override {
+    if (complete) {
+      _state = FilterUninitialized;
+    } else {
+      _state = FilterResetted;
     }
+    return OP_OK;
+  }
 
-    OpResult RealConsume(RTContext *ctx) override {
-        OpResult res;
-        OpBase *child = children[0];
-        while (true) {
-            res = child->Consume(ctx);
-            if (res != OP_OK) return res;
-            if (filter_->DoFilter(ctx, *child->record)) {
-                break;
-            }
-        }
-        return OP_OK;
-    }
+  std::string ToString() const override {
+    std::string str(name);
+    str.append(" [").append(filter_->ToString()).append("]");
+    return str;
+  }
 
-    OpResult ResetImpl(bool complete) override {
-        if (complete) {
-            _state = FilterUninitialized;
-        } else {
-            _state = FilterResetted;
-        }
-        return OP_OK;
-    }
+  CYPHER_DEFINE_VISITABLE()
 
-    std::string ToString() const override {
-        std::string str(name);
-        str.append(" [").append(filter_->ToString()).append("]");
-        return str;
-    }
-
-    CYPHER_DEFINE_VISITABLE()
-
-    CYPHER_DEFINE_CONST_VISITABLE()
+  CYPHER_DEFINE_CONST_VISITABLE()
 };
 }  // namespace cypher

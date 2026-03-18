@@ -27,35 +27,42 @@ namespace geax {
 namespace frontend {
 
 class ProcedureBody : public AstNode {
-public:
-    ProcedureBody() : AstNode(AstNodeType::kProcedureBody) {}
-    ~ProcedureBody() = default;
+ public:
+  ProcedureBody() : AstNode(AstNodeType::kProcedureBody) {}
+  ~ProcedureBody() = default;
 
-    void appendStatement(StatementWithYield* statement) { statements_.emplace_back(statement); }
-    void setStatements(std::vector<StatementWithYield*>&& statements) {
-        statements_ = std::move(statements);
-    }
-    const std::vector<StatementWithYield*>& statements() const { return statements_; }
+  void appendStatement(StatementWithYield* statement) {
+    statements_.emplace_back(statement);
+  }
+  void setStatements(std::vector<StatementWithYield*>&& statements) {
+    statements_ = std::move(statements);
+  }
+  const std::vector<StatementWithYield*>& statements() const {
+    return statements_;
+  }
 
-    void setSchemaRef(SchemaRef* schemaRef) { schemaRef_ = schemaRef; }
-    const std::optional<SchemaRef*>& schemaRef() const { return schemaRef_; }
+  void setSchemaRef(SchemaRef* schemaRef) { schemaRef_ = schemaRef; }
+  const std::optional<SchemaRef*>& schemaRef() const { return schemaRef_; }
 
-    void appendBindingDefinition(BindingDefinition* binding) {
-        bindingDefinitions_.emplace_back(binding);
-    }
-    void setBindingDefinitions(std::vector<BindingDefinition*>&& bindingDefinitions) {
-        bindingDefinitions_ = std::move(bindingDefinitions);
-    }
-    const std::vector<BindingDefinition*>& bindingDefinitions() const {
-        return bindingDefinitions_;
-    }
+  void appendBindingDefinition(BindingDefinition* binding) {
+    bindingDefinitions_.emplace_back(binding);
+  }
+  void setBindingDefinitions(
+      std::vector<BindingDefinition*>&& bindingDefinitions) {
+    bindingDefinitions_ = std::move(bindingDefinitions);
+  }
+  const std::vector<BindingDefinition*>& bindingDefinitions() const {
+    return bindingDefinitions_;
+  }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::optional<SchemaRef*> schemaRef_;
-    std::vector<BindingDefinition*> bindingDefinitions_;
-    std::vector<StatementWithYield*> statements_;
+ private:
+  std::optional<SchemaRef*> schemaRef_;
+  std::vector<BindingDefinition*> bindingDefinitions_;
+  std::vector<StatementWithYield*> statements_;
 };  // class ProcedureBody
 
 }  // namespace frontend

@@ -22,7 +22,6 @@
 #include "geax-front-end/ast/clause/EdgeLike.h"
 #include "geax-front-end/ast/clause/Node.h"
 
-
 namespace geax {
 namespace frontend {
 
@@ -30,24 +29,30 @@ namespace frontend {
  * An PathChain node describes a path chain in a GPML.
  */
 class PathChain : public AstNode {
-public:
-    PathChain() : AstNode(AstNodeType::kPathChain), head_(nullptr) {}
-    ~PathChain() = default;
+ public:
+  PathChain() : AstNode(AstNodeType::kPathChain), head_(nullptr) {}
+  ~PathChain() = default;
 
-    void setHead(Node* head) { head_ = head; }
-    Node* head() const { return head_; }
+  void setHead(Node* head) { head_ = head; }
+  Node* head() const { return head_; }
 
-    void appendTail(EdgeLike* edge, Node* node) { tails_.emplace_back(edge, node); }
-    void setTails(std::vector<std::tuple<EdgeLike*, Node*>>&& tails) {
-        tails_ = std::move(tails);
-    }
-    const std::vector<std::tuple<EdgeLike*, Node*>>& tails() const { return tails_; }
+  void appendTail(EdgeLike* edge, Node* node) {
+    tails_.emplace_back(edge, node);
+  }
+  void setTails(std::vector<std::tuple<EdgeLike*, Node*>>&& tails) {
+    tails_ = std::move(tails);
+  }
+  const std::vector<std::tuple<EdgeLike*, Node*>>& tails() const {
+    return tails_;
+  }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    Node* head_;
-    std::vector<std::tuple<EdgeLike*, Node*>> tails_;
+ private:
+  Node* head_;
+  std::vector<std::tuple<EdgeLike*, Node*>> tails_;
 };
 
 }  // namespace frontend

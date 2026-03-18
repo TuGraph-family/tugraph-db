@@ -28,36 +28,38 @@ namespace frontend {
  * its input parameters.
  */
 class Function : public Expr {
-public:
-    Function() : Expr(AstNodeType::kFunc) {}
-    virtual ~Function() = default;
+ public:
+  Function() : Expr(AstNodeType::kFunc) {}
+  virtual ~Function() = default;
 
-    void setName(std::string&& name) { name_ = std::move(name); }
-    const std::string& name() const { return name_; }
+  void setName(std::string&& name) { name_ = std::move(name); }
+  const std::string& name() const { return name_; }
 
-    void setArgs(std::vector<Expr*>&& args) { args_ = std::move(args); }
-    void appendArg(Expr* arg) { args_.emplace_back(arg); }
-    const std::vector<Expr*>& args() const { return args_; }
+  void setArgs(std::vector<Expr*>&& args) { args_ = std::move(args); }
+  void appendArg(Expr* arg) { args_.emplace_back(arg); }
+  const std::vector<Expr*>& args() const { return args_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    std::string name_;
-    std::vector<Expr*> args_;
+  std::string name_;
+  std::vector<Expr*> args_;
 };  // end of class Function
 
 inline bool Function::equals(const Expr& other) const {
-    const auto& expr = static_cast<const Function&>(other);
-    bool ret = name_ == expr.name_ && expr.args_.size() == args_.size();
-    for (auto i = 0u; i < args_.size() && ret; ++i) {
-        ret = (nullptr != args_[i]) && (nullptr != expr.args_[i]);
-        ret = ret && *args_[i] == *expr.args_[i];
-    }
-    return ret;
+  const auto& expr = static_cast<const Function&>(other);
+  bool ret = name_ == expr.name_ && expr.args_.size() == args_.size();
+  for (auto i = 0u; i < args_.size() && ret; ++i) {
+    ret = (nullptr != args_[i]) && (nullptr != expr.args_[i]);
+    ret = ret && *args_[i] == *expr.args_[i];
+  }
+  return ret;
 }
 
-}  // end of namespace geabase
-}  // end of namespace alibaba
+}  // namespace frontend
+}  // namespace geax
 #endif  // GEAXFRONTEND_AST_EXPR_FUNCTION_H_

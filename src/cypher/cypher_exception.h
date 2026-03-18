@@ -16,6 +16,7 @@
 
 #include <exception>
 #include <string>
+
 #include "common/exceptions.h"
 
 namespace lgraph {
@@ -26,23 +27,27 @@ namespace lgraph {
 #define CYPHER_TODO_FILE_NAME ""
 #endif
 
-#define CYPHER_TODO() \
-    THROW_CODE(CypherException, "Function not implemented yet: {} at {}:{}", __func__, CYPHER_TODO_FILE_NAME, __LINE__)
+#define CYPHER_TODO()                                                      \
+  THROW_CODE(CypherException, "Function not implemented yet: {} at {}:{}", \
+             __func__, CYPHER_TODO_FILE_NAME, __LINE__)
 
-#define CYPHER_INTL_ERR() \
-    THROW_CODE(CypherException, "Internal error: {} at {}:{}", __func__, CYPHER_TODO_FILE_NAME, __LINE__)
+#define CYPHER_INTL_ERR()                                              \
+  THROW_CODE(CypherException, "Internal error: {} at {}:{}", __func__, \
+             CYPHER_TODO_FILE_NAME, __LINE__)
 
-#define CYPHER_THROW_ASSERT(pred)       \
-    do {                                \
-        if (!(pred)) CYPHER_INTL_ERR(); \
-    } while (0)
+#define CYPHER_THROW_ASSERT(pred)   \
+  do {                              \
+    if (!(pred)) CYPHER_INTL_ERR(); \
+  } while (0)
 
-#define CYPHER_PARSER_CHECK(pred, msg)    \
-    if (!(pred)) {                        \
-        THROW_CODE(ParserException, msg); \
-    }
-#define CYPHER_ARGUMENT_ERROR() \
-    THROW_CODE(CypherException, "There are errors in the number of arguments or the type of arguments of function {}.", __func__)
-
+#define CYPHER_PARSER_CHECK(pred, msg) \
+  if (!(pred)) {                       \
+    THROW_CODE(ParserException, msg);  \
+  }
+#define CYPHER_ARGUMENT_ERROR()                                            \
+  THROW_CODE(CypherException,                                              \
+             "There are errors in the number of arguments or the type of " \
+             "arguments of function {}.",                                  \
+             __func__)
 
 }  // namespace lgraph

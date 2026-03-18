@@ -24,11 +24,13 @@ namespace geax {
 namespace frontend {
 
 class ResetGraph : public SessionResetCommand {
-public:
-    ResetGraph() : SessionResetCommand(AstNodeType::kResetGraph) {}
-    ~ResetGraph() = default;
+ public:
+  ResetGraph() : SessionResetCommand(AstNodeType::kResetGraph) {}
+  ~ResetGraph() = default;
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 };
 
 }  // namespace frontend

@@ -27,35 +27,33 @@ namespace frontend {
 
 class MergeStatement : public PrimitiveDataModifyStatement {
  public:
-    MergeStatement()
-        : PrimitiveDataModifyStatement(AstNodeType::kMergeStatement) {}
-    ~MergeStatement() = default;
+  MergeStatement()
+      : PrimitiveDataModifyStatement(AstNodeType::kMergeStatement) {}
+  ~MergeStatement() = default;
 
-    void setPathPattern(PathPattern* pathPattern) {
-        pathPattern_ = pathPattern;
-    }
-    PathPattern* pathPattern() const { return pathPattern_; }
+  void setPathPattern(PathPattern* pathPattern) { pathPattern_ = pathPattern; }
+  PathPattern* pathPattern() const { return pathPattern_; }
 
-    void appendOnMatch(SetStatement* set) { onMatch_.emplace_back(set); }
-    void setOnMatch(std::vector<SetStatement*>&& onMatch) {
-        onMatch_ = std::move(onMatch);
-    }
-    const std::vector<SetStatement*>& onMatch() const { return onMatch_; }
+  void appendOnMatch(SetStatement* set) { onMatch_.emplace_back(set); }
+  void setOnMatch(std::vector<SetStatement*>&& onMatch) {
+    onMatch_ = std::move(onMatch);
+  }
+  const std::vector<SetStatement*>& onMatch() const { return onMatch_; }
 
-    void appendOnCreate(SetStatement* set) { onCreate_.emplace_back(set); }
-    void setOnCreate(std::vector<SetStatement*>&& onCreate) {
-        onCreate_ = std::move(onCreate);
-    }
-    const std::vector<SetStatement*>& onCreate() const { return onCreate_; }
+  void appendOnCreate(SetStatement* set) { onCreate_.emplace_back(set); }
+  void setOnCreate(std::vector<SetStatement*>&& onCreate) {
+    onCreate_ = std::move(onCreate);
+  }
+  const std::vector<SetStatement*>& onCreate() const { return onCreate_; }
 
-    std::any accept(AstNodeVisitor& visitor) override {
-        return visitor.visit(this);
-    }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
  private:
-    PathPattern* pathPattern_;
-    std::vector<SetStatement*> onMatch_;
-    std::vector<SetStatement*> onCreate_;
+  PathPattern* pathPattern_;
+  std::vector<SetStatement*> onMatch_;
+  std::vector<SetStatement*> onCreate_;
 };  // class MergeStatement
 
 }  // namespace frontend

@@ -24,9 +24,9 @@ namespace geax {
 namespace frontend {
 
 class BindingDefinition : public AstNode {
-public:
-    explicit BindingDefinition(AstNodeType nodeType) : AstNode(nodeType) {}
-    ~BindingDefinition() = default;
+ public:
+  explicit BindingDefinition(AstNodeType nodeType) : AstNode(nodeType) {}
+  ~BindingDefinition() = default;
 };  // class BindingDefinition
 
 }  // namespace frontend

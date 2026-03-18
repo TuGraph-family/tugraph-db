@@ -25,17 +25,19 @@ namespace geax {
 namespace frontend {
 
 class SessionSet : public Session {
-public:
-    SessionSet() : Session(AstNodeType::kSessionSet), command_(nullptr) {}
-    ~SessionSet() = default;
+ public:
+  SessionSet() : Session(AstNodeType::kSessionSet), command_(nullptr) {}
+  ~SessionSet() = default;
 
-    void setCommand(SessionSetCommand* command) { command_ = command; }
-    SessionSetCommand* command() const { return command_; }
+  void setCommand(SessionSetCommand* command) { command_ = command; }
+  SessionSetCommand* command() const { return command_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    SessionSetCommand* command_;
+ private:
+  SessionSetCommand* command_;
 };
 
 }  // namespace frontend

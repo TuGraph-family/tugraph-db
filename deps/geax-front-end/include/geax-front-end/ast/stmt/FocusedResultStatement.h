@@ -25,25 +25,27 @@ namespace geax {
 namespace frontend {
 
 class FocusedResultStatement : public LinearQueryStatement {
-public:
-    FocusedResultStatement()
-        : LinearQueryStatement(AstNodeType::kFocusedResultStatement),
-          resultStatement_(nullptr) {}
-    ~FocusedResultStatement() = default;
+ public:
+  FocusedResultStatement()
+      : LinearQueryStatement(AstNodeType::kFocusedResultStatement),
+        resultStatement_(nullptr) {}
+  ~FocusedResultStatement() = default;
 
-    void setGraphRef(std::string&& graphRef) { graphRef_ = std::move(graphRef); }
-    const std::string& graphRef() const { return graphRef_; }
+  void setGraphRef(std::string&& graphRef) { graphRef_ = std::move(graphRef); }
+  const std::string& graphRef() const { return graphRef_; }
 
-    void setResultStatement(PrimitiveResultStatement* resultStatement) {
-        resultStatement_ = resultStatement;
-    }
-    PrimitiveResultStatement* resultStatement() const { return resultStatement_; }
+  void setResultStatement(PrimitiveResultStatement* resultStatement) {
+    resultStatement_ = resultStatement;
+  }
+  PrimitiveResultStatement* resultStatement() const { return resultStatement_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    std::string graphRef_;
-    PrimitiveResultStatement* resultStatement_;
+ private:
+  std::string graphRef_;
+  PrimitiveResultStatement* resultStatement_;
 };  // class FocusedResultStatement
 
 }  // namespace frontend

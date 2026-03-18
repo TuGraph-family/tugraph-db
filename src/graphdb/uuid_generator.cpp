@@ -20,16 +20,16 @@
 namespace graphdb {
 
 std::string UUIDGenerator::Next() {
-    std::unique_lock lock(mutex_);
-    oss_.clear();
-    oss_ << generator_();
-    return oss_.str();
+  std::unique_lock lock(mutex_);
+  oss_.clear();
+  oss_ << generator_();
+  return oss_.str();
 }
 
 std::string UUIDGenerator::NextNoLock() {
-    oss_.clear();
-    oss_ << generator_();
-    return oss_.str();
+  oss_.clear();
+  oss_ << generator_();
+  return oss_.str();
 }
 
 }  // namespace graphdb

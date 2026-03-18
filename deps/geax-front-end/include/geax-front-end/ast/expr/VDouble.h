@@ -24,25 +24,27 @@ namespace geax {
 namespace frontend {
 
 class VDouble : public Literal {
-public:
-    VDouble() : Literal(AstNodeType::kVDouble), val_(0) {}
-    ~VDouble() = default;
+ public:
+  VDouble() : Literal(AstNodeType::kVDouble), val_(0) {}
+  ~VDouble() = default;
 
-    void setVal(double val) { val_ = val; }
-    double val() const { return val_; }
+  void setVal(double val) { val_ = val; }
+  double val() const { return val_; }
 
-    std::any accept(AstNodeVisitor& visitor) override { return visitor.visit(this); }
+  std::any accept(AstNodeVisitor& visitor) override {
+    return visitor.visit(this);
+  }
 
-private:
-    bool equals(const Expr& other) const override;
+ private:
+  bool equals(const Expr& other) const override;
 
-    double val_;
+  double val_;
 };  // class VDouble
 
 inline bool VDouble::equals(const Expr& other) const {
-    const auto& expr = static_cast<const VDouble&>(other);
-    static constexpr auto DEPS = 1e-12;
-    return std::abs(val_ - expr.val_) < DEPS;
+  const auto& expr = static_cast<const VDouble&>(other);
+  static constexpr auto DEPS = 1e-12;
+  return std::abs(val_ - expr.val_) < DEPS;
 }
 
 }  // namespace frontend

@@ -22,14 +22,14 @@
 namespace graphdb {
 
 class UUIDGenerator {
-   public:
-    std::string Next();
-    std::string NextNoLock();
+ public:
+  std::string Next();
+  std::string NextNoLock();
 
-   private:
-    boost::uuids::random_generator generator_;
-    std::ostringstream oss_;
-    std::mutex mutex_;
+ private:
+  boost::uuids::random_generator generator_;
+  std::ostringstream oss_;
+  std::mutex mutex_;
 };
 
 }  // namespace graphdb

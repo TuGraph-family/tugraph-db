@@ -20,37 +20,38 @@ namespace cypher {
 
 class AstAggExprDetector : public cypher::AstNodeVisitorImpl {
  public:
-    AstAggExprDetector() = delete;
+  AstAggExprDetector() = delete;
 
-    explicit AstAggExprDetector(geax::frontend::Expr* expr) : expr_(expr) {}
+  explicit AstAggExprDetector(geax::frontend::Expr* expr) : expr_(expr) {}
 
-    virtual ~AstAggExprDetector() = default;
+  virtual ~AstAggExprDetector() = default;
 
-    std::vector<geax::frontend::Expr*>& AggExprs();
+  std::vector<geax::frontend::Expr*>& AggExprs();
 
-    /**
-     *  Determine if there are any invalid aggregate functions.
-     *  Return true if there are none.
-     */
-    bool Validate();
+  /**
+   *  Determine if there are any invalid aggregate functions.
+   *  Return true if there are none.
+   */
+  bool Validate();
 
-    /**
-     *  Return whether there are valid aggregate functions
-     *  under the condition that Validate returns true.
-     */
-    bool HasValidAggFunc();
+  /**
+   *  Return whether there are valid aggregate functions
+   *  under the condition that Validate returns true.
+   */
+  bool HasValidAggFunc();
 
-    static std::vector<geax::frontend::Expr*> GetAggExprs(geax::frontend::Expr* expr);
+  static std::vector<geax::frontend::Expr*> GetAggExprs(
+      geax::frontend::Expr* expr);
 
  private:
-    std::any visit(geax::frontend::AggFunc* node) override;
-    std::any visit(geax::frontend::BAggFunc* node) override;
-    std::any visit(geax::frontend::GetField* node) override;
-    bool nested_agg_func_ = false;
-    size_t in_agg_func_ = 0;
-    bool outside_var_ = false;
-    geax::frontend::Expr* expr_;
-    std::vector<geax::frontend::Expr*> agg_exprs_;
+  std::any visit(geax::frontend::AggFunc* node) override;
+  std::any visit(geax::frontend::BAggFunc* node) override;
+  std::any visit(geax::frontend::GetField* node) override;
+  bool nested_agg_func_ = false;
+  size_t in_agg_func_ = 0;
+  bool outside_var_ = false;
+  geax::frontend::Expr* expr_;
+  std::vector<geax::frontend::Expr*> agg_exprs_;
 };
 
 }  // namespace cypher
