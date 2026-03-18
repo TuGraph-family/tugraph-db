@@ -540,14 +540,33 @@ Value BuiltinFunction::Rand(RTContext *ctx, const Record &record,
 
 Value BuiltinFunction::Round(RTContext *ctx, const Record &record,
                                          const std::vector<ArithExprNode> &args) {
-    if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+    if (args.size() != 2 && args.size() != 3) CYPHER_ARGUMENT_ERROR();
     const auto& operand = args[1];
     auto r = operand.Evaluate(ctx, record);
     CHECK_CONSTANT(r);
+    if (r.constant.IsNull()) return {};
+
+    int64_t decimals = 0;
+    if (args.size() == 3) {
+        auto d = args[2].Evaluate(ctx, record);
+        CHECK_CONSTANT(d);
+        if (d.constant.IsNull()) return {};
+        if (!d.constant.IsInteger()) CYPHER_ARGUMENT_ERROR();
+        decimals = d.constant.AsInteger();
+    }
+
+    auto round_to_decimals = [&](double x) -> double {
+        if (decimals == 0) return std::round(x);
+        double factor = std::pow(10.0, static_cast<double>(decimals));
+        if (!std::isfinite(factor) || factor == 0.0) CYPHER_ARGUMENT_ERROR();
+        return std::round(x * factor) / factor;
+    };
+
     if (r.constant.IsInteger()) {
-        return r.constant;
+        if (decimals == 0) return r.constant;
+        return Value(round_to_decimals(static_cast<double>(r.constant.AsInteger())));
     } else if (r.constant.IsDouble()) {
-        return Value(std::round(r.constant.AsDouble()));
+        return Value(round_to_decimals(r.constant.AsDouble()));
     }
     CYPHER_ARGUMENT_ERROR();
 }
