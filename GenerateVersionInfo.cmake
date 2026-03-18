@@ -1,20 +1,29 @@
 cmake_minimum_required(VERSION 3.13)
 
 # get the git commit version if available and write it in outfile
-function(GenerateVersionInfo ver_major ver_minor ver_patch infile outfile)
+function(
+  GenerateVersionInfo
+  ver_major
+  ver_minor
+  ver_patch
+  infile
+  outfile
+)
   if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     # get GIT_BRANCH
     execute_process(
       COMMAND git rev-parse --abbrev-ref HEAD
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
       OUTPUT_VARIABLE GIT_BRANCH
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
     # get GIT_COMMIT_HASH
     execute_process(
       COMMAND git log -1 --format=%h
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
       OUTPUT_VARIABLE GIT_COMMIT_HASH
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
   else(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     set(GIT_BRANCH "")
     set(GIT_COMMIT_HASH "")

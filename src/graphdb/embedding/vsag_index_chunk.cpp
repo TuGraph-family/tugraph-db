@@ -24,6 +24,7 @@
 
 #include "common/exceptions.h"
 #include "graphdb/graph_cf.h"
+#include "graphdb/vsag_init.h"
 #include "index.h"
 #include "index_chunk.h"
 #include "transaction/transaction.h"
@@ -61,6 +62,7 @@ class VsagHNSWIndexChunk : public IndexChunk {
       : IndexChunk(db, graph_cf, meta), chunk_id_(std::move(chunk_id)) {
     mapper_ = std::make_unique<IdMapper>(chunk_id);
 
+    EnsureVsagInitialized();
     auto ret = vsag::Factory::CreateIndex("hnsw", parameters);
     if (ret.has_value()) {
       index_ = std::move(ret.value());

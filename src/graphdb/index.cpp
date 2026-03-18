@@ -26,6 +26,7 @@
 #include "common/flags.h"
 #include "common/logger.h"
 #include "ftindex/include/lib.rs.h"
+#include "graphdb/vsag_init.h"
 #include "spdlog/stopwatch.h"
 #include "transaction/transaction.h"
 
@@ -388,6 +389,7 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
                                   {"metric_type", metric_type},
                                   {"dim", meta_.dimensions()},
                                   {"hnsw", hnsw_parameters}};
+  EnsureVsagInitialized();
   auto ret = vsag::Factory::CreateIndex("hnsw", index_parameters.dump());
   if (ret.has_value()) {
     vsag_index_ = std::move(ret.value());
