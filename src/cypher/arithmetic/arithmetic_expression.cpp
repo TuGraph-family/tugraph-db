@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -542,14 +542,33 @@ Value BuiltinFunction::Rand(RTContext *ctx, const Record &record,
 
 Value BuiltinFunction::Round(RTContext *ctx, const Record &record,
                              const std::vector<ArithExprNode> &args) {
-  if (args.size() != 2) CYPHER_ARGUMENT_ERROR();
+  if (args.size() != 2 && args.size() != 3) CYPHER_ARGUMENT_ERROR();
   const auto &operand = args[1];
   auto r = operand.Evaluate(ctx, record);
   CHECK_CONSTANT(r);
+  if (r.constant.IsNull()) return {};
+
+  int64_t decimals = 0;
+  if (args.size() == 3) {
+    auto d = args[2].Evaluate(ctx, record);
+    CHECK_CONSTANT(d);
+    if (d.constant.IsNull()) return {};
+    if (!d.constant.IsInteger()) CYPHER_ARGUMENT_ERROR();
+    decimals = d.constant.AsInteger();
+  }
+
+  auto round_to_decimals = [&](double x) -> double {
+    if (decimals == 0) return std::round(x);
+    double factor = std::pow(10.0, static_cast<double>(decimals));
+    if (!std::isfinite(factor) || factor == 0.0) CYPHER_ARGUMENT_ERROR();
+    return std::round(x * factor) / factor;
+  };
+
   if (r.constant.IsInteger()) {
-    return r.constant;
+    if (decimals == 0) return r.constant;
+    return Value(round_to_decimals(static_cast<double>(r.constant.AsInteger())));
   } else if (r.constant.IsDouble()) {
-    return Value(std::round(r.constant.AsDouble()));
+    return Value(round_to_decimals(r.constant.AsDouble()));
   }
   CYPHER_ARGUMENT_ERROR();
 }
@@ -1432,6 +1451,160 @@ Value BuiltinFunction::Coalesce(RTContext *ctx, const Record &record,
     }
   }
   return {};
+}
+
+Value BuiltinFunction::VectorSimilarityCosine(RTContext *ctx, const Record &record,
+                                              const std::vector<ArithExprNode> &args) {
+    (void)ctx;
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+
+    auto eval_vec = [&](const ArithExprNode &node) -> std::vector<double> {
+        auto entry = node.Evaluate(ctx, record);
+        CHECK_CONSTANT(entry);
+        if (!entry.constant.IsArray()) {
+            THROW_CODE(CypherException,
+                       "Invalid argument of " + std::string(__func__) +
+                           ": expected List of numeric values");
+        }
+        const auto &arr = entry.constant.AsArray();
+        std::vector<double> v;
+        v.reserve(arr.size());
+        for (const auto &item : arr) {
+            if (item.IsInteger()) {
+                v.emplace_back(static_cast<double>(item.AsInteger()));
+            } else if (item.IsDouble()) {
+                v.emplace_back(item.AsDouble());
+            } else {
+                THROW_CODE(CypherException,
+                           "Invalid argument of " + std::string(__func__) +
+                               ": vector element must be numeric");
+            }
+        }
+        return v;
+    };
+
+    auto v1 = eval_vec(args[1]);
+    auto v2 = eval_vec(args[2]);
+    if (v1.size() != v2.size()) {
+        THROW_CODE(CypherException,
+                   "Invalid argument of " + std::string(__func__) +
+                       ": vectors must have the same dimension");
+    }
+    if (v1.empty()) {
+        return {};  // null for empty vectors
+    }
+
+    double dot = 0.0;
+    double n1 = 0.0;
+    double n2 = 0.0;
+    for (size_t i = 0; i < v1.size(); ++i) {
+        dot += v1[i] * v2[i];
+        n1 += v1[i] * v1[i];
+        n2 += v2[i] * v2[i];
+    }
+    if (n1 == 0.0 || n2 == 0.0) {
+        return {};  // null if any vector is zero
+    }
+    double sim = dot / (std::sqrt(n1) * std::sqrt(n2));
+    return Value(sim);
+}
+
+Value BuiltinFunction::VectorDistanceL2(RTContext *ctx, const Record &record,
+                                        const std::vector<ArithExprNode> &args) {
+    (void)ctx;
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+
+    auto eval_vec = [&](const ArithExprNode &node) -> std::vector<double> {
+        auto entry = node.Evaluate(ctx, record);
+        CHECK_CONSTANT(entry);
+        if (!entry.constant.IsArray()) {
+            THROW_CODE(CypherException,
+                       "Invalid argument of " + std::string(__func__) +
+                           ": expected List of numeric values");
+        }
+        const auto &arr = entry.constant.AsArray();
+        std::vector<double> v;
+        v.reserve(arr.size());
+        for (const auto &item : arr) {
+            if (item.IsInteger()) {
+                v.emplace_back(static_cast<double>(item.AsInteger()));
+            } else if (item.IsDouble()) {
+                v.emplace_back(item.AsDouble());
+            } else {
+                THROW_CODE(CypherException,
+                           "Invalid argument of " + std::string(__func__) +
+                               ": vector element must be numeric");
+            }
+        }
+        return v;
+    };
+
+    auto v1 = eval_vec(args[1]);
+    auto v2 = eval_vec(args[2]);
+    if (v1.size() != v2.size()) {
+        THROW_CODE(CypherException,
+                   "Invalid argument of " + std::string(__func__) +
+                       ": vectors must have the same dimension");
+    }
+    if (v1.empty()) {
+        return {};  // null for empty vectors
+    }
+
+    double sum_sq = 0.0;
+    for (size_t i = 0; i < v1.size(); ++i) {
+        double d = v1[i] - v2[i];
+        sum_sq += d * d;
+    }
+    double dist = std::sqrt(sum_sq);
+    return Value(dist);
+}
+
+Value BuiltinFunction::VectorSimilarityInnerProduct(RTContext *ctx, const Record &record,
+                                                    const std::vector<ArithExprNode> &args) {
+    (void)ctx;
+    if (args.size() != 3) CYPHER_ARGUMENT_ERROR();
+
+    auto eval_vec = [&](const ArithExprNode &node) -> std::vector<double> {
+        auto entry = node.Evaluate(ctx, record);
+        CHECK_CONSTANT(entry);
+        if (!entry.constant.IsArray()) {
+            THROW_CODE(CypherException,
+                       "Invalid argument of " + std::string(__func__) +
+                           ": expected List of numeric values");
+        }
+        const auto &arr = entry.constant.AsArray();
+        std::vector<double> v;
+        v.reserve(arr.size());
+        for (const auto &item : arr) {
+            if (item.IsInteger()) {
+                v.emplace_back(static_cast<double>(item.AsInteger()));
+            } else if (item.IsDouble()) {
+                v.emplace_back(item.AsDouble());
+            } else {
+                THROW_CODE(CypherException,
+                           "Invalid argument of " + std::string(__func__) +
+                               ": vector element must be numeric");
+            }
+        }
+        return v;
+    };
+
+    auto v1 = eval_vec(args[1]);
+    auto v2 = eval_vec(args[2]);
+    if (v1.size() != v2.size()) {
+        THROW_CODE(CypherException,
+                   "Invalid argument of " + std::string(__func__) +
+                       ": vectors must have the same dimension");
+    }
+    if (v1.empty()) {
+        return {};  // null for empty vectors
+    }
+
+    double dot = 0.0;
+    for (size_t i = 0; i < v1.size(); ++i) {
+        dot += v1[i] * v2[i];
+    }
+    return Value(dot);
 }
 
 void ArithOperandNode::SetEntity(const std::string &alias,

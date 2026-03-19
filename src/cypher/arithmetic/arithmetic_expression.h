@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2022 AntGroup CO., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -177,8 +177,8 @@ static inline void AddString(Value &ret, const Value &x) {
     if (y_n == 0)
       // In neo4j:
       // 0.0 / 0.0 = null
-      // 1.0 / 0.0 = ifinity.0
-      // -1.0 / 0.0 = -ifinity.0
+      // 1.0 / 0.0 = infinity.0
+      // -1.0 / 0.0 = -infinity.0
       CYPHER_TODO();
     else
       ret = Value(x_n / y_n);
@@ -358,6 +358,12 @@ struct BuiltinFunction {
                     const std::vector<ArithExprNode> &args);
   static Value Coalesce(RTContext *ctx, const Record &record,
                         const std::vector<ArithExprNode> &args);
+  static Value VectorSimilarityCosine(RTContext *ctx, const Record &record,
+                                      const std::vector<ArithExprNode> &args);
+  static Value VectorDistanceL2(RTContext *ctx, const Record &record,
+                                const std::vector<ArithExprNode> &args);
+  static Value VectorSimilarityInnerProduct(RTContext *ctx, const Record &record,
+                                            const std::vector<ArithExprNode> &args);
 
  private:
   static std::tuple<std::unordered_map<std::string, Value>, int64_t>
@@ -585,6 +591,12 @@ struct ArithOpNode {
                                 BuiltinFunction::DateTimeTruncate);
     ae_registered_funcs.emplace("localdatetime.truncate",
                                 BuiltinFunction::LocalDateTimeTruncate);
+    ae_registered_funcs.emplace("vector.similarity.cosine",
+                                BuiltinFunction::VectorSimilarityCosine);
+    ae_registered_funcs.emplace("vector.distance.l2",
+                                BuiltinFunction::VectorDistanceL2);
+    ae_registered_funcs.emplace("vector.similarity.inner_product",
+                                BuiltinFunction::VectorSimilarityInnerProduct);
     return ae_registered_funcs;
   }
 
