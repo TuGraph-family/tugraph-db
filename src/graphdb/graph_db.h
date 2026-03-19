@@ -40,6 +40,7 @@ struct GraphDBOptions {
   std::shared_ptr<rocksdb::RowCache> row_cache;
   size_t ft_apply_interval_ = 1;
   size_t vt_apply_interval_ = 1;
+  uint16_t server_id_ = 0;
 };
 
 class GraphDB {

@@ -171,32 +171,46 @@ def get_expected_rows(context, ignore_order):
     return expected_rows
 
 
+def print_validation_rows(expected_rows, result_rows):
+    print("Expected: %s" % (str(expected_rows)))
+    print("Results : %s" % (str(result_rows)))
+
+
 def validate(context, ignore_order):
     result_rows = get_result_rows(context, ignore_order)
     expected_rows = get_expected_rows(context, ignore_order)
 
-    print("Expected: %s" %(str(expected_rows)))
-    print("Results : %s" %(str(result_rows)))
-    assert(len(expected_rows) == len(result_rows))
+    if len(expected_rows) != len(result_rows):
+        print_validation_rows(expected_rows, result_rows)
+        raise AssertionError(
+            "Expected {} rows, but got {}".format(
+                len(expected_rows), len(result_rows)))
 
     for i in range(0, len(expected_rows)):
         if expected_rows[i] in result_rows:
             result_rows.remove(expected_rows[i])
         else:
-            assert(False)
+            print_validation_rows(expected_rows, result_rows)
+            raise AssertionError(
+                "Missing expected row: {}".format(expected_rows[i]))
 
 
 def validate_in_order(context, ignore_order):
     result_rows = get_result_rows(context, ignore_order)
     expected_rows = get_expected_rows(context, ignore_order)
 
-    print("Expected: %s" %(str(expected_rows)))
-    print("Results : %s" %(str(result_rows)))
-    assert(len(expected_rows) == len(result_rows))
+    if len(expected_rows) != len(result_rows):
+        print_validation_rows(expected_rows, result_rows)
+        raise AssertionError(
+            "Expected {} rows, but got {}".format(
+                len(expected_rows), len(result_rows)))
 
     for i in range(0, len(expected_rows)):
         if expected_rows[i] != result_rows[i]:
-            assert(False)
+            print_validation_rows(expected_rows, result_rows)
+            raise AssertionError(
+                "Row {} mismatch: expected {}, got {}".format(
+                    i, expected_rows[i], result_rows[i]))
 
 def check_exception(context):
     if context.exception is not None:

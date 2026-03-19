@@ -30,6 +30,7 @@ struct GalaxyOptions {
   size_t row_cache_size = 32 * 1024 * 1024L;
   size_t ft_apply_interval = 1;
   size_t vt_apply_interval = 1;
+  uint16_t server_id = 0;
 };
 
 class Galaxy {

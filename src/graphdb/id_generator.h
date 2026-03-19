@@ -20,12 +20,41 @@
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <atomic>
+#include <cstdint>
+#include <mutex>
 #include <set>
 #include <shared_mutex>
 
 #include "graph_cf.h"
 namespace graphdb {
 enum class TokenNameType : char { VertexLabel = 0, EdgeType = 1, Property = 2 };
+
+class SnowflakeIdGenerator {
+ public:
+  explicit SnowflakeIdGenerator(uint16_t worker_id = 0)
+      : worker_id_(worker_id) {}
+
+  void SetWorkerId(uint16_t worker_id);
+  int64_t NextId();
+
+ private:
+  static constexpr int64_t kEpochMs = 1704067200000LL;
+  static constexpr int64_t kWorkerBits = 10;
+  static constexpr int64_t kSequenceBits = 12;
+  static constexpr uint16_t kMaxWorkerId = (1U << kWorkerBits) - 1;
+  static constexpr int64_t kWorkerShift = kSequenceBits;
+  static constexpr int64_t kTimestampShift = kWorkerBits + kSequenceBits;
+  static constexpr int64_t kSequenceMask = (1LL << kSequenceBits) - 1;
+
+  static int64_t CurrentTimeMs();
+  int64_t WaitNextMillis(int64_t last_timestamp_ms) const;
+  int64_t ComposeId(int64_t timestamp_ms, int64_t sequence) const;
+
+  uint16_t worker_id_;
+  int64_t last_timestamp_ms_ = -1;
+  int64_t sequence_ = 0;
+  std::mutex mutex_;
+};
 
 class IdGenerator {
  public:
@@ -34,7 +63,8 @@ class IdGenerator {
   IdGenerator(const IdGenerator&) = delete;
   void operator=(const IdGenerator&) = delete;
 
-  void Init(rocksdb::TransactionDB* db, GraphCF* graph_cf);
+  void Init(rocksdb::TransactionDB* db, GraphCF* graph_cf,
+            uint16_t server_id = 0);
   int64_t GetNextVid();
   int64_t GetNextEid();
   uint32_t GetNextIndexId();
@@ -52,8 +82,7 @@ class IdGenerator {
   std::unordered_set<std::string> GetEdgeTypes();
 
  private:
-  std::atomic<int64_t> vertex_next_vid_;
-  std::atomic<int64_t> edge_next_eid_;
+  SnowflakeIdGenerator id_generator_;
   std::atomic<uint32_t> label_next_lid_;
   std::atomic<uint32_t> label_next_pid_;
   std::atomic<uint32_t> label_next_tid_;

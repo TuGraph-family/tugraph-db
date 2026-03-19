@@ -101,7 +101,8 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
                             &graph_db->graph_cf_, &graph_db->id_generator_,
                             graph_db->options_.ft_apply_interval_,
                             graph_db->options_.vt_apply_interval_);
-  graph_db->id_generator_.Init(graph_db->db_, &graph_db->graph_cf_);
+  graph_db->id_generator_.Init(graph_db->db_, &graph_db->graph_cf_,
+                               graph_db->options_.server_id_);
 
   return graph_db;
 }

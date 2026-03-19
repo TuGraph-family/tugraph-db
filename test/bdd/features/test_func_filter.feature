@@ -3,39 +3,6 @@ Feature: test func filter
     Given yago graph
     When executing query
       '''
-      MATCH (n) WHERE id(n) = 6 RETURN n.name;
-      '''
-    Then the result should be, in any order
-      | n.name             |
-      | 'Natasha Richardson' |
-    When executing query
-      '''
-      MATCH (n) WHERE id(n) <> 6 RETURN n;
-      '''
-    Then the result should be, in any order
-      | n                                                       |
-      | (:Person {name:'Rachel Kempson',birthyear:1910})        |
-      | (:Person {name:'Michael Redgrave',birthyear:1908})      |
-      | (:Person {name:'Vanessa Redgrave',birthyear:1937})      |
-      | (:Person {name:'Corin Redgrave',birthyear:1939})        |
-      | (:Person {name:'Liam Neeson',birthyear:1952})           |
-      | (:Person {name:'Richard Harris',birthyear:1930})        |
-      | (:Person {name:'Dennis Quaid',birthyear:1954})          |
-      | (:Person {name:'Lindsay Lohan',birthyear:1986})         |
-      | (:Person {name:'Jemma Redgrave',birthyear:1965})        |
-      | (:Person {name:'Roy Redgrave',birthyear:1873})          |
-      | (:Person {name:'John Williams',birthyear:1932})         |
-      | (:Person {name:'Christopher Nolan',birthyear:1970})     |
-      | (:City {name:'New York'})                               |
-      | (:City {name:'London'})                                 |
-      | (:City {name:'Houston'})                                |
-      | (:Film {title:'Goodbye Mr. Chips'})                     |
-      | (:Film {title:'Batman Begins'})                         |
-      | (:Film {title:'Harry Potter and the Sorcerer's Stone'}) |
-      | (:Film {title:'The Parent Trap'})                       |
-      | (:Film {title:'Camelot'})                               |
-    When executing query
-      '''
       MATCH ()-[r]->() WHERE type(r) = 'ACTED_IN' RETURN r,type(r);
       '''
     Then the result should be, in any order
