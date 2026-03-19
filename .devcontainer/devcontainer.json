@@ -1,0 +1,34 @@
+{
+  "name": "TuGraph 5.x",
+  "image": "tugraph/5.x-compile-alinux3:0.0.6",
+  "runArgs": [
+    "--ulimit=core=-1",
+    "--cap-add=SYS_ADMIN",
+    "--cap-add=SYS_PTRACE",
+    "--cap-add=PERFMON",
+    "--security-opt=seccomp=unconfined",
+    "--privileged"
+  ],
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/${localEnv:USER}/.ssh,type=bind,readonly"
+  ],
+  "workspaceFolder": "/workspaces/tugraph-5.x",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/tugraph-5.x,type=bind",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpptools",
+        "twxs.cmake",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "cmake.buildDirectory": "${workspaceFolder}/build",
+        "cmake.configureOnOpen": true,
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+      }
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
+  "remoteUser": "root"
+}
