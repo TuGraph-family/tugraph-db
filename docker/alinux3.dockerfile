@@ -74,17 +74,6 @@ RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/boost_1
     ./b2 -j10 install && \
     cd / && rm -rf /tmp/boost*
 
-#RUN yum install -y yum-utils zlib-devel gfortran python3-devel libomp-devel libomp ca-certificates && \
-#    yum-config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mkl.repo && \
-#    rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
-#    yum install -y intel-mkl-64bit-2020.0-088
-
-RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/vsag_v0.11.5.tar.gz -O /tmp/vsag.tar.gz && \
-    cd /tmp && mkdir vsag && tar -xzf vsag.tar.gz --strip-components=1 -C vsag && cd vsag && \
-    mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
-    make -j10 && make install && cp _deps/roaringbitmap-build/src/libroaring.a /usr/local/lib/ && \
-    cd / && rm -rf /tmp/vsag*
-
 RUN wget http://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/5.x_deps/libgfortran.a -O /tmp/libgfortran.a && \
     cd /tmp && cp -f libgfortran.a /usr/local/lib/ && \
     chmod 755 /usr/local/lib/libgfortran.a && \
@@ -132,5 +121,3 @@ fi ' >> /root/.bash_profile
 
 RUN echo "/usr/local/lib64" >> /etc/ld.so.conf && ldconfig
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
-

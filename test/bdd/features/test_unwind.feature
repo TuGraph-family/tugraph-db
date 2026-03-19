@@ -137,7 +137,7 @@ Feature: test unwind
     Then the result should be, in any order
       | p | r | c |
       |  (:Person{birthyear:2002,name:'passer1'}) |[:BORN_IN] |(:City{name:'Houston'}) |
-    When parameters are:
+    When parameters are
       | personIds |
       | ['Liam Neeson','Dennis Quaid','Roy Redgrave'] |
     And executing query
@@ -147,7 +147,7 @@ Feature: test unwind
     Then the result should be, in any order
       | <SUMMARY> |
       |  'created 1 vertices,created 4 edges.' |
-    When parameters are:
+    When parameters are
       | personIds |
       | ['Liam Neeson','Dennis Quaid','Roy Redgrave'] |
     And executing query
@@ -157,7 +157,7 @@ Feature: test unwind
     Then the result should be, in any order
       | <SUMMARY> |
       |  'created 1 vertices,created 7 edges.' |
-    When parameters are:
+    When parameters are
       | personIds |
       | ['Liam Neeson','Dennis Quaid','Roy Redgrave'] |
     And executing query

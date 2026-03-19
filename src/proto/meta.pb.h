@@ -39,7 +39,7 @@ namespace protobuf_meta_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[8];
+  static const ::google::protobuf::internal::ParseTable schema[6];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -53,12 +53,6 @@ extern FullTextIndexUpdateDefaultTypeInternal _FullTextIndexUpdate_default_insta
 class GraphDBMetaInfo;
 class GraphDBMetaInfoDefaultTypeInternal;
 extern GraphDBMetaInfoDefaultTypeInternal _GraphDBMetaInfo_default_instance_;
-class VectorIndexDelta;
-class VectorIndexDeltaDefaultTypeInternal;
-extern VectorIndexDeltaDefaultTypeInternal _VectorIndexDelta_default_instance_;
-class VectorIndexManifest;
-class VectorIndexManifestDefaultTypeInternal;
-extern VectorIndexManifestDefaultTypeInternal _VectorIndexManifest_default_instance_;
 class VectorIndexUpdate;
 class VectorIndexUpdateDefaultTypeInternal;
 extern VectorIndexUpdateDefaultTypeInternal _VectorIndexUpdate_default_instance_;
@@ -76,8 +70,6 @@ namespace google {
 namespace protobuf {
 template<> ::meta::FullTextIndexUpdate* Arena::CreateMaybeMessage<::meta::FullTextIndexUpdate>(Arena*);
 template<> ::meta::GraphDBMetaInfo* Arena::CreateMaybeMessage<::meta::GraphDBMetaInfo>(Arena*);
-template<> ::meta::VectorIndexDelta* Arena::CreateMaybeMessage<::meta::VectorIndexDelta>(Arena*);
-template<> ::meta::VectorIndexManifest* Arena::CreateMaybeMessage<::meta::VectorIndexManifest>(Arena*);
 template<> ::meta::VectorIndexUpdate* Arena::CreateMaybeMessage<::meta::VectorIndexUpdate>(Arena*);
 template<> ::meta::VertexFullTextIndex* Arena::CreateMaybeMessage<::meta::VertexFullTextIndex>(Arena*);
 template<> ::meta::VertexPropertyIndex* Arena::CreateMaybeMessage<::meta::VertexPropertyIndex>(Arena*);
@@ -740,125 +732,6 @@ class VertexVectorIndex : public ::google::protobuf::Message /* @@protoc_inserti
 };
 // -------------------------------------------------------------------
 
-class VectorIndexManifest : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:meta.VectorIndexManifest) */ {
- public:
-  VectorIndexManifest();
-  virtual ~VectorIndexManifest();
-
-  VectorIndexManifest(const VectorIndexManifest& from);
-
-  inline VectorIndexManifest& operator=(const VectorIndexManifest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  #if LANG_CXX11
-  VectorIndexManifest(VectorIndexManifest&& from) noexcept
-    : VectorIndexManifest() {
-    *this = ::std::move(from);
-  }
-
-  inline VectorIndexManifest& operator=(VectorIndexManifest&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-  #endif
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const VectorIndexManifest& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const VectorIndexManifest* internal_default_instance() {
-    return reinterpret_cast<const VectorIndexManifest*>(
-               &_VectorIndexManifest_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    3;
-
-  void Swap(VectorIndexManifest* other);
-  friend void swap(VectorIndexManifest& a, VectorIndexManifest& b) {
-    a.Swap(&b);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline VectorIndexManifest* New() const final {
-    return CreateMaybeMessage<VectorIndexManifest>(NULL);
-  }
-
-  VectorIndexManifest* New(::google::protobuf::Arena* arena) const final {
-    return CreateMaybeMessage<VectorIndexManifest>(arena);
-  }
-  void CopyFrom(const ::google::protobuf::Message& from) final;
-  void MergeFrom(const ::google::protobuf::Message& from) final;
-  void CopyFrom(const VectorIndexManifest& from);
-  void MergeFrom(const VectorIndexManifest& from);
-  void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input) final;
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const final;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* target) const final;
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(VectorIndexManifest* other);
-  private:
-  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
-    return NULL;
-  }
-  inline void* MaybeArenaPtr() const {
-    return NULL;
-  }
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // repeated string chunk_ids = 1;
-  int chunk_ids_size() const;
-  void clear_chunk_ids();
-  static const int kChunkIdsFieldNumber = 1;
-  const ::std::string& chunk_ids(int index) const;
-  ::std::string* mutable_chunk_ids(int index);
-  void set_chunk_ids(int index, const ::std::string& value);
-  #if LANG_CXX11
-  void set_chunk_ids(int index, ::std::string&& value);
-  #endif
-  void set_chunk_ids(int index, const char* value);
-  void set_chunk_ids(int index, const char* value, size_t size);
-  ::std::string* add_chunk_ids();
-  void add_chunk_ids(const ::std::string& value);
-  #if LANG_CXX11
-  void add_chunk_ids(::std::string&& value);
-  #endif
-  void add_chunk_ids(const char* value);
-  void add_chunk_ids(const char* value, size_t size);
-  const ::google::protobuf::RepeatedPtrField< ::std::string>& chunk_ids() const;
-  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_chunk_ids();
-
-  // @@protoc_insertion_point(class_scope:meta.VectorIndexManifest)
- private:
-
-  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  ::google::protobuf::RepeatedPtrField< ::std::string> chunk_ids_;
-  mutable ::google::protobuf::internal::CachedSize _cached_size_;
-  friend struct ::protobuf_meta_2eproto::TableStruct;
-};
-// -------------------------------------------------------------------
-
 class GraphDBMetaInfo : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:meta.GraphDBMetaInfo) */ {
  public:
   GraphDBMetaInfo();
@@ -894,7 +767,7 @@ class GraphDBMetaInfo : public ::google::protobuf::Message /* @@protoc_insertion
                &_GraphDBMetaInfo_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    3;
 
   void Swap(GraphDBMetaInfo* other);
   friend void swap(GraphDBMetaInfo& a, GraphDBMetaInfo& b) {
@@ -1012,7 +885,7 @@ class FullTextIndexUpdate : public ::google::protobuf::Message /* @@protoc_inser
                &_FullTextIndexUpdate_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    4;
 
   void Swap(FullTextIndexUpdate* other);
   friend void swap(FullTextIndexUpdate& a, FullTextIndexUpdate& b) {
@@ -1168,7 +1041,7 @@ class VectorIndexUpdate : public ::google::protobuf::Message /* @@protoc_inserti
                &_VectorIndexUpdate_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    5;
 
   void Swap(VectorIndexUpdate* other);
   friend void swap(VectorIndexUpdate& a, VectorIndexUpdate& b) {
@@ -1258,123 +1131,6 @@ class VectorIndexUpdate : public ::google::protobuf::Message /* @@protoc_inserti
   mutable int _vector_cached_byte_size_;
   ::google::protobuf::int64 vid_;
   ::google::protobuf::int64 vector_id_;
-  int type_;
-  mutable ::google::protobuf::internal::CachedSize _cached_size_;
-  friend struct ::protobuf_meta_2eproto::TableStruct;
-};
-// -------------------------------------------------------------------
-
-class VectorIndexDelta : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:meta.VectorIndexDelta) */ {
- public:
-  VectorIndexDelta();
-  virtual ~VectorIndexDelta();
-
-  VectorIndexDelta(const VectorIndexDelta& from);
-
-  inline VectorIndexDelta& operator=(const VectorIndexDelta& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  #if LANG_CXX11
-  VectorIndexDelta(VectorIndexDelta&& from) noexcept
-    : VectorIndexDelta() {
-    *this = ::std::move(from);
-  }
-
-  inline VectorIndexDelta& operator=(VectorIndexDelta&& from) noexcept {
-    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
-      if (this != &from) InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-  #endif
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const VectorIndexDelta& default_instance();
-
-  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
-  static inline const VectorIndexDelta* internal_default_instance() {
-    return reinterpret_cast<const VectorIndexDelta*>(
-               &_VectorIndexDelta_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    7;
-
-  void Swap(VectorIndexDelta* other);
-  friend void swap(VectorIndexDelta& a, VectorIndexDelta& b) {
-    a.Swap(&b);
-  }
-
-  // implements Message ----------------------------------------------
-
-  inline VectorIndexDelta* New() const final {
-    return CreateMaybeMessage<VectorIndexDelta>(NULL);
-  }
-
-  VectorIndexDelta* New(::google::protobuf::Arena* arena) const final {
-    return CreateMaybeMessage<VectorIndexDelta>(arena);
-  }
-  void CopyFrom(const ::google::protobuf::Message& from) final;
-  void MergeFrom(const ::google::protobuf::Message& from) final;
-  void CopyFrom(const VectorIndexDelta& from);
-  void MergeFrom(const VectorIndexDelta& from);
-  void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input) final;
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const final;
-  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
-      bool deterministic, ::google::protobuf::uint8* target) const final;
-  int GetCachedSize() const final { return _cached_size_.Get(); }
-
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(VectorIndexDelta* other);
-  private:
-  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
-    return NULL;
-  }
-  inline void* MaybeArenaPtr() const {
-    return NULL;
-  }
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // repeated int64 ids = 2;
-  int ids_size() const;
-  void clear_ids();
-  static const int kIdsFieldNumber = 2;
-  ::google::protobuf::int64 ids(int index) const;
-  void set_ids(int index, ::google::protobuf::int64 value);
-  void add_ids(::google::protobuf::int64 value);
-  const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >&
-      ids() const;
-  ::google::protobuf::RepeatedField< ::google::protobuf::int64 >*
-      mutable_ids();
-
-  // .meta.UpdateType type = 1;
-  void clear_type();
-  static const int kTypeFieldNumber = 1;
-  ::meta::UpdateType type() const;
-  void set_type(::meta::UpdateType value);
-
-  // @@protoc_insertion_point(class_scope:meta.VectorIndexDelta)
- private:
-
-  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  ::google::protobuf::RepeatedField< ::google::protobuf::int64 > ids_;
-  mutable int _ids_cached_byte_size_;
   int type_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
@@ -2257,79 +2013,6 @@ inline void VertexVectorIndex::set_allocated_path(::std::string* path) {
 
 // -------------------------------------------------------------------
 
-// VectorIndexManifest
-
-// repeated string chunk_ids = 1;
-inline int VectorIndexManifest::chunk_ids_size() const {
-  return chunk_ids_.size();
-}
-inline void VectorIndexManifest::clear_chunk_ids() {
-  chunk_ids_.Clear();
-}
-inline const ::std::string& VectorIndexManifest::chunk_ids(int index) const {
-  // @@protoc_insertion_point(field_get:meta.VectorIndexManifest.chunk_ids)
-  return chunk_ids_.Get(index);
-}
-inline ::std::string* VectorIndexManifest::mutable_chunk_ids(int index) {
-  // @@protoc_insertion_point(field_mutable:meta.VectorIndexManifest.chunk_ids)
-  return chunk_ids_.Mutable(index);
-}
-inline void VectorIndexManifest::set_chunk_ids(int index, const ::std::string& value) {
-  // @@protoc_insertion_point(field_set:meta.VectorIndexManifest.chunk_ids)
-  chunk_ids_.Mutable(index)->assign(value);
-}
-#if LANG_CXX11
-inline void VectorIndexManifest::set_chunk_ids(int index, ::std::string&& value) {
-  // @@protoc_insertion_point(field_set:meta.VectorIndexManifest.chunk_ids)
-  chunk_ids_.Mutable(index)->assign(std::move(value));
-}
-#endif
-inline void VectorIndexManifest::set_chunk_ids(int index, const char* value) {
-  GOOGLE_DCHECK(value != NULL);
-  chunk_ids_.Mutable(index)->assign(value);
-  // @@protoc_insertion_point(field_set_char:meta.VectorIndexManifest.chunk_ids)
-}
-inline void VectorIndexManifest::set_chunk_ids(int index, const char* value, size_t size) {
-  chunk_ids_.Mutable(index)->assign(
-    reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:meta.VectorIndexManifest.chunk_ids)
-}
-inline ::std::string* VectorIndexManifest::add_chunk_ids() {
-  // @@protoc_insertion_point(field_add_mutable:meta.VectorIndexManifest.chunk_ids)
-  return chunk_ids_.Add();
-}
-inline void VectorIndexManifest::add_chunk_ids(const ::std::string& value) {
-  chunk_ids_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add:meta.VectorIndexManifest.chunk_ids)
-}
-#if LANG_CXX11
-inline void VectorIndexManifest::add_chunk_ids(::std::string&& value) {
-  chunk_ids_.Add(std::move(value));
-  // @@protoc_insertion_point(field_add:meta.VectorIndexManifest.chunk_ids)
-}
-#endif
-inline void VectorIndexManifest::add_chunk_ids(const char* value) {
-  GOOGLE_DCHECK(value != NULL);
-  chunk_ids_.Add()->assign(value);
-  // @@protoc_insertion_point(field_add_char:meta.VectorIndexManifest.chunk_ids)
-}
-inline void VectorIndexManifest::add_chunk_ids(const char* value, size_t size) {
-  chunk_ids_.Add()->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_add_pointer:meta.VectorIndexManifest.chunk_ids)
-}
-inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-VectorIndexManifest::chunk_ids() const {
-  // @@protoc_insertion_point(field_list:meta.VectorIndexManifest.chunk_ids)
-  return chunk_ids_;
-}
-inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-VectorIndexManifest::mutable_chunk_ids() {
-  // @@protoc_insertion_point(field_mutable_list:meta.VectorIndexManifest.chunk_ids)
-  return &chunk_ids_;
-}
-
-// -------------------------------------------------------------------
-
 // GraphDBMetaInfo
 
 // string graph_name = 1;
@@ -2645,61 +2328,9 @@ VectorIndexUpdate::mutable_vector() {
   return &vector_;
 }
 
-// -------------------------------------------------------------------
-
-// VectorIndexDelta
-
-// .meta.UpdateType type = 1;
-inline void VectorIndexDelta::clear_type() {
-  type_ = 0;
-}
-inline ::meta::UpdateType VectorIndexDelta::type() const {
-  // @@protoc_insertion_point(field_get:meta.VectorIndexDelta.type)
-  return static_cast< ::meta::UpdateType >(type_);
-}
-inline void VectorIndexDelta::set_type(::meta::UpdateType value) {
-  
-  type_ = value;
-  // @@protoc_insertion_point(field_set:meta.VectorIndexDelta.type)
-}
-
-// repeated int64 ids = 2;
-inline int VectorIndexDelta::ids_size() const {
-  return ids_.size();
-}
-inline void VectorIndexDelta::clear_ids() {
-  ids_.Clear();
-}
-inline ::google::protobuf::int64 VectorIndexDelta::ids(int index) const {
-  // @@protoc_insertion_point(field_get:meta.VectorIndexDelta.ids)
-  return ids_.Get(index);
-}
-inline void VectorIndexDelta::set_ids(int index, ::google::protobuf::int64 value) {
-  ids_.Set(index, value);
-  // @@protoc_insertion_point(field_set:meta.VectorIndexDelta.ids)
-}
-inline void VectorIndexDelta::add_ids(::google::protobuf::int64 value) {
-  ids_.Add(value);
-  // @@protoc_insertion_point(field_add:meta.VectorIndexDelta.ids)
-}
-inline const ::google::protobuf::RepeatedField< ::google::protobuf::int64 >&
-VectorIndexDelta::ids() const {
-  // @@protoc_insertion_point(field_list:meta.VectorIndexDelta.ids)
-  return ids_;
-}
-inline ::google::protobuf::RepeatedField< ::google::protobuf::int64 >*
-VectorIndexDelta::mutable_ids() {
-  // @@protoc_insertion_point(field_mutable_list:meta.VectorIndexDelta.ids)
-  return &ids_;
-}
-
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
-// -------------------------------------------------------------------
-
-// -------------------------------------------------------------------
-
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -169,7 +169,6 @@ std::any PatternGraphMaker::visit(geax::frontend::Edge* node) {
       relp_t_->max_hop_ = parser::VAR_LEN_EXPAND_MAX_HOP;
     }
   }
-  LOG_DEBUG("{} {}", relp_t_->MinHop(), relp_t_->MaxHop());
   AddRelationship(relp_t_.get());
   return geax::frontend::GEAXErrorCode::GEAX_SUCCEED;
 }

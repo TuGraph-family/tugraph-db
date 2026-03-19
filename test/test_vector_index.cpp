@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <random>
 
 #include "common/flags.h"
 #include "common/logger.h"
