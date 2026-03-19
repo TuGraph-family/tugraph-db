@@ -18,6 +18,7 @@
 
 #include <sys/resource.h>
 
+#include <cstdint>
 #include <tabulate/table.hpp>
 
 #include "bolt/bolt_server.h"
@@ -183,11 +184,13 @@ class LGraphDaemon : public Service {
     SetupSignalHandler();
     PrintWelcome();
     try {
-      g_galaxy = Galaxy::Open(FLAGS_data_path,
-                              {.block_cache_size = FLAGS_block_cache,
-                               .row_cache_size = FLAGS_row_cache,
-                               .ft_apply_interval = FLAGS_ft_apply_interval,
-                               .vt_apply_interval = FLAGS_vt_apply_interval});
+      g_galaxy =
+          Galaxy::Open(FLAGS_data_path,
+                       {.block_cache_size = FLAGS_block_cache,
+                        .row_cache_size = FLAGS_row_cache,
+                        .ft_apply_interval = FLAGS_ft_apply_interval,
+                        .vt_apply_interval = FLAGS_vt_apply_interval,
+                        .server_id = static_cast<uint16_t>(FLAGS_server_id)});
       BoltServer::Instance().Start(FLAGS_bolt_port, FLAGS_bolt_io_thread_num,
                                    g_bolt_handler);
       g_galaxy.reset();

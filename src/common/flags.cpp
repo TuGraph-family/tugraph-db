@@ -59,6 +59,8 @@ DEFINE_uint64(vt_apply_interval, (uint64_t)1,
               "Vector index WAL auto apply interval, in seconds.");
 DEFINE_uint64(vt_serialize_interval, (uint64_t)10000,
               "Vector index serialize interval.");
+DEFINE_uint32(server_id, 0,
+              "Server id used as Snowflake worker id, must be in [0, 1023].");
 
 bool validate_mode(const char* flagname, const std::string& mode) {
   std::set<std::string> vals = {"run", "start", "restart", "stop"};

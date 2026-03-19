@@ -157,21 +157,11 @@ Feature: test fix crash issues
       | '1' | '1' |
     When executing query
       '''
-      MATCH (n:Person)-[]->(m:Film) WITH n.name AS nname, collect(id(m)) AS mc MATCH (n:Person {name: nname})<-[]-(o) WITH n.name AS nname, mc, collect(id(o)) AS oc UNWIND mc+oc AS c RETURN c;
+      MATCH (n:Person)-[]->(m:Film) WITH n.name AS nname, collect(id(m)) AS mc MATCH (n:Person {name: nname})<-[]-(o) WITH n.name AS nname, mc, collect(id(o)) AS oc UNWIND mc+oc AS c RETURN count(c);
       '''
     Then the result should be, in any order
-      | c  |
-      | 18 |
-      | 6  |
-      | 17 |
-      | 11 |
-      | 1  |
-      | 21 |
-      | 1  |
-      | 2  |
-      | 20 |
-      | 3  |
-      | 5  |
+      | count(c)  |
+      | 11        |
     When executing query
       '''
       MATCH (m:Person)-[r:BORN_IN]->(n:City) WHERE n.name = 'London' and r.weight >= 1 and r.weight <= 100 RETURN sum(r.weight);

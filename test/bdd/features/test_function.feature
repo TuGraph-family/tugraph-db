@@ -14,29 +14,20 @@ Feature: test function
       MATCH p=(n:Person)-[e*..2]->(m) RETURN properties(p) LIMIT 2;
       '''
     Then the result should be, in any order
-      | properties(p)                                                                                |
+      | properties(p)                                                                        |
       | [{birthyear:1910,name:'Rachel Kempson'},{},{birthyear:1937,name:'Vanessa Redgrave'}] |
       | [{birthyear:1910,name:'Rachel Kempson'},{},{birthyear:1939,name:'Corin Redgrave'}]   |
     When executing query
       '''
-      MATCH (vanessa:Person {name:'Vanessa Redgrave'})-[relatedTo]-(n) RETURN id(vanessa),type(relatedTo),labels(n);
+      MATCH (vanessa:Person {name:'Vanessa Redgrave'})-[relatedTo]-(n) RETURN type(relatedTo),labels(n);
       '''
     Then the result should be, in any order
-      | id(vanessa) | type(relatedTo) | labels(n)  |
-      | 3           | 'HAS_CHILD'       | ['Person'] |
-      | 3           | 'BORN_IN'         | ['City']   |
-      | 3           | 'ACTED_IN'        | ['Film']   |
-      | 3           | 'HAS_CHILD'       | ['Person'] |
-      | 3           | 'HAS_CHILD'       | ['Person'] |
-    When executing query
-      '''
-      MATCH (vanessa:Person {name:'Vanessa Redgrave'})-[r]->() RETURN startNode(r),endNode(r);
-      '''
-    Then the result should be, in any order
-      | startNode(r) | endNode(r) |
-      | 3            | 6          |
-      | 3            | 15         |
-      | 3            | 21         |
+      | type(relatedTo)   | labels(n)  |
+      | 'HAS_CHILD'       | ['Person'] |
+      | 'BORN_IN'         | ['City']   |
+      | 'ACTED_IN'        | ['Film']   |
+      | 'HAS_CHILD'       | ['Person'] |
+      | 'HAS_CHILD'       | ['Person'] |
     When executing query
       '''
       MATCH (vanessa:Person {name:'Vanessa Redgrave'})-[r]->(n) RETURN properties(n);
@@ -267,11 +258,11 @@ Feature: test function
       | 13         |
     When executing query
       '''
-      match (city:City {name:'New York'}) return id(city) as cityId, coalesce(city.name, city.cname) as cityName;
+      match (city:City {name:'New York'}) return coalesce(city.name, city.cname) as cityName;
       '''
     Then the result should be, in any order
-      | cityId | cityName |
-      | 14     | 'New York' |
+      | cityName |
+      | 'New York' |
     When executing query
       '''
       RETURN coalesce(null);

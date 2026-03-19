@@ -18,28 +18,76 @@
 
 #include "id_generator.h"
 
+#include <algorithm>
 #include <boost/endian/conversion.hpp>
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 #include "common/exceptions.h"
 #include "common/logger.h"
 using namespace boost::endian;
 namespace graphdb {
-void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
-  int64_t max_vid = 0;
-  int64_t max_eid = 0;
+int64_t SnowflakeIdGenerator::CurrentTimeMs() {
+  auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(
+                 std::chrono::system_clock::now())
+                 .time_since_epoch()
+                 .count();
+  if (now < kEpochMs) {
+    THROW_CODE(InvalidParameter,
+               "system clock is earlier than snowflake epoch");
+  }
+  return now;
+}
+
+int64_t SnowflakeIdGenerator::WaitNextMillis(int64_t last_timestamp_ms) const {
+  int64_t now_ms = CurrentTimeMs();
+  while (now_ms <= last_timestamp_ms) {
+    std::this_thread::yield();
+    now_ms = CurrentTimeMs();
+  }
+  return now_ms;
+}
+
+int64_t SnowflakeIdGenerator::ComposeId(int64_t timestamp_ms,
+                                        int64_t sequence) const {
+  return ((timestamp_ms - kEpochMs) << kTimestampShift) |
+         (static_cast<int64_t>(worker_id_) << kWorkerShift) | sequence;
+}
+
+void SnowflakeIdGenerator::SetWorkerId(uint16_t worker_id) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (worker_id > kMaxWorkerId) {
+    THROW_CODE(InvalidParameter, "snowflake worker id {} exceeds max {}",
+               worker_id, kMaxWorkerId);
+  }
+  worker_id_ = worker_id;
+}
+
+int64_t SnowflakeIdGenerator::NextId() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  int64_t timestamp_ms = CurrentTimeMs();
+  if (timestamp_ms < last_timestamp_ms_) {
+    timestamp_ms = WaitNextMillis(last_timestamp_ms_);
+  }
+  if (timestamp_ms == last_timestamp_ms_) {
+    sequence_ = (sequence_ + 1) & kSequenceMask;
+    if (sequence_ == 0) {
+      timestamp_ms = WaitNextMillis(last_timestamp_ms_);
+    }
+  } else {
+    sequence_ = 0;
+  }
+  last_timestamp_ms_ = timestamp_ms;
+  return ComposeId(timestamp_ms, sequence_);
+}
+
+void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf,
+                       uint16_t server_id) {
   uint32_t max_lid = 0;
   uint32_t max_tid = 0;
   uint32_t max_pid = 0;
   uint32_t max_index_id = 0;
-  {
-    auto iter = db->NewIterator({}, graph_cf->graph_topology);
-    iter->SeekToLast();
-    if (iter->Valid()) {
-      max_vid = big_to_native((*(int64_t *)iter->key().data_));
-    }
-    delete iter;
-  }
   {
     auto iter = db->NewIterator({}, graph_cf->name_id);
     for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
@@ -64,32 +112,6 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
     delete iter;
   }
   {
-    std::vector<uint32_t> tids;
-    tids.reserve(edge_types_name_to_id_.size());
-    for (const auto &[name, id] : edge_types_name_to_id_) {
-      tids.push_back(big_to_native(id));
-    }
-    std::sort(tids.begin(), tids.end());
-    std::vector<int64_t> eids;
-    auto iter = db->NewIterator({}, graph_cf->edge_type_eid);
-    for (auto tid : tids) {
-      auto next_tid = tid + 1;
-      native_to_big_inplace(next_tid);
-      iter->SeekForPrev({(const char *)(&next_tid), sizeof(next_tid)});
-      if (iter->Valid()) {
-        auto key = iter->key();
-        if (big_to_native(*(uint32_t *)(key.data())) == tid) {
-          eids.push_back(big_to_native(*(int64_t *)(key.data() + sizeof(tid))));
-        }
-      }
-    }
-    delete iter;
-    std::sort(eids.begin(), eids.end());
-    if (!eids.empty()) {
-      max_eid = eids.back();
-    }
-  }
-  {
     auto iter = db->NewIterator({}, graph_cf->index);
     iter->SeekToLast();
     if (iter->Valid()) {
@@ -98,11 +120,10 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
     delete iter;
   }
   LOG_INFO(
-      "max_vid:{}, max_eid:{}, max_lid:{}, max_pid:{}, max_tid:{}, "
+      "server_id:{}, max_lid:{}, max_pid:{}, max_tid:{}, "
       "max_index_id:{}",
-      max_vid, max_eid, max_lid, max_pid, max_tid, max_index_id);
-  vertex_next_vid_ = max_vid + 1;
-  edge_next_eid_ = max_eid + 1;
+      server_id, max_lid, max_pid, max_tid, max_index_id);
+  id_generator_.SetWorkerId(server_id);
   label_next_lid_ = max_lid + 1;
   label_next_pid_ = max_pid + 1;
   label_next_tid_ = max_tid + 1;
@@ -112,9 +133,13 @@ void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf) {
   graph_cf_ = graph_cf;
 }
 
-int64_t IdGenerator::GetNextVid() { return native_to_big(vertex_next_vid_++); }
+int64_t IdGenerator::GetNextVid() {
+  return native_to_big(id_generator_.NextId());
+}
 
-int64_t IdGenerator::GetNextEid() { return native_to_big(edge_next_eid_++); }
+int64_t IdGenerator::GetNextEid() {
+  return native_to_big(id_generator_.NextId());
+}
 
 uint32_t IdGenerator::GetNextIndexId() {
   return native_to_big(index_next_id_++);
