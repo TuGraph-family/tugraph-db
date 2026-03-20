@@ -28,6 +28,17 @@
 #include "common/logger.h"
 using namespace boost::endian;
 namespace graphdb {
+namespace {
+
+std::string TokenKey(MetaDataType type, const std::string &name) {
+  std::string key;
+  key.append(1, static_cast<char>(type));
+  key.append(name);
+  return key;
+}
+
+}  // namespace
+
 int64_t SnowflakeIdGenerator::CurrentTimeMs() {
   auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(
                  std::chrono::system_clock::now())
@@ -82,55 +93,38 @@ int64_t SnowflakeIdGenerator::NextId() {
   return ComposeId(timestamp_ms, sequence_);
 }
 
-void IdGenerator::Init(rocksdb::TransactionDB *db, GraphCF *graph_cf,
+void IdGenerator::Bind(rocksdb::TransactionDB *db, GraphCF *graph_cf,
                        uint16_t server_id) {
-  uint32_t max_lid = 0;
-  uint32_t max_tid = 0;
-  uint32_t max_pid = 0;
-  uint32_t max_index_id = 0;
-  {
-    auto iter = db->NewIterator({}, graph_cf->name_id);
-    for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-      auto key = iter->key();
-      auto value = iter->value();
-      std::string name(key.data() + 1, key.size() - 1);
-      auto id = *(uint32_t *)(value.data());
-      if (*key.data_ == static_cast<char>(TokenNameType::VertexLabel)) {
-        vertex_labels_name_to_id_[name] = id;
-        vertex_labels_id_to_name_[id] = name;
-        max_lid = std::max(max_lid, big_to_native(id));
-      } else if (*key.data_ == static_cast<char>(TokenNameType::EdgeType)) {
-        edge_types_name_to_id_[name] = id;
-        edge_types_id_to_name_[id] = name;
-        max_tid = std::max(max_tid, big_to_native(id));
-      } else if (*key.data_ == static_cast<char>(TokenNameType::Property)) {
-        properties_name_to_id_[name] = id;
-        properties_id_to_name_[id] = name;
-        max_pid = std::max(max_pid, big_to_native(id));
-      }
-    }
-    delete iter;
-  }
-  {
-    auto iter = db->NewIterator({}, graph_cf->index);
-    iter->SeekToLast();
-    if (iter->Valid()) {
-      max_index_id = big_to_native((*(uint32_t *)iter->key().data_));
-    }
-    delete iter;
-  }
-  LOG_INFO(
-      "server_id:{}, max_lid:{}, max_pid:{}, max_tid:{}, "
-      "max_index_id:{}",
-      server_id, max_lid, max_pid, max_tid, max_index_id);
+  db_ = db;
+  graph_cf_ = graph_cf;
   id_generator_.SetWorkerId(server_id);
+}
+
+void IdGenerator::LoadToken(MetaDataType type, const std::string &name,
+                            uint32_t id) {
+  if (type == MetaDataType::VertexLabel) {
+    vertex_labels_name_to_id_[name] = id;
+    vertex_labels_id_to_name_[id] = name;
+  } else if (type == MetaDataType::EdgeType) {
+    edge_types_name_to_id_[name] = id;
+    edge_types_id_to_name_[id] = name;
+  } else if (type == MetaDataType::Property) {
+    properties_name_to_id_[name] = id;
+    properties_id_to_name_[id] = name;
+  } else {
+    THROW_CODE(InvalidParameter, "unsupported token metadata type {}",
+               static_cast<int>(type));
+  }
+}
+
+void IdGenerator::SetMaxIds(uint32_t max_lid, uint32_t max_pid,
+                            uint32_t max_tid, uint32_t max_index_id) {
+  LOG_INFO("max_lid:{}, max_pid:{}, max_tid:{}, max_index_id:{}", max_lid,
+           max_pid, max_tid, max_index_id);
   label_next_lid_ = max_lid + 1;
   label_next_pid_ = max_pid + 1;
   label_next_tid_ = max_tid + 1;
   index_next_id_ = max_index_id + 1;
-
-  db_ = db;
-  graph_cf_ = graph_cf;
 }
 
 int64_t IdGenerator::GetNextVid() {
@@ -231,14 +225,12 @@ uint32_t IdGenerator::GetOrCreateLid(const std::string &name) {
     if (iter != vertex_labels_name_to_id_.end()) {
       return iter->second;
     }
-    std::string key, val;
-    char flag = static_cast<char>(TokenNameType::VertexLabel);
-    key.append(1, flag);
+    std::string key = TokenKey(MetaDataType::VertexLabel, name);
+    std::string val;
     uint32_t bigendian_lid = native_to_big(label_next_lid_++);
-    key.append(name);
     val.append((const char *)&bigendian_lid, sizeof(bigendian_lid));
     rocksdb::WriteOptions options;
-    auto s = db_->Put(options, graph_cf_->name_id, key, val);
+    auto s = db_->Put(options, graph_cf_->meta_info, key, val);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     vertex_labels_name_to_id_[name] = bigendian_lid;
     vertex_labels_id_to_name_[bigendian_lid] = name;
@@ -263,14 +255,12 @@ uint32_t IdGenerator::GetOrCreateTid(const std::string &name) {
     if (iter != edge_types_name_to_id_.end()) {
       return iter->second;
     }
-    std::string key, val;
-    char flag = static_cast<char>(TokenNameType::EdgeType);
-    key.append(1, flag);
+    std::string key = TokenKey(MetaDataType::EdgeType, name);
+    std::string val;
     uint32_t bigendian_tid = native_to_big(label_next_tid_++);
-    key.append(name);
     val.append((const char *)&bigendian_tid, sizeof(bigendian_tid));
     rocksdb::WriteOptions options;
-    auto s = db_->Put(options, graph_cf_->name_id, key, val);
+    auto s = db_->Put(options, graph_cf_->meta_info, key, val);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     edge_types_name_to_id_[name] = bigendian_tid;
     edge_types_id_to_name_[bigendian_tid] = name;
@@ -295,14 +285,12 @@ uint32_t IdGenerator::GetOrCreatePid(const std::string &name) {
     if (iter != properties_name_to_id_.end()) {
       return iter->second;
     }
-    std::string key, val;
-    char flag = static_cast<char>(TokenNameType::Property);
-    key.append(1, flag);
+    std::string key = TokenKey(MetaDataType::Property, name);
+    std::string val;
     uint32_t bigendian_pid = native_to_big(label_next_pid_++);
-    key.append(name);
     val.append((const char *)&bigendian_pid, sizeof(bigendian_pid));
     rocksdb::WriteOptions options;
-    auto s = db_->Put(options, graph_cf_->name_id, key, val);
+    auto s = db_->Put(options, graph_cf_->meta_info, key, val);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     properties_name_to_id_[name] = bigendian_pid;
     properties_id_to_name_[bigendian_pid] = name;

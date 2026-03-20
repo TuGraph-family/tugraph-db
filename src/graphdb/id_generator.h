@@ -27,7 +27,14 @@
 
 #include "graph_cf.h"
 namespace graphdb {
-enum class TokenNameType : char { VertexLabel = 0, EdgeType = 1, Property = 2 };
+enum class MetaDataType : char {
+  VertexLabel = 0,
+  EdgeType = 1,
+  Property = 2,
+  VertexPropertyIndex = 3,
+  VertexFullTextIndex = 4,
+  VertexVectorIndex = 5
+};
 
 class SnowflakeIdGenerator {
  public:
@@ -63,8 +70,10 @@ class IdGenerator {
   IdGenerator(const IdGenerator&) = delete;
   void operator=(const IdGenerator&) = delete;
 
-  void Init(rocksdb::TransactionDB* db, GraphCF* graph_cf,
-            uint16_t server_id = 0);
+  void Bind(rocksdb::TransactionDB* db, GraphCF* graph_cf, uint16_t server_id);
+  void LoadToken(MetaDataType type, const std::string& name, uint32_t id);
+  void SetMaxIds(uint32_t max_lid, uint32_t max_pid, uint32_t max_tid,
+                 uint32_t max_index_id);
   int64_t GetNextVid();
   int64_t GetNextEid();
   uint32_t GetNextIndexId();
@@ -83,10 +92,10 @@ class IdGenerator {
 
  private:
   SnowflakeIdGenerator id_generator_;
-  std::atomic<uint32_t> label_next_lid_;
-  std::atomic<uint32_t> label_next_pid_;
-  std::atomic<uint32_t> label_next_tid_;
-  std::atomic<uint32_t> index_next_id_;
+  std::atomic<uint32_t> label_next_lid_{1};
+  std::atomic<uint32_t> label_next_pid_{1};
+  std::atomic<uint32_t> label_next_tid_{1};
+  std::atomic<uint32_t> index_next_id_{1};
   std::unordered_map<std::string, uint32_t> vertex_labels_name_to_id_;
   std::unordered_map<uint32_t, std::string> vertex_labels_id_to_name_;
   std::unordered_map<std::string, uint32_t> edge_types_name_to_id_;
@@ -94,7 +103,7 @@ class IdGenerator {
   std::unordered_map<std::string, uint32_t> properties_name_to_id_;
   std::unordered_map<uint32_t, std::string> properties_id_to_name_;
   rocksdb::TransactionDB* db_ = nullptr;
-  GraphCF* graph_cf_;
+  GraphCF* graph_cf_ = nullptr;
   std::shared_mutex vertex_labels_mutex_;
   std::shared_mutex edge_types_mutex_;
   std::shared_mutex properties_mutex_;

@@ -147,63 +147,85 @@ void MetaInfo::AddVertexVectorIndex(std::unique_ptr<VertexVectorIndex> vvi) {
 
 void MetaInfo::Init(rocksdb::TransactionDB *db,
                     boost::asio::io_service &service, GraphCF *graph_cf,
-                    IdGenerator *id_generator, size_t ft_commit_interval,
+                    uint16_t server_id, size_t ft_commit_interval,
                     size_t vt_commit_interval) {
+  id_generator_.Bind(db, graph_cf, server_id);
+  uint32_t max_lid = 0;
+  uint32_t max_pid = 0;
+  uint32_t max_tid = 0;
+  uint32_t max_index_id = 0;
   rocksdb::ReadOptions ro;
   std::unique_ptr<rocksdb::Iterator> iter(
       db->NewIterator(ro, graph_cf->meta_info));
-  std::string prefix;
-  prefix.append(1, static_cast<char>(MetaDataType::VertexPropertyIndex));
-  for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
-       iter->Next()) {
-    auto val = iter->value();
-    meta::VertexPropertyIndex meta;
-    bool ret = meta.ParseFromString(val.ToString());
-    assert(ret);
-    LOG_INFO("vertex property index: [{}]", meta.ShortDebugString());
-    uint32_t lid = native_to_big(meta.label_id());
-    uint32_t pid = native_to_big(meta.property_id());
-    uint32_t index_id = native_to_big(meta.index_id());
-    VertexPropertyIndex vi(meta, graph_cf->index, index_id, lid, pid);
-    uint64_t index_key =
-        (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
-    vertex_property_indexes.emplace(index_key, std::move(vi));
-  }
-  prefix.clear();
-  prefix.append(1, static_cast<char>(MetaDataType::VertexFullTextIndex));
-  for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
-       iter->Next()) {
-    auto val = iter->value();
-    meta::VertexFullTextIndex meta;
-    bool ret = meta.ParseFromString(val.ToString());
-    assert(ret);
-    LOG_INFO("vertex fulltext index: [{}]", meta.ShortDebugString());
-    std::unordered_set<uint32_t> lids, pids;
-    for (auto id : meta.label_ids()) {
-      lids.insert(native_to_big(id));
+  for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
+    auto key = iter->key();
+    if (key.empty()) {
+      continue;
     }
-    for (auto id : meta.property_ids()) {
-      pids.insert(native_to_big(id));
-    }
-    auto v_ft_index = std::make_unique<VertexFullTextIndex>(
-        db, service, graph_cf, id_generator, meta,
-        native_to_big(meta.index_id()), lids, pids, ft_commit_interval);
-    vertex_ft_indexes.emplace(meta.name(), std::move(v_ft_index));
-  }
-  prefix.clear();
-  prefix.append(1, static_cast<char>(MetaDataType::VertexVectorIndex));
-  for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
-       iter->Next()) {
     auto val = iter->value();
-    meta::VertexVectorIndex meta;
-    bool ret = meta.ParseFromString(val.ToString());
-    assert(ret);
-    LOG_INFO("vertex vector index: [{}]", meta.ShortDebugString());
-    auto index = std::make_unique<VertexVectorIndex>(
-        db, service, graph_cf, native_to_big(meta.index_id()),
-        native_to_big(meta.label_id()), native_to_big(meta.property_id()), meta,
-        vt_commit_interval);
-    AddVertexVectorIndex(std::move(index));
+    auto prefix = static_cast<MetaDataType>(key.data()[0]);
+    if (prefix == MetaDataType::VertexLabel ||
+        prefix == MetaDataType::EdgeType || prefix == MetaDataType::Property) {
+      std::string name(key.data() + 1, key.size() - 1);
+      uint32_t id = *(uint32_t *)(val.data());
+      id_generator_.LoadToken(prefix, name, id);
+      uint32_t native_id = big_to_native(id);
+      if (prefix == MetaDataType::VertexLabel) {
+        max_lid = std::max(max_lid, native_id);
+      } else if (prefix == MetaDataType::EdgeType) {
+        max_tid = std::max(max_tid, native_id);
+      } else {
+        max_pid = std::max(max_pid, native_id);
+      }
+      continue;
+    }
+    if (prefix == MetaDataType::VertexPropertyIndex) {
+      meta::VertexPropertyIndex meta;
+      bool ret = meta.ParseFromString(val.ToString());
+      assert(ret);
+      LOG_INFO("vertex property index: [{}]", meta.ShortDebugString());
+      max_index_id = std::max(max_index_id, meta.index_id());
+      uint32_t lid = native_to_big(meta.label_id());
+      uint32_t pid = native_to_big(meta.property_id());
+      uint32_t index_id = native_to_big(meta.index_id());
+      VertexPropertyIndex vi(meta, graph_cf->index, index_id, lid, pid);
+      uint64_t index_key =
+          (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
+      vertex_property_indexes.emplace(index_key, std::move(vi));
+      continue;
+    }
+    if (prefix == MetaDataType::VertexFullTextIndex) {
+      meta::VertexFullTextIndex meta;
+      bool ret = meta.ParseFromString(val.ToString());
+      assert(ret);
+      LOG_INFO("vertex fulltext index: [{}]", meta.ShortDebugString());
+      max_index_id = std::max(max_index_id, meta.index_id());
+      std::unordered_set<uint32_t> lids, pids;
+      for (auto id : meta.label_ids()) {
+        lids.insert(native_to_big(id));
+      }
+      for (auto id : meta.property_ids()) {
+        pids.insert(native_to_big(id));
+      }
+      auto v_ft_index = std::make_unique<VertexFullTextIndex>(
+          db, service, graph_cf, &id_generator_, meta,
+          native_to_big(meta.index_id()), lids, pids, ft_commit_interval);
+      vertex_ft_indexes.emplace(meta.name(), std::move(v_ft_index));
+      continue;
+    }
+    if (prefix == MetaDataType::VertexVectorIndex) {
+      meta::VertexVectorIndex meta;
+      bool ret = meta.ParseFromString(val.ToString());
+      assert(ret);
+      LOG_INFO("vertex vector index: [{}]", meta.ShortDebugString());
+      max_index_id = std::max(max_index_id, meta.index_id());
+      auto index = std::make_unique<VertexVectorIndex>(
+          db, service, graph_cf, native_to_big(meta.index_id()),
+          native_to_big(meta.label_id()), native_to_big(meta.property_id()),
+          meta, vt_commit_interval);
+      AddVertexVectorIndex(std::move(index));
+    }
   }
+  id_generator_.SetMaxIds(max_lid, max_pid, max_tid, max_index_id);
 }
 }  // namespace graphdb

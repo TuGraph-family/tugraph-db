@@ -72,7 +72,7 @@ class GraphDB {
     return cf_handles_;
   }
   GraphCF& graph_cf() { return graph_cf_; }
-  IdGenerator& id_generator() { return id_generator_; }
+  IdGenerator& id_generator() { return meta_info_.id_generator(); }
   MetaInfo& meta_info() { return meta_info_; }
   BusyIndex& busy_index() { return busy_index_; }
   meta::GraphDBMetaInfo& db_meta() { return db_meta_; }
@@ -85,7 +85,6 @@ class GraphDB {
   std::vector<rocksdb::ColumnFamilyHandle*> cf_handles_;
   boost::asio::io_service assistant_;
   GraphCF graph_cf_;
-  IdGenerator id_generator_;
   MetaInfo meta_info_;
   BusyIndex busy_index_;
   meta::GraphDBMetaInfo db_meta_;
