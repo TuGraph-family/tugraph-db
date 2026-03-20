@@ -63,7 +63,6 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
                                            "edge_property",
                                            "vertex_label_vid",
                                            "edge_type_eid",
-                                           "name_id",
                                            "meta_info",
                                            "index",
                                            "wal"};
@@ -86,10 +85,9 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
   graph_db->graph_cf_.edge_property = cf_handles[3];
   graph_db->graph_cf_.vertex_label_vid = cf_handles[4];
   graph_db->graph_cf_.edge_type_eid = cf_handles[5];
-  graph_db->graph_cf_.name_id = cf_handles[6];
-  graph_db->graph_cf_.meta_info = cf_handles[7];
-  graph_db->graph_cf_.index = cf_handles[8];
-  graph_db->graph_cf_.wal = cf_handles[9];
+  graph_db->graph_cf_.meta_info = cf_handles[6];
+  graph_db->graph_cf_.index = cf_handles[7];
+  graph_db->graph_cf_.wal = cf_handles[8];
   graph_db->cf_handles_ = std::move(cf_handles);
   graph_db->options_ = graph_options;
   graph_db->service_threads_.emplace_back([&graph_db]() {
@@ -98,11 +96,9 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
     graph_db->assistant_.run();
   });
   graph_db->meta_info_.Init(graph_db->db_, graph_db->assistant_,
-                            &graph_db->graph_cf_, &graph_db->id_generator_,
+                            &graph_db->graph_cf_, graph_db->options_.server_id_,
                             graph_db->options_.ft_apply_interval_,
                             graph_db->options_.vt_apply_interval_);
-  graph_db->id_generator_.Init(graph_db->db_, &graph_db->graph_cf_,
-                               graph_db->options_.server_id_);
 
   return graph_db;
 }
@@ -149,15 +145,15 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
     THROW_CODE(VertexIndexAlreadyExist, "Vertex index name {} already exists",
                index_name);
   }
-  auto lid = id_generator_.GetOrCreateLid(label);
-  auto pid = id_generator_.GetOrCreatePid(property);
+  auto lid = id_generator().GetOrCreateLid(label);
+  auto pid = id_generator().GetOrCreatePid(property);
   if (meta_info_.GetVertexPropertyIndex(lid, pid)) {
     THROW_CODE(VertexIndexAlreadyExist,
                "Vertex index [label:{}, property:{}] already exists",
                big_to_native(lid), big_to_native(pid));
   }
   busy_index_.Mark({pid}, {lid});
-  auto index_id = id_generator_.GetNextIndexId();
+  auto index_id = id_generator().GetNextIndexId();
   rocksdb::ReadOptions ro;
   rocksdb::WriteOptions wo;
   std::unique_ptr<rocksdb::Iterator> iter(
@@ -259,16 +255,16 @@ void GraphDB::AddVertexFullTextIndex(
   std::unordered_set<uint32_t> lids, native_lids;
   std::unordered_set<uint32_t> pids, native_pids;
   for (const auto& label : labels) {
-    auto lid = id_generator_.GetOrCreateLid(label);
+    auto lid = id_generator().GetOrCreateLid(label);
     lids.insert(lid);
     native_lids.insert(big_to_native(lid));
   }
   for (const auto& prop : properties) {
-    auto pid = id_generator_.GetOrCreatePid(prop);
+    auto pid = id_generator().GetOrCreatePid(prop);
     pids.insert(pid);
     native_pids.insert(big_to_native(pid));
   }
-  uint32_t index_id = id_generator_.GetNextIndexId();
+  uint32_t index_id = id_generator().GetNextIndexId();
   // write meta info
   std::string meta_key;
   meta_key.append(1, static_cast<char>(MetaDataType::VertexFullTextIndex));
@@ -282,7 +278,7 @@ void GraphDB::AddVertexFullTextIndex(
   *meta.mutable_label_ids() = {native_lids.begin(), native_lids.end()};
   *meta.mutable_property_ids() = {native_pids.begin(), native_pids.end()};
   auto v_ft_index = std::make_unique<VertexFullTextIndex>(
-      db_, assistant_, &graph_cf_, &id_generator_, meta, index_id, lids, pids,
+      db_, assistant_, &graph_cf_, &id_generator(), meta, index_id, lids, pids,
       options_.ft_apply_interval_);
   v_ft_index->Load();
   rocksdb::WriteOptions wo;
@@ -344,8 +340,8 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
     THROW_CODE(VertexVectorIndexAlreadyExist,
                "Vertex vector index [{}] already exists", index_name);
   }
-  auto lid = id_generator_.GetOrCreateLid(label);
-  auto pid = id_generator_.GetOrCreatePid(property);
+  auto lid = id_generator().GetOrCreateLid(label);
+  auto pid = id_generator().GetOrCreatePid(property);
   if (meta_info_.GetVertexVectorIndex(lid, pid)) {
     THROW_CODE(VertexVectorIndexAlreadyExist,
                "Vertex vector index [label:{}, property:{}] already exists",
@@ -353,7 +349,7 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
   }
   std::string vt_index_pth = path_ + "/vt/" + index_name;
   std::filesystem::create_directories(vt_index_pth);
-  uint32_t index_id = id_generator_.GetNextIndexId();
+  uint32_t index_id = id_generator().GetNextIndexId();
   meta::VectorIndexType index_type = meta::VectorIndexType::HNSW;
   meta::VectorDistanceType dist_type;
   if (distance_type == "l2") {

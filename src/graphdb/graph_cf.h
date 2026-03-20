@@ -27,7 +27,6 @@ struct GraphCF {
   rocksdb::ColumnFamilyHandle* edge_property = nullptr;
   rocksdb::ColumnFamilyHandle* vertex_label_vid = nullptr;
   rocksdb::ColumnFamilyHandle* edge_type_eid = nullptr;
-  rocksdb::ColumnFamilyHandle* name_id = nullptr;
   rocksdb::ColumnFamilyHandle* meta_info = nullptr;
   rocksdb::ColumnFamilyHandle* index = nullptr;
   rocksdb::ColumnFamilyHandle* wal = nullptr;

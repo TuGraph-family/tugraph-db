@@ -22,15 +22,9 @@
 #include <unordered_map>
 
 #include "graph_cf.h"
+#include "id_generator.h"
 #include "index.h"
 namespace graphdb {
-enum class MetaDataType : char {
-  // Do not change the order
-  VertexPropertyIndex = 0,
-  VertexFullTextIndex = 1,
-  VertexVectorIndex = 2
-};
-
 struct MetaInfo {
   std::unordered_map<uint64_t, VertexPropertyIndex> vertex_property_indexes;
   std::unordered_map<uint64_t, std::unique_ptr<VertexVectorIndex>>
@@ -40,8 +34,9 @@ struct MetaInfo {
 
   // property index
   void Init(rocksdb::TransactionDB* db, boost::asio::io_service& service,
-            GraphCF* graph_cf, IdGenerator* id_generator,
-            size_t ft_commit_interval, size_t vt_commit_interval);
+            GraphCF* graph_cf, uint16_t server_id, size_t ft_commit_interval,
+            size_t vt_commit_interval);
+  IdGenerator& id_generator() { return id_generator_; }
   VertexPropertyIndex* GetVertexPropertyIndex(uint32_t lid, uint32_t pid);
   VertexPropertyIndex* GetVertexPropertyIndex(const std::string& index_name);
   std::unordered_map<uint64_t, VertexPropertyIndex>& GetVertexPropertyIndex();
@@ -62,5 +57,8 @@ struct MetaInfo {
   GetVertexVectorIndex();
   VertexVectorIndex* GetVertexVectorIndex(const std::string& index_name);
   void DeleteVertexVectorIndex(const std::string& name);
+
+ private:
+  IdGenerator id_generator_;
 };
 }  // namespace graphdb
