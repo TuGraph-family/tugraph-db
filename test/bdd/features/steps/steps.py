@@ -215,12 +215,16 @@ def validate_in_order(context, ignore_order):
 def check_exception(context):
     if context.exception is not None:
         print("Exception when executing query: ", context.exception)
-        assert(False)
+        raise AssertionError("Unexpected exception: {}".format(
+            context.exception))
 
 @given("an initialized database")
 def step_impl(context):
     result = subprocess.run('./features/steps/init_db.sh')
-    assert result.returncode == 0
+    if result.returncode != 0:
+        raise AssertionError(
+            "init_db.sh exited with return code {}".format(
+                result.returncode))
     url = "bolt://{}:{}".format("127.0.0.1", "7687")
     auth_token = basic_auth("admin", "73@TuGraph")
     context.driver = GraphDatabase.driver(url, auth=auth_token, encrypted=False)
@@ -231,7 +235,10 @@ def step_impl(context):
 
 @then("the result should be empty")
 def step_impl(context):
-    assert(len(context.results) == 0)
+    if len(context.results) != 0:
+        raise AssertionError(
+            "Expected empty result, but got {}".format(
+                len(context.results)))
     check_exception(context)
 
 @given("an empty graph")
@@ -326,7 +333,10 @@ def step_impl(context):
 
 @step("parameters are")
 def step_impl(context):
-    assert len(context.table.rows) == 1
+    if len(context.table.rows) != 1:
+        raise AssertionError(
+            "Expected exactly 1 parameter row, but got {}".format(
+                len(context.table.rows)))
     for row in context.table:
         for index, header in enumerate(context.table.headings):
             ret = yaml.load(row[index], Loader=yaml.FullLoader)
@@ -351,4 +361,5 @@ def step_impl(context):
 
 @then("an Error should be raised")
 def step_impl(context):
-    assert context.exception is not None
+    if context.exception is None:
+        raise AssertionError("Expected an error to be raised")
