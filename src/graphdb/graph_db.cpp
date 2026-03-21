@@ -19,6 +19,7 @@
 
 #include <filesystem>
 
+#include "byte_utils.h"
 #include "common/logger.h"
 #include "meta_info.h"
 #include "proto/meta.pb.h"
@@ -158,14 +159,14 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
   rocksdb::WriteOptions wo;
   std::unique_ptr<rocksdb::Iterator> iter(
       db_->NewIterator(ro, graph_cf_.vertex_label_vid));
-  rocksdb::Slice prefix((const char*)&lid, sizeof(lid));
+  rocksdb::Slice prefix(AsChars(lid), sizeof(lid));
   for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
        iter->Next()) {
     auto key = iter->key();
     key.remove_prefix(sizeof(uint32_t));
 
     std::string property_key = key.ToString();
-    property_key.append((const char*)&pid, sizeof(pid));
+    property_key.append(AsChars(pid), sizeof(pid));
     std::string property_val;
     auto s =
         db_->Get(ro, graph_cf_.vertex_property, property_key, &property_val);
@@ -175,7 +176,7 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
       THROW_CODE(StorageEngineError, s.ToString());
     }
     std::string index_key, tmp;
-    index_key.append((const char*)(&index_id), sizeof(index_id));
+    index_key.append(AsChars(index_id), sizeof(index_id));
     index_key.append(property_val);
     s = db_->Get(ro, graph_cf_.index, index_key, &tmp);
     if (s.ok()) {
@@ -227,8 +228,8 @@ void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
   rocksdb::WriteBatch wb;
   wb.Delete(graph_cf_.meta_info, meta_key);
 
-  std::string start_key((const char*)&index_id, sizeof(index_id));
-  std::string end_key((const char*)&index_id, sizeof(index_id));
+  std::string start_key(AsChars(index_id), sizeof(index_id));
+  std::string end_key(AsChars(index_id), sizeof(index_id));
   end_key.append(128, static_cast<char>(0xff));
   wb.DeleteRange(graph_cf_.index, start_key, end_key);
 
@@ -307,9 +308,9 @@ void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
   meta_key.append(index_name);
   wb.Delete(graph_cf_.meta_info, meta_key);
 
-  std::string start_key((const char*)&index_id, sizeof(index_id));
+  std::string start_key(AsChars(index_id), sizeof(index_id));
   start_key.append(sizeof(int64_t), static_cast<char>(0x00));
-  std::string end_key((const char*)&index_id, sizeof(index_id));
+  std::string end_key(AsChars(index_id), sizeof(index_id));
   end_key.append(sizeof(int64_t), static_cast<char>(0xff));
   wb.DeleteRange(graph_cf_.index, start_key, end_key);
   wb.DeleteRange(graph_cf_.wal, start_key, end_key);
@@ -405,9 +406,9 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
   meta_key.append(index_name);
   wb.Delete(graph_cf_.meta_info, meta_key);
 
-  std::string start_key((const char*)&index_id, sizeof(index_id));
+  std::string start_key(AsChars(index_id), sizeof(index_id));
   start_key.append(sizeof(int64_t), static_cast<char>(0x00));
-  std::string end_key((const char*)&index_id, sizeof(index_id));
+  std::string end_key(AsChars(index_id), sizeof(index_id));
   end_key.append(sizeof(int64_t), static_cast<char>(0xff));
   wb.DeleteRange(graph_cf_.index, start_key, end_key);
   wb.DeleteRange(graph_cf_.wal, start_key, end_key);

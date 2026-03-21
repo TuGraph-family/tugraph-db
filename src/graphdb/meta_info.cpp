@@ -21,6 +21,7 @@
 #include <boost/endian/conversion.hpp>
 #include <filesystem>
 
+#include "byte_utils.h"
 #include "common/exceptions.h"
 #include "common/logger.h"
 #include "proto/meta.pb.h"
@@ -167,7 +168,7 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
     if (prefix == MetaDataType::VertexLabel ||
         prefix == MetaDataType::EdgeType || prefix == MetaDataType::Property) {
       std::string name(key.data() + 1, key.size() - 1);
-      uint32_t id = *(uint32_t *)(val.data());
+      uint32_t id = ReadValue<uint32_t>(val.data());
       id_generator_.LoadToken(prefix, name, id);
       uint32_t native_id = big_to_native(id);
       if (prefix == MetaDataType::VertexLabel) {

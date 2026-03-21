@@ -20,6 +20,7 @@
 
 #include <rocksdb/utilities/write_batch_with_index.h>
 
+#include "byte_utils.h"
 #include "common/exceptions.h"
 #include "common/logger.h"
 #include "graph_db.h"
@@ -168,21 +169,20 @@ std::unordered_set<uint32_t> Vertex::GetLabelIds() {
   rocksdb::ReadOptions ro;
   std::string val;
   auto s = txn_->dbtxn()->Get(ro, txn_->db()->graph_cf().graph_topology,
-                              rocksdb::Slice{(const char *)(&id_), sizeof(id_)},
-                              &val);
+                              rocksdb::Slice{AsChars(id_), sizeof(id_)}, &val);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   std::unordered_set<uint32_t> ret;
   for (size_t i = 0; i < val.size(); i += sizeof(uint32_t)) {
-    ret.insert(*(uint32_t *)(val.data() + i));
+    ret.insert(ReadValue<uint32_t>(val.data() + i));
   }
   return ret;
 }
 
 void Vertex::Lock() {
   rocksdb::ReadOptions ro;
-  auto s =
-      txn_->dbtxn()->GetForUpdate(ro, txn_->db()->graph_cf().graph_topology,
-                                  GetIdView(), (std::string *)nullptr);
+  auto s = txn_->dbtxn()->GetForUpdate(
+      ro, txn_->db()->graph_cf().graph_topology, GetIdView(),
+      static_cast<std::string *>(nullptr));
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }
 
@@ -192,7 +192,7 @@ int Vertex::Delete() {
   // lock vertex
   Lock();
   std::unique_ptr<rocksdb::Iterator> iter;
-  rocksdb::Slice prefix((const char *)&id_, sizeof(id_));
+  rocksdb::Slice prefix(AsChars(id_), sizeof(id_));
   iter.reset(
       txn_->dbtxn()->GetIterator(ro, txn_->db()->graph_cf().graph_topology));
   std::vector<int64_t> eids;
@@ -203,13 +203,13 @@ int Vertex::Delete() {
     if (key.size() == sizeof(int64_t)) {
       std::unordered_set<uint32_t> labelIds;
       for (size_t i = 0; i < val.size(); i += sizeof(uint32_t)) {
-        labelIds.insert(*(uint32_t *)(val.data() + i));
+        labelIds.insert(ReadValue<uint32_t>(val.data() + i));
       }
       std::unordered_set<uint32_t> pids;
       // delete label vid
       for (auto labelId : labelIds) {
         std::string labelVid;
-        labelVid.append((const char *)&labelId, sizeof(labelId));
+        labelVid.append(AsChars(labelId), sizeof(labelId));
         labelVid.append(key.data(), key.size());
         auto s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
             txn_->db()->graph_cf().vertex_label_vid, labelVid);
@@ -225,7 +225,7 @@ int Vertex::Delete() {
            vp_iter->Valid() && vp_iter->key().starts_with(vp_prefix);
            vp_iter->Next()) {
         auto p_key = vp_iter->key().ToString();  // must copy
-        auto pid = *(uint32_t *)(p_key.data() + sizeof(int64_t));
+        auto pid = ReadValue<uint32_t>(p_key.data() + sizeof(int64_t));
         pids.insert(pid);
         auto p_val = vp_iter->value().ToString();  // must copy
         for (auto lid : labelIds) {
@@ -271,48 +271,48 @@ int Vertex::Delete() {
     } else {
       assert(key.size() == 29);
       auto p = key.data();
-      int64_t vid1 = *(int64_t *)p;
+      int64_t vid1 = ReadValue<int64_t>(p);
       p += sizeof(int64_t);
       auto dir = static_cast<EdgeDirection>(*(p));
       p += sizeof(char);
-      uint32_t etid = *(uint32_t *)p;
+      uint32_t etid = ReadValue<uint32_t>(p);
       p += sizeof(uint32_t);
-      int64_t vid2 = *(int64_t *)p;
+      int64_t vid2 = ReadValue<int64_t>(p);
       p += sizeof(int64_t);
-      int64_t eid = *(int64_t *)p;
+      int64_t eid = ReadValue<int64_t>(p);
       {
         // lock edge
         auto s = txn_->dbtxn()->GetForUpdate(
             ro, txn_->db()->graph_cf().graph_topology,
-            rocksdb::Slice((const char *)&eid, sizeof(eid)),
-            (std::string *)nullptr);
+            rocksdb::Slice(AsChars(eid), sizeof(eid)),
+            static_cast<std::string *>(nullptr));
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
       }
       eids.push_back(eid);
       // delete other edge key
       std::string other_edge_key;
-      other_edge_key.append((const char *)&vid2, sizeof(vid2));
+      other_edge_key.append(AsChars(vid2), sizeof(vid2));
       other_edge_key.append(1,
                             static_cast<char>(dir == EdgeDirection::OUTGOING
                                                   ? EdgeDirection::INCOMING
                                                   : EdgeDirection::OUTGOING));
-      other_edge_key.append((const char *)&etid, sizeof(etid));
-      other_edge_key.append((const char *)&vid1, sizeof(vid1));
-      other_edge_key.append((const char *)&eid, sizeof(eid));
+      other_edge_key.append(AsChars(etid), sizeof(etid));
+      other_edge_key.append(AsChars(vid1), sizeof(vid1));
+      other_edge_key.append(AsChars(eid), sizeof(eid));
       auto s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
           txn_->db()->graph_cf().graph_topology, other_edge_key);
       if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
       deleted_edge++;
       // delete type eid
       std::string typeEid;
-      typeEid.append((const char *)&etid, sizeof(etid));
-      typeEid.append((const char *)&eid, sizeof(eid));
+      typeEid.append(AsChars(etid), sizeof(etid));
+      typeEid.append(AsChars(eid), sizeof(eid));
       s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
           txn_->db()->graph_cf().edge_type_eid, typeEid);
       if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
       // delete edge properties
       std::unique_ptr<rocksdb::Iterator> ep_iter;
-      rocksdb::Slice ep_prefix((const char *)&eid, sizeof(eid));
+      rocksdb::Slice ep_prefix(AsChars(eid), sizeof(eid));
       ep_iter.reset(
           txn_->dbtxn()->GetIterator(ro, txn_->db()->graph_cf().edge_property));
       for (ep_iter->Seek(ep_prefix);
@@ -409,7 +409,7 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
       if (item.IsFloat()) {
         add.add_vector(item.AsFloat());
       } else {
-        add.add_vector((float)item.AsDouble());
+        add.add_vector(static_cast<float>(item.AsDouble()));
       }
     }
     vvi->AddIndex(txn_, id_, add);
@@ -418,13 +418,13 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
   labelIds.insert(new_lids.begin(), new_lids.end());
   std::string buffer;
   for (auto l : labelIds) {
-    buffer.append((const char *)&l, sizeof(l));
+    buffer.append(AsChars(l), sizeof(l));
   }
   auto s = txn_->dbtxn()->GetWriteBatch()->Put(
       txn_->db()->graph_cf().graph_topology, GetIdView(), buffer);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   for (auto &id : new_lids) {
-    std::string key((const char *)&id, sizeof(id));
+    std::string key(AsChars(id), sizeof(id));
     key.append(GetIdView());
     s = txn_->dbtxn()->GetWriteBatch()->Put(
         txn_->db()->graph_cf().vertex_label_vid, key, {});
@@ -482,13 +482,13 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
   }
   std::string buffer;
   for (auto l : labelIds) {
-    buffer.append((const char *)&l, sizeof(l));
+    buffer.append(AsChars(l), sizeof(l));
   }
   auto s = txn_->dbtxn()->GetWriteBatch()->Put(
       txn_->db()->graph_cf().graph_topology, GetIdView(), buffer);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   for (auto id : remove_lids) {
-    std::string key((const char *)&id, sizeof(id));
+    std::string key(AsChars(id), sizeof(id));
     key.append(GetIdView());
     s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
         txn_->db()->graph_cf().vertex_label_vid, key);
@@ -508,8 +508,8 @@ Value Vertex::GetProperty(uint32_t pid) {
   rocksdb::ReadOptions ro;
   rocksdb::PinnableSlice pval;
   Value ret;
-  std::string pkey((const char *)&id_, sizeof(id_));
-  pkey.append((const char *)(&pid), sizeof(pid));
+  std::string pkey(AsChars(id_), sizeof(id_));
+  pkey.append(AsChars(pid), sizeof(pid));
   auto s = txn_->dbtxn()->Get(ro, txn_->db()->graph_cf().vertex_property, pkey,
                               &pval);
   if (s.ok()) {
@@ -521,7 +521,7 @@ Value Vertex::GetProperty(uint32_t pid) {
 }
 
 std::unordered_map<std::string, Value> Vertex::GetAllProperty() {
-  std::string prefix((const char *)&id_, sizeof(id_));
+  std::string prefix(AsChars(id_), sizeof(id_));
   rocksdb::ReadOptions ro;
   std::unordered_map<std::string, Value> ret;
   std::unique_ptr<rocksdb::Iterator> p_iter;
@@ -532,7 +532,7 @@ std::unordered_map<std::string, Value> Vertex::GetAllProperty() {
     auto key = p_iter->key();
     auto value = p_iter->value();
     key.remove_prefix(sizeof(int64_t));
-    uint32_t pid = *(uint32_t *)key.data();
+    uint32_t pid = ReadValue<uint32_t>(key.data());
     auto optional = txn_->db()->id_generator().GetPropertyName(pid);
     if (optional.has_value()) {
       Value v;
@@ -578,8 +578,8 @@ void Vertex::SetProperties(
       continue;
     }
     auto pid = iter->first;
-    std::string pkey((const char *)&id_, sizeof(id_));
-    pkey.append((const char *)(&pid), sizeof(pid));
+    std::string pkey(AsChars(id_), sizeof(id_));
+    pkey.append(AsChars(pid), sizeof(pid));
     rocksdb::ReadOptions ro;
     std::string val;
     const std::string *old = nullptr;
@@ -653,14 +653,14 @@ void Vertex::SetProperties(
       if (item.IsFloat()) {
         add.add_vector(item.AsFloat());
       } else {
-        add.add_vector((float)item.AsDouble());
+        add.add_vector(static_cast<float>(item.AsDouble()));
       }
     }
     index->AddIndex(txn_, id_, add);
   }
   for (auto &[pid, pval] : serialized) {
-    std::string pkey((const char *)&id_, sizeof(id_));
-    pkey.append((const char *)(&pid), sizeof(pid));
+    std::string pkey(AsChars(id_), sizeof(id_));
+    pkey.append(AsChars(pid), sizeof(pid));
     auto s = txn_->dbtxn()->GetWriteBatch()->Put(
         txn_->db()->graph_cf().vertex_property, pkey, pval);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -670,7 +670,7 @@ void Vertex::SetProperties(
 void Vertex::RemoveAllProperty() {
   Lock();
   auto lids = GetLabelIds();
-  std::string prefix((const char *)&id_, sizeof(id_));
+  std::string prefix(AsChars(id_), sizeof(id_));
   rocksdb::ReadOptions ro;
   std::unordered_set<uint32_t> pids;
   std::unordered_map<uint32_t, std::string> props;
@@ -684,7 +684,7 @@ void Vertex::RemoveAllProperty() {
     prop_keys.push_back(key.ToString());
     auto value = p_iter->value();
     key.remove_prefix(sizeof(int64_t));
-    uint32_t pid = *(uint32_t *)key.data();
+    uint32_t pid = ReadValue<uint32_t>(key.data());
     props.emplace(pid, value.ToString());
     pids.insert(pid);
   }
@@ -732,8 +732,8 @@ void Vertex::RemoveProperty(const std::string &name) {
     return;
   }
   auto pid = optional.value();
-  std::string pkey((const char *)&id_, sizeof(id_));
-  pkey.append((const char *)(&pid), sizeof(pid));
+  std::string pkey(AsChars(id_), sizeof(id_));
+  pkey.append(AsChars(pid), sizeof(pid));
   Lock();
   auto lids = GetLabelIds();
   if (txn_->db()->busy_index().Busy(lids, pid)) {
@@ -804,35 +804,35 @@ void Edge::Delete() {
   Lock();
   // delete out edge key
   std::string key;
-  key.append((const char *)&startId_, sizeof(startId_));
+  key.append(AsChars(startId_), sizeof(startId_));
   key.append(1, static_cast<char>(EdgeDirection::OUTGOING));
-  key.append((const char *)&typeId_, sizeof(typeId_));
-  key.append((const char *)&endId_, sizeof(endId_));
-  key.append((const char *)&id_, sizeof(id_));
+  key.append(AsChars(typeId_), sizeof(typeId_));
+  key.append(AsChars(endId_), sizeof(endId_));
+  key.append(AsChars(id_), sizeof(id_));
   auto s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
       txn_->db()->graph_cf().graph_topology, key);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   key.clear();
   // delete in edge key
-  key.append((const char *)&endId_, sizeof(endId_));
+  key.append(AsChars(endId_), sizeof(endId_));
   key.append(1, static_cast<char>(EdgeDirection::INCOMING));
-  key.append((const char *)&typeId_, sizeof(typeId_));
-  key.append((const char *)&startId_, sizeof(startId_));
-  key.append((const char *)&id_, sizeof(id_));
+  key.append(AsChars(typeId_), sizeof(typeId_));
+  key.append(AsChars(startId_), sizeof(startId_));
+  key.append(AsChars(id_), sizeof(id_));
   s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
       txn_->db()->graph_cf().graph_topology, key);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   // delete type eid
   key.clear();
-  key.append((const char *)&typeId_, sizeof(typeId_));
-  key.append((const char *)&id_, sizeof(id_));
+  key.append(AsChars(typeId_), sizeof(typeId_));
+  key.append(AsChars(id_), sizeof(id_));
   s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
       txn_->db()->graph_cf().edge_type_eid, key);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   // delete edge properties
   std::unique_ptr<rocksdb::Iterator> ep_iter;
   rocksdb::ReadOptions ro;
-  rocksdb::Slice ep_prefix((const char *)&id_, sizeof(id_));
+  rocksdb::Slice ep_prefix(AsChars(id_), sizeof(id_));
   ep_iter.reset(
       txn_->dbtxn()->GetIterator(ro, txn_->db()->graph_cf().edge_property));
   for (ep_iter->Seek(ep_prefix);
@@ -856,8 +856,8 @@ Value Edge::GetProperty(uint32_t pid) {
   rocksdb::ReadOptions ro;
   rocksdb::PinnableSlice pinnable_val;
   Value ret;
-  std::string pkey((const char *)&id_, sizeof(id_));
-  pkey.append((const char *)(&pid), sizeof(pid));
+  std::string pkey(AsChars(id_), sizeof(id_));
+  pkey.append(AsChars(pid), sizeof(pid));
   auto s = txn_->dbtxn()->Get(ro, txn_->db()->graph_cf().edge_property, pkey,
                               &pinnable_val);
   if (s.ok()) {
@@ -888,7 +888,7 @@ Value Edge::GetProperty(const std::string &name) {
 }
 
 std::unordered_map<std::string, Value> Edge::GetAllProperty() {
-  std::string prefix((const char *)&id_, sizeof(id_));
+  std::string prefix(AsChars(id_), sizeof(id_));
   rocksdb::ReadOptions ro;
   std::unordered_map<std::string, Value> ret;
   std::unique_ptr<rocksdb::Iterator> p_iter;
@@ -899,7 +899,7 @@ std::unordered_map<std::string, Value> Edge::GetAllProperty() {
     auto key = p_iter->key();
     auto value = p_iter->value();
     key.remove_prefix(sizeof(int64_t));
-    uint32_t pid = *(uint32_t *)key.data();
+    uint32_t pid = ReadValue<uint32_t>(key.data());
     auto optional = txn_->db()->id_generator().GetPropertyName(pid);
     if (optional.has_value()) {
       Value v;
@@ -918,8 +918,8 @@ void Edge::SetProperties(
   Lock();
   for (auto &[name, value] : properties) {
     auto pid = txn_->db()->id_generator().GetOrCreatePid(name);
-    std::string pkey((const char *)&id_, sizeof(id_));
-    pkey.append((const char *)(&pid), sizeof(pid));
+    std::string pkey(AsChars(id_), sizeof(id_));
+    pkey.append(AsChars(pid), sizeof(pid));
     auto s = txn_->dbtxn()->GetWriteBatch()->Put(
         txn_->db()->graph_cf().edge_property, pkey, value.Serialize());
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -933,8 +933,8 @@ void Edge::RemoveProperty(const std::string &name) {
   }
   Lock();
   auto pid = optional.value();
-  std::string pkey((const char *)&id_, sizeof(id_));
-  pkey.append((const char *)(&pid), sizeof(pid));
+  std::string pkey(AsChars(id_), sizeof(id_));
+  pkey.append(AsChars(pid), sizeof(pid));
   auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
       txn_->db()->graph_cf().edge_property, pkey);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -943,7 +943,7 @@ void Edge::RemoveProperty(const std::string &name) {
 void Edge::RemoveAllProperty() {
   Lock();
   std::vector<std::string> prop_keys;
-  std::string prefix((const char *)&id_, sizeof(id_));
+  std::string prefix(AsChars(id_), sizeof(id_));
   rocksdb::ReadOptions ro;
   std::unique_ptr<rocksdb::Iterator> p_iter;
   p_iter.reset(
@@ -963,9 +963,10 @@ void Edge::RemoveAllProperty() {
 
 void Edge::Lock() {
   rocksdb::ReadOptions ro;
-  auto s = txn_->dbtxn()->GetForUpdate(
-      ro, txn_->db()->graph_cf().graph_topology,
-      rocksdb::Slice((const char *)&id_, sizeof(id_)), (std::string *)nullptr);
+  auto s =
+      txn_->dbtxn()->GetForUpdate(ro, txn_->db()->graph_cf().graph_topology,
+                                  rocksdb::Slice(AsChars(id_), sizeof(id_)),
+                                  static_cast<std::string *>(nullptr));
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }
 }  // namespace graphdb

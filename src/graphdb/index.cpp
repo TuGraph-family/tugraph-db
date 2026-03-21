@@ -23,6 +23,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
+#include "byte_utils.h"
 #include "common/flags.h"
 #include "common/logger.h"
 #include "ftindex/include/lib.rs.h"
@@ -62,7 +63,7 @@ void VertexPropertyIndex::AddIndex(Transaction* txn, int64_t vid,
     } else if (!s.IsNotFound()) {
       THROW_CODE(StorageEngineError, s.ToString());
     }
-    rocksdb::Slice index_val((const char*)&vid, sizeof(vid));
+    rocksdb::Slice index_val(AsChars(vid), sizeof(vid));
     s = txn->dbtxn()->GetWriteBatch()->Put(cf_, index_key, index_val);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   }
@@ -85,19 +86,20 @@ void VertexPropertyIndex::UpdateIndex(Transaction* txn, int64_t vid,
     if (old_value) {
       // lock index
       std::string key = IndexKey(*old_value);
-      s = txn->dbtxn()->GetForUpdate(ro, cf_, key, (std::string*)nullptr);
+      s = txn->dbtxn()->GetForUpdate(ro, cf_, key,
+                                     static_cast<std::string*>(nullptr));
       if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
       s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, key);
       if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     }
     s = txn->dbtxn()->GetWriteBatch()->Put(
-        cf_, index_key, rocksdb::Slice((const char*)&vid, sizeof(vid)));
+        cf_, index_key, rocksdb::Slice(AsChars(vid), sizeof(vid)));
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   }
 }
 
 std::string VertexPropertyIndex::IndexKey(const std::string& val) {
-  std::string index_key((const char*)&index_id_, sizeof(index_id_));
+  std::string index_key(AsChars(index_id_), sizeof(index_id_));
   index_key.append(val);
   return index_key;
 }
@@ -107,8 +109,8 @@ void VertexPropertyIndex::DeleteIndex(Transaction* txn, rocksdb::Slice value) {
     rocksdb::ReadOptions ro;
     // lock index
     std::string index_key = IndexKey(value.ToString());
-    auto s =
-        txn->dbtxn()->GetForUpdate(ro, cf_, index_key, (std::string*)nullptr);
+    auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key,
+                                        static_cast<std::string*>(nullptr));
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, index_key);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -154,17 +156,17 @@ VertexFullTextIndex::VertexFullTextIndex(
     apply_id_ = std::stoull(payload.c_str());
   }
 
-  std::string prefix((const char*)&index_id_, sizeof(index_id_));
+  std::string prefix(AsChars(index_id_), sizeof(index_id_));
   prefix.append(8, 0xFF);
   rocksdb::ReadOptions ro;
   std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
   iter->SeekForPrev(prefix);
   if (iter->Valid()) {
     auto key = iter->key();
-    if (key.starts_with({(const char*)&index_id_, sizeof(index_id_)})) {
+    if (key.starts_with({AsChars(index_id_), sizeof(index_id_)})) {
       key.remove_prefix(sizeof(index_id_));
       assert(key.size() == sizeof(uint64_t));
-      uint64_t wal_id = *(uint64_t*)key.data();
+      uint64_t wal_id = ReadValue<uint64_t>(key.data());
       next_wal_id_ = big_to_native(wal_id) + 1;
     }
   }
@@ -205,15 +207,15 @@ bool VertexFullTextIndex::IsIndexed(Transaction* txn, int64_t vid) {
 }
 
 std::string VertexFullTextIndex::IndexKey(int64_t vid) {
-  std::string ret((const char*)&index_id_, sizeof(index_id_));
-  ret.append((const char*)&vid, sizeof(vid));
+  std::string ret(AsChars(index_id_), sizeof(index_id_));
+  ret.append(AsChars(vid), sizeof(vid));
   return ret;
 }
 
 std::string VertexFullTextIndex::NextWALKey() {
-  std::string ret((const char*)&index_id_, sizeof(index_id_));
+  std::string ret(AsChars(index_id_), sizeof(index_id_));
   uint64_t wal_id = native_to_big(next_wal_id_++);
-  ret.append((const char*)&wal_id, sizeof(wal_id));
+  ret.append(AsChars(wal_id), sizeof(wal_id));
   return ret;
 }
 
@@ -223,7 +225,7 @@ void VertexFullTextIndex::Load() {
     rocksdb::ReadOptions ro;
     std::unique_ptr<rocksdb::Iterator> iter(
         db_->NewIterator(ro, graph_cf_->vertex_label_vid));
-    rocksdb::Slice prefix((const char*)&lid, sizeof(lid));
+    rocksdb::Slice prefix(AsChars(lid), sizeof(lid));
     for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
          iter->Next()) {
       auto key = iter->key();
@@ -234,7 +236,7 @@ void VertexFullTextIndex::Load() {
         std::string prop_name = id_generator_->GetPropertyName(pid).value();
         std::string property_val;
         std::string property_key = key.ToString();
-        property_key.append((const char*)&pid, sizeof(pid));
+        property_key.append(AsChars(pid), sizeof(pid));
         auto s = db_->Get(ro, graph_cf_->vertex_property, property_key,
                           &property_val);
         if (s.IsNotFound()) {
@@ -251,7 +253,7 @@ void VertexFullTextIndex::Load() {
         values.push_back(pv.AsString());
       }
       if (!fields.empty()) {
-        int64_t id = *(int64_t*)key.data();
+        int64_t id = ReadValue<int64_t>(key.data());
         auto s = db_->Put({}, graph_cf_->index, IndexKey(id), {});
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
         AddVertex(id, fields, values);
@@ -305,11 +307,11 @@ void VertexFullTextIndex::Commit(const std::string& payload) {
 
 void VertexFullTextIndex::ApplyWAL() {
   std::lock_guard<std::mutex> lock(mutex_);
-  std::string prefix((const char*)&index_id_, sizeof(index_id_));
+  std::string prefix(AsChars(index_id_), sizeof(index_id_));
   std::string start_key(prefix);
   uint64_t next = big_to_native(apply_id_) + 1;
   native_to_big_inplace(next);
-  start_key.append((const char*)&next, sizeof(next));
+  start_key.append(AsChars(next), sizeof(next));
   int count = 0;
   uint64_t consumed_wal_id = 0;
   rocksdb::WriteBatch delete_batch;
@@ -323,7 +325,7 @@ void VertexFullTextIndex::ApplyWAL() {
 
     key.remove_prefix(sizeof(index_id_));
     assert(key.size() == sizeof(apply_id_));
-    consumed_wal_id = *(uint64_t*)key.data();
+    consumed_wal_id = ReadValue<uint64_t>(key.data());
     meta::FullTextIndexUpdate update;
     auto val = iter->value();
     auto ret = update.ParseFromArray(val.data(), val.size());
@@ -414,7 +416,7 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
              big_to_native(apply_id_));
   }
   {
-    std::string prefix((const char*)&index_id_, sizeof(index_id_));
+    std::string prefix(AsChars(index_id_), sizeof(index_id_));
     prefix.append(8, 0xFF);
     rocksdb::ReadOptions ro;
     std::unique_ptr<rocksdb::Iterator> iter(
@@ -422,10 +424,10 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
     iter->SeekForPrev(prefix);
     if (iter->Valid()) {
       auto key = iter->key();
-      if (key.starts_with({(const char*)&index_id_, sizeof(index_id_)})) {
+      if (key.starts_with({AsChars(index_id_), sizeof(index_id_)})) {
         key.remove_prefix(sizeof(index_id_));
         assert(key.size() == sizeof(uint64_t));
-        uint64_t wal_id = *(uint64_t*)key.data();
+        uint64_t wal_id = ReadValue<uint64_t>(key.data());
         next_wal_id_ = big_to_native(wal_id) + 1;
       }
     }
@@ -435,7 +437,7 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
   {
     spdlog::stopwatch sw;
     int64_t max_vector_id = -1;
-    std::string prefix((const char*)&index_id_, sizeof(index_id_));
+    std::string prefix(AsChars(index_id_), sizeof(index_id_));
     rocksdb::ReadOptions ro;
     std::unique_ptr<rocksdb::Iterator> iter(
         db_->NewIterator(ro, graph_cf_->index));
@@ -449,15 +451,15 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
       if (flag == 0) {
         assert(key.size() == sizeof(int64_t));
         assert(val.size() == sizeof(int64_t));
-        auto vid = *(int64_t*)key.data();
-        auto vector_id = *(int64_t*)val.data();
+        auto vid = ReadValue<int64_t>(key.data());
+        auto vector_id = ReadValue<int64_t>(val.data());
         max_vector_id = std::max(max_vector_id, vector_id);
         vectorid_vid_.emplace(vector_id, vid);
       } else {
         assert(flag == 1);
         assert(key.size() == sizeof(int64_t));
         assert(val.size() == 0);
-        auto vector_id = *(int64_t*)key.data();
+        auto vector_id = ReadValue<int64_t>(key.data());
         max_vector_id = std::max(max_vector_id, vector_id);
         deleted_vector_ids_.emplace(vector_id);
       }
@@ -521,7 +523,7 @@ void VertexVectorIndex::TryDeleteIndex(txn::Transaction* txn, int64_t vid) {
   auto s = txn->dbtxn()->Get({}, graph_cf_->index, index_key, &val);
   if (s.ok()) {
     assert(val.size() == sizeof(int64_t));
-    auto vector_id = *(int64_t*)val.data();
+    auto vector_id = ReadValue<int64_t>(val.data());
     s = txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, index_key);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->index,
@@ -539,35 +541,35 @@ void VertexVectorIndex::TryDeleteIndex(txn::Transaction* txn, int64_t vid) {
 }
 
 std::string VertexVectorIndex::NextWALKey() {
-  std::string ret((const char*)&index_id_, sizeof(index_id_));
+  std::string ret(AsChars(index_id_), sizeof(index_id_));
   uint64_t wal_id = native_to_big(next_wal_id_++);
-  ret.append((const char*)&wal_id, sizeof(wal_id));
+  ret.append(AsChars(wal_id), sizeof(wal_id));
   return ret;
 }
 
 std::string VertexVectorIndex::IndexKey(int64_t vid) {
   char flag = 0;
-  std::string ret((const char*)&index_id_, sizeof(index_id_));
+  std::string ret(AsChars(index_id_), sizeof(index_id_));
   ret.append(1, flag);
-  ret.append((const char*)&vid, sizeof(vid));
+  ret.append(AsChars(vid), sizeof(vid));
   return ret;
 }
 
 std::string VertexVectorIndex::DeleteMarkKey(int64_t vector_id) {
   char flag = 1;
-  std::string ret((const char*)&index_id_, sizeof(index_id_));
+  std::string ret(AsChars(index_id_), sizeof(index_id_));
   ret.append(1, flag);
-  ret.append((const char*)&vector_id, sizeof(vector_id));
+  ret.append(AsChars(vector_id), sizeof(vector_id));
   return ret;
 }
 
 void VertexVectorIndex::ApplyWAL() {
   std::lock_guard<std::mutex> lock(apply_mutex_);
-  std::string prefix((const char*)&index_id_, sizeof(index_id_));
+  std::string prefix(AsChars(index_id_), sizeof(index_id_));
   std::string start_key(prefix);
   uint64_t next = big_to_native(apply_id_) + 1;
   native_to_big_inplace(next);
-  start_key.append((const char*)&next, sizeof(next));
+  start_key.append(AsChars(next), sizeof(next));
   uint64_t consumed_wal_id = 0;
   rocksdb::ReadOptions ro;
   std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
@@ -577,7 +579,7 @@ void VertexVectorIndex::ApplyWAL() {
     rocksdb::Slice tmp = key;
     tmp.remove_prefix(sizeof(index_id_));
     assert(tmp.size() == sizeof(apply_id_));
-    consumed_wal_id = *(uint64_t*)tmp.data();
+    consumed_wal_id = ReadValue<uint64_t>(tmp.data());
     meta::VectorIndexUpdate update;
     auto val = iter->value();
     auto ret = update.ParseFromArray(val.data(), val.size());
@@ -640,7 +642,7 @@ void VertexVectorIndex::AddIndex(txn::Transaction* txn, int64_t vid,
   auto vector_id = next_vector_id_++;
   auto s = txn->dbtxn()->GetWriteBatch()->Put(
       graph_cf_->index, IndexKey(vid),
-      rocksdb::Slice((const char*)&vector_id, sizeof(vector_id)));
+      rocksdb::Slice(AsChars(vector_id), sizeof(vector_id)));
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   wal.set_vid(vid);
   wal.set_vector_id(vector_id);
@@ -655,14 +657,14 @@ void VertexVectorIndex::Load() {
       db_->NewIterator(ro, graph_cf_->vertex_label_vid));
   SPDLOG_INFO("Begin to load vector index: {}", meta_.name());
   int count = 0;
-  rocksdb::Slice prefix((const char*)&lid_, sizeof(lid_));
+  rocksdb::Slice prefix(AsChars(lid_), sizeof(lid_));
   for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
        iter->Next()) {
     auto key = iter->key();
     key.remove_prefix(sizeof(uint32_t));
-    int64_t vid = *(int64_t*)key.data();
+    int64_t vid = ReadValue<int64_t>(key.data());
     std::string property_key = key.ToString();
-    property_key.append((const char*)&pid_, sizeof(pid_));
+    property_key.append(AsChars(pid_), sizeof(pid_));
     std::string property_val;
     auto s =
         db_->Get(ro, graph_cf_->vertex_property, property_key, &property_val);
@@ -693,7 +695,7 @@ void VertexVectorIndex::Load() {
     }
     auto vector_id = next_vector_id_++;
     s = db_->Put({}, graph_cf_->index, IndexKey(vid),
-                 rocksdb::Slice((const char*)&vector_id, sizeof(vector_id)));
+                 rocksdb::Slice(AsChars(vector_id), sizeof(vector_id)));
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     vectorid_vid_.emplace(vector_id, vid);
     hnsw_index_->Add(embedding.get(), 1);
