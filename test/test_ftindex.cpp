@@ -401,3 +401,56 @@ TEST(FTIndex, deleteOneMatchedLabelKeepsDocumentIndexed) {
             (std::unordered_set<std::string>{"label2"}));
   txn->Commit();
 }
+
+TEST(FTIndex, reopenAfterAppliedWalContinuesFromPayload) {
+  fs::remove_all(testdb);
+  {
+    auto graphDB = GraphDB::Open(testdb, {});
+    graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+    auto txn = graphDB->BeginTransaction();
+    txn->CreateVertex({"label1"}, {{"id", Value::Integer(1)},
+                                   {"str", Value::String("before_restart")}});
+    txn->Commit();
+
+    for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+      index->ApplyWAL();
+    }
+
+    txn = graphDB->BeginTransaction();
+    int count = 0;
+    for (auto result =
+             txn->QueryVertexByFTIndex("ft_index", "before_restart", 10);
+         result->Valid(); result->Next()) {
+      EXPECT_EQ(result->GetVertexScore().vertex.GetProperty("id"),
+                Value::Integer(1));
+      count++;
+    }
+    EXPECT_EQ(count, 1);
+    txn->Commit();
+  }
+
+  {
+    auto graphDB = GraphDB::Open(testdb, {});
+    auto txn = graphDB->BeginTransaction();
+    txn->CreateVertex({"label1"}, {{"id", Value::Integer(2)},
+                                   {"str", Value::String("after_restart")}});
+    txn->Commit();
+
+    for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+      index->ApplyWAL();
+    }
+
+    txn = graphDB->BeginTransaction();
+    int count = 0;
+    for (auto result =
+             txn->QueryVertexByFTIndex("ft_index", "after_restart", 10);
+         result->Valid(); result->Next()) {
+      EXPECT_EQ(result->GetVertexScore().vertex.GetProperty("id"),
+                Value::Integer(2));
+      count++;
+    }
+    EXPECT_EQ(count, 1);
+    txn->Commit();
+  }
+}

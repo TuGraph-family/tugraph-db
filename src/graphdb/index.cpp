@@ -153,7 +153,8 @@ VertexFullTextIndex::VertexFullTextIndex(
   ft_index_ = instance_->operator->();
   auto payload = ft_get_payload(*ft_index_);
   if (!payload.empty()) {
-    apply_id_ = std::stoull(payload.c_str());
+    apply_id_ =
+        native_to_big(static_cast<uint64_t>(std::stoull(payload.c_str())));
   }
 
   std::string prefix(AsChars(index_id_), sizeof(index_id_));
@@ -170,6 +171,7 @@ VertexFullTextIndex::VertexFullTextIndex(
       next_wal_id_ = big_to_native(wal_id) + 1;
     }
   }
+  next_wal_id_ = std::max(next_wal_id_.load(), big_to_native(apply_id_) + 1);
   StartTimer();
 }
 
