@@ -917,6 +917,8 @@ Value Edge::GetProperty(uint32_t pid) {
                               &pinnable_val);
   if (s.ok()) {
     ret.Deserialize(pinnable_val.data(), pinnable_val.size());
+  } else if (!s.IsNotFound()) {
+    THROW_CODE(StorageEngineError, s.ToString());
   }
   return ret;
 }

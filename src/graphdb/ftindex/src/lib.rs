@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::path::Path;
 use std::fs;
+use std::sync::Mutex;
 use tantivy::{Index, IndexReader, IndexWriter, ReloadPolicy, TantivyDocument, Term};
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
@@ -12,7 +13,7 @@ use crate::ffi::QueryOptions;
 pub struct FTIndex {
     schema: Schema,
     index : Index,
-    writer: IndexWriter,
+    writer: Mutex<IndexWriter>,
     reader: IndexReader,
     id_field: Field,
     fields: Vec<Field>,
@@ -30,11 +31,11 @@ mod ffi {
     extern "Rust" {
         type FTIndex;
         fn new_ftindex(path: &String, properties: &Vec<String>) -> Result<Box<FTIndex>>;
-        fn ft_add_document(ft: &mut FTIndex, id:i64, fields: &Vec<String>, valus: &Vec<String>) -> Result<()>;
-        fn ft_delete_document(ft: &mut FTIndex, id:i64) -> Result<()>;
-        fn ft_commit(ft: &mut FTIndex, payload: &String) -> Result<()>;
-        fn ft_query(ft: &mut FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>>;
-        fn ft_get_payload(ft: &mut FTIndex) -> Result<String>;
+        fn ft_add_document(ft: &FTIndex, id:i64, fields: &Vec<String>, valus: &Vec<String>) -> Result<()>;
+        fn ft_delete_document(ft: &FTIndex, id:i64) -> Result<()>;
+        fn ft_commit(ft: &FTIndex, payload: &String) -> Result<()>;
+        fn ft_query(ft: &FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>>;
+        fn ft_get_payload(ft: &FTIndex) -> Result<String>;
     }
 }
 
@@ -56,7 +57,7 @@ pub fn new_ftindex(path: &String, properties: &Vec<String>) -> Result<Box<FTInde
     let ft = FTIndex {
         schema: schema,
         index: index,
-        writer:writer,
+        writer: Mutex::new(writer),
         reader: reader,
         id_field: id_field,
         fields: fields,
@@ -64,37 +65,41 @@ pub fn new_ftindex(path: &String, properties: &Vec<String>) -> Result<Box<FTInde
     return Ok(Box::new(ft));
 }
 
-pub fn ft_add_document(ft: &mut FTIndex, id:i64, fields: &Vec<String>, valus: &Vec<String>) -> Result<(), Box<dyn Error>> {
+pub fn ft_add_document(ft: &FTIndex, id:i64, fields: &Vec<String>, valus: &Vec<String>) -> Result<(), Box<dyn Error>> {
     let mut document = TantivyDocument::default();
     document.add_i64(ft.id_field, id);
     for i in 0..fields.len() {
         let field = ft.schema.get_field(&fields[i])?;
         document.add_text(field, &valus[i]);
     }
-    ft.writer.add_document(document)?;
+    let writer = ft.writer.lock().unwrap();
+    writer.add_document(document)?;
     Ok(())
 }
 
-pub fn ft_delete_document(ft: &mut FTIndex, id:i64) -> Result<(), Box<dyn Error>> {
+pub fn ft_delete_document(ft: &FTIndex, id:i64) -> Result<(), Box<dyn Error>> {
     let term = Term::from_field_i64(ft.id_field, id);
-    ft.writer.delete_term(term);
+    let writer = ft.writer.lock().unwrap();
+    writer.delete_term(term);
     Ok(())
 }
 
-pub fn ft_commit(ft: &mut FTIndex, payload: &String) -> Result<(),  Box<dyn Error>> {
-    let mut prepared_commit = ft.writer.prepare_commit()?;
+pub fn ft_commit(ft: &FTIndex, payload: &String) -> Result<(),  Box<dyn Error>> {
+    let mut writer = ft.writer.lock().unwrap();
+    let mut prepared_commit = writer.prepare_commit()?;
     prepared_commit.set_payload(payload);
     prepared_commit.commit()?;
+    drop(writer);
     ft.reader.reload()?;
     Ok(())
 }
 
-pub fn ft_get_payload(ft: &mut FTIndex) -> Result<String,  Box<dyn Error>> {
+pub fn ft_get_payload(ft: &FTIndex) -> Result<String,  Box<dyn Error>> {
     let metas = ft.index.load_metas()?;
     Ok(metas.payload.unwrap_or("".to_string()))
 }
 
-pub fn ft_query(ft: &mut FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>, Box<dyn Error>> {
+pub fn ft_query(ft: &FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>, Box<dyn Error>> {
     let searcher = ft.reader.searcher();
     let query_parser = QueryParser::for_index(&ft.index, ft.fields.clone());
     let query = query_parser.parse_query(query)?;
