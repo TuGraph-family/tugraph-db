@@ -570,6 +570,9 @@ void Vertex::SetProperties(
   }
   Lock();
   auto lids = GetLabelIds();
+  if (txn_->db()->busy_index().Busy(lids, pids)) {
+    THROW_CODE(IndexBusy);
+  }
   // property index
   for (auto &[name, index] : txn_->db()->meta_info().GetVertexPropertyIndex()) {
     if (!lids.count(index.lid())) {
@@ -691,6 +694,9 @@ void Vertex::RemoveAllProperty() {
     pids.insert(pid);
   }
   p_iter.reset();
+  if (txn_->db()->busy_index().Busy(lids, pids)) {
+    THROW_CODE(IndexBusy);
+  }
   // property index
   for (auto lid : lids) {
     for (auto &[pid, prop] : props) {
