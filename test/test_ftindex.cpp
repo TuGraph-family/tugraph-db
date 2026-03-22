@@ -16,6 +16,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <set>
 #include <thread>
 
 #include "common/logger.h"
@@ -213,6 +214,35 @@ TEST(FTIndex, indexVertex) {
     count++;
   }
   EXPECT_EQ(count, 2);
+  txn->Commit();
+}
+
+TEST(FTIndex, buildDeduplicatesVerticesWithMultipleMatchedLabels) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1", "label2"},
+                    {{"id", Value::Integer(1)},
+                     {"str", Value::String("retain_me only_once")}});
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(2)},
+                     {"str", Value::String("retain_me second_doc")}});
+  txn->Commit();
+
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1", "label2"}, {"str"});
+
+  txn = graphDB->BeginTransaction();
+  int count = 0;
+  std::set<int64_t> ids;
+  for (auto viter = txn->QueryVertexByFTIndex("ft_index", "retain_me", 10);
+       viter->Valid(); viter->Next()) {
+    auto id = viter->GetVertexScore().vertex.GetProperty("id").AsInteger();
+    ids.insert(id);
+    count++;
+  }
+  EXPECT_EQ(count, 2);
+  EXPECT_EQ(ids, (std::set<int64_t>{1, 2}));
   txn->Commit();
 }
 

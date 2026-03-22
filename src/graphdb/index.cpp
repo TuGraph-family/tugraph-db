@@ -22,6 +22,7 @@
 
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <unordered_set>
 
 #include "byte_utils.h"
 #include "common/flags.h"
@@ -236,6 +237,7 @@ std::string VertexFullTextIndex::NextWALKey() {
 
 void VertexFullTextIndex::Load() {
   int count = 0;
+  std::unordered_set<int64_t> loaded_vids;
   for (auto lid : lids_) {
     rocksdb::ReadOptions ro;
     std::unique_ptr<rocksdb::Iterator> iter(
@@ -269,6 +271,9 @@ void VertexFullTextIndex::Load() {
       }
       if (!fields.empty()) {
         int64_t id = ReadValue<int64_t>(key.data());
+        if (!loaded_vids.emplace(id).second) {
+          continue;
+        }
         auto s = db_->Put({}, graph_cf_->index, IndexKey(id), {});
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
         AddVertex(id, fields, values);
