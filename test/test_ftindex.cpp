@@ -345,3 +345,59 @@ TEST(FTIndex, updateVertex) {
   EXPECT_EQ(count, 1);
   txn->Commit();
 }
+
+TEST(FTIndex, deleteOneMatchedLabelKeepsDocumentIndexed) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1", "label2"}, {"str"});
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1", "label2"},
+                    {{"id", Value::Integer(1)},
+                     {"str", Value::String("retain_me only_once")}});
+  txn->Commit();
+
+  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+    index->ApplyWAL();
+  }
+
+  txn = graphDB->BeginTransaction();
+  int count = 0;
+  for (auto viter = txn->QueryVertexByFTIndex("ft_index", "retain_me", 10);
+       viter->Valid(); viter->Next()) {
+    EXPECT_EQ(viter->GetVertexScore().vertex.GetProperty("id"),
+              Value::Integer(1));
+    count++;
+  }
+  EXPECT_EQ(count, 1);
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  auto viter = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  EXPECT_TRUE(viter->Valid());
+  viter->GetVertex().DeleteLabels({"label1"});
+  txn->Commit();
+
+  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+    index->ApplyWAL();
+  }
+
+  txn = graphDB->BeginTransaction();
+  count = 0;
+  for (auto result = txn->QueryVertexByFTIndex("ft_index", "retain_me", 10);
+       result->Valid(); result->Next()) {
+    EXPECT_EQ(result->GetVertexScore().vertex.GetProperty("id"),
+              Value::Integer(1));
+    count++;
+  }
+  EXPECT_EQ(count, 1);
+  auto updated = txn->NewVertexIterator(
+      "label2",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  EXPECT_TRUE(updated->Valid());
+  EXPECT_EQ(updated->GetVertex().GetLabels(),
+            (std::unordered_set<std::string>{"label2"}));
+  txn->Commit();
+}

@@ -456,10 +456,14 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
   if (txn_->db()->busy_index().LabelBusy(remove_lids)) {
     THROW_CODE(IndexBusy);
   }
+  auto remaining_lids = labelIds;
+  for (auto id : remove_lids) {
+    remaining_lids.erase(id);
+  }
   // full text index
   for (const auto &[ft_name, ft] :
        txn_->db()->meta_info().GetVertexFullTextIndex()) {
-    if (!ft->MatchLabelIds(remove_lids)) {
+    if (ft->MatchLabelIds(remaining_lids)) {
       continue;
     }
     if (ft->IsIndexed(txn_, id_)) {
@@ -472,14 +476,12 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
   // vector index
   for (auto &[index_name, vvi] :
        txn_->db()->meta_info().GetVertexVectorIndex()) {
-    if (remove_lids.count(vvi->lid())) {
+    if (!remove_lids.count(vvi->lid())) {
       continue;
     }
     vvi->TryDeleteIndex(txn_, id_);
   }
-  for (auto id : remove_lids) {
-    labelIds.erase(id);
-  }
+  labelIds = std::move(remaining_lids);
   std::string buffer;
   for (auto l : labelIds) {
     buffer.append(AsChars(l), sizeof(l));

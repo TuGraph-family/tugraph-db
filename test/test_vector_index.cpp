@@ -284,3 +284,74 @@ TEST(VectorIndex, serialize) {
     EXPECT_EQ(ids, expect);
   }
 }
+
+TEST(VectorIndex, deleteLabelsUpdatesMembershipCorrectly) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  std::string index_name = "vector_index";
+  graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 4, "l2", 16,
+                                100);
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1", "label2"},
+                    {{"id", Value::Integer(1)},
+                     {"embedding", Value::DoubleArray({1.0, 1.0, 1.0, 1.0})}});
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(2)},
+                     {"embedding", Value::DoubleArray({2.0, 2.0, 2.0, 2.0})}});
+  txn->Commit();
+
+  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+    index->ApplyWAL();
+  }
+
+  txn = graphDB->BeginTransaction();
+  std::set<int64_t> ids;
+  for (auto viter = txn->QueryVertexByKnnSearch(index_name,
+                                                {1.0, 1.0, 1.0, 1.0}, 10, 100);
+       viter->Valid(); viter->Next()) {
+    ids.insert(viter->GetVertexScore().vertex.GetProperty("id").AsInteger());
+  }
+  EXPECT_EQ(ids, (std::set<int64_t>{1, 2}));
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  auto keep_vertex = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  EXPECT_TRUE(keep_vertex->Valid());
+  keep_vertex->GetVertex().DeleteLabels({"label2"});
+
+  auto remove_vertex = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(2)}});
+  EXPECT_TRUE(remove_vertex->Valid());
+  remove_vertex->GetVertex().DeleteLabels({"label1"});
+  txn->Commit();
+
+  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+    index->ApplyWAL();
+  }
+
+  txn = graphDB->BeginTransaction();
+  ids.clear();
+  for (auto viter = txn->QueryVertexByKnnSearch(index_name,
+                                                {1.0, 1.0, 1.0, 1.0}, 10, 100);
+       viter->Valid(); viter->Next()) {
+    ids.insert(viter->GetVertexScore().vertex.GetProperty("id").AsInteger());
+  }
+  EXPECT_EQ(ids, (std::set<int64_t>{1}));
+
+  auto remaining = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  EXPECT_TRUE(remaining->Valid());
+  EXPECT_EQ(remaining->GetVertex().GetLabels(),
+            (std::unordered_set<std::string>{"label1"}));
+
+  auto removed = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(2)}});
+  EXPECT_FALSE(removed->Valid());
+  txn->Commit();
+}

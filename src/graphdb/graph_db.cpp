@@ -91,10 +91,11 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
   graph_db->graph_cf_.wal = cf_handles[8];
   graph_db->cf_handles_ = std::move(cf_handles);
   graph_db->options_ = graph_options;
-  graph_db->service_threads_.emplace_back([&graph_db]() {
+  auto* self = graph_db.get();
+  graph_db->service_threads_.emplace_back([self]() {
     pthread_setname_np(pthread_self(), "assistant");
-    boost::asio::io_service::work holder(graph_db->assistant_);
-    graph_db->assistant_.run();
+    boost::asio::io_service::work holder(self->assistant_);
+    self->assistant_.run();
   });
   graph_db->meta_info_.Init(graph_db->db_, graph_db->assistant_,
                             &graph_db->graph_cf_, graph_db->options_.server_id_,
@@ -153,7 +154,7 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
                "Vertex index [label:{}, property:{}] already exists",
                big_to_native(lid), big_to_native(pid));
   }
-  busy_index_.Mark({pid}, {lid});
+  busy_index_.Mark({lid}, {pid});
   auto index_id = id_generator().GetNextIndexId();
   rocksdb::ReadOptions ro;
   rocksdb::WriteOptions wo;
