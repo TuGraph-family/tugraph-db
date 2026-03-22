@@ -23,6 +23,32 @@
 namespace fs = std::filesystem;
 
 static std::string testkv = "testkv";
+
+TEST(TxnKV, getForUpdateWithNullValueOnMissingKeyReturnsOk) {
+  fs::remove_all(testkv);
+  rocksdb::Options options;
+  options.create_if_missing = true;
+  options.create_missing_column_families = true;
+  rocksdb::TransactionDBOptions txn_db_options;
+  rocksdb::TransactionDB* db = nullptr;
+  auto s = rocksdb::TransactionDB::Open(options, txn_db_options, testkv, &db);
+  ASSERT_TRUE(s.ok());
+
+  rocksdb::WriteOptions wo;
+  rocksdb::TransactionOptions to;
+  rocksdb::Transaction* txn = db->BeginTransaction(wo, to);
+  rocksdb::ReadOptions ro;
+
+  s = txn->GetForUpdate(ro, rocksdb::Slice("missing_key"),
+                        static_cast<std::string*>(nullptr));
+  EXPECT_TRUE(s.ok()) << s.ToString();
+
+  delete txn;
+  s = db->Close();
+  ASSERT_TRUE(s.ok());
+  delete db;
+}
+
 TEST(TxnKV, basic) {
   GTEST_SKIP();
   fs::remove_all(testkv);

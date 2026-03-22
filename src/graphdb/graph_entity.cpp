@@ -965,6 +965,10 @@ void Edge::RemoveAllProperty() {
 
 void Edge::Lock() {
   rocksdb::ReadOptions ro;
+  // Use a synthetic per-edge key as the transaction lock point. In
+  // TransactionDB, GetForUpdate() with a null value buffer still acquires the
+  // lock even when the key does not exist, so edge mutations can serialize on
+  // eid without materializing an extra record in graph_topology.
   auto s =
       txn_->dbtxn()->GetForUpdate(ro, txn_->db()->graph_cf().graph_topology,
                                   rocksdb::Slice(AsChars(id_), sizeof(id_)),
