@@ -524,7 +524,7 @@ void BuiltinProcedure::DbIndexVectorApplyWal(
                                args.size()))
   std::string name = ctx->txn_->db()->db_meta().graph_name();
   auto graphdb = server::g_galaxy->OpenGraph(name);
-  for (auto &[_, index] : graphdb->meta_info().GetVertexVectorIndex()) {
+  for (const auto &index : graphdb->meta_info().GetVertexVectorIndexes()) {
     LOG_INFO("Manually apply WAL for Vector index {}", index->meta().name());
     index->ApplyWAL();
   }
@@ -628,7 +628,7 @@ void BuiltinProcedure::DbIndexFullTextApplyWal(
                                args.size()))
   std::string name = ctx->txn_->db()->db_meta().graph_name();
   auto graphdb = server::g_galaxy->OpenGraph(name);
-  for (auto &[_, index] : graphdb->meta_info().GetVertexFullTextIndex()) {
+  for (const auto &index : graphdb->meta_info().GetVertexFullTextIndexes()) {
     LOG_INFO("Manually apply WAL for FullText index {}", index->Name());
     index->ApplyWAL();
   }
@@ -707,26 +707,26 @@ void BuiltinProcedure::DbShowIndexes(
                                args.size()))
   std::string name = ctx->txn_->db()->db_meta().graph_name();
   auto graphdb = server::g_galaxy->OpenGraph(name);
-  for (auto &[_, index] : graphdb->meta_info().GetVertexPropertyIndex()) {
+  for (const auto &index : graphdb->meta_info().GetVertexPropertyIndexes()) {
     std::vector<ProcedureResult> r;
     for (auto &yield : yield_items) {
       if (yield == "name") {
-        r.emplace_back(Value::String(index.meta().name()));
+        r.emplace_back(Value::String(index->meta().name()));
       } else if (yield == "type") {
         r.emplace_back(Value::String("Unique"));
       } else if (yield == "entityType") {
         r.emplace_back(Value::String("NODE"));
       } else if (yield == "labelsOrTypes") {
-        r.emplace_back(Value::StringArray({index.meta().label()}));
+        r.emplace_back(Value::StringArray({index->meta().label()}));
       } else if (yield == "properties") {
-        r.emplace_back(Value::StringArray({index.meta().property()}));
+        r.emplace_back(Value::StringArray({index->meta().property()}));
       } else if (yield == "otherInfo") {
         r.emplace_back(Value());
       }
     }
     records->emplace_back(std::move(r));
   }
-  for (auto &[_, index] : graphdb->meta_info().GetVertexFullTextIndex()) {
+  for (const auto &index : graphdb->meta_info().GetVertexFullTextIndexes()) {
     std::vector<ProcedureResult> r;
     for (auto &yield : yield_items) {
       if (yield == "name") {
@@ -747,7 +747,7 @@ void BuiltinProcedure::DbShowIndexes(
     }
     records->emplace_back(std::move(r));
   }
-  for (auto &[_, index] : graphdb->meta_info().GetVertexVectorIndex()) {
+  for (const auto &index : graphdb->meta_info().GetVertexVectorIndexes()) {
     std::vector<ProcedureResult> r;
     for (auto &yield : yield_items) {
       if (yield == "name") {

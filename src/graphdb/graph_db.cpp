@@ -107,18 +107,18 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
 
 GraphDB::~GraphDB() {
   LOG_INFO("Close graph: {}", db_meta_.graph_name());
-  for (auto& [_, index] : meta_info_.GetVertexVectorIndex()) {
+  for (const auto& index : meta_info_.GetVertexVectorIndexes()) {
     index->Stop();
   }
-  for (auto& [_, index] : meta_info_.GetVertexFullTextIndex()) {
+  for (const auto& index : meta_info_.GetVertexFullTextIndexes()) {
     index->Stop();
   }
   assistant_.stop();
   for (auto& t : service_threads_) {
     t.join();
   }
-  meta_info_.GetVertexVectorIndex().clear();
-  meta_info_.GetVertexFullTextIndex().clear();
+  meta_info_.ClearVertexVectorIndexes();
+  meta_info_.ClearVertexFullTextIndexes();
   for (auto handle : cf_handles_) {
     auto s = db_->DestroyColumnFamilyHandle(handle);
     assert(s.ok());
@@ -213,7 +213,8 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   LOG_INFO("Add vertex index: [lid:{}, pid:{}, is_unique:{}]",
            big_to_native(lid), big_to_native(pid), true);
-  VertexPropertyIndex vpi(meta_val, graph_cf_.index, index_id, lid, pid);
+  auto vpi = std::make_shared<VertexPropertyIndex>(meta_val, graph_cf_.index,
+                                                   index_id, lid, pid);
   auto ret = meta_info_.AddVertexPropertyIndex(std::move(vpi));
   assert(ret);
 }
@@ -287,7 +288,7 @@ void GraphDB::AddVertexFullTextIndex(
   *meta.mutable_label_ids() = {native_lids.begin(), native_lids.end()};
   *meta.mutable_property_ids() = {native_pids.begin(), native_pids.end()};
   auto busy_guard = busy_index_.Hold(lids, pids);
-  auto v_ft_index = std::make_unique<VertexFullTextIndex>(
+  auto v_ft_index = std::make_shared<VertexFullTextIndex>(
       db_, assistant_, &graph_cf_, &id_generator(), meta, index_id, lids, pids,
       options_.ft_apply_interval_);
   v_ft_index->Load();
@@ -297,8 +298,8 @@ void GraphDB::AddVertexFullTextIndex(
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   LOG_INFO("Add vertex full text index: [lids:{}, pids:{}]", native_lids,
            native_pids);
-  meta_info_.AddVertexFullTextIndex(std::move(v_ft_index));
-  meta_info_.GetVertexFullTextIndex(index_name)->Start();
+  meta_info_.AddVertexFullTextIndex(v_ft_index);
+  v_ft_index->Start();
 }
 
 void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
@@ -388,7 +389,7 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
   meta.set_hnsw_m(hnsw_m);
   meta.set_hnsw_ef_construction(hnsw_ef_construction);
   auto busy_guard = busy_index_.Hold({lid}, {pid});
-  auto vvi = std::make_unique<VertexVectorIndex>(db_, assistant_, &graph_cf_,
+  auto vvi = std::make_shared<VertexVectorIndex>(db_, assistant_, &graph_cf_,
                                                  index_id, lid, pid, meta,
                                                  options_.vt_apply_interval_);
   vvi->Load();
@@ -401,8 +402,8 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   LOG_INFO("Add vertex vector index: [lid:{}, pid:{}]", big_to_native(lid),
            big_to_native(pid));
-  meta_info_.AddVertexVectorIndex(std::move(vvi));
-  meta_info_.GetVertexVectorIndex(index_name)->Start();
+  meta_info_.AddVertexVectorIndex(vvi);
+  vvi->Start();
 }
 
 void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {

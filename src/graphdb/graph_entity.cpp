@@ -265,9 +265,10 @@ int Vertex::Delete() {
       if (txn_->db()->busy_index().Busy(labelIds, pids)) {
         THROW_CODE(IndexBusy);
       }
+      auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
+      auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
       // fulltext index
-      for (const auto &[name, ft] :
-           txn_->db()->meta_info().GetVertexFullTextIndex()) {
+      for (const auto &ft : ft_indexes) {
         if (!ft->MatchLabelIds(labelIds)) {
           continue;
         }
@@ -279,8 +280,7 @@ int Vertex::Delete() {
         }
       }
       // vector index
-      for (auto &[index_name, vvi] :
-           txn_->db()->meta_info().GetVertexVectorIndex()) {
+      for (const auto &vvi : vector_indexes) {
         if (!labelIds.count(vvi->lid())) {
           continue;
         }
@@ -389,6 +389,8 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
   if (new_lids.empty()) {
     return;
   }
+  auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
+  auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
   auto props = LoadVertexSerializedProperties(txn_, id_);
   for (auto lid : new_lids) {
     for (const auto &[pid, prop] : props) {
@@ -399,8 +401,7 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
     }
   }
   // full text index
-  for (const auto &[ft_name, ft] :
-       txn_->db()->meta_info().GetVertexFullTextIndex()) {
+  for (const auto &ft : ft_indexes) {
     if (!ft->MatchLabelIds(new_lids)) {
       continue;
     }
@@ -423,8 +424,7 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
     }
   }
   // vector index
-  for (auto &[index_name, vvi] :
-       txn_->db()->meta_info().GetVertexVectorIndex()) {
+  for (const auto &vvi : vector_indexes) {
     if (!new_lids.count(vvi->lid())) {
       continue;
     }
@@ -492,6 +492,8 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
   if (txn_->db()->busy_index().LabelBusy(remove_lids)) {
     THROW_CODE(IndexBusy);
   }
+  auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
+  auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
   auto props = LoadVertexSerializedProperties(txn_, id_);
   for (auto lid : remove_lids) {
     for (const auto &[pid, prop] : props) {
@@ -506,8 +508,7 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
     remaining_lids.erase(id);
   }
   // full text index
-  for (const auto &[ft_name, ft] :
-       txn_->db()->meta_info().GetVertexFullTextIndex()) {
+  for (const auto &ft : ft_indexes) {
     if (ft->MatchLabelIds(remaining_lids)) {
       continue;
     }
@@ -519,8 +520,7 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
     }
   }
   // vector index
-  for (auto &[index_name, vvi] :
-       txn_->db()->meta_info().GetVertexVectorIndex()) {
+  for (const auto &vvi : vector_indexes) {
     if (!remove_lids.count(vvi->lid())) {
       continue;
     }
@@ -618,12 +618,15 @@ void Vertex::SetProperties(
   if (txn_->db()->busy_index().Busy(lids, pids)) {
     THROW_CODE(IndexBusy);
   }
+  auto property_indexes = txn_->db()->meta_info().GetVertexPropertyIndexes();
+  auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
+  auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
   // property index
-  for (auto &[name, index] : txn_->db()->meta_info().GetVertexPropertyIndex()) {
-    if (!lids.count(index.lid())) {
+  for (const auto &index : property_indexes) {
+    if (!lids.count(index->lid())) {
       continue;
     }
-    auto iter = serialized.find(index.pid());
+    auto iter = serialized.find(index->pid());
     if (iter == serialized.end()) {
       continue;
     }
@@ -640,11 +643,10 @@ void Vertex::SetProperties(
     } else if (!s.IsNotFound()) {
       THROW_CODE(StorageEngineError, s.ToString());
     }
-    index.UpdateIndex(txn_, id_, iter->second, old);
+    index->UpdateIndex(txn_, id_, iter->second, old);
   }
   // full text index
-  for (const auto &[name, index] :
-       txn_->db()->meta_info().GetVertexFullTextIndex()) {
+  for (const auto &index : ft_indexes) {
     if (!index->MatchLabelIds(lids) || !index->MatchPropertyIds(pids)) {
       continue;
     }
@@ -681,7 +683,7 @@ void Vertex::SetProperties(
     }
   }
   // vector index
-  for (auto &[name, index] : txn_->db()->meta_info().GetVertexVectorIndex()) {
+  for (const auto &index : vector_indexes) {
     if (!pids.count(index->pid()) || !lids.count(index->lid())) {
       continue;
     }
@@ -742,6 +744,8 @@ void Vertex::RemoveAllProperty() {
   if (txn_->db()->busy_index().Busy(lids, pids)) {
     THROW_CODE(IndexBusy);
   }
+  auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
+  auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
   // property index
   for (auto lid : lids) {
     for (auto &[pid, prop] : props) {
@@ -752,8 +756,7 @@ void Vertex::RemoveAllProperty() {
     }
   }
   // full text index
-  for (const auto &[ft_name, ft] :
-       txn_->db()->meta_info().GetVertexFullTextIndex()) {
+  for (const auto &ft : ft_indexes) {
     if (!ft->MatchLabelIds(lids)) {
       continue;
     }
@@ -765,8 +768,7 @@ void Vertex::RemoveAllProperty() {
     }
   }
   // vector index
-  for (auto &[index_name, vvi] :
-       txn_->db()->meta_info().GetVertexVectorIndex()) {
+  for (const auto &vvi : vector_indexes) {
     if (!pids.count(vvi->pid()) || !lids.count(vvi->lid())) {
       continue;
     }
@@ -792,6 +794,8 @@ void Vertex::RemoveProperty(const std::string &name) {
   if (txn_->db()->busy_index().Busy(lids, pid)) {
     THROW_CODE(IndexBusy);
   }
+  auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
+  auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
   // property index
   for (auto lid : lids) {
     auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
@@ -810,8 +814,7 @@ void Vertex::RemoveProperty(const std::string &name) {
     }
   }
   // full text index
-  for (const auto &[ft_name, ft] :
-       txn_->db()->meta_info().GetVertexFullTextIndex()) {
+  for (const auto &ft : ft_indexes) {
     if (!ft->MatchLabelIds(lids) || !ft->MatchPropertyIds({pid})) {
       continue;
     }
@@ -841,8 +844,7 @@ void Vertex::RemoveProperty(const std::string &name) {
     }
   }
   // vector index
-  for (auto &[index_name, vvi] :
-       txn_->db()->meta_info().GetVertexVectorIndex()) {
+  for (const auto &vvi : vector_indexes) {
     if (pid != vvi->pid() || !lids.count(vvi->lid())) {
       continue;
     }

@@ -188,7 +188,7 @@ TEST(FTIndex, indexVertex) {
   txn->CreateVertex({"label1"},
                     {{"id", Value::Integer(4)}, {"str", Value::Integer(4)}});
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -263,7 +263,7 @@ TEST(FTIndex, deleteVertex) {
   txn->CreateVertex({"label1"},
                     {{"id", Value::Integer(4)}, {"str", Value::Integer(4)}});
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -285,7 +285,7 @@ TEST(FTIndex, deleteVertex) {
     viter->GetVertex().Delete();
     txn->Commit();
   }
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -315,7 +315,7 @@ TEST(FTIndex, deleteVertex) {
     viter->GetVertex().RemoveProperty("str");
     txn->Commit();
   }
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -418,7 +418,7 @@ TEST(FTIndex, updateVertex) {
   txn->CreateVertex({"label1"},
                     {{"id", Value::Integer(4)}, {"str", Value::Integer(4)}});
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -432,7 +432,7 @@ TEST(FTIndex, updateVertex) {
   }
   EXPECT_EQ(count, 1);
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -451,7 +451,7 @@ TEST(FTIndex, updateVertex) {
         {{"str", Value::String("string1 string string11")}});
   }
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -475,7 +475,7 @@ TEST(FTIndex, deleteOneMatchedLabelKeepsDocumentIndexed) {
                      {"str", Value::String("retain_me only_once")}});
   txn->Commit();
 
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
 
@@ -498,7 +498,7 @@ TEST(FTIndex, deleteOneMatchedLabelKeepsDocumentIndexed) {
   viter->GetVertex().DeleteLabels({"label1"});
   txn->Commit();
 
-  for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
     index->ApplyWAL();
   }
 
@@ -531,7 +531,7 @@ TEST(FTIndex, reopenAfterAppliedWalContinuesFromPayload) {
                                    {"str", Value::String("before_restart")}});
     txn->Commit();
 
-    for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+    for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
       index->ApplyWAL();
     }
 
@@ -555,7 +555,7 @@ TEST(FTIndex, reopenAfterAppliedWalContinuesFromPayload) {
                                    {"str", Value::String("after_restart")}});
     txn->Commit();
 
-    for (auto& [name, index] : graphDB->meta_info().GetVertexFullTextIndex()) {
+    for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
       index->ApplyWAL();
     }
 

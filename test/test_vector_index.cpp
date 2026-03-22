@@ -140,7 +140,7 @@ TEST(VectorIndex, DISABLED_read_benchmark) {
   }
   txn->Commit();
   txn.reset();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
     index->ApplyWAL();
   }
 
@@ -182,7 +182,7 @@ TEST(VectorIndex, del) {
                     {{"id", Value::Integer(4)},
                      {"embedding", Value::DoubleArray({4.0, 4.0, 4.0, 4.0})}});
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -198,7 +198,7 @@ TEST(VectorIndex, del) {
   cypher::RTContext rtx;
   txn->Execute(&rtx, "match(n {id:1}) delete n")->Consume();
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -245,7 +245,7 @@ TEST(VectorIndex, restart) {
   }
   {
     auto graphDB = GraphDB::Open(testdb, {});
-    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+    for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
       index->ApplyWAL();
     }
     auto txn = graphDB->BeginTransaction();
@@ -283,14 +283,14 @@ TEST(VectorIndex, serialize) {
         {"label1"}, {{"id", Value::Integer(4)},
                      {"embedding", Value::DoubleArray({4.0, 4.0, 4.0, 4.0})}});
     txn->Commit();
-    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+    for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
       index->ApplyWAL();
     }
   }
   {
     LOG_INFO("restart graphdb");
     auto graphDB = GraphDB::Open(testdb, {});
-    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+    for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
       index->ApplyWAL();
     }
     auto txn = graphDB->BeginTransaction();
@@ -322,7 +322,7 @@ TEST(VectorIndex, deleteLabelsUpdatesMembershipCorrectly) {
                      {"embedding", Value::DoubleArray({2.0, 2.0, 2.0, 2.0})}});
   txn->Commit();
 
-  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
     index->ApplyWAL();
   }
 
@@ -350,7 +350,7 @@ TEST(VectorIndex, deleteLabelsUpdatesMembershipCorrectly) {
   remove_vertex->GetVertex().DeleteLabels({"label1"});
   txn->Commit();
 
-  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
     index->ApplyWAL();
   }
 
