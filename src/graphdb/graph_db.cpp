@@ -107,6 +107,16 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
 
 GraphDB::~GraphDB() {
   LOG_INFO("Close graph: {}", db_meta_.graph_name());
+  for (auto& [_, index] : meta_info_.GetVertexVectorIndex()) {
+    index->Stop();
+  }
+  for (auto& [_, index] : meta_info_.GetVertexFullTextIndex()) {
+    index->Stop();
+  }
+  assistant_.stop();
+  for (auto& t : service_threads_) {
+    t.join();
+  }
   meta_info_.GetVertexVectorIndex().clear();
   meta_info_.GetVertexFullTextIndex().clear();
   for (auto handle : cf_handles_) {
@@ -119,11 +129,6 @@ GraphDB::~GraphDB() {
   }
   delete db_;
   db_ = nullptr;
-
-  assistant_.stop();
-  for (auto& t : service_threads_) {
-    t.join();
-  }
   if (drop_on_close_) {
     std::filesystem::remove_all(path_);
     LOG_INFO("filesystem remove_all {}", path_);
@@ -293,6 +298,7 @@ void GraphDB::AddVertexFullTextIndex(
   LOG_INFO("Add vertex full text index: [lids:{}, pids:{}]", native_lids,
            native_pids);
   meta_info_.AddVertexFullTextIndex(std::move(v_ft_index));
+  meta_info_.GetVertexFullTextIndex(index_name)->Start();
 }
 
 void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
@@ -304,6 +310,7 @@ void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
   auto ft_index = meta_info_.GetVertexFullTextIndex(index_name);
   std::string path = ft_index->meta().path();
   uint32_t index_id = ft_index->index_id();
+  ft_index->Stop();
   meta_info_.DeleteVertexFullTextIndex(index_name);
 
   rocksdb::WriteBatch wb;
@@ -395,6 +402,7 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
   LOG_INFO("Add vertex vector index: [lid:{}, pid:{}]", big_to_native(lid),
            big_to_native(pid));
   meta_info_.AddVertexVectorIndex(std::move(vvi));
+  meta_info_.GetVertexVectorIndex(index_name)->Start();
 }
 
 void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
@@ -406,6 +414,7 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
   auto index = meta_info_.GetVertexVectorIndex(index_name);
   auto path = index->meta().path();
   uint32_t index_id = index->index_id();
+  index->Stop();
   meta_info_.DeleteVertexVectorIndex(index_name);
   rocksdb::WriteBatch wb;
   rocksdb::WriteOptions wo;

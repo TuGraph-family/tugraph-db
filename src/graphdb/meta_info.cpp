@@ -212,6 +212,7 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
           db, service, graph_cf, &id_generator_, meta,
           native_to_big(meta.index_id()), lids, pids, ft_commit_interval);
       vertex_ft_indexes.emplace(meta.name(), std::move(v_ft_index));
+      vertex_ft_indexes.at(meta.name())->Start();
       continue;
     }
     if (prefix == MetaDataType::VertexVectorIndex) {
@@ -225,6 +226,7 @@ void MetaInfo::Init(rocksdb::TransactionDB *db,
           native_to_big(meta.label_id()), native_to_big(meta.property_id()),
           meta, vt_commit_interval);
       AddVertexVectorIndex(std::move(index));
+      GetVertexVectorIndex(meta.name())->Start();
     }
   }
   id_generator_.SetMaxIds(max_lid, max_pid, max_tid, max_index_id);

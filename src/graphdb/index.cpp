@@ -132,15 +132,76 @@ void VertexPropertyIndex::DeleteIndex(Transaction* txn, rocksdb::Slice value) {
 }
 
 void VertexFullTextIndex::StartTimer() {
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    if (stopped_) {
+      return;
+    }
+  }
   timer_.expires_after(std::chrono::seconds(interval_));
   timer_.async_wait([this](const boost::system::error_code& e) {
     if (e) {
-      LOG_ERROR("timer async_wait error: {}", e.message());
+      if (e != boost::asio::error::operation_aborted) {
+        LOG_ERROR("timer async_wait error: {}", e.message());
+      }
       return;
     }
+    {
+      std::lock_guard<std::mutex> lock(timer_mutex_);
+      if (stopped_) {
+        timer_cv_.notify_all();
+        return;
+      }
+      active_callbacks_++;
+    }
     ApplyWAL();
-    StartTimer();
+    bool restart = false;
+    {
+      std::lock_guard<std::mutex> lock(timer_mutex_);
+      active_callbacks_--;
+      timer_cv_.notify_all();
+      restart = !stopped_;
+    }
+    if (restart) {
+      StartTimer();
+    }
   });
+}
+
+void VertexFullTextIndex::Start() {
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    if (started_ || stopped_) {
+      return;
+    }
+    started_ = true;
+  }
+  StartTimer();
+}
+
+void VertexFullTextIndex::Stop() {
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    if (stopped_) {
+      return;
+    }
+    stopped_ = true;
+    if (!started_) {
+      return;
+    }
+  }
+
+  std::promise<void> cancelled;
+  auto future = cancelled.get_future();
+  boost::asio::post(timer_.get_executor(), [this, &cancelled]() mutable {
+    boost::system::error_code ec;
+    timer_.cancel(ec);
+    cancelled.set_value();
+  });
+  future.wait();
+
+  std::unique_lock<std::mutex> lock(timer_mutex_);
+  timer_cv_.wait(lock, [this] { return active_callbacks_ == 0; });
 }
 
 VertexFullTextIndex::VertexFullTextIndex(
@@ -186,7 +247,6 @@ VertexFullTextIndex::VertexFullTextIndex(
     }
   }
   next_wal_id_ = std::max(next_wal_id_.load(), big_to_native(apply_id_) + 1);
-  StartTimer();
 }
 
 void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid,
@@ -492,19 +552,79 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
         "elapsed:{}",
         meta_.name(), vectorid_vid_.size(), deleted_vector_ids_.size(), sw);
   }
-  StartTimer();
 }
 
 void VertexVectorIndex::StartTimer() {
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    if (stopped_) {
+      return;
+    }
+  }
   timer_.expires_after(std::chrono::seconds(interval_));
   timer_.async_wait([this](const boost::system::error_code& e) {
     if (e) {
-      LOG_ERROR("timer async_wait error: {}", e.message());
+      if (e != boost::asio::error::operation_aborted) {
+        LOG_ERROR("timer async_wait error: {}", e.message());
+      }
       return;
     }
+    {
+      std::lock_guard<std::mutex> lock(timer_mutex_);
+      if (stopped_) {
+        timer_cv_.notify_all();
+        return;
+      }
+      active_callbacks_++;
+    }
     ApplyWAL();
-    StartTimer();
+    bool restart = false;
+    {
+      std::lock_guard<std::mutex> lock(timer_mutex_);
+      active_callbacks_--;
+      timer_cv_.notify_all();
+      restart = !stopped_;
+    }
+    if (restart) {
+      StartTimer();
+    }
   });
+}
+
+void VertexVectorIndex::Start() {
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    if (started_ || stopped_) {
+      return;
+    }
+    started_ = true;
+  }
+  StartTimer();
+}
+
+void VertexVectorIndex::Stop() {
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    if (stopped_) {
+      return;
+    }
+    stopped_ = true;
+    if (!started_) {
+      return;
+    }
+  }
+
+  std::promise<void> cancelled;
+  auto future = cancelled.get_future();
+  boost::asio::post(timer_.get_executor(), [this, &cancelled]() mutable {
+    boost::system::error_code ec;
+    timer_.cancel(ec);
+    cancelled.set_value();
+  });
+  future.wait();
+
+  std::unique_lock<std::mutex> lock(timer_mutex_);
+  timer_cv_.wait(lock, [this] { return active_callbacks_ == 0; });
 }
 
 int64_t VertexVectorIndex::GetElementsNum() {

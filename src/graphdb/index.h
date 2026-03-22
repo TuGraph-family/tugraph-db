@@ -20,6 +20,8 @@
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <boost/asio.hpp>
+#include <condition_variable>
+#include <future>
 #include <mutex>
 #include <shared_mutex>
 #include <utility>
@@ -78,6 +80,8 @@ class VertexFullTextIndex {
                  std::vector<std::string> values);
   void DeleteVertex(int64_t id);
   void ApplyWAL();
+  void Start();
+  void Stop();
   [[nodiscard]] bool MatchLabelIds(
       const std::unordered_set<uint32_t>& lids) const;
   [[nodiscard]] bool MatchPropertyIds(
@@ -117,6 +121,11 @@ class VertexFullTextIndex {
   ::FTIndex* ft_index_ = nullptr;
   std::unique_ptr<::rust::Box<::FTIndex>> instance_;
   std::mutex mutex_;
+  std::mutex timer_mutex_;
+  std::condition_variable timer_cv_;
+  size_t active_callbacks_ = 0;
+  bool started_ = false;
+  bool stopped_ = false;
   size_t interval_ = 5;
   boost::asio::steady_timer timer_;
 };
@@ -219,6 +228,8 @@ class VertexVectorIndex {
   uint32_t lid() const { return lid_; }
   uint32_t pid() const { return pid_; }
   uint32_t index_id() const { return index_id_; }
+  void Start();
+  void Stop();
   void Load();
   void TryDeleteIndex(txn::Transaction* txn, int64_t vid);
   std::string NextWALKey();
@@ -242,6 +253,11 @@ class VertexVectorIndex {
   uint64_t apply_id_ = 0;
   std::shared_mutex mutex_;
   std::mutex apply_mutex_;
+  std::mutex timer_mutex_;
+  std::condition_variable timer_cv_;
+  size_t active_callbacks_ = 0;
+  bool started_ = false;
+  bool stopped_ = false;
   size_t interval_ = 5;
   boost::asio::steady_timer timer_;
   std::unordered_set<int64_t> deleted_vector_ids_;
