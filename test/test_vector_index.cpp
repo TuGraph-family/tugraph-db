@@ -14,8 +14,10 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <filesystem>
 #include <random>
+#include <thread>
 
 #include "common/flags.h"
 #include "common/logger.h"
@@ -27,6 +29,25 @@
 using namespace graphdb;
 namespace fs = std::filesystem;
 static std::string testdb = "testdb";
+
+namespace {
+
+bool WaitUntilBusy(
+    GraphDB* graph_db, const std::unordered_set<uint32_t>& lids,
+    const std::unordered_set<uint32_t>& pids,
+    std::chrono::milliseconds timeout = std::chrono::seconds(5)) {
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (graph_db->busy_index().Busy(lids, pids)) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+  return false;
+}
+
+}  // namespace
+
 TEST(VectorIndex, build) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});
@@ -353,5 +374,76 @@ TEST(VectorIndex, deleteLabelsUpdatesMembershipCorrectly) {
       "label1",
       std::unordered_map<std::string, Value>{{"id", Value::Integer(2)}});
   EXPECT_FALSE(removed->Valid());
+  txn->Commit();
+}
+
+TEST(VectorIndex, buildBlocksWrites) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  std::string index_name = "vector_index";
+
+  auto txn = graphDB->BeginTransaction();
+  for (int i = 0; i < 10000; ++i) {
+    txn->CreateVertex(
+        {"label1"}, {{"id", Value::Integer(i)},
+                     {"embedding", Value::DoubleArray({1.0, 2.0, 3.0, 4.0, 5.0,
+                                                       6.0, 7.0, 8.0})}});
+  }
+  txn->Commit();
+
+  auto lid = graphDB->id_generator().GetOrCreateLid("label1");
+  auto pid = graphDB->id_generator().GetOrCreatePid("embedding");
+  std::exception_ptr build_error;
+  std::thread builder([&]() {
+    try {
+      graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 8, "l2",
+                                    16, 100);
+    } catch (...) {
+      build_error = std::current_exception();
+    }
+  });
+
+  ASSERT_TRUE(WaitUntilBusy(graphDB.get(), {lid}, {pid}));
+
+  bool blocked = false;
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  while (std::chrono::steady_clock::now() < deadline && !blocked) {
+    auto write_txn = graphDB->BeginTransaction();
+    try {
+      write_txn->CreateVertex(
+          {"label1"},
+          {{"id", Value::Integer(20000)},
+           {"embedding",
+            Value::DoubleArray({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0})}});
+      write_txn->Rollback();
+    } catch (LgraphException& e) {
+      write_txn->Rollback();
+      if (e.code() == ErrorCode::IndexBusy) {
+        blocked = true;
+        break;
+      }
+      FAIL() << "Unexpected exception message: " << e.what();
+    }
+  }
+
+  builder.join();
+  if (build_error) {
+    try {
+      std::rethrow_exception(build_error);
+    } catch (const std::exception& e) {
+      FAIL() << e.what();
+    }
+  }
+
+  EXPECT_TRUE(blocked);
+
+  txn = graphDB->BeginTransaction();
+  int count = 0;
+  for (auto viter = txn->QueryVertexByKnnSearch(
+           index_name, {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, 10, 100);
+       viter->Valid(); viter->Next()) {
+    count++;
+  }
+  EXPECT_EQ(count, 10);
   txn->Commit();
 }

@@ -14,7 +14,9 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <filesystem>
+#include <thread>
 
 #include "common/logger.h"
 #include "common/value.h"
@@ -26,6 +28,25 @@ using namespace graphdb;
 namespace fs = std::filesystem;
 static std::string testdb = "testdb";
 static std::string test_ftindex = "test_ftindex";
+
+namespace {
+
+bool WaitUntilBusy(
+    GraphDB* graph_db, const std::unordered_set<uint32_t>& lids,
+    const std::unordered_set<uint32_t>& pids,
+    std::chrono::milliseconds timeout = std::chrono::seconds(5)) {
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (graph_db->busy_index().Busy(lids, pids)) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+  return false;
+}
+
+}  // namespace
+
 TEST(FTIndex, basic_v1) {
   fs::remove_all(test_ftindex);
   ::rust::Vec<::rust::String> properties;
@@ -280,6 +301,73 @@ TEST(FTIndex, deleteVertex) {
     count++;
   }
   EXPECT_EQ(count, 0);
+  txn->Commit();
+}
+
+TEST(FTIndex, buildBlocksWrites) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+
+  auto txn = graphDB->BeginTransaction();
+  for (int i = 0; i < 20000; ++i) {
+    txn->CreateVertex({"label1"},
+                      {{"id", Value::Integer(i)},
+                       {"str", Value::String("token" + std::to_string(i))}});
+  }
+  txn->Commit();
+
+  auto lid = graphDB->id_generator().GetOrCreateLid("label1");
+  auto pid = graphDB->id_generator().GetOrCreatePid("str");
+  std::exception_ptr build_error;
+  std::thread builder([&]() {
+    try {
+      graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+    } catch (...) {
+      build_error = std::current_exception();
+    }
+  });
+
+  ASSERT_TRUE(WaitUntilBusy(graphDB.get(), {lid}, {pid}));
+
+  bool blocked = false;
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  while (std::chrono::steady_clock::now() < deadline && !blocked) {
+    auto write_txn = graphDB->BeginTransaction();
+    try {
+      write_txn->CreateVertex({"label1"},
+                              {{"id", Value::Integer(30000)},
+                               {"str", Value::String("should_be_blocked")}});
+      write_txn->Rollback();
+    } catch (LgraphException& e) {
+      write_txn->Rollback();
+      if (e.code() == ErrorCode::IndexBusy) {
+        blocked = true;
+        break;
+      }
+      FAIL() << "Unexpected exception message: " << e.what();
+    }
+  }
+
+  builder.join();
+  if (build_error) {
+    try {
+      std::rethrow_exception(build_error);
+    } catch (const std::exception& e) {
+      FAIL() << e.what();
+    }
+  }
+
+  EXPECT_TRUE(blocked);
+
+  txn = graphDB->BeginTransaction();
+  int count = 0;
+  for (auto viter = txn->QueryVertexByFTIndex("ft_index", "token42", 10);
+       viter->Valid(); viter->Next()) {
+    EXPECT_EQ(viter->GetVertexScore().vertex.GetProperty("id"),
+              Value::Integer(42));
+    count++;
+  }
+  EXPECT_EQ(count, 1);
   txn->Commit();
 }
 

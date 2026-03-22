@@ -22,6 +22,7 @@
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <boost/asio.hpp>
+#include <mutex>
 #include <string>
 
 #include "common/value.h"
@@ -91,5 +92,6 @@ class GraphDB {
   std::vector<std::thread> service_threads_;
   GraphDBOptions options_;
   bool drop_on_close_ = false;
+  std::mutex index_ddl_mutex_;
 };
 }  // namespace graphdb

@@ -140,6 +140,7 @@ std::unique_ptr<txn::Transaction> GraphDB::BeginTransaction() {
 void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
                                      bool /*unique*/, const std::string& label,
                                      const std::string& property) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (index_name.empty() || label.empty() || property.empty()) {
     THROW_CODE(InvalidParameter);
   }
@@ -154,7 +155,7 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
                "Vertex index [label:{}, property:{}] already exists",
                big_to_native(lid), big_to_native(pid));
   }
-  busy_index_.Mark({lid}, {pid});
+  auto busy_guard = busy_index_.Hold({lid}, {pid});
   auto index_id = id_generator().GetNextIndexId();
   rocksdb::ReadOptions ro;
   rocksdb::WriteOptions wo;
@@ -210,10 +211,10 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
   VertexPropertyIndex vpi(meta_val, graph_cf_.index, index_id, lid, pid);
   auto ret = meta_info_.AddVertexPropertyIndex(std::move(vpi));
   assert(ret);
-  busy_index_.Clear();
 }
 
 void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   auto index = meta_info_.GetVertexPropertyIndex(index_name);
   if (!index) {
     THROW_CODE(VertexUniqueIndexNotFound, "No such vertex unique index [{}]",
@@ -245,6 +246,7 @@ void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
 void GraphDB::AddVertexFullTextIndex(
     const std::string& index_name, const std::vector<std::string>& labels,
     const std::vector<std::string>& properties) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (index_name.empty() || labels.empty() || properties.empty()) {
     THROW_CODE(InvalidParameter);
   }
@@ -279,6 +281,7 @@ void GraphDB::AddVertexFullTextIndex(
   *meta.mutable_properties() = {properties.begin(), properties.end()};
   *meta.mutable_label_ids() = {native_lids.begin(), native_lids.end()};
   *meta.mutable_property_ids() = {native_pids.begin(), native_pids.end()};
+  auto busy_guard = busy_index_.Hold(lids, pids);
   auto v_ft_index = std::make_unique<VertexFullTextIndex>(
       db_, assistant_, &graph_cf_, &id_generator(), meta, index_id, lids, pids,
       options_.ft_apply_interval_);
@@ -293,6 +296,7 @@ void GraphDB::AddVertexFullTextIndex(
 }
 
 void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (!meta_info_.GetVertexFullTextIndex(index_name)) {
     THROW_CODE(FullTextIndexNotFound, "No such vertex fulltext index [{}]",
                index_name);
@@ -335,6 +339,7 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
                                    const std::string& property, int dimension,
                                    std::string distance_type, int hnsw_m,
                                    int hnsw_ef_construction) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (index_name.empty() || label.empty() || property.empty()) {
     THROW_CODE(InvalidParameter);
   }
@@ -375,6 +380,7 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
   meta.set_distance_type(dist_type);
   meta.set_hnsw_m(hnsw_m);
   meta.set_hnsw_ef_construction(hnsw_ef_construction);
+  auto busy_guard = busy_index_.Hold({lid}, {pid});
   auto vvi = std::make_unique<VertexVectorIndex>(db_, assistant_, &graph_cf_,
                                                  index_id, lid, pid, meta,
                                                  options_.vt_apply_interval_);
@@ -392,6 +398,7 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
 }
 
 void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (!meta_info_.GetVertexVectorIndex(index_name)) {
     THROW_CODE(VectorIndexNotFound, "No such vertex vector index [{}]",
                index_name);

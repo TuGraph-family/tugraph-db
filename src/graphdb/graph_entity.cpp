@@ -27,6 +27,27 @@
 #include "transaction/transaction.h"
 using namespace boost::endian;
 namespace graphdb {
+namespace {
+
+std::unordered_map<uint32_t, std::string> LoadVertexSerializedProperties(
+    txn::Transaction *txn, int64_t vid) {
+  std::unordered_map<uint32_t, std::string> props;
+  rocksdb::ReadOptions ro;
+  std::string prefix(AsChars(vid), sizeof(vid));
+  std::unique_ptr<rocksdb::Iterator> iter(
+      txn->dbtxn()->GetIterator(ro, txn->db()->graph_cf().vertex_property));
+  for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
+       iter->Next()) {
+    auto key = iter->key();
+    key.remove_prefix(sizeof(int64_t));
+    uint32_t pid = ReadValue<uint32_t>(key.data());
+    props.emplace(pid, iter->value().ToString());
+  }
+  return props;
+}
+
+}  // namespace
+
 std::unique_ptr<EdgeIterator> Vertex::NewEdgeIterator(
     EdgeDirection direction, const std::unordered_set<std::string> &types,
     const std::unordered_map<std::string, Value> &props) {
@@ -362,6 +383,18 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
     }
     new_lids.insert(lid);
   }
+  if (new_lids.empty()) {
+    return;
+  }
+  auto props = LoadVertexSerializedProperties(txn_, id_);
+  for (auto lid : new_lids) {
+    for (const auto &[pid, prop] : props) {
+      auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
+      if (vi) {
+        vi->AddIndex(txn_, id_, prop);
+      }
+    }
+  }
   // full text index
   for (const auto &[ft_name, ft] :
        txn_->db()->meta_info().GetVertexFullTextIndex()) {
@@ -455,6 +488,15 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
   }
   if (txn_->db()->busy_index().LabelBusy(remove_lids)) {
     THROW_CODE(IndexBusy);
+  }
+  auto props = LoadVertexSerializedProperties(txn_, id_);
+  for (auto lid : remove_lids) {
+    for (const auto &[pid, prop] : props) {
+      auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
+      if (vi) {
+        vi->DeleteIndex(txn_, prop);
+      }
+    }
   }
   auto remaining_lids = labelIds;
   for (auto id : remove_lids) {
