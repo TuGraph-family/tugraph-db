@@ -250,6 +250,37 @@ TEST(VertexUniqueIndex, update) {
   txn->Commit();
 }
 
+TEST(VertexUniqueIndex, idempotentUpdate) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  auto txn = graphDB->BeginTransaction();
+  auto v = txn->CreateVertex({"label1"}, {{"id", Value::Integer(1)},
+                                          {"str", Value::String("before")}});
+  auto vid = v.GetId();
+  txn->Commit();
+
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+
+  txn = graphDB->BeginTransaction();
+  auto viter = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  ASSERT_TRUE(viter->Valid());
+  viter->GetVertex().SetProperties(
+      {{"id", Value::Integer(1)}, {"str", Value::String("after")}});
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  viter = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  EXPECT_TRUE(dynamic_cast<GetVertexByUniqueIndex*>(viter.get()));
+  ASSERT_TRUE(viter->Valid());
+  EXPECT_EQ(viter->GetVertex().GetId(), vid);
+  EXPECT_EQ(viter->GetVertex().GetProperty("str"), Value::String("after"));
+  txn->Commit();
+}
+
 TEST(VertexUniqueIndex, conflict) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});

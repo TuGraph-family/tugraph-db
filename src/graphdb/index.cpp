@@ -77,24 +77,37 @@ void VertexPropertyIndex::UpdateIndex(Transaction* txn, int64_t vid,
     rocksdb::ReadOptions ro;
     // lock index
     std::string index_key = IndexKey(new_value.ToString());
+    bool keep_existing_entry = false;
     auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key, &tmp);
     if (s.ok()) {
-      THROW_CODE(IndexValueAlreadyExist);
+      if (tmp.size() != sizeof(int64_t)) {
+        THROW_CODE(StorageEngineError,
+                   "vertex unique index stores invalid vid size");
+      }
+      if (ReadValue<int64_t>(tmp.data()) != vid) {
+        THROW_CODE(IndexValueAlreadyExist);
+      }
+      keep_existing_entry = true;
     } else if (!s.IsNotFound()) {
       THROW_CODE(StorageEngineError, s.ToString());
     }
     if (old_value) {
       // lock index
       std::string key = IndexKey(*old_value);
-      s = txn->dbtxn()->GetForUpdate(ro, cf_, key,
-                                     static_cast<std::string*>(nullptr));
-      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-      s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, key);
+      if (key != index_key) {
+        s = txn->dbtxn()->GetForUpdate(ro, cf_, key,
+                                       static_cast<std::string*>(nullptr));
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+        s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, key);
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+        keep_existing_entry = false;
+      }
+    }
+    if (!keep_existing_entry) {
+      s = txn->dbtxn()->GetWriteBatch()->Put(
+          cf_, index_key, rocksdb::Slice(AsChars(vid), sizeof(vid)));
       if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     }
-    s = txn->dbtxn()->GetWriteBatch()->Put(
-        cf_, index_key, rocksdb::Slice(AsChars(vid), sizeof(vid)));
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   }
 }
 
