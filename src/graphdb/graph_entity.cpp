@@ -67,6 +67,9 @@ std::unique_ptr<EdgeIterator> Vertex::NewEdgeIterator(
       type_set.insert(tid.value());
     }
   }
+  if (!types.empty() && type_set.empty()) {
+    return std::make_unique<NoEdgeFound>(txn_);
+  }
   return std::make_unique<ScanEdgeByVidDirectionTypesProperties>(
       txn_, id_, direction, std::move(type_set), std::move(prop_map));
 }

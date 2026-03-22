@@ -418,6 +418,13 @@ TEST(GraphDB, edgeIterator) {
   }
   EXPECT_EQ(count, 2);
   count = 0;
+  for (auto eiter = v1.NewEdgeIterator(EdgeDirection::BOTH, {"wrong_edge_type"},
+                                       {{"property2", Value::Integer(100)}});
+       eiter->Valid(); eiter->Next()) {
+    count++;
+  }
+  EXPECT_EQ(count, 0);
+  count = 0;
   for (auto eiter = v1.NewEdgeIterator(
            EdgeDirection::BOTH, {}, {{"wrong_property", Value::Integer(100)}});
        eiter->Valid(); eiter->Next()) {
