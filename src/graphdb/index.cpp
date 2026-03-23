@@ -766,9 +766,22 @@ void VertexVectorIndex::ApplyWAL() {
       uint64_t apply_id = boost::endian::big_to_native(consumed_wal_id);
       nlohmann::json meta_info{{"apply_id", apply_id}};
       std::string path = FaissHnswMetaFilePath(meta_);
-      std::ofstream metafile(path, std::ios::out);
+      std::ofstream metafile(path, std::ios::out | std::ios::trunc);
+      if (!metafile.is_open()) {
+        // WAL entries have already been applied to the in-memory index.
+        // Keep apply_id_ aligned for the current process, but surface the
+        // checkpoint persistence failure to the caller.
+        apply_id_ = consumed_wal_id;
+        THROW_CODE(IOException, "failed to open vector index meta file: {}",
+                   path);
+      }
       metafile << meta_info.dump();
       metafile.close();
+      if (!metafile) {
+        apply_id_ = consumed_wal_id;
+        THROW_CODE(IOException, "failed to write vector index meta file: {}",
+                   path);
+      }
       LOG_INFO("write file: {}", FaissHnswIndexFilePath(meta_));
       LOG_INFO("write file: {}", path);
       LOG_INFO("Vector Index {} finish serialization, num:{}, apply_id: {}",
@@ -781,7 +794,9 @@ void VertexVectorIndex::ApplyWAL() {
       batch.DeleteRange(graph_cf_->wal, prefix, key);
       auto s = db_->Write(wo, two, &batch);
       if (!s.ok()) {
-        LOG_ERROR("VertexVectorIndex db DeleteRange error: {}", s.ToString());
+        apply_id_ = consumed_wal_id;
+        THROW_CODE(StorageEngineError,
+                   "VertexVectorIndex db DeleteRange error: {}", s.ToString());
       }
     }
   }

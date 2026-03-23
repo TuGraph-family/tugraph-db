@@ -32,6 +32,18 @@ static std::string testdb = "testdb";
 
 namespace {
 
+struct ScopedSerializeInterval {
+  explicit ScopedSerializeInterval(uint64_t interval)
+      : previous_(FLAGS_vt_serialize_interval) {
+    FLAGS_vt_serialize_interval = interval;
+  }
+
+  ~ScopedSerializeInterval() { FLAGS_vt_serialize_interval = previous_; }
+
+ private:
+  uint64_t previous_;
+};
+
 bool WaitUntilBusy(
     GraphDB* graph_db, const std::unordered_set<uint32_t>& lids,
     const std::unordered_set<uint32_t>& pids,
@@ -325,6 +337,50 @@ TEST(VectorIndex, corruptedWalIsRejected) {
   txn->Commit();
 
   EXPECT_THROW_CODE(index->ApplyWAL(), VectorIndexException);
+}
+
+TEST(VectorIndex, checkpointMetaWriteFailureIsReported) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.vt_apply_interval_ = 3600;
+  ScopedSerializeInterval scoped_interval(1);
+  std::string index_name = "vector_index";
+  std::string meta_path = testdb + "/vt/" + index_name + "/hnsw.index.meta";
+  {
+    auto graphDB = GraphDB::Open(testdb, options);
+    graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 4, "l2",
+                                  16, 100);
+
+    auto txn = graphDB->BeginTransaction();
+    txn->CreateVertex(
+        {"label1"}, {{"id", Value::Integer(1)},
+                     {"embedding", Value::DoubleArray({1.0, 1.0, 1.0, 1.0})}});
+    txn->Commit();
+
+    ASSERT_TRUE(fs::create_directory(meta_path));
+    auto index = graphDB->meta_info().GetVertexVectorIndex(index_name);
+    ASSERT_TRUE(index != nullptr);
+    EXPECT_THROW_CODE(index->ApplyWAL(), IOException);
+  }
+
+  fs::remove_all(meta_path);
+
+  {
+    auto graphDB = GraphDB::Open(testdb, options);
+    auto index = graphDB->meta_info().GetVertexVectorIndex(index_name);
+    ASSERT_TRUE(index != nullptr);
+    index->ApplyWAL();
+
+    auto txn = graphDB->BeginTransaction();
+    std::set<int64_t> ids;
+    for (auto viter = txn->QueryVertexByKnnSearch(
+             index_name, {1.0, 1.0, 1.0, 1.0}, 10, 100);
+         viter->Valid(); viter->Next()) {
+      ids.insert(viter->GetVertexScore().vertex.GetProperty("id").AsInteger());
+    }
+    EXPECT_EQ(ids, (std::set<int64_t>{1}));
+    txn->Commit();
+  }
 }
 
 TEST(VectorIndex, rollbackDoesNotBreakWalApply) {
