@@ -1,20 +1,21 @@
-import os
 import math
 import yaml
 import neo4j
 from behave import *
-from neo4j import basic_auth, GraphDatabase
 from neo4j.graph import Node, Path, Relationship
 import parser
-import subprocess
 
 use_step_matcher("re")
-def run_cypher(cypher, context):
+
+
+def run_cypher(cypher, context, parameters=None):
     records = []
     session = context.driver.session(database="default")
     context.exception = None
     try:
-        ret = session.run(cypher, context.parameters)
+        if parameters is None:
+            parameters = context.parameters
+        ret = session.run(cypher, parameters)
         records = list(ret)
     except Exception as e:
         context.exception = e
@@ -22,6 +23,21 @@ def run_cypher(cypher, context):
     finally:
         session.close()
     return records
+
+
+def cleanup_non_default_graphs(context):
+    graphs = run_cypher(
+        "CALL dbms.graph.listGraph() YIELD name "
+        "WHERE name <> 'default' RETURN name",
+        context)
+    check_exception(context)
+
+    for graph in graphs:
+        run_cypher(
+            "CALL dbms.graph.deleteGraph($graph_name)",
+            context,
+            {"graph_name": graph["name"]})
+        check_exception(context)
 
 def parse_props(props_key_value):
     if not props_key_value:
@@ -220,14 +236,7 @@ def check_exception(context):
 
 @given("an initialized database")
 def step_impl(context):
-    result = subprocess.run('./features/steps/init_db.sh')
-    if result.returncode != 0:
-        raise AssertionError(
-            "init_db.sh exited with return code {}".format(
-                result.returncode))
-    url = "bolt://{}:{}".format("127.0.0.1", "7687")
-    auth_token = basic_auth("admin", "73@TuGraph")
-    context.driver = GraphDatabase.driver(url, auth=auth_token, encrypted=False)
+    cleanup_non_default_graphs(context)
 
 @when("executing query")
 def step_impl(context):
