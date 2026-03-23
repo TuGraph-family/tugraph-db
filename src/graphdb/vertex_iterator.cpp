@@ -21,6 +21,7 @@
 #include <boost/endian/conversion.hpp>
 
 #include "bolt/connection.h"
+#include "byte_utils.h"
 #include "common/logger.h"
 #include "graph_db.h"
 #include "transaction/transaction.h"
@@ -31,13 +32,13 @@ ScanVertexBylabel::ScanVertexBylabel(Transaction *txn, uint32_t lid)
   rocksdb::ReadOptions ro;
   iter_.reset(
       txn->dbtxn()->GetIterator(ro, txn->db()->graph_cf().vertex_label_vid));
-  iter_->Seek({(const char *)&lid_, sizeof(lid_)});
+  iter_->Seek({AsChars(lid_), sizeof(lid_)});
   if (iter_->Valid()) {
     auto key = iter_->key();
-    if (lid_ == *(uint32_t *)key.data()) {
+    if (lid_ == ReadValue<uint32_t>(key.data())) {
       key.remove_prefix(sizeof(uint32_t));
       valid_ = true;
-      ve_ = std::make_unique<Vertex>(txn, *(int64_t *)(key.data()));
+      ve_ = std::make_unique<Vertex>(txn, ReadValue<int64_t>(key.data()));
     }
   }
 }
@@ -52,10 +53,10 @@ void ScanVertexBylabel::Next() {
     iter_->Next();
     if (iter_->Valid()) {
       auto key = iter_->key();
-      if (lid_ == *(uint32_t *)key.data()) {
+      if (lid_ == ReadValue<uint32_t>(key.data())) {
         key.remove_prefix(sizeof(uint32_t));
         valid_ = true;
-        ve_ = std::make_unique<Vertex>(txn_, *(int64_t *)(key.data()));
+        ve_ = std::make_unique<Vertex>(txn_, ReadValue<int64_t>(key.data()));
       }
     }
   }
@@ -108,7 +109,8 @@ ScanAllVertex::ScanAllVertex(Transaction *txn) : VertexIterator(txn) {
   for (iter_->SeekToFirst(); iter_->Valid(); iter_->Next()) {
     if (iter_->key().size() == sizeof(int64_t)) {
       valid_ = true;
-      ve_ = std::make_unique<Vertex>(txn, *(int64_t *)(iter_->key().data()));
+      ve_ = std::make_unique<Vertex>(txn,
+                                     ReadValue<int64_t>(iter_->key().data()));
       break;
     }
   }
@@ -127,7 +129,8 @@ void ScanAllVertex::Next() {
     iter_->Next();
     if (iter_->Valid() && iter_->key().size() == sizeof(int64_t)) {
       valid_ = true;
-      ve_ = std::make_unique<Vertex>(txn_, *(int64_t *)(iter_->key().data()));
+      ve_ = std::make_unique<Vertex>(txn_,
+                                     ReadValue<int64_t>(iter_->key().data()));
       break;
     }
   }
@@ -184,7 +187,7 @@ GetVertexByUniqueIndex::GetVertexByUniqueIndex(
   std::string index_key = vi->IndexKey(value.Serialize());
   auto s = txn_->dbtxn()->Get(ro, vi->cf(), index_key, &index_val);
   if (s.ok()) {
-    int64_t vid = *(int64_t *)index_val.data();
+    int64_t vid = ReadValue<int64_t>(index_val.data());
     ve_ = std::make_unique<Vertex>(txn_, vid);
     valid_ = true;
     for (auto &[id, val] : other_props) {

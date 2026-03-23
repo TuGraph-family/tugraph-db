@@ -24,6 +24,7 @@
 #include <iostream>
 #include <thread>
 
+#include "byte_utils.h"
 #include "common/exceptions.h"
 #include "common/logger.h"
 using namespace boost::endian;
@@ -228,7 +229,7 @@ uint32_t IdGenerator::GetOrCreateLid(const std::string &name) {
     std::string key = TokenKey(MetaDataType::VertexLabel, name);
     std::string val;
     uint32_t bigendian_lid = native_to_big(label_next_lid_++);
-    val.append((const char *)&bigendian_lid, sizeof(bigendian_lid));
+    val.append(AsChars(bigendian_lid), sizeof(bigendian_lid));
     rocksdb::WriteOptions options;
     auto s = db_->Put(options, graph_cf_->meta_info, key, val);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -258,7 +259,7 @@ uint32_t IdGenerator::GetOrCreateTid(const std::string &name) {
     std::string key = TokenKey(MetaDataType::EdgeType, name);
     std::string val;
     uint32_t bigendian_tid = native_to_big(label_next_tid_++);
-    val.append((const char *)&bigendian_tid, sizeof(bigendian_tid));
+    val.append(AsChars(bigendian_tid), sizeof(bigendian_tid));
     rocksdb::WriteOptions options;
     auto s = db_->Put(options, graph_cf_->meta_info, key, val);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -288,7 +289,7 @@ uint32_t IdGenerator::GetOrCreatePid(const std::string &name) {
     std::string key = TokenKey(MetaDataType::Property, name);
     std::string val;
     uint32_t bigendian_pid = native_to_big(label_next_pid_++);
-    val.append((const char *)&bigendian_pid, sizeof(bigendian_pid));
+    val.append(AsChars(bigendian_pid), sizeof(bigendian_pid));
     rocksdb::WriteOptions options;
     auto s = db_->Put(options, graph_cf_->meta_info, key, val);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());

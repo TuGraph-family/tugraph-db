@@ -19,6 +19,7 @@
 
 #include <filesystem>
 
+#include "byte_utils.h"
 #include "common/logger.h"
 #include "meta_info.h"
 #include "proto/meta.pb.h"
@@ -90,10 +91,11 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
   graph_db->graph_cf_.wal = cf_handles[8];
   graph_db->cf_handles_ = std::move(cf_handles);
   graph_db->options_ = graph_options;
-  graph_db->service_threads_.emplace_back([&graph_db]() {
+  auto* self = graph_db.get();
+  graph_db->service_threads_.emplace_back([self]() {
     pthread_setname_np(pthread_self(), "assistant");
-    boost::asio::io_service::work holder(graph_db->assistant_);
-    graph_db->assistant_.run();
+    boost::asio::io_service::work holder(self->assistant_);
+    self->assistant_.run();
   });
   graph_db->meta_info_.Init(graph_db->db_, graph_db->assistant_,
                             &graph_db->graph_cf_, graph_db->options_.server_id_,
@@ -105,8 +107,18 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
 
 GraphDB::~GraphDB() {
   LOG_INFO("Close graph: {}", db_meta_.graph_name());
-  meta_info_.GetVertexVectorIndex().clear();
-  meta_info_.GetVertexFullTextIndex().clear();
+  for (const auto& index : meta_info_.GetVertexVectorIndexes()) {
+    index->Stop();
+  }
+  for (const auto& index : meta_info_.GetVertexFullTextIndexes()) {
+    index->Stop();
+  }
+  assistant_.stop();
+  for (auto& t : service_threads_) {
+    t.join();
+  }
+  meta_info_.ClearVertexVectorIndexes();
+  meta_info_.ClearVertexFullTextIndexes();
   for (auto handle : cf_handles_) {
     auto s = db_->DestroyColumnFamilyHandle(handle);
     assert(s.ok());
@@ -117,11 +129,6 @@ GraphDB::~GraphDB() {
   }
   delete db_;
   db_ = nullptr;
-
-  assistant_.stop();
-  for (auto& t : service_threads_) {
-    t.join();
-  }
   if (drop_on_close_) {
     std::filesystem::remove_all(path_);
     LOG_INFO("filesystem remove_all {}", path_);
@@ -138,6 +145,7 @@ std::unique_ptr<txn::Transaction> GraphDB::BeginTransaction() {
 void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
                                      bool /*unique*/, const std::string& label,
                                      const std::string& property) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (index_name.empty() || label.empty() || property.empty()) {
     THROW_CODE(InvalidParameter);
   }
@@ -152,20 +160,20 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
                "Vertex index [label:{}, property:{}] already exists",
                big_to_native(lid), big_to_native(pid));
   }
-  busy_index_.Mark({pid}, {lid});
+  auto busy_guard = busy_index_.Hold({lid}, {pid});
   auto index_id = id_generator().GetNextIndexId();
   rocksdb::ReadOptions ro;
   rocksdb::WriteOptions wo;
   std::unique_ptr<rocksdb::Iterator> iter(
       db_->NewIterator(ro, graph_cf_.vertex_label_vid));
-  rocksdb::Slice prefix((const char*)&lid, sizeof(lid));
+  rocksdb::Slice prefix(AsChars(lid), sizeof(lid));
   for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
        iter->Next()) {
     auto key = iter->key();
     key.remove_prefix(sizeof(uint32_t));
 
     std::string property_key = key.ToString();
-    property_key.append((const char*)&pid, sizeof(pid));
+    property_key.append(AsChars(pid), sizeof(pid));
     std::string property_val;
     auto s =
         db_->Get(ro, graph_cf_.vertex_property, property_key, &property_val);
@@ -175,7 +183,7 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
       THROW_CODE(StorageEngineError, s.ToString());
     }
     std::string index_key, tmp;
-    index_key.append((const char*)(&index_id), sizeof(index_id));
+    index_key.append(AsChars(index_id), sizeof(index_id));
     index_key.append(property_val);
     s = db_->Get(ro, graph_cf_.index, index_key, &tmp);
     if (s.ok()) {
@@ -205,13 +213,14 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   LOG_INFO("Add vertex index: [lid:{}, pid:{}, is_unique:{}]",
            big_to_native(lid), big_to_native(pid), true);
-  VertexPropertyIndex vpi(meta_val, graph_cf_.index, index_id, lid, pid);
+  auto vpi = std::make_shared<VertexPropertyIndex>(meta_val, graph_cf_.index,
+                                                   index_id, lid, pid);
   auto ret = meta_info_.AddVertexPropertyIndex(std::move(vpi));
   assert(ret);
-  busy_index_.Clear();
 }
 
 void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   auto index = meta_info_.GetVertexPropertyIndex(index_name);
   if (!index) {
     THROW_CODE(VertexUniqueIndexNotFound, "No such vertex unique index [{}]",
@@ -227,8 +236,8 @@ void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
   rocksdb::WriteBatch wb;
   wb.Delete(graph_cf_.meta_info, meta_key);
 
-  std::string start_key((const char*)&index_id, sizeof(index_id));
-  std::string end_key((const char*)&index_id, sizeof(index_id));
+  std::string start_key(AsChars(index_id), sizeof(index_id));
+  std::string end_key(AsChars(index_id), sizeof(index_id));
   end_key.append(128, static_cast<char>(0xff));
   wb.DeleteRange(graph_cf_.index, start_key, end_key);
 
@@ -243,6 +252,7 @@ void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
 void GraphDB::AddVertexFullTextIndex(
     const std::string& index_name, const std::vector<std::string>& labels,
     const std::vector<std::string>& properties) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (index_name.empty() || labels.empty() || properties.empty()) {
     THROW_CODE(InvalidParameter);
   }
@@ -277,7 +287,8 @@ void GraphDB::AddVertexFullTextIndex(
   *meta.mutable_properties() = {properties.begin(), properties.end()};
   *meta.mutable_label_ids() = {native_lids.begin(), native_lids.end()};
   *meta.mutable_property_ids() = {native_pids.begin(), native_pids.end()};
-  auto v_ft_index = std::make_unique<VertexFullTextIndex>(
+  auto busy_guard = busy_index_.Hold(lids, pids);
+  auto v_ft_index = std::make_shared<VertexFullTextIndex>(
       db_, assistant_, &graph_cf_, &id_generator(), meta, index_id, lids, pids,
       options_.ft_apply_interval_);
   v_ft_index->Load();
@@ -287,10 +298,12 @@ void GraphDB::AddVertexFullTextIndex(
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   LOG_INFO("Add vertex full text index: [lids:{}, pids:{}]", native_lids,
            native_pids);
-  meta_info_.AddVertexFullTextIndex(std::move(v_ft_index));
+  meta_info_.AddVertexFullTextIndex(v_ft_index);
+  v_ft_index->Start();
 }
 
 void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (!meta_info_.GetVertexFullTextIndex(index_name)) {
     THROW_CODE(FullTextIndexNotFound, "No such vertex fulltext index [{}]",
                index_name);
@@ -298,6 +311,7 @@ void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
   auto ft_index = meta_info_.GetVertexFullTextIndex(index_name);
   std::string path = ft_index->meta().path();
   uint32_t index_id = ft_index->index_id();
+  ft_index->Stop();
   meta_info_.DeleteVertexFullTextIndex(index_name);
 
   rocksdb::WriteBatch wb;
@@ -307,9 +321,9 @@ void GraphDB::DeleteVertexFullTextIndex(const std::string& index_name) {
   meta_key.append(index_name);
   wb.Delete(graph_cf_.meta_info, meta_key);
 
-  std::string start_key((const char*)&index_id, sizeof(index_id));
+  std::string start_key(AsChars(index_id), sizeof(index_id));
   start_key.append(sizeof(int64_t), static_cast<char>(0x00));
-  std::string end_key((const char*)&index_id, sizeof(index_id));
+  std::string end_key(AsChars(index_id), sizeof(index_id));
   end_key.append(sizeof(int64_t), static_cast<char>(0xff));
   wb.DeleteRange(graph_cf_.index, start_key, end_key);
   wb.DeleteRange(graph_cf_.wal, start_key, end_key);
@@ -333,6 +347,7 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
                                    const std::string& property, int dimension,
                                    std::string distance_type, int hnsw_m,
                                    int hnsw_ef_construction) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (index_name.empty() || label.empty() || property.empty()) {
     THROW_CODE(InvalidParameter);
   }
@@ -373,7 +388,8 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
   meta.set_distance_type(dist_type);
   meta.set_hnsw_m(hnsw_m);
   meta.set_hnsw_ef_construction(hnsw_ef_construction);
-  auto vvi = std::make_unique<VertexVectorIndex>(db_, assistant_, &graph_cf_,
+  auto busy_guard = busy_index_.Hold({lid}, {pid});
+  auto vvi = std::make_shared<VertexVectorIndex>(db_, assistant_, &graph_cf_,
                                                  index_id, lid, pid, meta,
                                                  options_.vt_apply_interval_);
   vvi->Load();
@@ -386,10 +402,12 @@ void GraphDB::AddVertexVectorIndex(const std::string& index_name,
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   LOG_INFO("Add vertex vector index: [lid:{}, pid:{}]", big_to_native(lid),
            big_to_native(pid));
-  meta_info_.AddVertexVectorIndex(std::move(vvi));
+  meta_info_.AddVertexVectorIndex(vvi);
+  vvi->Start();
 }
 
 void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
+  std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   if (!meta_info_.GetVertexVectorIndex(index_name)) {
     THROW_CODE(VectorIndexNotFound, "No such vertex vector index [{}]",
                index_name);
@@ -397,6 +415,7 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
   auto index = meta_info_.GetVertexVectorIndex(index_name);
   auto path = index->meta().path();
   uint32_t index_id = index->index_id();
+  index->Stop();
   meta_info_.DeleteVertexVectorIndex(index_name);
   rocksdb::WriteBatch wb;
   rocksdb::WriteOptions wo;
@@ -405,9 +424,9 @@ void GraphDB::DeleteVertexVectorIndex(const std::string& index_name) {
   meta_key.append(index_name);
   wb.Delete(graph_cf_.meta_info, meta_key);
 
-  std::string start_key((const char*)&index_id, sizeof(index_id));
+  std::string start_key(AsChars(index_id), sizeof(index_id));
   start_key.append(sizeof(int64_t), static_cast<char>(0x00));
-  std::string end_key((const char*)&index_id, sizeof(index_id));
+  std::string end_key(AsChars(index_id), sizeof(index_id));
   end_key.append(sizeof(int64_t), static_cast<char>(0xff));
   wb.DeleteRange(graph_cf_.index, start_key, end_key);
   wb.DeleteRange(graph_cf_.wal, start_key, end_key);

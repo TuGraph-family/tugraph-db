@@ -210,3 +210,37 @@ TEST(Concurrency, edgeConflict) {
   }
   txn3->Commit();
 }
+
+TEST(Concurrency, edgeEntityLockSerializesDifferentPropertyUpdates) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+
+  auto setup = graphDB->BeginTransaction();
+  auto v1 = setup->CreateVertex({"label1"}, {{"id", Value::Integer(1)}});
+  auto v2 = setup->CreateVertex({"label1"}, {{"id", Value::Integer(2)}});
+  auto edge = setup->CreateEdge(v1, v2, "edge", {});
+  setup->Commit();
+
+  auto txn1 = graphDB->BeginTransaction();
+  auto edge1 = txn1->GetEdgeById(edge.GetTypeId(), edge.GetId());
+  edge1.SetProperties({{"property_a", Value::Integer(1)}});
+
+  auto txn2 = graphDB->BeginTransaction();
+  auto edge2 = txn2->GetEdgeById(edge.GetTypeId(), edge.GetId());
+  EXPECT_THROW_CODE_MSG(
+      edge2.SetProperties({{"property_b", Value::Integer(2)}}),
+      StorageEngineError, "Timeout waiting to lock key");
+  txn2->Rollback();
+
+  txn1->Commit();
+
+  auto verify = graphDB->BeginTransaction();
+  auto persisted = verify->GetEdgeById(edge.GetTypeId(), edge.GetId());
+  auto all_properties = persisted.GetAllProperty();
+  EXPECT_EQ(all_properties.size(), 1);
+  auto iter = all_properties.find("property_a");
+  ASSERT_NE(iter, all_properties.end());
+  EXPECT_EQ(iter->second, Value::Integer(1));
+  EXPECT_EQ(all_properties.count("property_b"), 0);
+  verify->Commit();
+}

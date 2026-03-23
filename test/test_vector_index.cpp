@@ -14,8 +14,10 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <filesystem>
 #include <random>
+#include <thread>
 
 #include "common/flags.h"
 #include "common/logger.h"
@@ -27,6 +29,25 @@
 using namespace graphdb;
 namespace fs = std::filesystem;
 static std::string testdb = "testdb";
+
+namespace {
+
+bool WaitUntilBusy(
+    GraphDB* graph_db, const std::unordered_set<uint32_t>& lids,
+    const std::unordered_set<uint32_t>& pids,
+    std::chrono::milliseconds timeout = std::chrono::seconds(5)) {
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (graph_db->busy_index().Busy(lids, pids)) {
+      return true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+  return false;
+}
+
+}  // namespace
+
 TEST(VectorIndex, build) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});
@@ -119,7 +140,7 @@ TEST(VectorIndex, DISABLED_read_benchmark) {
   }
   txn->Commit();
   txn.reset();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
     index->ApplyWAL();
   }
 
@@ -161,7 +182,7 @@ TEST(VectorIndex, del) {
                     {{"id", Value::Integer(4)},
                      {"embedding", Value::DoubleArray({4.0, 4.0, 4.0, 4.0})}});
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -177,7 +198,7 @@ TEST(VectorIndex, del) {
   cypher::RTContext rtx;
   txn->Execute(&rtx, "match(n {id:1}) delete n")->Consume();
   txn->Commit();
-  for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
     index->ApplyWAL();
   }
   txn = graphDB->BeginTransaction();
@@ -224,7 +245,7 @@ TEST(VectorIndex, restart) {
   }
   {
     auto graphDB = GraphDB::Open(testdb, {});
-    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+    for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
       index->ApplyWAL();
     }
     auto txn = graphDB->BeginTransaction();
@@ -262,14 +283,14 @@ TEST(VectorIndex, serialize) {
         {"label1"}, {{"id", Value::Integer(4)},
                      {"embedding", Value::DoubleArray({4.0, 4.0, 4.0, 4.0})}});
     txn->Commit();
-    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+    for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
       index->ApplyWAL();
     }
   }
   {
     LOG_INFO("restart graphdb");
     auto graphDB = GraphDB::Open(testdb, {});
-    for (auto& [name, index] : graphDB->meta_info().GetVertexVectorIndex()) {
+    for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
       index->ApplyWAL();
     }
     auto txn = graphDB->BeginTransaction();
@@ -283,4 +304,146 @@ TEST(VectorIndex, serialize) {
     expect = {1, 2, 3, 4};
     EXPECT_EQ(ids, expect);
   }
+}
+
+TEST(VectorIndex, deleteLabelsUpdatesMembershipCorrectly) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  std::string index_name = "vector_index";
+  graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 4, "l2", 16,
+                                100);
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1", "label2"},
+                    {{"id", Value::Integer(1)},
+                     {"embedding", Value::DoubleArray({1.0, 1.0, 1.0, 1.0})}});
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(2)},
+                     {"embedding", Value::DoubleArray({2.0, 2.0, 2.0, 2.0})}});
+  txn->Commit();
+
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
+    index->ApplyWAL();
+  }
+
+  txn = graphDB->BeginTransaction();
+  std::set<int64_t> ids;
+  for (auto viter = txn->QueryVertexByKnnSearch(index_name,
+                                                {1.0, 1.0, 1.0, 1.0}, 10, 100);
+       viter->Valid(); viter->Next()) {
+    ids.insert(viter->GetVertexScore().vertex.GetProperty("id").AsInteger());
+  }
+  EXPECT_EQ(ids, (std::set<int64_t>{1, 2}));
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  auto keep_vertex = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  EXPECT_TRUE(keep_vertex->Valid());
+  keep_vertex->GetVertex().DeleteLabels({"label2"});
+
+  auto remove_vertex = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(2)}});
+  EXPECT_TRUE(remove_vertex->Valid());
+  remove_vertex->GetVertex().DeleteLabels({"label1"});
+  txn->Commit();
+
+  for (const auto& index : graphDB->meta_info().GetVertexVectorIndexes()) {
+    index->ApplyWAL();
+  }
+
+  txn = graphDB->BeginTransaction();
+  ids.clear();
+  for (auto viter = txn->QueryVertexByKnnSearch(index_name,
+                                                {1.0, 1.0, 1.0, 1.0}, 10, 100);
+       viter->Valid(); viter->Next()) {
+    ids.insert(viter->GetVertexScore().vertex.GetProperty("id").AsInteger());
+  }
+  EXPECT_EQ(ids, (std::set<int64_t>{1}));
+
+  auto remaining = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  EXPECT_TRUE(remaining->Valid());
+  EXPECT_EQ(remaining->GetVertex().GetLabels(),
+            (std::unordered_set<std::string>{"label1"}));
+
+  auto removed = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(2)}});
+  EXPECT_FALSE(removed->Valid());
+  txn->Commit();
+}
+
+TEST(VectorIndex, buildBlocksWrites) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  std::string index_name = "vector_index";
+
+  auto txn = graphDB->BeginTransaction();
+  for (int i = 0; i < 10000; ++i) {
+    txn->CreateVertex(
+        {"label1"}, {{"id", Value::Integer(i)},
+                     {"embedding", Value::DoubleArray({1.0, 2.0, 3.0, 4.0, 5.0,
+                                                       6.0, 7.0, 8.0})}});
+  }
+  txn->Commit();
+
+  auto lid = graphDB->id_generator().GetOrCreateLid("label1");
+  auto pid = graphDB->id_generator().GetOrCreatePid("embedding");
+  std::exception_ptr build_error;
+  std::thread builder([&]() {
+    try {
+      graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 8, "l2",
+                                    16, 100);
+    } catch (...) {
+      build_error = std::current_exception();
+    }
+  });
+
+  ASSERT_TRUE(WaitUntilBusy(graphDB.get(), {lid}, {pid}));
+
+  bool blocked = false;
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  while (std::chrono::steady_clock::now() < deadline && !blocked) {
+    auto write_txn = graphDB->BeginTransaction();
+    try {
+      write_txn->CreateVertex(
+          {"label1"},
+          {{"id", Value::Integer(20000)},
+           {"embedding",
+            Value::DoubleArray({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0})}});
+      write_txn->Rollback();
+    } catch (LgraphException& e) {
+      write_txn->Rollback();
+      if (e.code() == ErrorCode::IndexBusy) {
+        blocked = true;
+        break;
+      }
+      FAIL() << "Unexpected exception message: " << e.what();
+    }
+  }
+
+  builder.join();
+  if (build_error) {
+    try {
+      std::rethrow_exception(build_error);
+    } catch (const std::exception& e) {
+      FAIL() << e.what();
+    }
+  }
+
+  EXPECT_TRUE(blocked);
+
+  txn = graphDB->BeginTransaction();
+  int count = 0;
+  for (auto viter = txn->QueryVertexByKnnSearch(
+           index_name, {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, 10, 100);
+       viter->Valid(); viter->Next()) {
+    count++;
+  }
+  EXPECT_EQ(count, 10);
+  txn->Commit();
 }

@@ -1,20 +1,21 @@
-import os
 import math
 import yaml
 import neo4j
 from behave import *
-from neo4j import basic_auth, GraphDatabase
 from neo4j.graph import Node, Path, Relationship
 import parser
-import subprocess
 
 use_step_matcher("re")
-def run_cypher(cypher, context):
+
+
+def run_cypher(cypher, context, parameters=None):
     records = []
     session = context.driver.session(database="default")
     context.exception = None
     try:
-        ret = session.run(cypher, context.parameters)
+        if parameters is None:
+            parameters = context.parameters
+        ret = session.run(cypher, parameters)
         records = list(ret)
     except Exception as e:
         context.exception = e
@@ -22,6 +23,21 @@ def run_cypher(cypher, context):
     finally:
         session.close()
     return records
+
+
+def cleanup_non_default_graphs(context):
+    graphs = run_cypher(
+        "CALL dbms.graph.listGraph() YIELD name "
+        "WHERE name <> 'default' RETURN name",
+        context)
+    check_exception(context)
+
+    for graph in graphs:
+        run_cypher(
+            "CALL dbms.graph.deleteGraph($graph_name)",
+            context,
+            {"graph_name": graph["name"]})
+        check_exception(context)
 
 def parse_props(props_key_value):
     if not props_key_value:
@@ -215,15 +231,12 @@ def validate_in_order(context, ignore_order):
 def check_exception(context):
     if context.exception is not None:
         print("Exception when executing query: ", context.exception)
-        assert(False)
+        raise AssertionError("Unexpected exception: {}".format(
+            context.exception))
 
 @given("an initialized database")
 def step_impl(context):
-    result = subprocess.run('./features/steps/init_db.sh')
-    assert result.returncode == 0
-    url = "bolt://{}:{}".format("127.0.0.1", "7687")
-    auth_token = basic_auth("admin", "73@TuGraph")
-    context.driver = GraphDatabase.driver(url, auth=auth_token, encrypted=False)
+    cleanup_non_default_graphs(context)
 
 @when("executing query")
 def step_impl(context):
@@ -231,7 +244,10 @@ def step_impl(context):
 
 @then("the result should be empty")
 def step_impl(context):
-    assert(len(context.results) == 0)
+    if len(context.results) != 0:
+        raise AssertionError(
+            "Expected empty result, but got {}".format(
+                len(context.results)))
     check_exception(context)
 
 @given("an empty graph")
@@ -326,7 +342,10 @@ def step_impl(context):
 
 @step("parameters are")
 def step_impl(context):
-    assert len(context.table.rows) == 1
+    if len(context.table.rows) != 1:
+        raise AssertionError(
+            "Expected exactly 1 parameter row, but got {}".format(
+                len(context.table.rows)))
     for row in context.table:
         for index, header in enumerate(context.table.headings):
             ret = yaml.load(row[index], Loader=yaml.FullLoader)
@@ -351,4 +370,5 @@ def step_impl(context):
 
 @then("an Error should be raised")
 def step_impl(context):
-    assert context.exception is not None
+    if context.exception is None:
+        raise AssertionError("Expected an error to be raised")

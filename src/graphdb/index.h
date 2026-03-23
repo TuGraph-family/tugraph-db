@@ -20,6 +20,10 @@
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <boost/asio.hpp>
+#include <condition_variable>
+#include <future>
+#include <mutex>
+#include <shared_mutex>
 #include <utility>
 
 #include "common/type_traits.h"
@@ -76,6 +80,8 @@ class VertexFullTextIndex {
                  std::vector<std::string> values);
   void DeleteVertex(int64_t id);
   void ApplyWAL();
+  void Start();
+  void Stop();
   [[nodiscard]] bool MatchLabelIds(
       const std::unordered_set<uint32_t>& lids) const;
   [[nodiscard]] bool MatchPropertyIds(
@@ -115,43 +121,96 @@ class VertexFullTextIndex {
   ::FTIndex* ft_index_ = nullptr;
   std::unique_ptr<::rust::Box<::FTIndex>> instance_;
   std::mutex mutex_;
+  std::mutex timer_mutex_;
+  std::condition_variable timer_cv_;
+  size_t active_callbacks_ = 0;
+  bool started_ = false;
+  bool stopped_ = false;
   size_t interval_ = 5;
   boost::asio::steady_timer timer_;
 };
 
 struct BusyIndex {
-  std::unordered_set<uint32_t> lids;
-  std::unordered_set<uint32_t> pids;
+ public:
+  class ScopedMark {
+   public:
+    ScopedMark() = default;
+    ScopedMark(BusyIndex* owner, std::unordered_set<uint32_t> lids,
+               std::unordered_set<uint32_t> pids)
+        : owner_(owner) {
+      if (owner_) {
+        owner_->Mark(std::move(lids), std::move(pids));
+      }
+    }
+    ScopedMark(const ScopedMark&) = delete;
+    ScopedMark& operator=(const ScopedMark&) = delete;
+    ScopedMark(ScopedMark&& other) noexcept
+        : owner_(std::exchange(other.owner_, nullptr)) {}
+    ScopedMark& operator=(ScopedMark&& other) noexcept {
+      if (this == &other) {
+        return *this;
+      }
+      Reset();
+      owner_ = std::exchange(other.owner_, nullptr);
+      return *this;
+    }
+    ~ScopedMark() { Reset(); }
+
+    void Reset() {
+      if (owner_) {
+        owner_->Clear();
+        owner_ = nullptr;
+      }
+    }
+
+   private:
+    BusyIndex* owner_ = nullptr;
+  };
+
+  [[nodiscard]] ScopedMark Hold(std::unordered_set<uint32_t> _lids,
+                                std::unordered_set<uint32_t> _pids) {
+    return ScopedMark(this, std::move(_lids), std::move(_pids));
+  }
 
   void Mark(std::unordered_set<uint32_t> _lids,
             std::unordered_set<uint32_t> _pids) {
-    lids = std::move(_lids);
-    pids = std::move(_pids);
+    std::unique_lock lock(mutex_);
+    lids_ = std::move(_lids);
+    pids_ = std::move(_pids);
   }
   bool LabelBusy(const std::unordered_set<uint32_t>& _lids) const {
+    std::shared_lock lock(mutex_);
     for (auto id : _lids) {
-      if (lids.count(id)) {
+      if (lids_.count(id)) {
         return true;
       }
     }
     return false;
   }
-  bool Busy(const std::unordered_set<uint32_t>& _lids, uint32_t _pid) {
-    return std::any_of(lids.begin(), lids.end(),
+  bool Busy(const std::unordered_set<uint32_t>& _lids, uint32_t _pid) const {
+    std::shared_lock lock(mutex_);
+    return std::any_of(lids_.begin(), lids_.end(),
                        [&_lids](uint32_t id) { return _lids.count(id) > 0; }) &&
-           pids.count(_pid);
+           pids_.count(_pid);
   }
   bool Busy(const std::unordered_set<uint32_t>& _lids,
-            const std::unordered_set<uint32_t>& _pids) {
-    return std::any_of(lids.begin(), lids.end(),
+            const std::unordered_set<uint32_t>& _pids) const {
+    std::shared_lock lock(mutex_);
+    return std::any_of(lids_.begin(), lids_.end(),
                        [&_lids](uint32_t id) { return _lids.count(id) > 0; }) &&
-           std::any_of(pids.begin(), pids.end(),
+           std::any_of(pids_.begin(), pids_.end(),
                        [&_pids](uint32_t id) { return _pids.count(id) > 0; });
   }
   void Clear() {
-    lids.clear();
-    pids.clear();
+    std::unique_lock lock(mutex_);
+    lids_.clear();
+    pids_.clear();
   }
+
+ private:
+  mutable std::shared_mutex mutex_;
+  std::unordered_set<uint32_t> lids_;
+  std::unordered_set<uint32_t> pids_;
 };
 
 class VertexVectorIndex {
@@ -169,6 +228,8 @@ class VertexVectorIndex {
   uint32_t lid() const { return lid_; }
   uint32_t pid() const { return pid_; }
   uint32_t index_id() const { return index_id_; }
+  void Start();
+  void Stop();
   void Load();
   void TryDeleteIndex(txn::Transaction* txn, int64_t vid);
   std::string NextWALKey();
@@ -192,6 +253,11 @@ class VertexVectorIndex {
   uint64_t apply_id_ = 0;
   std::shared_mutex mutex_;
   std::mutex apply_mutex_;
+  std::mutex timer_mutex_;
+  std::condition_variable timer_cv_;
+  size_t active_callbacks_ = 0;
+  bool started_ = false;
+  bool stopped_ = false;
   size_t interval_ = 5;
   boost::asio::steady_timer timer_;
   std::unordered_set<int64_t> deleted_vector_ids_;

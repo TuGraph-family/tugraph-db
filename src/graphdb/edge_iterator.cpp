@@ -21,6 +21,7 @@
 #include <boost/endian/conversion.hpp>
 
 #include "bolt/connection.h"
+#include "byte_utils.h"
 #include "common/logger.h"
 #include "graph_db.h"
 #include "transaction/transaction.h"
@@ -38,13 +39,13 @@ ScanEdgeByVidDirectionTypes::ScanEdgeByVidDirectionTypes(
   if (direction_ == EdgeDirection::OUTGOING ||
       direction_ == EdgeDirection::BOTH) {
     std::string prefix;
-    prefix.append((const char *)&vid_, sizeof(vid_)).append(1, 0);
+    prefix.append(AsChars(vid_), sizeof(vid_)).append(1, 0);
     if (types_.empty()) {
       prefixes_.push(prefix);
     } else {
       for (auto type : types_) {
         std::string tmp = prefix;
-        tmp.append(((const char *)&type), sizeof(type));
+        tmp.append(AsChars(type), sizeof(type));
         prefixes_.push(std::move(tmp));
       }
     }
@@ -52,13 +53,13 @@ ScanEdgeByVidDirectionTypes::ScanEdgeByVidDirectionTypes(
   if (direction_ == EdgeDirection::INCOMING ||
       direction_ == EdgeDirection::BOTH) {
     std::string prefix;
-    prefix.append((const char *)&vid_, sizeof(vid_)).append(1, 1);
+    prefix.append(AsChars(vid_), sizeof(vid_)).append(1, 1);
     if (types_.empty()) {
       prefixes_.push(prefix);
     } else {
       for (auto type : types_) {
         std::string tmp = prefix;
-        tmp.append(((const char *)&type), sizeof(type));
+        tmp.append(AsChars(type), sizeof(type));
         prefixes_.push(std::move(tmp));
       }
     }
@@ -68,15 +69,15 @@ ScanEdgeByVidDirectionTypes::ScanEdgeByVidDirectionTypes(
 
 void ScanEdgeByVidDirectionTypes::Load() {
   auto p = iter_->key().data();
-  int64_t vid1 = *(int64_t *)p;
+  int64_t vid1 = ReadValue<int64_t>(p);
   p += sizeof(int64_t);
   auto dir = static_cast<EdgeDirection>(*(p));
   p += sizeof(char);
-  uint32_t etid = *(uint32_t *)p;
+  uint32_t etid = ReadValue<uint32_t>(p);
   p += sizeof(uint32_t);
-  int64_t vid2 = *(int64_t *)p;
+  int64_t vid2 = ReadValue<int64_t>(p);
   p += sizeof(int64_t);
-  int64_t eid = *(int64_t *)p;
+  int64_t eid = ReadValue<int64_t>(p);
   if (dir == EdgeDirection::OUTGOING) {
     ee_ = std::make_unique<Edge>(txn_, eid, vid1, vid2, etid);
   } else {

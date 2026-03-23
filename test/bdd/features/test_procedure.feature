@@ -3,11 +3,11 @@ Feature: test procedure
     Given an initialized database
     When executing query
       """
-      CALL dbms.graph.listGraph()
+      CALL dbms.graph.listGraph() yield name return name
       """
     Then the result should be, in any order
-      | id | name      |
-      | 1  | 'default' |
+      | name      |
+      | 'default' |
 
   Scenario: case02
     Given an initialized database
@@ -17,12 +17,12 @@ Feature: test procedure
       """
     When executing query
       """
-      CALL dbms.graph.listGraph()
+      CALL dbms.graph.listGraph() yield name return name
       """
     Then the result should be, in any order
-      | id | name      |
-      | 1  | 'default' |
-      | 2  | 'graph1'  |
+      | name      |
+      | 'default' |
+      | 'graph1'  |
 
   Scenario: case03
     Given an initialized database
@@ -63,12 +63,12 @@ Feature: test procedure
       """
     When executing query
       """
-      CALL dbms.graph.listGraph()
+      CALL dbms.graph.listGraph() yield name return name
       """
     Then the result should be, in any order
-      | id | name      |
-      | 1  | 'default' |
-      | 3  | 'graph2'  |
+      | name      |
+      | 'default' |
+      | 'graph2'  |
 
   Scenario: case06
     Given an initialized database

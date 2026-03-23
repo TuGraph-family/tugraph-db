@@ -56,6 +56,8 @@ Vertex Transaction::CreateVertex(
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   std::unordered_map<uint32_t, const Value*> pid_values;
   std::unordered_set<uint32_t> pids;
+  auto ft_indexes = db_->meta_info().GetVertexFullTextIndexes();
+  auto vector_indexes = db_->meta_info().GetVertexVectorIndexes();
   for (const auto& [name, value] : values) {
     uint32_t pid = db_->id_generator().GetOrCreatePid(name);
     pid_values[pid] = &value;
@@ -78,7 +80,7 @@ Vertex Transaction::CreateVertex(
     THROW_CODE(IndexBusy);
   }
   // full text index
-  for (auto& [ft_name, ft] : db_->meta_info().GetVertexFullTextIndex()) {
+  for (const auto& ft : ft_indexes) {
     if (!ft->MatchLabelIds(lids)) {
       continue;
     }
@@ -97,7 +99,7 @@ Vertex Transaction::CreateVertex(
     }
   }
   // vector index
-  for (auto& [index_name, vvi] : db_->meta_info().GetVertexVectorIndex()) {
+  for (const auto& vvi : vector_indexes) {
     if (!lids.count(vvi->lid())) {
       continue;
     }
