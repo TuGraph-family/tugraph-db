@@ -362,8 +362,9 @@ struct BuiltinFunction {
                                       const std::vector<ArithExprNode> &args);
   static Value VectorDistanceL2(RTContext *ctx, const Record &record,
                                 const std::vector<ArithExprNode> &args);
-  static Value VectorSimilarityInnerProduct(RTContext *ctx, const Record &record,
-                                            const std::vector<ArithExprNode> &args);
+  static Value VectorSimilarityInnerProduct(
+      RTContext *ctx, const Record &record,
+      const std::vector<ArithExprNode> &args);
 
  private:
   static std::tuple<std::unordered_map<std::string, Value>, int64_t>
