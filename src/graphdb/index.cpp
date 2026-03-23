@@ -243,7 +243,12 @@ VertexFullTextIndex::VertexFullTextIndex(
     auto key = iter->key();
     if (key.starts_with({AsChars(index_id_), sizeof(index_id_)})) {
       key.remove_prefix(sizeof(index_id_));
-      assert(key.size() == sizeof(uint64_t));
+      if (key.size() != sizeof(uint64_t)) {
+        THROW_CODE(StorageEngineError,
+                   "fulltext index wal key has invalid size while loading next "
+                   "wal id, expect {}, actual {}",
+                   sizeof(uint64_t), key.size());
+      }
       uint64_t wal_id = ReadValue<uint64_t>(key.data());
       next_wal_id_ = big_to_native(wal_id) + 1;
     }
@@ -512,7 +517,13 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
       auto key = iter->key();
       if (key.starts_with({AsChars(index_id_), sizeof(index_id_)})) {
         key.remove_prefix(sizeof(index_id_));
-        assert(key.size() == sizeof(uint64_t));
+        if (key.size() != sizeof(uint64_t)) {
+          THROW_CODE(
+              VectorIndexException,
+              "vector index wal key has invalid size while loading next wal "
+              "id, expect {}, actual {}",
+              sizeof(uint64_t), key.size());
+        }
         uint64_t wal_id = ReadValue<uint64_t>(key.data());
         next_wal_id_ = big_to_native(wal_id) + 1;
       }
@@ -532,22 +543,41 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
       auto key = iter->key();
       auto val = iter->value();
       key.remove_prefix(sizeof(index_id_));
+      if (key.size() != 1 + sizeof(int64_t)) {
+        THROW_CODE(
+            VectorIndexException,
+            "vector index entry key has invalid size, expect {}, actual {}",
+            1 + sizeof(int64_t), key.size());
+      }
       char flag = *key.data();
       key.remove_prefix(1);
       if (flag == 0) {
-        assert(key.size() == sizeof(int64_t));
-        assert(val.size() == sizeof(int64_t));
+        if (val.size() != sizeof(int64_t)) {
+          THROW_CODE(
+              VectorIndexException,
+              "vector index entry value has invalid size for vid mapping, "
+              "expect {}, actual {}",
+              sizeof(int64_t), val.size());
+        }
         auto vid = ReadValue<int64_t>(key.data());
         auto vector_id = ReadValue<int64_t>(val.data());
         max_vector_id = std::max(max_vector_id, vector_id);
         vectorid_vid_.emplace(vector_id, vid);
-      } else {
-        assert(flag == 1);
-        assert(key.size() == sizeof(int64_t));
-        assert(val.size() == 0);
+      } else if (flag == 1) {
+        if (!val.empty()) {
+          THROW_CODE(
+              VectorIndexException,
+              "vector index delete marker has invalid value size, expect 0, "
+              "actual {}",
+              val.size());
+        }
         auto vector_id = ReadValue<int64_t>(key.data());
         max_vector_id = std::max(max_vector_id, vector_id);
         deleted_vector_ids_.emplace(vector_id);
+      } else {
+        THROW_CODE(VectorIndexException,
+                   "vector index entry has invalid flag: {}",
+                   static_cast<int>(flag));
       }
     }
     if (max_vector_id != -1) {
@@ -677,7 +707,12 @@ void VertexVectorIndex::TryDeleteIndex(txn::Transaction* txn, int64_t vid) {
   std::string val;
   auto s = txn->dbtxn()->Get({}, graph_cf_->index, index_key, &val);
   if (s.ok()) {
-    assert(val.size() == sizeof(int64_t));
+    if (val.size() != sizeof(int64_t)) {
+      THROW_CODE(VectorIndexException,
+                 "vector index entry has invalid vector id size, expect {}, "
+                 "actual {}",
+                 sizeof(int64_t), val.size());
+    }
     auto vector_id = ReadValue<int64_t>(val.data());
     s = txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, index_key);
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -749,7 +784,11 @@ void VertexVectorIndex::ApplyWAL() {
       deleted_vector_ids_.emplace(update.vector_id());
       continue;
     }
-    assert(update.type() == meta::UpdateType::Add);
+    if (update.type() != meta::UpdateType::Add) {
+      THROW_CODE(VectorIndexException,
+                 "vector index wal has invalid update type: {}",
+                 static_cast<int>(update.type()));
+    }
     std::unique_ptr<float[]> embedding(new float[update.vector_size()]);
     for (int i = 0; i < update.vector_size(); i++) {
       embedding[i] = update.vector(i);
