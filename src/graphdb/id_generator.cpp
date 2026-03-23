@@ -24,10 +24,11 @@
 #include <iostream>
 #include <thread>
 
-#include "byte_utils.h"
+#include "common/byte_utils.h"
 #include "common/exceptions.h"
 #include "common/logger.h"
 using namespace boost::endian;
+using common::AsChars;
 namespace graphdb {
 namespace {
 

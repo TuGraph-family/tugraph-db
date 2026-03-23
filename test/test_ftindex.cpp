@@ -217,6 +217,25 @@ TEST(FTIndex, indexVertex) {
   txn->Commit();
 }
 
+TEST(FTIndex, corruptedWalIsRejected) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto index = graphDB->meta_info().GetVertexFullTextIndex("ft_index");
+  ASSERT_TRUE(index != nullptr);
+
+  auto txn = graphDB->BeginTransaction();
+  auto s = txn->dbtxn()->GetWriteBatch()->Put(graphDB->graph_cf().wal,
+                                              index->NextWALKey(), "bad_wal");
+  ASSERT_TRUE(s.ok());
+  txn->Commit();
+
+  EXPECT_THROW_CODE(index->ApplyWAL(), StorageEngineError);
+}
+
 TEST(FTIndex, buildDeduplicatesVerticesWithMultipleMatchedLabels) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});

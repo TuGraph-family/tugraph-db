@@ -20,12 +20,14 @@
 
 #include <rocksdb/utilities/write_batch_with_index.h>
 
-#include "byte_utils.h"
+#include "common/byte_utils.h"
 #include "common/exceptions.h"
 #include "common/logger.h"
 #include "graph_db.h"
 #include "transaction/transaction.h"
 using namespace boost::endian;
+using common::AsChars;
+using common::ReadValue;
 namespace graphdb {
 namespace {
 

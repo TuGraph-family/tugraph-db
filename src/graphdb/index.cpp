@@ -24,7 +24,7 @@
 #include <nlohmann/json.hpp>
 #include <unordered_set>
 
-#include "byte_utils.h"
+#include "common/byte_utils.h"
 #include "common/flags.h"
 #include "common/logger.h"
 #include "ftindex/include/lib.rs.h"
@@ -33,6 +33,8 @@
 
 using namespace txn;
 using namespace boost::endian;
+using common::AsChars;
+using common::ReadValue;
 namespace graphdb {
 
 namespace {
@@ -404,12 +406,20 @@ void VertexFullTextIndex::ApplyWAL() {
     delete_batch.Delete(graph_cf_->wal, key.ToString());
 
     key.remove_prefix(sizeof(index_id_));
-    assert(key.size() == sizeof(apply_id_));
+    if (key.size() != sizeof(apply_id_)) {
+      THROW_CODE(
+          StorageEngineError,
+          "fulltext index wal key has invalid size, expect {}, actual {}",
+          sizeof(apply_id_), key.size());
+    }
     consumed_wal_id = ReadValue<uint64_t>(key.data());
     meta::FullTextIndexUpdate update;
     auto val = iter->value();
     auto ret = update.ParseFromArray(val.data(), val.size());
-    assert(ret);
+    if (!ret) {
+      THROW_CODE(StorageEngineError,
+                 "failed to parse fulltext index wal payload");
+    }
     if (update.type() == meta::UpdateType::Add) {
       AddVertex(update.vid(),
                 {std::make_move_iterator(update.mutable_fields()->begin()),
@@ -628,14 +638,17 @@ void VertexVectorIndex::Stop() {
 }
 
 int64_t VertexVectorIndex::GetElementsNum() {
+  std::shared_lock read(mutex_);
   return hnsw_index_->GetNumElements();
 }
 
 int64_t VertexVectorIndex::GetMemoryUsage() {
+  std::shared_lock read(mutex_);
   return hnsw_index_->GetMemoryUsage();
 }
 
 int64_t VertexVectorIndex::GetDeletedIdsNum() {
+  std::shared_lock read(mutex_);
   return deleted_vector_ids_.size();
 }
 
@@ -722,12 +735,19 @@ void VertexVectorIndex::ApplyWAL() {
     auto key = iter->key();
     rocksdb::Slice tmp = key;
     tmp.remove_prefix(sizeof(index_id_));
-    assert(tmp.size() == sizeof(apply_id_));
+    if (tmp.size() != sizeof(apply_id_)) {
+      THROW_CODE(VectorIndexException,
+                 "vector index wal key has invalid size, expect {}, actual {}",
+                 sizeof(apply_id_), tmp.size());
+    }
     consumed_wal_id = ReadValue<uint64_t>(tmp.data());
     meta::VectorIndexUpdate update;
     auto val = iter->value();
     auto ret = update.ParseFromArray(val.data(), val.size());
-    assert(ret);
+    if (!ret) {
+      THROW_CODE(VectorIndexException,
+                 "failed to parse vector index wal payload");
+    }
     if (update.type() == meta::UpdateType::Delete) {
       std::unique_lock write(mutex_);
       deleted_vector_ids_.emplace(update.vector_id());

@@ -20,7 +20,7 @@
 #include <boost/endian/conversion.hpp>
 #include <unordered_set>
 
-#include "byte_utils.h"
+#include "common/byte_utils.h"
 #include "common/value.h"
 #include "edge_direction.h"
 
@@ -50,7 +50,7 @@ class Vertex : Property {
     return boost::endian::big_to_native(id_);
   };
   [[nodiscard]] std::string_view GetIdView() const {
-    return AsStringView(id_);
+    return common::AsStringView(id_);
   };
 
   std::unordered_set<uint32_t> GetLabelIds();

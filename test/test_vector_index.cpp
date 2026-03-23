@@ -306,6 +306,27 @@ TEST(VectorIndex, serialize) {
   }
 }
 
+TEST(VectorIndex, corruptedWalIsRejected) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.vt_apply_interval_ = 3600;
+  auto graphDB = GraphDB::Open(testdb, options);
+  std::string index_name = "vector_index";
+  graphDB->AddVertexVectorIndex(index_name, "label1", "embedding", 4, "l2", 16,
+                                100);
+
+  auto index = graphDB->meta_info().GetVertexVectorIndex(index_name);
+  ASSERT_TRUE(index != nullptr);
+
+  auto txn = graphDB->BeginTransaction();
+  auto s = txn->dbtxn()->GetWriteBatch()->Put(graphDB->graph_cf().wal,
+                                              index->NextWALKey(), "bad_wal");
+  ASSERT_TRUE(s.ok());
+  txn->Commit();
+
+  EXPECT_THROW_CODE(index->ApplyWAL(), VectorIndexException);
+}
+
 TEST(VectorIndex, rollbackDoesNotBreakWalApply) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});

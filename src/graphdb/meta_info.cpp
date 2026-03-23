@@ -21,11 +21,12 @@
 #include <boost/endian/conversion.hpp>
 #include <filesystem>
 
-#include "byte_utils.h"
+#include "common/byte_utils.h"
 #include "common/exceptions.h"
 #include "common/logger.h"
 #include "proto/meta.pb.h"
 using namespace boost::endian;
+using common::ReadValue;
 namespace graphdb {
 std::vector<std::shared_ptr<VertexFullTextIndex>>
 MetaInfo::GetVertexFullTextIndexes() {

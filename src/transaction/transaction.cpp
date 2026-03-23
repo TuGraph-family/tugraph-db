@@ -22,6 +22,7 @@
 
 #include <boost/endian/conversion.hpp>
 
+#include "common/byte_utils.h"
 #include "common/exceptions.h"
 #include "common/logger.h"
 #include "cypher/execution_plan/result_iterator.h"
@@ -210,9 +211,9 @@ Edge Transaction::GetEdgeById(uint32_t etid, int64_t eid) {
   auto s = txn_->Get(ro, db_->graph_cf().edge_type_eid, key, &val);
   if (s.ok()) {
     auto p = val.data();
-    int64_t startId = *(int64_t*)p;
+    int64_t startId = common::ReadValue<int64_t>(p);
     p += sizeof(int64_t);
-    int64_t endId = *(int64_t*)p;
+    int64_t endId = common::ReadValue<int64_t>(p);
     return {this, eid, startId, endId, etid};
   } else if (s.IsNotFound()) {
     THROW_CODE(EdgeIdNotFound, "Edge [etid:{},eid:{}] not found",
