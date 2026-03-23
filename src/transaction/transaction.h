@@ -70,6 +70,11 @@ class Transaction {
   std::unique_ptr<graphdb::VertexScoreIterator> QueryVertexByKnnSearch(
       const std::string& index_name, const std::vector<float>& query, int top_k,
       int ef_search);
+  void AppendFullTextIndexWAL(
+      std::shared_ptr<graphdb::VertexFullTextIndex> index,
+      std::string payload) {
+    pending_fulltext_wals_.push_back({std::move(index), std::move(payload)});
+  }
   std::unique_ptr<ResultIterator> Execute(void* ctx, const std::string& cypher);
   void AppendVectorIndexWAL(std::shared_ptr<graphdb::VertexVectorIndex> index,
                             std::string payload) {
@@ -85,6 +90,11 @@ class Transaction {
   std::shared_ptr<bolt::BoltConnection>& conn() { return conn_; }
 
  private:
+  struct PendingFullTextWAL {
+    std::shared_ptr<graphdb::VertexFullTextIndex> index;
+    std::string payload;
+  };
+
   struct PendingVectorWAL {
     std::shared_ptr<graphdb::VertexVectorIndex> index;
     std::string payload;
@@ -93,6 +103,7 @@ class Transaction {
   rocksdb::Transaction* txn_;
   graphdb::GraphDB* db_;
   std::shared_ptr<bolt::BoltConnection> conn_;
+  std::vector<PendingFullTextWAL> pending_fulltext_wals_;
   std::vector<PendingVectorWAL> pending_vector_wals_;
 };
 

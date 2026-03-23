@@ -350,11 +350,24 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
 }
 
 void Transaction::Commit() {
+  std::unique_lock<std::mutex> fulltext_commit_lock(
+      db_->fulltext_index_commit_mutex(), std::defer_lock);
   std::unique_lock<std::mutex> vector_commit_lock(
       db_->vector_index_commit_mutex(), std::defer_lock);
-  if (!pending_vector_wals_.empty()) {
+  if (!pending_fulltext_wals_.empty() && !pending_vector_wals_.empty()) {
+    std::lock(fulltext_commit_lock, vector_commit_lock);
+  } else if (!pending_fulltext_wals_.empty()) {
+    fulltext_commit_lock.lock();
+  } else if (!pending_vector_wals_.empty()) {
     vector_commit_lock.lock();
+  }
+  if (!pending_fulltext_wals_.empty() || !pending_vector_wals_.empty()) {
     auto* write_batch = txn_->GetWriteBatch();
+    for (const auto& wal : pending_fulltext_wals_) {
+      auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
+                                wal.payload);
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
     for (const auto& wal : pending_vector_wals_) {
       auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
                                 wal.payload);
@@ -363,12 +376,14 @@ void Transaction::Commit() {
   }
   auto s = txn_->Commit();
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  pending_fulltext_wals_.clear();
   pending_vector_wals_.clear();
 }
 
 void Transaction::Rollback() {
   auto s = txn_->Rollback();
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  pending_fulltext_wals_.clear();
   pending_vector_wals_.clear();
 }
 

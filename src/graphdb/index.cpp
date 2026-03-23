@@ -256,9 +256,7 @@ void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid,
   auto s =
       txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->index, IndexKey(vid), {});
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(),
-                                         wal.SerializeAsString());
-  if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  txn->AppendFullTextIndexWAL(shared_from_this(), wal.SerializeAsString());
 }
 
 void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid,
@@ -266,9 +264,7 @@ void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid,
   auto s =
       txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, IndexKey(vid));
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(),
-                                         wal.SerializeAsString());
-  if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  txn->AppendFullTextIndexWAL(shared_from_this(), wal.SerializeAsString());
 }
 
 bool VertexFullTextIndex::IsIndexed(Transaction* txn, int64_t vid) {

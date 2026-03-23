@@ -67,7 +67,8 @@ struct VertexPropertyIndex {
   uint32_t pid_;
 };
 
-class VertexFullTextIndex {
+class VertexFullTextIndex
+    : public std::enable_shared_from_this<VertexFullTextIndex> {
  public:
   VertexFullTextIndex(rocksdb::TransactionDB* db,
                       boost::asio::io_service& service, GraphCF* graph_cf,
