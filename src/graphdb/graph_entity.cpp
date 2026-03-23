@@ -221,7 +221,6 @@ int Vertex::Delete() {
   rocksdb::Slice prefix(AsChars(id_), sizeof(id_));
   iter.reset(
       txn_->dbtxn()->GetIterator(ro, txn_->db()->graph_cf().graph_topology));
-  std::vector<int64_t> eids;
   for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
        iter->Next()) {
     auto key = iter->key().ToString();  // must copy
@@ -314,7 +313,6 @@ int Vertex::Delete() {
             static_cast<std::string *>(nullptr));
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
       }
-      eids.push_back(eid);
       // delete other edge key
       std::string other_edge_key;
       other_edge_key.append(AsChars(vid2), sizeof(vid2));
