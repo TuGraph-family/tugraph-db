@@ -349,13 +349,26 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
 }
 
 void Transaction::Commit() {
+  std::unique_lock<std::mutex> vector_commit_lock(
+      db_->vector_index_commit_mutex(), std::defer_lock);
+  if (!pending_vector_wals_.empty()) {
+    vector_commit_lock.lock();
+    auto* write_batch = txn_->GetWriteBatch();
+    for (const auto& wal : pending_vector_wals_) {
+      auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
+                                wal.payload);
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
+  }
   auto s = txn_->Commit();
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  pending_vector_wals_.clear();
 }
 
 void Transaction::Rollback() {
   auto s = txn_->Rollback();
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  pending_vector_wals_.clear();
 }
 
 std::unique_ptr<VertexScoreIterator> Transaction::QueryVertexByFTIndex(

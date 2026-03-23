@@ -213,7 +213,8 @@ struct BusyIndex {
   std::unordered_set<uint32_t> pids_;
 };
 
-class VertexVectorIndex {
+class VertexVectorIndex
+    : public std::enable_shared_from_this<VertexVectorIndex> {
  public:
   VertexVectorIndex(rocksdb::TransactionDB* db,
                     boost::asio::io_service& service, GraphCF* graph_cf,

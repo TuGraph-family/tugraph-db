@@ -645,14 +645,20 @@ std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
   std::shared_lock read(mutex_);
   auto result = hnsw_index_->KnnSearch(
       query, top_k, ef_search, [this](int64_t label_id) -> bool {
-        return deleted_vector_ids_.count(label_id + 1) > 0;
+        return deleted_vector_ids_.count(label_id) > 0;
       });
   for (size_t i = 0; i < result.ids.size(); ++i) {
     if (result.ids[i] < 0) {
       continue;
     }
-    auto vector_id = result.ids[i] + 1;
-    ret.emplace_back(vectorid_vid_.at(vector_id), result.distances[i]);
+    auto vector_id = result.ids[i];
+    auto iter = vectorid_vid_.find(vector_id);
+    if (iter == vectorid_vid_.end()) {
+      THROW_CODE(VectorIndexException,
+                 "vector id {} returned by faiss is missing in vid mapping",
+                 vector_id);
+    }
+    ret.emplace_back(iter->second, result.distances[i]);
   }
   return ret;
 }
@@ -672,9 +678,7 @@ void VertexVectorIndex::TryDeleteIndex(txn::Transaction* txn, int64_t vid) {
     meta::VectorIndexUpdate wal;
     wal.set_type(meta::UpdateType::Delete);
     wal.set_vector_id(vector_id);
-    s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(),
-                                           wal.SerializeAsString());
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    txn->AppendVectorIndexWAL(shared_from_this(), wal.SerializeAsString());
   } else if (!s.IsNotFound()) {
     THROW_CODE(StorageEngineError, s.ToString());
   }
@@ -736,14 +740,8 @@ void VertexVectorIndex::ApplyWAL() {
     }
     {
       std::unique_lock write(mutex_);
-      hnsw_index_->Add(embedding.get(), 1);
-      if (hnsw_index_->GetNumElements() != update.vector_id()) {
-        THROW_CODE(
-            VectorIndexException,
-            "faiss hnsw internal label mismatch, expect vector id {}, actual "
-            "element count {}",
-            update.vector_id(), hnsw_index_->GetNumElements());
-      }
+      const int64_t vector_id = update.vector_id();
+      hnsw_index_->Add(embedding.get(), 1, &vector_id);
       vectorid_vid_.emplace(update.vector_id(), update.vid());
     }
     if (hnsw_index_->GetNumElements() % FLAGS_vt_serialize_interval == 0) {
@@ -786,9 +784,7 @@ void VertexVectorIndex::AddIndex(txn::Transaction* txn, int64_t vid,
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   wal.set_vid(vid);
   wal.set_vector_id(vector_id);
-  s = txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->wal, NextWALKey(),
-                                         wal.SerializeAsString());
-  if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  txn->AppendVectorIndexWAL(shared_from_this(), wal.SerializeAsString());
 }
 
 void VertexVectorIndex::Load() {
@@ -838,14 +834,7 @@ void VertexVectorIndex::Load() {
                  rocksdb::Slice(AsChars(vector_id), sizeof(vector_id)));
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     vectorid_vid_.emplace(vector_id, vid);
-    hnsw_index_->Add(embedding.get(), 1);
-    if (hnsw_index_->GetNumElements() != vector_id) {
-      THROW_CODE(
-          VectorIndexException,
-          "faiss hnsw internal label mismatch, expect vector id {}, actual "
-          "element count {}",
-          vector_id, hnsw_index_->GetNumElements());
-    }
+    hnsw_index_->Add(embedding.get(), 1, &vector_id);
     count++;
     if (count % 10000 == 0) {
       SPDLOG_INFO("{} vector indexes have been load", count);

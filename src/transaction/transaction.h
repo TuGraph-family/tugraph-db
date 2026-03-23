@@ -20,6 +20,7 @@
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <set>
+#include <vector>
 
 #include "common/value.h"
 #include "graphdb/edge_direction.h"
@@ -70,6 +71,10 @@ class Transaction {
       const std::string& index_name, const std::vector<float>& query, int top_k,
       int ef_search);
   std::unique_ptr<ResultIterator> Execute(void* ctx, const std::string& cypher);
+  void AppendVectorIndexWAL(std::shared_ptr<graphdb::VertexVectorIndex> index,
+                            std::string payload) {
+    pending_vector_wals_.push_back({std::move(index), std::move(payload)});
+  }
   void Commit();
   void Rollback();
   graphdb::GraphDB* db() { return db_; }
@@ -80,9 +85,15 @@ class Transaction {
   std::shared_ptr<bolt::BoltConnection>& conn() { return conn_; }
 
  private:
+  struct PendingVectorWAL {
+    std::shared_ptr<graphdb::VertexVectorIndex> index;
+    std::string payload;
+  };
+
   rocksdb::Transaction* txn_;
   graphdb::GraphDB* db_;
   std::shared_ptr<bolt::BoltConnection> conn_;
+  std::vector<PendingVectorWAL> pending_vector_wals_;
 };
 
 }  // namespace txn
