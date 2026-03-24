@@ -143,11 +143,11 @@ std::unique_ptr<txn::Transaction> GraphDB::BeginTransaction() {
   return std::make_unique<txn::Transaction>(txn, this);
 }
 
-void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
-                                     bool /*unique*/, const std::string& label,
-                                     const std::string& property) {
+void GraphDB::AddVertexPropertyIndex(
+    const std::string& index_name, bool unique, const std::string& label,
+    const std::vector<std::string>& properties) {
   std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
-  if (index_name.empty() || label.empty() || property.empty()) {
+  if (index_name.empty() || label.empty() || properties.empty()) {
     THROW_CODE(InvalidParameter);
   }
   if (meta_info_.GetVertexPropertyIndex(index_name)) {
@@ -155,67 +155,66 @@ void GraphDB::AddVertexPropertyIndex(const std::string& index_name,
                index_name);
   }
   auto lid = id_generator().GetOrCreateLid(label);
-  auto pid = id_generator().GetOrCreatePid(property);
-  if (meta_info_.GetVertexPropertyIndex(lid, pid)) {
-    THROW_CODE(VertexIndexAlreadyExist,
-               "Vertex index [label:{}, property:{}] already exists",
-               big_to_native(lid), big_to_native(pid));
+  std::vector<uint32_t> pids;
+  pids.reserve(properties.size());
+  std::unordered_set<uint32_t> pid_set;
+  for (const auto& property : properties) {
+    if (property.empty()) {
+      THROW_CODE(InvalidParameter);
+    }
+    auto pid = id_generator().GetOrCreatePid(property);
+    if (!pid_set.insert(pid).second) {
+      THROW_CODE(InvalidParameter, "Duplicate property [{}] in index [{}]",
+                 property, index_name);
+    }
+    pids.push_back(pid);
   }
-  auto busy_guard = busy_index_.Hold({lid}, {pid});
+  if (meta_info_.GetVertexPropertyIndex(lid, pids)) {
+    THROW_CODE(VertexIndexAlreadyExist,
+               "Vertex index [label:{}, property_count:{}] already exists",
+               big_to_native(lid), pids.size());
+  }
+  auto busy_guard = busy_index_.Hold({lid}, std::move(pid_set));
   auto index_id = id_generator().GetNextIndexId();
+  meta::VertexPropertyIndex meta_val;
+  meta_val.set_name(index_name);
+  meta_val.set_is_unique(unique);
+  meta_val.set_label(label);
+  meta_val.set_label_id(big_to_native(lid));
+  meta_val.set_index_id(big_to_native(index_id));
+  for (size_t i = 0; i < properties.size(); ++i) {
+    meta_val.add_properties(properties[i]);
+    meta_val.add_property_ids(big_to_native(pids[i]));
+  }
+  auto vpi = std::make_shared<VertexPropertyIndex>(meta_val, graph_cf_.index,
+                                                   index_id, lid, pids);
+  auto build_txn = BeginTransaction();
   rocksdb::ReadOptions ro;
-  rocksdb::WriteOptions wo;
   std::unique_ptr<rocksdb::Iterator> iter(
-      db_->NewIterator(ro, graph_cf_.vertex_label_vid));
+      build_txn->dbtxn()->GetIterator(ro, graph_cf_.vertex_label_vid));
   rocksdb::Slice prefix(AsChars(lid), sizeof(lid));
   for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
        iter->Next()) {
     auto key = iter->key();
     key.remove_prefix(sizeof(uint32_t));
-
-    std::string property_key = key.ToString();
-    property_key.append(AsChars(pid), sizeof(pid));
-    std::string property_val;
-    auto s =
-        db_->Get(ro, graph_cf_.vertex_property, property_key, &property_val);
-    if (s.IsNotFound()) {
+    int64_t vid = common::ReadValue<int64_t>(key.data());
+    auto values = vpi->LoadIndexedPropertyValues(build_txn.get(), vid);
+    if (!values) {
       continue;
-    } else if (!s.ok()) {
-      THROW_CODE(StorageEngineError, s.ToString());
     }
-    std::string index_key, tmp;
-    index_key.append(AsChars(index_id), sizeof(index_id));
-    index_key.append(property_val);
-    s = db_->Get(ro, graph_cf_.index, index_key, &tmp);
-    if (s.ok()) {
-      THROW_CODE(IndexValueAlreadyExist);
-    } else if (!s.IsNotFound()) {
-      THROW_CODE(StorageEngineError, s.ToString());
-    }
-    rocksdb::Slice vid = key;
-    s = db_->Put(wo, graph_cf_.index, index_key, vid);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    vpi->AddIndex(build_txn.get(), vid, *values);
   }
 
-  // write meta info
   std::string meta_key;
   meta_key.append(1, static_cast<char>(MetaDataType::VertexPropertyIndex));
   meta_key.append(index_name);
-  meta::VertexPropertyIndex meta_val;
-  meta_val.set_name(index_name);
-  meta_val.set_is_unique(true);
-  meta_val.set_label(label);
-  meta_val.set_property(property);
-  meta_val.set_label_id(big_to_native(lid));
-  meta_val.set_property_id(big_to_native(pid));
-  meta_val.set_index_id(big_to_native(index_id));
-  auto s =
-      db_->Put(wo, graph_cf_.meta_info, meta_key, meta_val.SerializeAsString());
+  auto s = build_txn->dbtxn()->GetWriteBatch()->Put(
+      graph_cf_.meta_info, meta_key, meta_val.SerializeAsString());
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  LOG_INFO("Add vertex index: [lid:{}, pid:{}, is_unique:{}]",
-           big_to_native(lid), big_to_native(pid), true);
-  auto vpi = std::make_shared<VertexPropertyIndex>(meta_val, graph_cf_.index,
-                                                   index_id, lid, pid);
+  build_txn->Commit();
+
+  LOG_INFO("Add vertex index: [lid:{}, property_count:{}, is_unique:{}]",
+           big_to_native(lid), pids.size(), unique);
   auto ret = meta_info_.AddVertexPropertyIndex(std::move(vpi));
   assert(ret);
 }
@@ -224,7 +223,7 @@ void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
   std::lock_guard<std::mutex> ddl_lock(index_ddl_mutex_);
   auto index = meta_info_.GetVertexPropertyIndex(index_name);
   if (!index) {
-    THROW_CODE(VertexUniqueIndexNotFound, "No such vertex unique index [{}]",
+    THROW_CODE(VertexUniqueIndexNotFound, "No such vertex index [{}]",
                index_name);
   }
   uint32_t index_id = index->index_id();
@@ -247,7 +246,7 @@ void GraphDB::DeleteVertexPropertyIndex(const std::string& index_name) {
   two.skip_duplicate_key_check = true;
   auto s = db_->Write(wo, two, &wb);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  LOG_INFO("Delete vertex unique index: {}", index_name);
+  LOG_INFO("Delete vertex index: {}", index_name);
 }
 
 void GraphDB::AddVertexFullTextIndex(

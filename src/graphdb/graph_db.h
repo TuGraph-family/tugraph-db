@@ -57,7 +57,7 @@ class GraphDB {
   std::unique_ptr<txn::Transaction> BeginTransaction();
   void AddVertexPropertyIndex(const std::string& index_name, bool,
                               const std::string& label,
-                              const std::string& property);
+                              const std::vector<std::string>& properties);
   void DeleteVertexPropertyIndex(const std::string& index_name);
   void AddVertexFullTextIndex(const std::string& index_name,
                               const std::vector<std::string>& labels,

@@ -29,6 +29,42 @@ using namespace txn;
 using common::AsChars;
 using common::ReadValue;
 namespace graphdb {
+
+namespace {
+
+int CompareKeyWithBoundPrefix(rocksdb::Slice key, const std::string &bound) {
+  size_t common_size = std::min(key.size(), bound.size());
+  int cmp = std::memcmp(key.data(), bound.data(), common_size);
+  if (cmp < 0) {
+    return -1;
+  }
+  if (cmp > 0) {
+    return 1;
+  }
+  if (key.size() < bound.size()) {
+    return -1;
+  }
+  return 0;
+}
+
+int64_t ReadPropertyIndexVid(const std::shared_ptr<VertexPropertyIndex> &index,
+                             rocksdb::Slice key, rocksdb::Slice value) {
+  if (index->is_unique()) {
+    if (value.size() != sizeof(int64_t)) {
+      THROW_CODE(StorageEngineError,
+                 "vertex unique index stores invalid vid size");
+    }
+    return ReadValue<int64_t>(value.data());
+  }
+  if (key.size() < sizeof(uint32_t) + sizeof(int64_t)) {
+    THROW_CODE(StorageEngineError,
+               "vertex non-unique index stores invalid key size");
+  }
+  return ReadValue<int64_t>(key.data() + key.size() - sizeof(int64_t));
+}
+
+}  // namespace
+
 ScanVertexBylabel::ScanVertexBylabel(Transaction *txn, uint32_t lid)
     : VertexIterator(txn), lid_(lid) {
   rocksdb::ReadOptions ro;
@@ -177,17 +213,16 @@ void ScanVertexByProperties::Next() {
 }
 
 GetVertexByUniqueIndex::GetVertexByUniqueIndex(
-    Transaction *txn, uint32_t lid, uint32_t pid, const Value &value,
-    const std::unordered_map<uint32_t, Value> &other_props)
-    : VertexIterator(txn) {
-  auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
-  if (!vi) {
+    Transaction *txn, std::shared_ptr<VertexPropertyIndex> index,
+    std::vector<Value> values, std::unordered_map<uint32_t, Value> other_props)
+    : VertexIterator(txn), index_(std::move(index)) {
+  if (!index_ || !index_->is_unique()) {
     return;
   }
   rocksdb::ReadOptions ro;
   std::string index_val;
-  std::string index_key = vi->IndexKey(value.Serialize());
-  auto s = txn_->dbtxn()->Get(ro, vi->cf(), index_key, &index_val);
+  std::string index_key = index_->IndexKey(values);
+  auto s = txn_->dbtxn()->Get(ro, index_->cf(), index_key, &index_val);
   if (s.ok()) {
     int64_t vid = ReadValue<int64_t>(index_val.data());
     ve_ = std::make_unique<Vertex>(txn_, vid);
@@ -201,6 +236,114 @@ GetVertexByUniqueIndex::GetVertexByUniqueIndex(
   } else if (!s.IsNotFound()) {
     THROW_CODE(StorageEngineError, s.ToString());
   }
+}
+
+GetVertexByPropertyIndex::GetVertexByPropertyIndex(
+    txn::Transaction *txn, std::shared_ptr<VertexPropertyIndex> index,
+    std::string prefix)
+    : VertexIterator(txn),
+      index_(std::move(index)),
+      prefix_(std::move(prefix)) {
+  rocksdb::ReadOptions ro;
+  if (index_->is_unique()) {
+    std::string index_val;
+    auto s = txn_->dbtxn()->Get(ro, index_->cf(), prefix_, &index_val);
+    if (s.ok()) {
+      ve_ = std::make_unique<Vertex>(
+          txn_, ReadPropertyIndexVid(index_, rocksdb::Slice(prefix_),
+                                     rocksdb::Slice(index_val)));
+      valid_ = true;
+    } else if (!s.IsNotFound()) {
+      THROW_CODE(StorageEngineError, s.ToString());
+    }
+    return;
+  }
+  iter_.reset(txn->dbtxn()->GetIterator(ro, index_->cf()));
+  iter_->Seek(prefix_);
+  SeekToNextValid();
+}
+
+void GetVertexByPropertyIndex::SeekToNextValid() {
+  valid_ = false;
+  while (iter_ && iter_->Valid() && iter_->key().starts_with(prefix_)) {
+    ve_ = std::make_unique<Vertex>(
+        txn_, ReadPropertyIndexVid(index_, iter_->key(), iter_->value()));
+    valid_ = true;
+    return;
+  }
+  if (iter_ && !iter_->status().ok()) {
+    THROW_CODE(StorageEngineError, iter_->status().ToString());
+  }
+}
+
+void GetVertexByPropertyIndex::Next() {
+  if (txn_->conn() && txn_->conn()->has_closed()) {
+    THROW_CODE(ConnectionDisconnected);
+  }
+  assert(valid_);
+  valid_ = false;
+  if (index_->is_unique()) {
+    return;
+  }
+  iter_->Next();
+  SeekToNextValid();
+}
+
+GetVertexByPropertyRange::GetVertexByPropertyRange(
+    txn::Transaction *txn, std::shared_ptr<VertexPropertyIndex> index,
+    std::optional<std::string> lower_key, std::optional<std::string> upper_key,
+    bool left_closed, bool right_closed)
+    : VertexIterator(txn),
+      index_(std::move(index)),
+      lower_key_(std::move(lower_key)),
+      upper_key_(std::move(upper_key)),
+      left_closed_(left_closed),
+      right_closed_(right_closed) {
+  index_prefix_.assign(AsChars(index_->index_id()), sizeof(index_->index_id()));
+  rocksdb::ReadOptions ro;
+  iter_.reset(txn->dbtxn()->GetIterator(ro, index_->cf()));
+  if (lower_key_.has_value()) {
+    iter_->Seek(*lower_key_);
+  } else {
+    iter_->Seek(index_prefix_);
+  }
+  SeekToNextValid();
+}
+
+void GetVertexByPropertyRange::SeekToNextValid() {
+  valid_ = false;
+  while (iter_ && iter_->Valid() && iter_->key().starts_with(index_prefix_)) {
+    if (lower_key_.has_value()) {
+      int cmp = CompareKeyWithBoundPrefix(iter_->key(), *lower_key_);
+      if (cmp < 0 || (cmp == 0 && !left_closed_)) {
+        iter_->Next();
+        continue;
+      }
+    }
+    if (upper_key_.has_value()) {
+      int cmp = CompareKeyWithBoundPrefix(iter_->key(), *upper_key_);
+      if (cmp > 0 || (cmp == 0 && !right_closed_)) {
+        break;
+      }
+    }
+    ve_ = std::make_unique<Vertex>(
+        txn_, ReadPropertyIndexVid(index_, iter_->key(), iter_->value()));
+    valid_ = true;
+    return;
+  }
+  if (iter_ && !iter_->status().ok()) {
+    THROW_CODE(StorageEngineError, iter_->status().ToString());
+  }
+}
+
+void GetVertexByPropertyRange::Next() {
+  if (txn_->conn() && txn_->conn()->has_closed()) {
+    THROW_CODE(ConnectionDisconnected);
+  }
+  assert(valid_);
+  valid_ = false;
+  iter_->Next();
+  SeekToNextValid();
 }
 
 GetVertexByFullTextIndex::GetVertexByFullTextIndex(

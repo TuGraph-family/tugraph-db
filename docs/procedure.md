@@ -33,21 +33,50 @@ CALL db.labels();
 CALL db.relationshipTypes();
 ```
 
-## 点类型唯一约束
+## 点属性索引
 
-* db.createUniquePropertyConstraint
+* db.index.createNodeIndex
 
-为点的某个字段创建唯一约束
+为点创建属性索引。第三个参数 `properties` 是属性数组，第四个参数 `parameter` 里目前支持：
+- `unique`，默认 `false`
 ```
-为Person类型的点设置一个唯一约束，约束名字是person_id，约束所有Person类型的点id字段的值是唯一的，就是为id字段设置了一个唯一索引。
-CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
+# 为 Person 类型点的 id 字段创建唯一属性索引
+CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});
+
+# 为 Person 类型点的 age 字段创建普通属性索引
+CALL db.index.createNodeIndex('person_age', 'Person', ['age'], {});
+
+# 为 Person 类型点的 (id, country) 创建复合唯一属性索引
+CALL db.index.createNodeIndex('person_id_country', 'Person', ['id', 'country'], {unique:true});
 ```
 
-* db.deleteUniquePropertyConstraint
+* db.index.deleteIndex
 
-删除点的唯一约束
+删除点属性索引
 ```
-CALL db.deleteUniquePropertyConstraint('person_id');
+CALL db.index.deleteIndex('person_id');
+```
+
+* db.index.queryNodes
+
+按点属性索引做精确匹配查询。
+
+单属性索引时，第二个参数就是索引值；复合索引时，第二个参数需要传和索引属性顺序一致的数组。
+```
+CALL db.index.queryNodes('person_id', 1) YIELD node RETURN node;
+CALL db.index.queryNodes('person_id_country', [1, 'cn']) YIELD node RETURN node;
+```
+
+* db.index.rangeQueryNodes
+
+按点属性索引做范围查询，目前是按索引字段顺序做升序扫描。单属性索引时 `lower`/`upper` 直接传值；复合索引时传和索引属性顺序一致的数组。
+
+`parameter` 里支持：
+- `left_closed`，默认 `true`
+- `right_closed`，默认 `true`
+```
+CALL db.index.rangeQueryNodes('person_id', 10, 20, {left_closed:true, right_closed:false}) YIELD node RETURN node;
+CALL db.index.rangeQueryNodes('person_id_country', [10, 'cn'], [20, 'cn'], {}) YIELD node RETURN node;
 ```
 
 ## 点类型全文索引

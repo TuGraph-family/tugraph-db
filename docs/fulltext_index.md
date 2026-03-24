@@ -21,11 +21,11 @@ CALL db.index.fulltext.createNodeIndex('namesAndTeams',['Employee','Manager'], [
 #清空子图数据
 CALL db.dropDB();
 
-#为Employee类型的点设置一个唯一约束，所有Employee类型的点name字段的值是唯一的，为name字段设置唯一索引。
-CALL db.createUniquePropertyConstraint('employee_name', 'Employee', 'name');
+#为Employee类型的点设置一个唯一属性索引，所有Employee类型的点name字段的值是唯一的。
+CALL db.index.createNodeIndex('employee_name', 'Employee', ['name'], {unique:true});
 
-#为Manager类型的点设置一个唯一约束，所有Manager类型的点name字段的值是唯一的，为name字段设置唯一索引。
-CALL db.createUniquePropertyConstraint('manager_name', 'Manager', 'name');
+#为Manager类型的点设置一个唯一属性索引，所有Manager类型的点name字段的值是唯一的。
+CALL db.index.createNodeIndex('manager_name', 'Manager', ['name'], {unique:true});
 
 #创建全文索引，指定名字是namesAndTeams
 CALL db.index.fulltext.createNodeIndex('namesAndTeams',['Employee','Manager'], ['name','team']);

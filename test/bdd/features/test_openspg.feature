@@ -264,7 +264,7 @@ Feature: test openspg
     Given yago graph
     When executing query
       """
-      CALL db.createUniquePropertyConstraint('person_name_unique', 'Person', 'name')
+      CALL db.index.createNodeIndex('person_name_unique', 'Person', ['name'], {unique:true})
       """
     Then the result should be empty
 

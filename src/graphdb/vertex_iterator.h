@@ -19,10 +19,14 @@
 #pragma once
 #include <rocksdb/utilities/transaction.h>
 
+#include <optional>
+
 #include "ftindex/include/lib.rs.h"
 #include "graph_entity.h"
 #include "iterator.h"
 namespace graphdb {
+struct VertexPropertyIndex;
+
 class VertexIterator : public Iterator {
  public:
   explicit VertexIterator(txn::Transaction* txn) : Iterator(txn) {}
@@ -101,9 +105,10 @@ class ScanVertexByProperties : public VertexIterator {
 
 class GetVertexByUniqueIndex : public VertexIterator {
  public:
-  GetVertexByUniqueIndex(
-      txn::Transaction* txn, uint32_t lid, uint32_t pid, const Value& value,
-      const std::unordered_map<uint32_t, Value>& other_props);
+  GetVertexByUniqueIndex(txn::Transaction* txn,
+                         std::shared_ptr<VertexPropertyIndex> index,
+                         std::vector<Value> values,
+                         std::unordered_map<uint32_t, Value> other_props);
   void Next() override { valid_ = false; };
   Vertex& GetVertex() override {
     assert(valid_);
@@ -111,6 +116,53 @@ class GetVertexByUniqueIndex : public VertexIterator {
   }
 
  private:
+  std::shared_ptr<VertexPropertyIndex> index_;
+  std::unique_ptr<Vertex> ve_;
+};
+
+class GetVertexByPropertyIndex : public VertexIterator {
+ public:
+  GetVertexByPropertyIndex(txn::Transaction* txn,
+                           std::shared_ptr<VertexPropertyIndex> index,
+                           std::string prefix);
+  void Next() override;
+  Vertex& GetVertex() override {
+    assert(valid_);
+    return *ve_;
+  }
+
+ private:
+  void SeekToNextValid();
+
+  std::shared_ptr<VertexPropertyIndex> index_;
+  std::string prefix_;
+  std::unique_ptr<rocksdb::Iterator> iter_;
+  std::unique_ptr<Vertex> ve_;
+};
+
+class GetVertexByPropertyRange : public VertexIterator {
+ public:
+  GetVertexByPropertyRange(txn::Transaction* txn,
+                           std::shared_ptr<VertexPropertyIndex> index,
+                           std::optional<std::string> lower_key,
+                           std::optional<std::string> upper_key,
+                           bool left_closed, bool right_closed);
+  void Next() override;
+  Vertex& GetVertex() override {
+    assert(valid_);
+    return *ve_;
+  }
+
+ private:
+  void SeekToNextValid();
+
+  std::shared_ptr<VertexPropertyIndex> index_;
+  std::string index_prefix_;
+  std::optional<std::string> lower_key_;
+  std::optional<std::string> upper_key_;
+  bool left_closed_ = true;
+  bool right_closed_ = true;
+  std::unique_ptr<rocksdb::Iterator> iter_;
   std::unique_ptr<Vertex> ve_;
 };
 

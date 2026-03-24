@@ -231,6 +231,40 @@ class VertexPropertyIndex : public ::google::protobuf::Message /* @@protoc_inser
 
   // accessors -------------------------------------------------------
 
+  // repeated string properties = 5;
+  int properties_size() const;
+  void clear_properties();
+  static const int kPropertiesFieldNumber = 5;
+  const ::std::string& properties(int index) const;
+  ::std::string* mutable_properties(int index);
+  void set_properties(int index, const ::std::string& value);
+  #if LANG_CXX11
+  void set_properties(int index, ::std::string&& value);
+  #endif
+  void set_properties(int index, const char* value);
+  void set_properties(int index, const char* value, size_t size);
+  ::std::string* add_properties();
+  void add_properties(const ::std::string& value);
+  #if LANG_CXX11
+  void add_properties(::std::string&& value);
+  #endif
+  void add_properties(const char* value);
+  void add_properties(const char* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& properties() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_properties();
+
+  // repeated uint32 property_ids = 6;
+  int property_ids_size() const;
+  void clear_property_ids();
+  static const int kPropertyIdsFieldNumber = 6;
+  ::google::protobuf::uint32 property_ids(int index) const;
+  void set_property_ids(int index, ::google::protobuf::uint32 value);
+  void add_property_ids(::google::protobuf::uint32 value);
+  const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+      property_ids() const;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+      mutable_property_ids();
+
   // string name = 1;
   void clear_name();
   static const int kNameFieldNumber = 1;
@@ -259,20 +293,6 @@ class VertexPropertyIndex : public ::google::protobuf::Message /* @@protoc_inser
   ::std::string* release_label();
   void set_allocated_label(::std::string* label);
 
-  // string property = 5;
-  void clear_property();
-  static const int kPropertyFieldNumber = 5;
-  const ::std::string& property() const;
-  void set_property(const ::std::string& value);
-  #if LANG_CXX11
-  void set_property(::std::string&& value);
-  #endif
-  void set_property(const char* value);
-  void set_property(const char* value, size_t size);
-  ::std::string* mutable_property();
-  ::std::string* release_property();
-  void set_allocated_property(::std::string* property);
-
   // bool is_unique = 2;
   void clear_is_unique();
   static const int kIsUniqueFieldNumber = 2;
@@ -285,12 +305,6 @@ class VertexPropertyIndex : public ::google::protobuf::Message /* @@protoc_inser
   ::google::protobuf::uint32 label_id() const;
   void set_label_id(::google::protobuf::uint32 value);
 
-  // uint32 property_id = 6;
-  void clear_property_id();
-  static const int kPropertyIdFieldNumber = 6;
-  ::google::protobuf::uint32 property_id() const;
-  void set_property_id(::google::protobuf::uint32 value);
-
   // uint32 index_id = 7;
   void clear_index_id();
   static const int kIndexIdFieldNumber = 7;
@@ -301,12 +315,13 @@ class VertexPropertyIndex : public ::google::protobuf::Message /* @@protoc_inser
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> properties_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint32 > property_ids_;
+  mutable int _property_ids_cached_byte_size_;
   ::google::protobuf::internal::ArenaStringPtr name_;
   ::google::protobuf::internal::ArenaStringPtr label_;
-  ::google::protobuf::internal::ArenaStringPtr property_;
   bool is_unique_;
   ::google::protobuf::uint32 label_id_;
-  ::google::protobuf::uint32 property_id_;
   ::google::protobuf::uint32 index_id_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_meta_2eproto::TableStruct;
@@ -1280,71 +1295,103 @@ inline void VertexPropertyIndex::set_label_id(::google::protobuf::uint32 value) 
   // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.label_id)
 }
 
-// string property = 5;
-inline void VertexPropertyIndex::clear_property() {
-  property_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+// repeated string properties = 5;
+inline int VertexPropertyIndex::properties_size() const {
+  return properties_.size();
 }
-inline const ::std::string& VertexPropertyIndex::property() const {
-  // @@protoc_insertion_point(field_get:meta.VertexPropertyIndex.property)
-  return property_.GetNoArena();
+inline void VertexPropertyIndex::clear_properties() {
+  properties_.Clear();
 }
-inline void VertexPropertyIndex::set_property(const ::std::string& value) {
-  
-  property_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
-  // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.property)
+inline const ::std::string& VertexPropertyIndex::properties(int index) const {
+  // @@protoc_insertion_point(field_get:meta.VertexPropertyIndex.properties)
+  return properties_.Get(index);
+}
+inline ::std::string* VertexPropertyIndex::mutable_properties(int index) {
+  // @@protoc_insertion_point(field_mutable:meta.VertexPropertyIndex.properties)
+  return properties_.Mutable(index);
+}
+inline void VertexPropertyIndex::set_properties(int index, const ::std::string& value) {
+  // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.properties)
+  properties_.Mutable(index)->assign(value);
 }
 #if LANG_CXX11
-inline void VertexPropertyIndex::set_property(::std::string&& value) {
-  
-  property_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:meta.VertexPropertyIndex.property)
+inline void VertexPropertyIndex::set_properties(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.properties)
+  properties_.Mutable(index)->assign(std::move(value));
 }
 #endif
-inline void VertexPropertyIndex::set_property(const char* value) {
+inline void VertexPropertyIndex::set_properties(int index, const char* value) {
   GOOGLE_DCHECK(value != NULL);
-  
-  property_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:meta.VertexPropertyIndex.property)
+  properties_.Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:meta.VertexPropertyIndex.properties)
 }
-inline void VertexPropertyIndex::set_property(const char* value, size_t size) {
-  
-  property_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:meta.VertexPropertyIndex.property)
+inline void VertexPropertyIndex::set_properties(int index, const char* value, size_t size) {
+  properties_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:meta.VertexPropertyIndex.properties)
 }
-inline ::std::string* VertexPropertyIndex::mutable_property() {
-  
-  // @@protoc_insertion_point(field_mutable:meta.VertexPropertyIndex.property)
-  return property_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* VertexPropertyIndex::add_properties() {
+  // @@protoc_insertion_point(field_add_mutable:meta.VertexPropertyIndex.properties)
+  return properties_.Add();
 }
-inline ::std::string* VertexPropertyIndex::release_property() {
-  // @@protoc_insertion_point(field_release:meta.VertexPropertyIndex.property)
-  
-  return property_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline void VertexPropertyIndex::add_properties(const ::std::string& value) {
+  properties_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:meta.VertexPropertyIndex.properties)
 }
-inline void VertexPropertyIndex::set_allocated_property(::std::string* property) {
-  if (property != NULL) {
-    
-  } else {
-    
-  }
-  property_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), property);
-  // @@protoc_insertion_point(field_set_allocated:meta.VertexPropertyIndex.property)
+#if LANG_CXX11
+inline void VertexPropertyIndex::add_properties(::std::string&& value) {
+  properties_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:meta.VertexPropertyIndex.properties)
+}
+#endif
+inline void VertexPropertyIndex::add_properties(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  properties_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:meta.VertexPropertyIndex.properties)
+}
+inline void VertexPropertyIndex::add_properties(const char* value, size_t size) {
+  properties_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:meta.VertexPropertyIndex.properties)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+VertexPropertyIndex::properties() const {
+  // @@protoc_insertion_point(field_list:meta.VertexPropertyIndex.properties)
+  return properties_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+VertexPropertyIndex::mutable_properties() {
+  // @@protoc_insertion_point(field_mutable_list:meta.VertexPropertyIndex.properties)
+  return &properties_;
 }
 
-// uint32 property_id = 6;
-inline void VertexPropertyIndex::clear_property_id() {
-  property_id_ = 0u;
+// repeated uint32 property_ids = 6;
+inline int VertexPropertyIndex::property_ids_size() const {
+  return property_ids_.size();
 }
-inline ::google::protobuf::uint32 VertexPropertyIndex::property_id() const {
-  // @@protoc_insertion_point(field_get:meta.VertexPropertyIndex.property_id)
-  return property_id_;
+inline void VertexPropertyIndex::clear_property_ids() {
+  property_ids_.Clear();
 }
-inline void VertexPropertyIndex::set_property_id(::google::protobuf::uint32 value) {
-  
-  property_id_ = value;
-  // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.property_id)
+inline ::google::protobuf::uint32 VertexPropertyIndex::property_ids(int index) const {
+  // @@protoc_insertion_point(field_get:meta.VertexPropertyIndex.property_ids)
+  return property_ids_.Get(index);
+}
+inline void VertexPropertyIndex::set_property_ids(int index, ::google::protobuf::uint32 value) {
+  property_ids_.Set(index, value);
+  // @@protoc_insertion_point(field_set:meta.VertexPropertyIndex.property_ids)
+}
+inline void VertexPropertyIndex::add_property_ids(::google::protobuf::uint32 value) {
+  property_ids_.Add(value);
+  // @@protoc_insertion_point(field_add:meta.VertexPropertyIndex.property_ids)
+}
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >&
+VertexPropertyIndex::property_ids() const {
+  // @@protoc_insertion_point(field_list:meta.VertexPropertyIndex.property_ids)
+  return property_ids_;
+}
+inline ::google::protobuf::RepeatedField< ::google::protobuf::uint32 >*
+VertexPropertyIndex::mutable_property_ids() {
+  // @@protoc_insertion_point(field_mutable_list:meta.VertexPropertyIndex.property_ids)
+  return &property_ids_;
 }
 
 // uint32 index_id = 7;

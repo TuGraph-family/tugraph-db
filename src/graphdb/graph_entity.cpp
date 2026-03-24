@@ -48,6 +48,63 @@ std::unordered_map<uint32_t, std::string> LoadVertexSerializedProperties(
   return props;
 }
 
+void AddVertexPropertyIndexesForLabels(
+    txn::Transaction *txn, int64_t vid,
+    const std::unordered_set<uint32_t> &lids,
+    const std::unordered_map<uint32_t, std::string> &properties) {
+  auto indexes = txn->db()->meta_info().GetVertexPropertyIndexes();
+  for (const auto &index : indexes) {
+    if (!lids.count(index->lid())) {
+      continue;
+    }
+    auto index_values =
+        index->LoadIndexedPropertyValues(txn, vid, &properties, nullptr);
+    if (!index_values) {
+      continue;
+    }
+    index->AddIndex(txn, vid, *index_values);
+  }
+}
+
+void DeleteVertexPropertyIndexesForLabels(
+    txn::Transaction *txn, int64_t vid,
+    const std::unordered_set<uint32_t> &lids,
+    const std::unordered_map<uint32_t, std::string> &properties) {
+  auto indexes = txn->db()->meta_info().GetVertexPropertyIndexes();
+  for (const auto &index : indexes) {
+    if (!lids.count(index->lid())) {
+      continue;
+    }
+    auto index_values =
+        index->LoadIndexedPropertyValues(txn, vid, &properties, nullptr);
+    if (!index_values) {
+      continue;
+    }
+    index->DeleteIndex(txn, vid, *index_values);
+  }
+}
+
+void RefreshVertexPropertyIndexes(
+    txn::Transaction *txn, int64_t vid,
+    const std::unordered_set<uint32_t> &lids,
+    const std::unordered_set<uint32_t> &touched_pids,
+    const std::unordered_map<uint32_t, std::string> &overrides,
+    const std::unordered_set<uint32_t> &removed_pids) {
+  if (touched_pids.empty()) {
+    return;
+  }
+  auto indexes = txn->db()->meta_info().GetVertexPropertyIndexes();
+  for (const auto &index : indexes) {
+    if (!lids.count(index->lid()) || !index->TouchesAnyProperty(touched_pids)) {
+      continue;
+    }
+    auto old_values = index->LoadIndexedPropertyValues(txn, vid);
+    auto new_values =
+        index->LoadIndexedPropertyValues(txn, vid, &overrides, &removed_pids);
+    index->UpdateIndex(txn, vid, new_values, old_values);
+  }
+}
+
 }  // namespace
 
 std::unique_ptr<EdgeIterator> Vertex::NewEdgeIterator(
@@ -231,17 +288,9 @@ int Vertex::Delete() {
         labelIds.insert(ReadValue<uint32_t>(val.data() + i));
       }
       std::unordered_set<uint32_t> pids;
-      // delete label vid
-      for (auto labelId : labelIds) {
-        std::string labelVid;
-        labelVid.append(AsChars(labelId), sizeof(labelId));
-        labelVid.append(key.data(), key.size());
-        auto s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
-            txn_->db()->graph_cf().vertex_label_vid, labelVid);
-        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-      }
+      std::unordered_map<uint32_t, std::string> props;
+      std::vector<std::string> prop_keys;
 
-      // delete vertex properties
       std::unique_ptr<rocksdb::Iterator> vp_iter;
       rocksdb::Slice vp_prefix = key;
       vp_iter.reset(txn_->dbtxn()->GetIterator(
@@ -252,19 +301,26 @@ int Vertex::Delete() {
         auto p_key = vp_iter->key().ToString();  // must copy
         auto pid = ReadValue<uint32_t>(p_key.data() + sizeof(int64_t));
         pids.insert(pid);
-        auto p_val = vp_iter->value().ToString();  // must copy
-        for (auto lid : labelIds) {
-          auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
-          if (vi) {
-            vi->DeleteIndex(txn_, p_val);
-          }
-        }
-        auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
-            txn_->db()->graph_cf().vertex_property, p_key);
-        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+        props.emplace(pid, vp_iter->value().ToString());
+        prop_keys.push_back(std::move(p_key));
       }
       if (txn_->db()->busy_index().Busy(labelIds, pids)) {
         THROW_CODE(IndexBusy);
+      }
+      // delete label vid
+      for (auto labelId : labelIds) {
+        std::string labelVid;
+        labelVid.append(AsChars(labelId), sizeof(labelId));
+        labelVid.append(key.data(), key.size());
+        auto s = txn_->dbtxn()->GetWriteBatch()->SingleDelete(
+            txn_->db()->graph_cf().vertex_label_vid, labelVid);
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+      }
+      DeleteVertexPropertyIndexesForLabels(txn_, id_, labelIds, props);
+      for (auto &p_key : prop_keys) {
+        auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
+            txn_->db()->graph_cf().vertex_property, p_key);
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
       }
       auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
       auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
@@ -288,7 +344,7 @@ int Vertex::Delete() {
         if (!pids.count(vvi->pid())) {
           continue;
         }
-        vvi->TryDeleteIndex(txn_, id_);
+        vvi->DeleteIfPresent(txn_, id_);
       }
       auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
           txn_->db()->graph_cf().graph_topology, key);
@@ -392,14 +448,7 @@ void Vertex::AddLabels(const std::unordered_set<std::string> &labels) {
   auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
   auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
   auto props = LoadVertexSerializedProperties(txn_, id_);
-  for (auto lid : new_lids) {
-    for (const auto &[pid, prop] : props) {
-      auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
-      if (vi) {
-        vi->AddIndex(txn_, id_, prop);
-      }
-    }
-  }
+  AddVertexPropertyIndexesForLabels(txn_, id_, new_lids, props);
   // full text index
   for (const auto &ft : ft_indexes) {
     if (!ft->MatchLabelIds(new_lids)) {
@@ -495,14 +544,7 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
   auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
   auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
   auto props = LoadVertexSerializedProperties(txn_, id_);
-  for (auto lid : remove_lids) {
-    for (const auto &[pid, prop] : props) {
-      auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
-      if (vi) {
-        vi->DeleteIndex(txn_, prop);
-      }
-    }
-  }
+  DeleteVertexPropertyIndexesForLabels(txn_, id_, remove_lids, props);
   auto remaining_lids = labelIds;
   for (auto id : remove_lids) {
     remaining_lids.erase(id);
@@ -524,7 +566,7 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
     if (!remove_lids.count(vvi->lid())) {
       continue;
     }
-    vvi->TryDeleteIndex(txn_, id_);
+    vvi->DeleteIfPresent(txn_, id_);
   }
   labelIds = std::move(remaining_lids);
   std::string buffer;
@@ -618,33 +660,9 @@ void Vertex::SetProperties(
   if (txn_->db()->busy_index().Busy(lids, pids)) {
     THROW_CODE(IndexBusy);
   }
-  auto property_indexes = txn_->db()->meta_info().GetVertexPropertyIndexes();
   auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
   auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
-  // property index
-  for (const auto &index : property_indexes) {
-    if (!lids.count(index->lid())) {
-      continue;
-    }
-    auto iter = serialized.find(index->pid());
-    if (iter == serialized.end()) {
-      continue;
-    }
-    auto pid = iter->first;
-    std::string pkey(AsChars(id_), sizeof(id_));
-    pkey.append(AsChars(pid), sizeof(pid));
-    rocksdb::ReadOptions ro;
-    std::string val;
-    const std::string *old = nullptr;
-    auto s = txn_->dbtxn()->Get(ro, txn_->db()->graph_cf().vertex_property,
-                                pkey, &val);
-    if (s.ok()) {
-      old = &val;
-    } else if (!s.IsNotFound()) {
-      THROW_CODE(StorageEngineError, s.ToString());
-    }
-    index->UpdateIndex(txn_, id_, iter->second, old);
-  }
+  RefreshVertexPropertyIndexes(txn_, id_, lids, pids, serialized, {});
   // full text index
   for (const auto &index : ft_indexes) {
     if (!index->MatchLabelIds(lids) || !index->MatchPropertyIds(pids)) {
@@ -687,7 +705,7 @@ void Vertex::SetProperties(
     if (!pids.count(index->pid()) || !lids.count(index->lid())) {
       continue;
     }
-    index->TryDeleteIndex(txn_, id_);
+    index->DeleteIfPresent(txn_, id_);
     auto value = original.at(index->pid());
     if (!value->IsArray()) {
       continue;
@@ -746,15 +764,7 @@ void Vertex::RemoveAllProperty() {
   }
   auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
   auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
-  // property index
-  for (auto lid : lids) {
-    for (auto &[pid, prop] : props) {
-      auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
-      if (vi) {
-        vi->DeleteIndex(txn_, prop);
-      }
-    }
-  }
+  RefreshVertexPropertyIndexes(txn_, id_, lids, pids, {}, pids);
   // full text index
   for (const auto &ft : ft_indexes) {
     if (!ft->MatchLabelIds(lids)) {
@@ -772,7 +782,7 @@ void Vertex::RemoveAllProperty() {
     if (!pids.count(vvi->pid()) || !lids.count(vvi->lid())) {
       continue;
     }
-    vvi->TryDeleteIndex(txn_, id_);
+    vvi->DeleteIfPresent(txn_, id_);
   }
   for (auto &key : prop_keys) {
     auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
@@ -794,25 +804,19 @@ void Vertex::RemoveProperty(const std::string &name) {
   if (txn_->db()->busy_index().Busy(lids, pid)) {
     THROW_CODE(IndexBusy);
   }
+  rocksdb::ReadOptions ro;
+  std::string old_val;
+  auto s = txn_->dbtxn()->Get(ro, txn_->db()->graph_cf().vertex_property, pkey,
+                              &old_val);
+  if (s.IsNotFound()) {
+    return;
+  }
+  if (!s.ok()) {
+    THROW_CODE(StorageEngineError, s.ToString());
+  }
   auto ft_indexes = txn_->db()->meta_info().GetVertexFullTextIndexes();
   auto vector_indexes = txn_->db()->meta_info().GetVertexVectorIndexes();
-  // property index
-  for (auto lid : lids) {
-    auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
-    if (vi) {
-      std::string old_val;
-      rocksdb::ReadOptions ro;
-      auto s = txn_->dbtxn()->Get(ro, txn_->db()->graph_cf().vertex_property,
-                                  pkey, &old_val);
-      if (s.ok()) {
-        vi->DeleteIndex(txn_, old_val);
-      } else if (s.IsNotFound()) {
-        return;
-      } else {
-        THROW_CODE(StorageEngineError, s.ToString());
-      }
-    }
-  }
+  RefreshVertexPropertyIndexes(txn_, id_, lids, {pid}, {}, {pid});
   // full text index
   for (const auto &ft : ft_indexes) {
     if (!ft->MatchLabelIds(lids) || !ft->MatchPropertyIds({pid})) {
@@ -848,9 +852,9 @@ void Vertex::RemoveProperty(const std::string &name) {
     if (pid != vvi->pid() || !lids.count(vvi->lid())) {
       continue;
     }
-    vvi->TryDeleteIndex(txn_, id_);
+    vvi->DeleteIfPresent(txn_, id_);
   }
-  auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
+  s = txn_->dbtxn()->GetWriteBatch()->Delete(
       txn_->db()->graph_cf().vertex_property, pkey);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
 }

@@ -99,7 +99,7 @@ Feature: test procedure
     Given an empty graph
     And having executed
       """
-      CALL db.createUniquePropertyConstraint('person_id', 'person', 'id');
+      CALL db.index.createNodeIndex('person_id', 'person', ['id'], {unique:true});
       CALL db.index.fulltext.createNodeIndex('namesAndTeams',['Employee','Manager'], ['name','team']);
       CALL db.index.vector.createNodeIndex('person_embedding','person', 'embedding', {dimension:4});
       """
@@ -117,7 +117,7 @@ Feature: test procedure
     Given yago graph
     And having executed
     """
-      CALL db.createUniquePropertyConstraint('person_name', 'Person', 'name');
+      CALL db.index.createNodeIndex('person_name', 'Person', ['name'], {unique:true});
     """
     When executing query
       """
@@ -128,6 +128,45 @@ Feature: test procedure
       | 'person_name' | 'Unique' | 'NODE' | ['Person'] | ['name'] |null                                |
     When executing query
       """
-      CALL db.deleteUniquePropertyConstraint('person_name');
+      CALL db.index.deleteIndex('person_name');
       """
     Then the result should be empty
+
+  Scenario: case09 non-unique property index exact query
+    Given an empty graph
+    And having executed
+      """
+      CREATE (:person {id:1, name:'alice'});
+      CREATE (:person {id:2, name:'bob'});
+      CREATE (:person {id:2, name:'bobby'});
+      CALL db.index.createNodeIndex('person_id', 'person', ['id'], {unique:false});
+      """
+    When executing query
+      """
+      CALL db.index.queryNodes('person_id', 2) YIELD node RETURN node.name
+      """
+    Then the result should be, in any order
+      | node.name |
+      | 'bob'     |
+      | 'bobby'   |
+
+  Scenario: case10 non-unique property index range query
+    Given an empty graph
+    And having executed
+      """
+      CREATE (:person {id:1, name:'alice'});
+      CREATE (:person {id:2, name:'bob'});
+      CREATE (:person {id:2, name:'bobby'});
+      CREATE (:person {id:3, name:'cindy'});
+      CREATE (:person {id:4, name:'david'});
+      CALL db.index.createNodeIndex('person_id', 'person', ['id'], {unique:false});
+      """
+    When executing query
+      """
+      CALL db.index.rangeQueryNodes('person_id', 2, 4, {left_closed:true, right_closed:false}) YIELD node RETURN node.name
+      """
+    Then the result should be, in any order
+      | node.name |
+      | 'bob'     |
+      | 'bobby'   |
+      | 'cindy'   |

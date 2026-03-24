@@ -37,6 +37,10 @@ struct MetaInfo {
   std::shared_ptr<VertexPropertyIndex> GetVertexPropertyIndex(uint32_t lid,
                                                               uint32_t pid);
   std::shared_ptr<VertexPropertyIndex> GetVertexPropertyIndex(
+      uint32_t lid, const std::vector<uint32_t>& pids);
+  std::shared_ptr<VertexPropertyIndex> GetBestVertexPropertyUniqueIndex(
+      uint32_t lid, const std::unordered_set<uint32_t>& pids);
+  std::shared_ptr<VertexPropertyIndex> GetVertexPropertyIndex(
       const std::string& index_name);
   std::vector<std::shared_ptr<VertexPropertyIndex>> GetVertexPropertyIndexes();
   bool AddVertexPropertyIndex(std::shared_ptr<VertexPropertyIndex> vpi);
@@ -62,8 +66,10 @@ struct MetaInfo {
 
  private:
   mutable std::shared_mutex mutex_;
-  std::unordered_map<uint64_t, std::shared_ptr<VertexPropertyIndex>>
-      vertex_property_indexes;
+  std::unordered_map<std::string, std::shared_ptr<VertexPropertyIndex>>
+      vertex_property_indexes_by_name_;
+  std::unordered_map<std::string, std::shared_ptr<VertexPropertyIndex>>
+      vertex_property_indexes_by_schema_;
   std::unordered_map<uint64_t, std::shared_ptr<VertexVectorIndex>>
       vertex_vector_indexes;
   std::unordered_map<std::string, std::shared_ptr<VertexFullTextIndex>>

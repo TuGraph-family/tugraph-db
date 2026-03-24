@@ -20,7 +20,9 @@
 
 #include <rocksdb/utilities/write_batch_with_index.h>
 
+#include <algorithm>
 #include <boost/endian/conversion.hpp>
+#include <cstring>
 
 #include "common/byte_utils.h"
 #include "common/exceptions.h"
@@ -29,6 +31,82 @@
 #include "graphdb/graph_db.h"
 using namespace graphdb;
 using namespace boost::endian;
+
+namespace {
+
+bool IsRangeComparableValue(const Value& value) {
+  return !value.IsArray() && !value.IsMap();
+}
+
+std::shared_ptr<VertexPropertyIndex> ResolveVertexPropertyIndexOrThrow(
+    txn::Transaction* txn, const std::string& index_name) {
+  auto index = txn->db()->meta_info().GetVertexPropertyIndex(index_name);
+  if (!index) {
+    THROW_CODE(VertexUniqueIndexNotFound, "No such vertex index [{}]",
+               index_name);
+  }
+  return index;
+}
+
+std::vector<Value> BuildPropertyIndexQueryValues(
+    const std::shared_ptr<VertexPropertyIndex>& index, const Value& query,
+    const std::string& arg_name) {
+  std::vector<Value> values;
+  if (index->PropertyCount() == 1) {
+    values.emplace_back(query);
+    return values;
+  }
+
+  if (!query.IsArray()) {
+    THROW_CODE(ReminderException,
+               "{} type should be Array for composite index {}", arg_name,
+               index->meta().name());
+  }
+  const auto& items = query.AsArray();
+  if (items.size() != index->PropertyCount()) {
+    THROW_CODE(ReminderException,
+               "{} element count should be {}, but {} are given", arg_name,
+               index->PropertyCount(), items.size());
+  }
+  return {items.begin(), items.end()};
+}
+
+std::optional<std::string> BuildPropertyIndexRangeKey(
+    const std::shared_ptr<VertexPropertyIndex>& index,
+    const std::optional<Value>& bound, const std::string& arg_name) {
+  if (!bound.has_value()) {
+    return std::nullopt;
+  }
+  auto values = BuildPropertyIndexQueryValues(index, *bound, arg_name);
+  for (const auto& value : values) {
+    if (!IsRangeComparableValue(value)) {
+      THROW_CODE(ReminderException,
+                 "{} does not support ARRAY or MAP component", arg_name);
+    }
+  }
+  return index->IndexKey(values);
+}
+
+bool IsEmptyPropertyIndexRange(const std::optional<std::string>& lower_key,
+                               const std::optional<std::string>& upper_key,
+                               bool left_closed, bool right_closed) {
+  if (!lower_key.has_value() || !upper_key.has_value()) {
+    return false;
+  }
+  size_t common_size = std::min(lower_key->size(), upper_key->size());
+  int cmp = std::memcmp(lower_key->data(), upper_key->data(), common_size);
+  if (cmp == 0) {
+    if (lower_key->size() < upper_key->size()) {
+      cmp = -1;
+    } else if (lower_key->size() > upper_key->size()) {
+      cmp = 1;
+    }
+  }
+  return cmp > 0 || (cmp == 0 && (!left_closed || !right_closed));
+}
+
+}  // namespace
+
 namespace txn {
 Vertex Transaction::CreateVertex(
     const std::unordered_set<std::string>& labels,
@@ -56,29 +134,38 @@ Vertex Transaction::CreateVertex(
                                  buffer);
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   std::unordered_map<uint32_t, const Value*> pid_values;
+  std::unordered_map<uint32_t, std::string> serialized_values;
   std::unordered_set<uint32_t> pids;
+  auto property_indexes = db_->meta_info().GetVertexPropertyIndexes();
   auto ft_indexes = db_->meta_info().GetVertexFullTextIndexes();
   auto vector_indexes = db_->meta_info().GetVertexVectorIndexes();
   for (const auto& [name, value] : values) {
     uint32_t pid = db_->id_generator().GetOrCreatePid(name);
     pid_values[pid] = &value;
+    serialized_values.emplace(pid, value.Serialize());
     pids.insert(pid);
-    buffer.clear();
-    buffer.append((const char*)&vid, sizeof(vid));
-    buffer.append((const char*)&pid, sizeof(pid));
-    std::string val = value.Serialize();
-    for (auto lid : lids) {
-      auto vi = db_->meta_info().GetVertexPropertyIndex(lid, pid);
-      if (vi) {
-        vi->AddIndex(this, vid, val);
-      }
-    }
-    s = txn_->GetWriteBatch()->Put(db_->graph_cf().vertex_property, buffer,
-                                   val);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   }
   if (db_->busy_index().Busy(lids, pids)) {
     THROW_CODE(IndexBusy);
+  }
+  for (const auto& index : property_indexes) {
+    if (!lids.count(index->lid())) {
+      continue;
+    }
+    auto index_values = index->LoadIndexedPropertyValues(
+        this, vid, &serialized_values, nullptr);
+    if (!index_values) {
+      continue;
+    }
+    index->AddIndex(this, vid, *index_values);
+  }
+  for (const auto& [pid, val] : serialized_values) {
+    buffer.clear();
+    buffer.append((const char*)&vid, sizeof(vid));
+    buffer.append((const char*)&pid, sizeof(pid));
+    s = txn_->GetWriteBatch()->Put(db_->graph_cf().vertex_property, buffer,
+                                   val);
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   }
   // full text index
   for (const auto& ft : ft_indexes) {
@@ -263,29 +350,18 @@ std::string Transaction::GetVertexIteratorInfo(
     if (!lid.has_value()) {
       return "NoVertexFound";
     }
-    std::unordered_map<uint32_t, Value> map;
-    bool found_unique_index = false;
-    Value unique_val;
+    std::unordered_set<uint32_t> pids;
     for (auto& name : props.value()) {
       auto pid = db_->id_generator().GetPid(name);
       if (!pid.has_value()) {
         return "NoVertexFound";
-      } else {
-        if (!found_unique_index) {
-          auto vi =
-              db_->meta_info().GetVertexPropertyIndex(lid.value(), pid.value());
-          if (vi) {
-            found_unique_index = true;
-            continue;
-          }
-        }
       }
+      pids.insert(pid.value());
     }
-    if (found_unique_index) {
+    if (db_->meta_info().GetBestVertexPropertyUniqueIndex(lid.value(), pids)) {
       return "GetVertexByUniqueIndex";
-    } else {
-      return "ScanVertexBylabelProperties";
     }
+    return "ScanVertexBylabelProperties";
   }
 }
 
@@ -318,34 +394,32 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
       return std::make_unique<NoVertexFound>(this);
     }
     std::unordered_map<uint32_t, Value> map;
-    bool found_unique_index = false;
-    uint32_t unique_pid;
-    Value unique_val;
     for (auto& [name, val] : props.value()) {
       auto pid = db_->id_generator().GetPid(name);
       if (!pid.has_value()) {
         return std::make_unique<NoVertexFound>(this);
-      } else {
-        if (!found_unique_index) {
-          auto vi =
-              db_->meta_info().GetVertexPropertyIndex(lid.value(), pid.value());
-          if (vi) {
-            found_unique_index = true;
-            unique_pid = pid.value();
-            unique_val = val;
-            continue;
-          }
-        }
-        map.emplace(pid.value(), val);
       }
+      map.emplace(pid.value(), val);
     }
-    if (found_unique_index) {
-      return std::make_unique<GetVertexByUniqueIndex>(
-          this, lid.value(), unique_pid, unique_val, map);
-    } else {
+    std::unordered_set<uint32_t> pids;
+    for (const auto& [pid, _] : map) {
+      pids.insert(pid);
+    }
+    auto unique_index =
+        db_->meta_info().GetBestVertexPropertyUniqueIndex(lid.value(), pids);
+    if (!unique_index) {
       return std::make_unique<ScanVertexBylabelProperties>(this, lid.value(),
                                                            std::move(map));
     }
+    std::vector<Value> indexed_values;
+    indexed_values.reserve(unique_index->PropertyCount());
+    for (auto pid : unique_index->pids()) {
+      indexed_values.push_back(map.at(pid));
+      map.erase(pid);
+    }
+    return std::make_unique<GetVertexByUniqueIndex>(
+        this, std::move(unique_index), std::move(indexed_values),
+        std::move(map));
   }
 }
 
@@ -391,6 +465,33 @@ std::unique_ptr<VertexScoreIterator> Transaction::QueryVertexByFTIndex(
     const std::string& index_name, const std::string& query, size_t top_n) {
   return std::make_unique<GetVertexByFullTextIndex>(this, index_name, query,
                                                     top_n);
+}
+
+std::unique_ptr<graphdb::VertexIterator>
+Transaction::QueryVertexByPropertyIndex(const std::string& index_name,
+                                        const Value& query) {
+  auto index = ResolveVertexPropertyIndexOrThrow(this, index_name);
+  auto values = BuildPropertyIndexQueryValues(index, query, "query");
+  auto key = index->IndexKey(values);
+  return std::make_unique<GetVertexByPropertyIndex>(this, std::move(index),
+                                                    std::move(key));
+}
+
+std::unique_ptr<graphdb::VertexIterator>
+Transaction::QueryVertexByPropertyRange(const std::string& index_name,
+                                        const std::optional<Value>& lower,
+                                        const std::optional<Value>& upper,
+                                        bool left_closed, bool right_closed) {
+  auto index = ResolveVertexPropertyIndexOrThrow(this, index_name);
+  auto lower_key = BuildPropertyIndexRangeKey(index, lower, "lower");
+  auto upper_key = BuildPropertyIndexRangeKey(index, upper, "upper");
+  if (IsEmptyPropertyIndexRange(lower_key, upper_key, left_closed,
+                                right_closed)) {
+    return std::make_unique<NoVertexFound>(this);
+  }
+  return std::make_unique<GetVertexByPropertyRange>(
+      this, std::move(index), std::move(lower_key), std::move(upper_key),
+      left_closed, right_closed);
 }
 
 std::unique_ptr<graphdb::VertexScoreIterator>

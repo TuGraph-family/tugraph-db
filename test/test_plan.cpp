@@ -44,8 +44,8 @@ TEST(ExecutionPlan, unique_index) {
   auto txn = graphDB->BeginTransaction();
   cypher::RTContext rtx;
   txn->Execute(&rtx,
-               "CALL db.createUniquePropertyConstraint('person_name_unique', "
-               "'person', 'name')")
+               "CALL db.index.createNodeIndex('person_name_unique', 'person', "
+               "['name'], {unique:true})")
       ->Consume();
   auto iter =
       txn->Execute(&rtx, "explain match(n:person {name:'bob'}) return n");

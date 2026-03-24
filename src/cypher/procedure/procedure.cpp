@@ -68,17 +68,28 @@ std::vector<Procedure> global_procedures = {
               Procedure::SIG_SPEC{
                   {"relationshipType", {0, ProcedureResultType::Value}}}),
     Procedure(
-        "db.createUniquePropertyConstraint",
-        BuiltinProcedure::DbCreateUniquePropertyConstraint,
+        "db.index.createNodeIndex", BuiltinProcedure::DbIndexCreateNodeIndex,
         Procedure::SIG_SPEC{{"index_name", {0, ProcedureResultType::Value}},
                             {"label", {1, ProcedureResultType::Value}},
-                            {"property", {2, ProcedureResultType::Value}}},
+                            {"properties", {2, ProcedureResultType::Value}},
+                            {"parameter", {3, ProcedureResultType::Value}}},
         Procedure::SIG_SPEC{}),
     Procedure(
-        "db.deleteUniquePropertyConstraint",
-        BuiltinProcedure::DbDeleteUniquePropertyConstraint,
+        "db.index.deleteIndex", BuiltinProcedure::DbIndexDeleteIndex,
         Procedure::SIG_SPEC{{"index_name", {0, ProcedureResultType::Value}}},
         Procedure::SIG_SPEC{}),
+    Procedure(
+        "db.index.queryNodes", BuiltinProcedure::DbIndexQueryNodes,
+        Procedure::SIG_SPEC{{"index_name", {0, ProcedureResultType::Value}},
+                            {"query", {1, ProcedureResultType::Value}}},
+        Procedure::SIG_SPEC{{"node", {0, ProcedureResultType::Node}}}),
+    Procedure(
+        "db.index.rangeQueryNodes", BuiltinProcedure::DbIndexRangeQueryNodes,
+        Procedure::SIG_SPEC{{"index_name", {0, ProcedureResultType::Value}},
+                            {"lower", {1, ProcedureResultType::Value}},
+                            {"upper", {2, ProcedureResultType::Value}},
+                            {"parameter", {3, ProcedureResultType::Value}}},
+        Procedure::SIG_SPEC{{"node", {0, ProcedureResultType::Node}}}),
     Procedure(
         "db.index.fulltext.createNodeIndex",
         BuiltinProcedure::DbIndexFullTextCreateNodeIndex,
@@ -151,6 +162,24 @@ std::vector<Procedure> global_procedures = {
 };
 
 ProcedureTable global_ptable;
+
+namespace {
+
+std::vector<std::string> ParseStringArrayArgument(const Value &value,
+                                                  const std::string &arg_name) {
+  CYPHER_ARG_CHECK(value.IsArray(),
+                   fmt::format("{} type should be Array", arg_name))
+  std::vector<std::string> values;
+  for (const auto &item : value.AsArray()) {
+    CYPHER_ARG_CHECK(item.IsString(),
+                     fmt::format("{} type should be StringArray", arg_name))
+    values.push_back(item.AsString());
+  }
+  return values;
+}
+
+}  // namespace
+
 std::string Procedure::Signature() const {
   std::string s;
   std::map<int, std::string> args, res;
@@ -378,42 +407,119 @@ void BuiltinProcedure::DbRelationshipTypes(
   }
 }
 
-void BuiltinProcedure::DbCreateUniquePropertyConstraint(
+void BuiltinProcedure::DbIndexCreateNodeIndex(
     cypher::RTContext *ctx, const cypher::Record *record,
     const cypher::VEC_EXPR &args, const cypher::VEC_STR &yield_items,
     std::vector<std::vector<ProcedureResult>> *records) {
   CYPHER_ARG_CHECK(
-      args.size() == 3,
-      fmt::format(
-          "Function requires 3 arguments, but {} are "
-          "given. Usage: db.createUniquePropertyConstraint(constraintName, "
-          "label, property)",
-          args.size()))
+      args.size() == 4,
+      fmt::format("Function requires 4 arguments, but {} are "
+                  "given. Usage: db.index.createNodeIndex(index_name, label, "
+                  "properties, parameter)",
+                  args.size()))
   CYPHER_ARG_CHECK(args[0].IsString(), "index_name type should be String")
   CYPHER_ARG_CHECK(args[1].IsString(), "label type should be String")
-  CYPHER_ARG_CHECK(args[2].IsString(), "property type should be String")
+  CYPHER_ARG_CHECK(args[2].IsArray(), "properties type should be Array")
+  CYPHER_ARG_CHECK(args[3].IsMap(), "parameter type should be Map")
   auto index_name = args[0].constant.AsString();
   auto label = args[1].constant.AsString();
-  auto property = args[2].constant.AsString();
-  LOG_INFO("Create unique property constraint, name:{}, label:{}, property:{}",
-           index_name, label, property);
-  ctx->txn_->db()->AddVertexPropertyIndex(index_name, true, label, property);
+  auto properties = ParseStringArrayArgument(args[2].constant, "properties");
+  auto parameter = args[3].constant.AsMap();
+  bool unique = false;
+  if (parameter.count("unique")) {
+    CYPHER_ARG_CHECK(parameter.at("unique").IsBool(),
+                     "unique type should be Bool")
+    unique = parameter.at("unique").AsBool();
+  }
+  LOG_INFO(
+      "Create node property index, name:{}, label:{}, properties:{}, "
+      "parameter:{}",
+      index_name, label, properties, parameter);
+  ctx->txn_->db()->AddVertexPropertyIndex(index_name, unique, label,
+                                          properties);
 }
 
-void BuiltinProcedure::DbDeleteUniquePropertyConstraint(
+void BuiltinProcedure::DbIndexDeleteIndex(
     cypher::RTContext *ctx, const cypher::Record *record,
     const cypher::VEC_EXPR &args, const cypher::VEC_STR &yield_items,
     std::vector<std::vector<ProcedureResult>> *records) {
-  CYPHER_ARG_CHECK(
-      args.size() == 1,
-      fmt::format(
-          "Function requires 1 arguments, but {} are "
-          "given. Usage: db.deleteUniquePropertyConstraint(constraintName)",
-          args.size()))
+  CYPHER_ARG_CHECK(args.size() == 1,
+                   fmt::format("Function requires 1 arguments, but {} are "
+                               "given. Usage: db.index.deleteIndex(index_name)",
+                               args.size()))
   CYPHER_ARG_CHECK(args[0].IsString(), "index_name type should be String")
   auto index_name = args[0].constant.AsString();
-  LOG_INFO("Delete unique property constraint {}", index_name);
+  LOG_INFO("Delete node property index {}", index_name);
   ctx->txn_->db()->DeleteVertexPropertyIndex(index_name);
+}
+
+void BuiltinProcedure::DbIndexQueryNodes(
+    RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    const VEC_STR &yield_items,
+    std::vector<std::vector<ProcedureResult>> *records) {
+  CYPHER_ARG_CHECK(
+      args.size() == 2,
+      fmt::format("Function requires 2 arguments, but {} are "
+                  "given. Usage: db.index.queryNodes(index_name, query)",
+                  args.size()))
+  CYPHER_ARG_CHECK(args[0].IsString(), "index_name type should be String")
+  auto index_name = args[0].constant.AsString();
+  for (auto viter =
+           ctx->txn_->QueryVertexByPropertyIndex(index_name, args[1].constant);
+       viter->Valid(); viter->Next()) {
+    std::vector<ProcedureResult> r;
+    for (auto &yield : yield_items) {
+      if (yield == "node") {
+        r.emplace_back(viter->GetVertex());
+      }
+    }
+    records->emplace_back(std::move(r));
+  }
+}
+
+void BuiltinProcedure::DbIndexRangeQueryNodes(
+    RTContext *ctx, const Record *record, const VEC_EXPR &args,
+    const VEC_STR &yield_items,
+    std::vector<std::vector<ProcedureResult>> *records) {
+  CYPHER_ARG_CHECK(
+      args.size() == 4,
+      fmt::format(
+          "Function requires 4 arguments, but {} are "
+          "given. Usage: db.index.rangeQueryNodes(index_name, lower, upper, "
+          "parameter)",
+          args.size()))
+  CYPHER_ARG_CHECK(args[0].IsString(), "index_name type should be String")
+  CYPHER_ARG_CHECK(args[3].IsMap(), "parameter type should be Map")
+  auto index_name = args[0].constant.AsString();
+  auto lower = args[1].constant.IsNull() ? std::nullopt
+                                         : std::make_optional(args[1].constant);
+  auto upper = args[2].constant.IsNull() ? std::nullopt
+                                         : std::make_optional(args[2].constant);
+
+  auto parameter = args[3].constant.AsMap();
+  bool left_closed = true;
+  bool right_closed = true;
+  if (parameter.count("left_closed")) {
+    CYPHER_ARG_CHECK(parameter.at("left_closed").IsBool(),
+                     "left_closed type should be Bool")
+    left_closed = parameter.at("left_closed").AsBool();
+  }
+  if (parameter.count("right_closed")) {
+    CYPHER_ARG_CHECK(parameter.at("right_closed").IsBool(),
+                     "right_closed type should be Bool")
+    right_closed = parameter.at("right_closed").AsBool();
+  }
+  for (auto viter = ctx->txn_->QueryVertexByPropertyRange(
+           index_name, lower, upper, left_closed, right_closed);
+       viter->Valid(); viter->Next()) {
+    std::vector<ProcedureResult> r;
+    for (auto &yield : yield_items) {
+      if (yield == "node") {
+        r.emplace_back(viter->GetVertex());
+      }
+    }
+    records->emplace_back(std::move(r));
+  }
 }
 
 void BuiltinProcedure::DbIndexVectorCreateNodeIndex(
@@ -713,13 +819,15 @@ void BuiltinProcedure::DbShowIndexes(
       if (yield == "name") {
         r.emplace_back(Value::String(index->meta().name()));
       } else if (yield == "type") {
-        r.emplace_back(Value::String("Unique"));
+        r.emplace_back(
+            Value::String(index->meta().is_unique() ? "Unique" : "NonUnique"));
       } else if (yield == "entityType") {
         r.emplace_back(Value::String("NODE"));
       } else if (yield == "labelsOrTypes") {
         r.emplace_back(Value::StringArray({index->meta().label()}));
       } else if (yield == "properties") {
-        r.emplace_back(Value::StringArray({index->meta().property()}));
+        r.emplace_back(Value::StringArray({index->meta().properties().begin(),
+                                           index->meta().properties().end()}));
       } else if (yield == "otherInfo") {
         r.emplace_back(Value());
       }
@@ -762,8 +870,8 @@ void BuiltinProcedure::DbShowIndexes(
         r.emplace_back(Value::StringArray({index->meta().property()}));
       } else if (yield == "otherInfo") {
         std::unordered_map<std::string, Value> info;
-        info["elementsNum"] = Value(index->GetElementsNum());
-        info["deletedIdsNum"] = Value(index->GetDeletedIdsNum());
+        info["elementsNum"] = Value(index->NumElements());
+        info["deletedIdsNum"] = Value(index->NumDeletedIds());
         r.emplace_back(Value(std::move(info)));
       }
     }

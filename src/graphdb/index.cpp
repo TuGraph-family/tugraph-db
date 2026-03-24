@@ -21,13 +21,16 @@
 #include <rocksdb/utilities/write_batch_with_index.h>
 
 #include <fstream>
+#include <limits>
 #include <nlohmann/json.hpp>
+#include <string_view>
 #include <unordered_set>
 
 #include "common/byte_utils.h"
 #include "common/flags.h"
 #include "common/logger.h"
 #include "ftindex/include/lib.rs.h"
+#include "graphdb/graph_db.h"
 #include "spdlog/stopwatch.h"
 #include "transaction/transaction.h"
 
@@ -42,95 +45,351 @@ namespace {
 const char* kFaissHnswIndexFileName = "hnsw.index.data";
 const char* kFaissHnswMetaFileName = "hnsw.index.meta";
 
-std::string FaissHnswIndexFilePath(const meta::VertexVectorIndex& meta) {
+std::string FaissHnswIndexPath(const meta::VertexVectorIndex& meta) {
   return meta.path() + "/" + kFaissHnswIndexFileName;
 }
 
-std::string FaissHnswMetaFilePath(const meta::VertexVectorIndex& meta) {
+std::string FaissHnswMetaPath(const meta::VertexVectorIndex& meta) {
   return meta.path() + "/" + kFaissHnswMetaFileName;
+}
+
+void AppendEscapedPropertyIndexByte(std::string& encoded, unsigned char ch) {
+  if (ch == 0) {
+    encoded.push_back(0);
+    encoded.push_back(static_cast<char>(0xFF));
+  } else {
+    encoded.push_back(static_cast<char>(ch));
+  }
+}
+
+void AppendEscapedPropertyIndexBytes(std::string& encoded,
+                                     std::string_view bytes) {
+  for (unsigned char ch : bytes) {
+    AppendEscapedPropertyIndexByte(encoded, ch);
+  }
+}
+
+template <typename T>
+void AppendEscapedPropertyIndexRaw(std::string& encoded, const T& value) {
+  AppendEscapedPropertyIndexBytes(encoded, common::AsStringView(value));
+}
+
+void AppendPropertyIndexValue(std::string& encoded, const Value& value) {
+  encoded.push_back(static_cast<char>(value.type));
+  switch (value.type) {
+    case ValueType::Null: {
+      break;
+    }
+    case ValueType::BOOL: {
+      encoded.push_back(value.AsBool() ? 1 : 0);
+      break;
+    }
+    case ValueType::INTEGER: {
+      uint64_t sortable =
+          static_cast<uint64_t>(value.AsInteger()) ^ (1ULL << 63);
+      sortable = native_to_big(sortable);
+      encoded.append(AsChars(sortable), sizeof(sortable));
+      break;
+    }
+    case ValueType::DOUBLE: {
+      uint64_t bits = 0;
+      auto number = value.AsDouble();
+      std::memcpy(&bits, &number, sizeof(bits));
+      bits = (bits & (1ULL << 63)) ? ~bits : (bits ^ (1ULL << 63));
+      bits = native_to_big(bits);
+      encoded.append(AsChars(bits), sizeof(bits));
+      break;
+    }
+    case ValueType::FLOAT: {
+      uint32_t bits = 0;
+      auto number = value.AsFloat();
+      std::memcpy(&bits, &number, sizeof(bits));
+      bits = (bits & (1U << 31)) ? ~bits : (bits ^ (1U << 31));
+      bits = native_to_big(bits);
+      encoded.append(AsChars(bits), sizeof(bits));
+      break;
+    }
+    case ValueType::STRING: {
+      AppendEscapedPropertyIndexBytes(encoded, value.AsString());
+      encoded.push_back(0);
+      encoded.push_back(0);
+      break;
+    }
+    case ValueType::ARRAY: {
+      const auto& array = value.AsArray();
+      if (!array.empty()) {
+        auto t = array[0].type;
+        AppendEscapedPropertyIndexByte(encoded, static_cast<unsigned char>(t));
+        for (const auto& item : array) {
+          if (item.type != t) {
+            THROW_CODE(
+                ValueException,
+                "Array elements must have the same type for serializing, "
+                "error type: " +
+                    ::ToString(item.type));
+          }
+          switch (item.type) {
+            case ValueType::BOOL: {
+              AppendEscapedPropertyIndexByte(
+                  encoded, static_cast<unsigned char>(item.AsBool()));
+              break;
+            }
+            case ValueType::INTEGER: {
+              AppendEscapedPropertyIndexRaw(encoded, item.AsInteger());
+              break;
+            }
+            case ValueType::DOUBLE: {
+              AppendEscapedPropertyIndexRaw(encoded, item.AsDouble());
+              break;
+            }
+            case ValueType::FLOAT: {
+              AppendEscapedPropertyIndexRaw(encoded, item.AsFloat());
+              break;
+            }
+            case ValueType::STRING: {
+              const auto& str = item.AsString();
+              size_t len = str.size();
+              AppendEscapedPropertyIndexRaw(encoded, len);
+              AppendEscapedPropertyIndexBytes(encoded, str);
+              break;
+            }
+            default: {
+              THROW_CODE(ValueException,
+                         "Unsupported data type for serializing array, type: " +
+                             ::ToString(item.type));
+            }
+          }
+        }
+      }
+      encoded.push_back(0);
+      encoded.push_back(0);
+      break;
+    }
+    case ValueType::DATE: {
+      uint64_t sortable =
+          static_cast<uint64_t>(value.AsDate().GetStorage()) ^ (1ULL << 63);
+      sortable = native_to_big(sortable);
+      encoded.append(AsChars(sortable), sizeof(sortable));
+      break;
+    }
+    case ValueType::LOCALDATETIME: {
+      uint64_t sortable =
+          static_cast<uint64_t>(value.AsLocalDateTime().GetStorage()) ^
+          (1ULL << 63);
+      sortable = native_to_big(sortable);
+      encoded.append(AsChars(sortable), sizeof(sortable));
+      break;
+    }
+    case ValueType::LOCALTIME: {
+      uint64_t sortable =
+          static_cast<uint64_t>(value.AsLocalTime().GetStorage()) ^
+          (1ULL << 63);
+      sortable = native_to_big(sortable);
+      encoded.append(AsChars(sortable), sizeof(sortable));
+      break;
+    }
+    case ValueType::TIME: {
+      auto storage = value.AsTime().GetStorage();
+      uint64_t sortable =
+          static_cast<uint64_t>(std::get<0>(storage) -
+                                std::get<1>(storage) * NANOS_PER_SECOND) ^
+          (1ULL << 63);
+      sortable = native_to_big(sortable);
+      encoded.append(AsChars(sortable), sizeof(sortable));
+      break;
+    }
+    case ValueType::DATETIME: {
+      auto storage = value.AsDateTime().GetStorage();
+      uint64_t sortable =
+          static_cast<uint64_t>(std::get<0>(storage)) ^ (1ULL << 63);
+      sortable = native_to_big(sortable);
+      encoded.append(AsChars(sortable), sizeof(sortable));
+      break;
+    }
+    case ValueType::DURATION: {
+      auto duration = value.AsDuration();
+      uint64_t months =
+          native_to_big(static_cast<uint64_t>(duration.months) ^ (1ULL << 63));
+      uint64_t days =
+          native_to_big(static_cast<uint64_t>(duration.days) ^ (1ULL << 63));
+      uint64_t seconds =
+          native_to_big(static_cast<uint64_t>(duration.seconds) ^ (1ULL << 63));
+      uint64_t nanos =
+          native_to_big(static_cast<uint64_t>(duration.nanos) ^ (1ULL << 63));
+      encoded.append(AsChars(months), sizeof(months));
+      encoded.append(AsChars(days), sizeof(days));
+      encoded.append(AsChars(seconds), sizeof(seconds));
+      encoded.append(AsChars(nanos), sizeof(nanos));
+      break;
+    }
+    case ValueType::MAP:
+    default: {
+      THROW_CODE(ValueException,
+                 "Unsupported data type for property index, type: {}",
+                 ::ToString(value.type));
+    }
+  }
+}
+
+std::string EncodePropertyIndexValues(const std::vector<Value>& values) {
+  std::string encoded;
+  for (const auto& value : values) {
+    AppendPropertyIndexValue(encoded, value);
+  }
+  return encoded;
+}
+
+Value DeserializeStoredPropertyValue(const std::string& value) {
+  if (value.empty()) {
+    THROW_CODE(InvalidParameter, "Indexed property value is invalid");
+  }
+  Value decoded;
+  decoded.Deserialize(value.data(), value.size());
+  return decoded;
 }
 
 }  // namespace
 
 void VertexPropertyIndex::AddIndex(Transaction* txn, int64_t vid,
-                                   rocksdb::Slice value) {
-  if (meta_.is_unique()) {
-    rocksdb::ReadOptions ro;
-    std::string exists_val;
-    // lock index
-
-    std::string index_key = IndexKey(value.ToString());
-    auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key, &exists_val);
-    if (s.ok()) {
-      THROW_CODE(IndexValueAlreadyExist);
-    } else if (!s.IsNotFound()) {
-      THROW_CODE(StorageEngineError, s.ToString());
-    }
-    rocksdb::Slice index_val(AsChars(vid), sizeof(vid));
-    s = txn->dbtxn()->GetWriteBatch()->Put(cf_, index_key, index_val);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  }
+                                   const std::vector<Value>& values) {
+  UpdateIndex(txn, vid, values, std::nullopt);
 }
 
-void VertexPropertyIndex::UpdateIndex(Transaction* txn, int64_t vid,
-                                      rocksdb::Slice new_value,
-                                      const std::string* old_value) {
+void VertexPropertyIndex::UpdateIndex(
+    Transaction* txn, int64_t vid,
+    const std::optional<std::vector<Value>>& new_values,
+    const std::optional<std::vector<Value>>& old_values) {
+  if (!new_values && !old_values) {
+    return;
+  }
+  std::string new_key;
+  std::string old_key;
   if (meta_.is_unique()) {
-    std::string tmp;
     rocksdb::ReadOptions ro;
-    // lock index
-    std::string index_key = IndexKey(new_value.ToString());
     bool keep_existing_entry = false;
-    auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key, &tmp);
-    if (s.ok()) {
-      if (tmp.size() != sizeof(int64_t)) {
-        THROW_CODE(StorageEngineError,
-                   "vertex unique index stores invalid vid size");
-      }
-      if (ReadValue<int64_t>(tmp.data()) != vid) {
-        THROW_CODE(IndexValueAlreadyExist);
-      }
-      keep_existing_entry = true;
-    } else if (!s.IsNotFound()) {
-      THROW_CODE(StorageEngineError, s.ToString());
-    }
-    if (old_value) {
-      // lock index
-      std::string key = IndexKey(*old_value);
-      if (key != index_key) {
-        s = txn->dbtxn()->GetForUpdate(ro, cf_, key,
-                                       static_cast<std::string*>(nullptr));
-        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-        s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, key);
-        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-        keep_existing_entry = false;
+    if (new_values) {
+      std::string tmp;
+      new_key = IndexKey(*new_values);
+      auto s = txn->dbtxn()->GetForUpdate(ro, cf_, new_key, &tmp);
+      if (s.ok()) {
+        if (tmp.size() != sizeof(int64_t)) {
+          THROW_CODE(StorageEngineError,
+                     "vertex unique index stores invalid vid size");
+        }
+        if (ReadValue<int64_t>(tmp.data()) != vid) {
+          THROW_CODE(IndexValueAlreadyExist);
+        }
+        keep_existing_entry = true;
+      } else if (!s.IsNotFound()) {
+        THROW_CODE(StorageEngineError, s.ToString());
       }
     }
-    if (!keep_existing_entry) {
-      s = txn->dbtxn()->GetWriteBatch()->Put(
-          cf_, index_key, rocksdb::Slice(AsChars(vid), sizeof(vid)));
+    if (old_values) {
+      old_key = IndexKey(*old_values);
+    }
+    if (old_values && (!new_values || old_key != new_key)) {
+      auto s = txn->dbtxn()->GetForUpdate(ro, cf_, old_key,
+                                          static_cast<std::string*>(nullptr));
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+      s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, old_key);
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+      keep_existing_entry = false;
+    }
+    if (new_values && !keep_existing_entry) {
+      auto s = txn->dbtxn()->GetWriteBatch()->Put(
+          cf_, new_key, rocksdb::Slice(AsChars(vid), sizeof(vid)));
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
+  } else {
+    if (new_values) {
+      new_key = EntryKey(*new_values, vid);
+    }
+    if (old_values) {
+      old_key = EntryKey(*old_values, vid);
+    }
+    if (old_values && (!new_values || old_key != new_key)) {
+      auto s = txn->dbtxn()->GetWriteBatch()->Delete(cf_, old_key);
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
+    if (new_values && (!old_values || old_key != new_key)) {
+      auto s = txn->dbtxn()->GetWriteBatch()->Put(cf_, new_key, {});
       if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     }
   }
 }
 
-std::string VertexPropertyIndex::IndexKey(const std::string& val) {
+std::string VertexPropertyIndex::IndexKey(
+    const std::vector<Value>& values) const {
   std::string index_key(AsChars(index_id_), sizeof(index_id_));
-  index_key.append(val);
+  index_key.append(EncodePropertyIndexValues(values));
   return index_key;
 }
 
-void VertexPropertyIndex::DeleteIndex(Transaction* txn, rocksdb::Slice value) {
-  if (meta_.is_unique()) {
-    rocksdb::ReadOptions ro;
-    // lock index
-    std::string index_key = IndexKey(value.ToString());
-    auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key,
-                                        static_cast<std::string*>(nullptr));
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, index_key);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+std::string VertexPropertyIndex::EntryKey(const std::vector<Value>& values,
+                                          int64_t vid) const {
+  std::string index_key = IndexKey(values);
+  index_key.append(AsChars(vid), sizeof(vid));
+  return index_key;
+}
+
+std::optional<std::vector<Value>>
+VertexPropertyIndex::LoadIndexedPropertyValues(
+    txn::Transaction* txn, int64_t vid,
+    const std::unordered_map<uint32_t, std::string>* overrides,
+    const std::unordered_set<uint32_t>* removed) const {
+  std::vector<Value> values;
+  values.reserve(pids_.size());
+  rocksdb::ReadOptions ro;
+  for (auto pid : pids_) {
+    if (removed && removed->count(pid)) {
+      return std::nullopt;
+    }
+    if (overrides) {
+      auto iter = overrides->find(pid);
+      if (iter != overrides->end()) {
+        values.push_back(DeserializeStoredPropertyValue(iter->second));
+        continue;
+      }
+    }
+    std::string property_key(AsChars(vid), sizeof(vid));
+    property_key.append(AsChars(pid), sizeof(pid));
+    std::string property_val;
+    auto s = txn->dbtxn()->Get(ro, txn->db()->graph_cf().vertex_property,
+                               property_key, &property_val);
+    if (s.IsNotFound()) {
+      return std::nullopt;
+    }
+    if (!s.ok()) {
+      THROW_CODE(StorageEngineError, s.ToString());
+    }
+    values.push_back(DeserializeStoredPropertyValue(property_val));
   }
+  return values;
+}
+
+bool VertexPropertyIndex::TouchesAnyProperty(
+    const std::unordered_set<uint32_t>& pids) const {
+  for (auto pid : pids) {
+    if (pid_set_.count(pid)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool VertexPropertyIndex::AllPropertiesPresent(
+    const std::unordered_set<uint32_t>& pids) const {
+  for (auto pid : pids_) {
+    if (!pids.count(pid)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void VertexPropertyIndex::DeleteIndex(Transaction* txn, int64_t vid,
+                                      const std::vector<Value>& values) {
+  UpdateIndex(txn, vid, std::nullopt, values);
 }
 
 void VertexFullTextIndex::StartTimer() {
@@ -489,14 +748,14 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
       meta_.hnsw_ef_construction());
 
   {
-    std::ifstream metafile(FaissHnswMetaFilePath(meta_), std::ios::in);
+    std::ifstream metafile(FaissHnswMetaPath(meta_), std::ios::in);
     if (metafile) {
       LOG_INFO("Begin load vector index {} from data file", meta_.name());
       nlohmann::json meta_info;
       metafile >> meta_info;
       metafile.close();
       hnsw_index_ = FaissHnswIndex::Load(
-          FaissHnswIndexFilePath(meta_), meta_.dimensions(),
+          FaissHnswIndexPath(meta_), meta_.dimensions(),
           meta_.distance_type(), meta_.hnsw_m(), meta_.hnsw_ef_construction());
       uint64_t apply_id = meta_info["apply_id"];
       apply_id_ = native_to_big(apply_id);
@@ -663,17 +922,17 @@ void VertexVectorIndex::Stop() {
   timer_cv_.wait(lock, [this] { return active_callbacks_ == 0; });
 }
 
-int64_t VertexVectorIndex::GetElementsNum() {
+int64_t VertexVectorIndex::NumElements() {
   std::shared_lock read(mutex_);
   return hnsw_index_->GetNumElements();
 }
 
-int64_t VertexVectorIndex::GetMemoryUsage() {
+int64_t VertexVectorIndex::MemoryUsage() {
   std::shared_lock read(mutex_);
   return hnsw_index_->GetMemoryUsage();
 }
 
-int64_t VertexVectorIndex::GetDeletedIdsNum() {
+int64_t VertexVectorIndex::NumDeletedIds() {
   std::shared_lock read(mutex_);
   return deleted_vector_ids_.size();
 }
@@ -702,7 +961,7 @@ std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
   return ret;
 }
 
-void VertexVectorIndex::TryDeleteIndex(txn::Transaction* txn, int64_t vid) {
+void VertexVectorIndex::DeleteIfPresent(txn::Transaction* txn, int64_t vid) {
   std::string index_key = IndexKey(vid);
   std::string val;
   auto s = txn->dbtxn()->Get({}, graph_cf_->index, index_key, &val);
@@ -801,10 +1060,10 @@ void VertexVectorIndex::ApplyWAL() {
     }
     if (hnsw_index_->GetNumElements() % FLAGS_vt_serialize_interval == 0) {
       LOG_INFO("Vector Index {} begin serialization", meta_.name());
-      hnsw_index_->WriteToFile(FaissHnswIndexFilePath(meta_));
+      hnsw_index_->WriteToFile(FaissHnswIndexPath(meta_));
       uint64_t apply_id = boost::endian::big_to_native(consumed_wal_id);
       nlohmann::json meta_info{{"apply_id", apply_id}};
-      std::string path = FaissHnswMetaFilePath(meta_);
+      std::string path = FaissHnswMetaPath(meta_);
       std::ofstream metafile(path, std::ios::out | std::ios::trunc);
       if (!metafile.is_open()) {
         // WAL entries have already been applied to the in-memory index.
@@ -821,7 +1080,7 @@ void VertexVectorIndex::ApplyWAL() {
         THROW_CODE(IOException, "failed to write vector index meta file: {}",
                    path);
       }
-      LOG_INFO("write file: {}", FaissHnswIndexFilePath(meta_));
+      LOG_INFO("write file: {}", FaissHnswIndexPath(meta_));
       LOG_INFO("write file: {}", path);
       LOG_INFO("Vector Index {} finish serialization, num:{}, apply_id: {}",
                meta_.name(), hnsw_index_->GetNumElements(), apply_id);
@@ -916,13 +1175,13 @@ void VertexVectorIndex::Load() {
     return;
   }
   LOG_INFO("Vector Index {} begin serialization", meta_.name());
-  hnsw_index_->WriteToFile(FaissHnswIndexFilePath(meta_));
+  hnsw_index_->WriteToFile(FaissHnswIndexPath(meta_));
   nlohmann::json meta_info{{"apply_id", 0}};
-  std::string path = FaissHnswMetaFilePath(meta_);
+  std::string path = FaissHnswMetaPath(meta_);
   std::ofstream metafile(path, std::ios::out);
   metafile << meta_info.dump();
   metafile.close();
-  LOG_INFO("write file: {}", FaissHnswIndexFilePath(meta_));
+  LOG_INFO("write file: {}", FaissHnswIndexPath(meta_));
   LOG_INFO("write file: {}", path);
   SPDLOG_INFO("Vector Index {} Serialize, num:{}", meta_.name(),
               hnsw_index_->GetNumElements());

@@ -23,8 +23,12 @@
 #include <condition_variable>
 #include <future>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 #include "common/type_traits.h"
 #include "common/value.h"
@@ -42,21 +46,35 @@ struct VertexPropertyIndex {
  public:
   VertexPropertyIndex(meta::VertexPropertyIndex meta,
                       rocksdb::ColumnFamilyHandle* cf, uint32_t index_id,
-                      uint32_t lid, uint32_t pid)
+                      uint32_t lid, std::vector<uint32_t> pids)
       : meta_(std::move(meta)),
         cf_(cf),
         index_id_(index_id),
         lid_(lid),
-        pid_(pid) {}
-  void AddIndex(txn::Transaction* txn, int64_t vid, rocksdb::Slice value);
-  void UpdateIndex(txn::Transaction* txn, int64_t vid, rocksdb::Slice new_value,
-                   const std::string* old_value);
-  void DeleteIndex(txn::Transaction* txn, rocksdb::Slice value);
-  std::string IndexKey(const std::string& val);
+        pids_(std::move(pids)),
+        pid_set_(pids_.begin(), pids_.end()) {}
+  void AddIndex(txn::Transaction* txn, int64_t vid,
+                const std::vector<Value>& values);
+  void UpdateIndex(txn::Transaction* txn, int64_t vid,
+                   const std::optional<std::vector<Value>>& new_values,
+                   const std::optional<std::vector<Value>>& old_values);
+  void DeleteIndex(txn::Transaction* txn, int64_t vid,
+                   const std::vector<Value>& values);
+  std::string IndexKey(const std::vector<Value>& values) const;
+  std::string EntryKey(const std::vector<Value>& values, int64_t vid) const;
+  std::optional<std::vector<Value>> LoadIndexedPropertyValues(
+      txn::Transaction* txn, int64_t vid,
+      const std::unordered_map<uint32_t, std::string>* overrides = nullptr,
+      const std::unordered_set<uint32_t>* removed = nullptr) const;
+  bool ContainsProperty(uint32_t pid) const { return pid_set_.count(pid) > 0; }
+  bool TouchesAnyProperty(const std::unordered_set<uint32_t>& pids) const;
+  bool AllPropertiesPresent(const std::unordered_set<uint32_t>& pids) const;
+  bool is_unique() const { return meta_.is_unique(); }
   meta::VertexPropertyIndex& meta() { return meta_; }
   rocksdb::ColumnFamilyHandle* cf() { return cf_; }
   uint32_t lid() const { return lid_; }
-  uint32_t pid() const { return pid_; }
+  const std::vector<uint32_t>& pids() const { return pids_; }
+  size_t PropertyCount() const { return pids_.size(); }
   uint32_t index_id() const { return index_id_; }
 
  private:
@@ -64,7 +82,8 @@ struct VertexPropertyIndex {
   rocksdb::ColumnFamilyHandle* cf_;
   uint32_t index_id_;
   uint32_t lid_;
-  uint32_t pid_;
+  std::vector<uint32_t> pids_;
+  std::unordered_set<uint32_t> pid_set_;
 };
 
 class VertexFullTextIndex
@@ -223,9 +242,9 @@ class VertexVectorIndex
                     meta::VertexVectorIndex meta, size_t commit_interval);
   std::vector<std::pair<int64_t, float>> KnnSearch(const float* query,
                                                    int top_k, int ef_search);
-  int64_t GetElementsNum();
-  int64_t GetMemoryUsage();
-  int64_t GetDeletedIdsNum();
+  int64_t NumElements();
+  int64_t MemoryUsage();
+  int64_t NumDeletedIds();
   const meta::VertexVectorIndex& meta() { return meta_; }
   uint32_t lid() const { return lid_; }
   uint32_t pid() const { return pid_; }
@@ -233,7 +252,7 @@ class VertexVectorIndex
   void Start();
   void Stop();
   void Load();
-  void TryDeleteIndex(txn::Transaction* txn, int64_t vid);
+  void DeleteIfPresent(txn::Transaction* txn, int64_t vid);
   std::string NextWALKey();
   std::string IndexKey(int64_t vid);
   std::string DeleteMarkKey(int64_t vector_id);
