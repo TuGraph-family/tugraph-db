@@ -344,7 +344,7 @@ int Vertex::Delete() {
         if (!pids.count(vvi->pid())) {
           continue;
         }
-        vvi->TryDeleteIndex(txn_, id_);
+        vvi->DeleteIfPresent(txn_, id_);
       }
       auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
           txn_->db()->graph_cf().graph_topology, key);
@@ -566,7 +566,7 @@ void Vertex::DeleteLabels(const std::unordered_set<std::string> &labels) {
     if (!remove_lids.count(vvi->lid())) {
       continue;
     }
-    vvi->TryDeleteIndex(txn_, id_);
+    vvi->DeleteIfPresent(txn_, id_);
   }
   labelIds = std::move(remaining_lids);
   std::string buffer;
@@ -705,7 +705,7 @@ void Vertex::SetProperties(
     if (!pids.count(index->pid()) || !lids.count(index->lid())) {
       continue;
     }
-    index->TryDeleteIndex(txn_, id_);
+    index->DeleteIfPresent(txn_, id_);
     auto value = original.at(index->pid());
     if (!value->IsArray()) {
       continue;
@@ -782,7 +782,7 @@ void Vertex::RemoveAllProperty() {
     if (!pids.count(vvi->pid()) || !lids.count(vvi->lid())) {
       continue;
     }
-    vvi->TryDeleteIndex(txn_, id_);
+    vvi->DeleteIfPresent(txn_, id_);
   }
   for (auto &key : prop_keys) {
     auto s = txn_->dbtxn()->GetWriteBatch()->Delete(
@@ -852,7 +852,7 @@ void Vertex::RemoveProperty(const std::string &name) {
     if (pid != vvi->pid() || !lids.count(vvi->lid())) {
       continue;
     }
-    vvi->TryDeleteIndex(txn_, id_);
+    vvi->DeleteIfPresent(txn_, id_);
   }
   s = txn_->dbtxn()->GetWriteBatch()->Delete(
       txn_->db()->graph_cf().vertex_property, pkey);

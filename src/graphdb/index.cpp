@@ -45,16 +45,15 @@ namespace {
 const char* kFaissHnswIndexFileName = "hnsw.index.data";
 const char* kFaissHnswMetaFileName = "hnsw.index.meta";
 
-std::string FaissHnswIndexFilePath(const meta::VertexVectorIndex& meta) {
+std::string FaissHnswIndexPath(const meta::VertexVectorIndex& meta) {
   return meta.path() + "/" + kFaissHnswIndexFileName;
 }
 
-std::string FaissHnswMetaFilePath(const meta::VertexVectorIndex& meta) {
+std::string FaissHnswMetaPath(const meta::VertexVectorIndex& meta) {
   return meta.path() + "/" + kFaissHnswMetaFileName;
 }
 
-void AppendEscapedVertexPropertyIndexByte(std::string& encoded,
-                                          unsigned char ch) {
+void AppendEscapedPropertyIndexByte(std::string& encoded, unsigned char ch) {
   if (ch == 0) {
     encoded.push_back(0);
     encoded.push_back(static_cast<char>(0xFF));
@@ -63,19 +62,19 @@ void AppendEscapedVertexPropertyIndexByte(std::string& encoded,
   }
 }
 
-void AppendEscapedVertexPropertyIndexBytes(std::string& encoded,
-                                           std::string_view bytes) {
+void AppendEscapedPropertyIndexBytes(std::string& encoded,
+                                     std::string_view bytes) {
   for (unsigned char ch : bytes) {
-    AppendEscapedVertexPropertyIndexByte(encoded, ch);
+    AppendEscapedPropertyIndexByte(encoded, ch);
   }
 }
 
 template <typename T>
-void AppendEscapedVertexPropertyIndexRaw(std::string& encoded, const T& value) {
-  AppendEscapedVertexPropertyIndexBytes(encoded, common::AsStringView(value));
+void AppendEscapedPropertyIndexRaw(std::string& encoded, const T& value) {
+  AppendEscapedPropertyIndexBytes(encoded, common::AsStringView(value));
 }
 
-void AppendVertexPropertyIndexValue(std::string& encoded, const Value& value) {
+void AppendPropertyIndexValue(std::string& encoded, const Value& value) {
   encoded.push_back(static_cast<char>(value.type));
   switch (value.type) {
     case ValueType::Null: {
@@ -111,7 +110,7 @@ void AppendVertexPropertyIndexValue(std::string& encoded, const Value& value) {
       break;
     }
     case ValueType::STRING: {
-      AppendEscapedVertexPropertyIndexBytes(encoded, value.AsString());
+      AppendEscapedPropertyIndexBytes(encoded, value.AsString());
       encoded.push_back(0);
       encoded.push_back(0);
       break;
@@ -120,8 +119,7 @@ void AppendVertexPropertyIndexValue(std::string& encoded, const Value& value) {
       const auto& array = value.AsArray();
       if (!array.empty()) {
         auto t = array[0].type;
-        AppendEscapedVertexPropertyIndexByte(encoded,
-                                             static_cast<unsigned char>(t));
+        AppendEscapedPropertyIndexByte(encoded, static_cast<unsigned char>(t));
         for (const auto& item : array) {
           if (item.type != t) {
             THROW_CODE(
@@ -132,27 +130,27 @@ void AppendVertexPropertyIndexValue(std::string& encoded, const Value& value) {
           }
           switch (item.type) {
             case ValueType::BOOL: {
-              AppendEscapedVertexPropertyIndexByte(
+              AppendEscapedPropertyIndexByte(
                   encoded, static_cast<unsigned char>(item.AsBool()));
               break;
             }
             case ValueType::INTEGER: {
-              AppendEscapedVertexPropertyIndexRaw(encoded, item.AsInteger());
+              AppendEscapedPropertyIndexRaw(encoded, item.AsInteger());
               break;
             }
             case ValueType::DOUBLE: {
-              AppendEscapedVertexPropertyIndexRaw(encoded, item.AsDouble());
+              AppendEscapedPropertyIndexRaw(encoded, item.AsDouble());
               break;
             }
             case ValueType::FLOAT: {
-              AppendEscapedVertexPropertyIndexRaw(encoded, item.AsFloat());
+              AppendEscapedPropertyIndexRaw(encoded, item.AsFloat());
               break;
             }
             case ValueType::STRING: {
               const auto& str = item.AsString();
               size_t len = str.size();
-              AppendEscapedVertexPropertyIndexRaw(encoded, len);
-              AppendEscapedVertexPropertyIndexBytes(encoded, str);
+              AppendEscapedPropertyIndexRaw(encoded, len);
+              AppendEscapedPropertyIndexBytes(encoded, str);
               break;
             }
             default: {
@@ -233,10 +231,10 @@ void AppendVertexPropertyIndexValue(std::string& encoded, const Value& value) {
   }
 }
 
-std::string EncodeVertexPropertyIndexValues(const std::vector<Value>& values) {
+std::string EncodePropertyIndexValues(const std::vector<Value>& values) {
   std::string encoded;
   for (const auto& value : values) {
-    AppendVertexPropertyIndexValue(encoded, value);
+    AppendPropertyIndexValue(encoded, value);
   }
   return encoded;
 }
@@ -323,7 +321,7 @@ void VertexPropertyIndex::UpdateIndex(
 std::string VertexPropertyIndex::IndexKey(
     const std::vector<Value>& values) const {
   std::string index_key(AsChars(index_id_), sizeof(index_id_));
-  index_key.append(EncodeVertexPropertyIndexValues(values));
+  index_key.append(EncodePropertyIndexValues(values));
   return index_key;
 }
 
@@ -750,14 +748,14 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
       meta_.hnsw_ef_construction());
 
   {
-    std::ifstream metafile(FaissHnswMetaFilePath(meta_), std::ios::in);
+    std::ifstream metafile(FaissHnswMetaPath(meta_), std::ios::in);
     if (metafile) {
       LOG_INFO("Begin load vector index {} from data file", meta_.name());
       nlohmann::json meta_info;
       metafile >> meta_info;
       metafile.close();
       hnsw_index_ = FaissHnswIndex::Load(
-          FaissHnswIndexFilePath(meta_), meta_.dimensions(),
+          FaissHnswIndexPath(meta_), meta_.dimensions(),
           meta_.distance_type(), meta_.hnsw_m(), meta_.hnsw_ef_construction());
       uint64_t apply_id = meta_info["apply_id"];
       apply_id_ = native_to_big(apply_id);
@@ -924,17 +922,17 @@ void VertexVectorIndex::Stop() {
   timer_cv_.wait(lock, [this] { return active_callbacks_ == 0; });
 }
 
-int64_t VertexVectorIndex::GetElementsNum() {
+int64_t VertexVectorIndex::NumElements() {
   std::shared_lock read(mutex_);
   return hnsw_index_->GetNumElements();
 }
 
-int64_t VertexVectorIndex::GetMemoryUsage() {
+int64_t VertexVectorIndex::MemoryUsage() {
   std::shared_lock read(mutex_);
   return hnsw_index_->GetMemoryUsage();
 }
 
-int64_t VertexVectorIndex::GetDeletedIdsNum() {
+int64_t VertexVectorIndex::NumDeletedIds() {
   std::shared_lock read(mutex_);
   return deleted_vector_ids_.size();
 }
@@ -963,7 +961,7 @@ std::vector<std::pair<int64_t, float>> VertexVectorIndex::KnnSearch(
   return ret;
 }
 
-void VertexVectorIndex::TryDeleteIndex(txn::Transaction* txn, int64_t vid) {
+void VertexVectorIndex::DeleteIfPresent(txn::Transaction* txn, int64_t vid) {
   std::string index_key = IndexKey(vid);
   std::string val;
   auto s = txn->dbtxn()->Get({}, graph_cf_->index, index_key, &val);
@@ -1062,10 +1060,10 @@ void VertexVectorIndex::ApplyWAL() {
     }
     if (hnsw_index_->GetNumElements() % FLAGS_vt_serialize_interval == 0) {
       LOG_INFO("Vector Index {} begin serialization", meta_.name());
-      hnsw_index_->WriteToFile(FaissHnswIndexFilePath(meta_));
+      hnsw_index_->WriteToFile(FaissHnswIndexPath(meta_));
       uint64_t apply_id = boost::endian::big_to_native(consumed_wal_id);
       nlohmann::json meta_info{{"apply_id", apply_id}};
-      std::string path = FaissHnswMetaFilePath(meta_);
+      std::string path = FaissHnswMetaPath(meta_);
       std::ofstream metafile(path, std::ios::out | std::ios::trunc);
       if (!metafile.is_open()) {
         // WAL entries have already been applied to the in-memory index.
@@ -1082,7 +1080,7 @@ void VertexVectorIndex::ApplyWAL() {
         THROW_CODE(IOException, "failed to write vector index meta file: {}",
                    path);
       }
-      LOG_INFO("write file: {}", FaissHnswIndexFilePath(meta_));
+      LOG_INFO("write file: {}", FaissHnswIndexPath(meta_));
       LOG_INFO("write file: {}", path);
       LOG_INFO("Vector Index {} finish serialization, num:{}, apply_id: {}",
                meta_.name(), hnsw_index_->GetNumElements(), apply_id);
@@ -1177,13 +1175,13 @@ void VertexVectorIndex::Load() {
     return;
   }
   LOG_INFO("Vector Index {} begin serialization", meta_.name());
-  hnsw_index_->WriteToFile(FaissHnswIndexFilePath(meta_));
+  hnsw_index_->WriteToFile(FaissHnswIndexPath(meta_));
   nlohmann::json meta_info{{"apply_id", 0}};
-  std::string path = FaissHnswMetaFilePath(meta_);
+  std::string path = FaissHnswMetaPath(meta_);
   std::ofstream metafile(path, std::ios::out);
   metafile << meta_info.dump();
   metafile.close();
-  LOG_INFO("write file: {}", FaissHnswIndexFilePath(meta_));
+  LOG_INFO("write file: {}", FaissHnswIndexPath(meta_));
   LOG_INFO("write file: {}", path);
   SPDLOG_INFO("Vector Index {} Serialize, num:{}", meta_.name(),
               hnsw_index_->GetNumElements());

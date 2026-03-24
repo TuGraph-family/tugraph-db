@@ -242,9 +242,9 @@ class VertexVectorIndex
                     meta::VertexVectorIndex meta, size_t commit_interval);
   std::vector<std::pair<int64_t, float>> KnnSearch(const float* query,
                                                    int top_k, int ef_search);
-  int64_t GetElementsNum();
-  int64_t GetMemoryUsage();
-  int64_t GetDeletedIdsNum();
+  int64_t NumElements();
+  int64_t MemoryUsage();
+  int64_t NumDeletedIds();
   const meta::VertexVectorIndex& meta() { return meta_; }
   uint32_t lid() const { return lid_; }
   uint32_t pid() const { return pid_; }
@@ -252,7 +252,7 @@ class VertexVectorIndex
   void Start();
   void Stop();
   void Load();
-  void TryDeleteIndex(txn::Transaction* txn, int64_t vid);
+  void DeleteIfPresent(txn::Transaction* txn, int64_t vid);
   std::string NextWALKey();
   std::string IndexKey(int64_t vid);
   std::string DeleteMarkKey(int64_t vector_id);

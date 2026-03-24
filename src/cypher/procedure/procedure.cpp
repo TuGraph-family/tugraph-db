@@ -870,8 +870,8 @@ void BuiltinProcedure::DbShowIndexes(
         r.emplace_back(Value::StringArray({index->meta().property()}));
       } else if (yield == "otherInfo") {
         std::unordered_map<std::string, Value> info;
-        info["elementsNum"] = Value(index->GetElementsNum());
-        info["deletedIdsNum"] = Value(index->GetDeletedIdsNum());
+        info["elementsNum"] = Value(index->NumElements());
+        info["deletedIdsNum"] = Value(index->NumDeletedIds());
         r.emplace_back(Value(std::move(info)));
       }
     }
