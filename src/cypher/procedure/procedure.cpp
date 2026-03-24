@@ -397,7 +397,7 @@ void BuiltinProcedure::DbCreateUniquePropertyConstraint(
   auto property = args[2].constant.AsString();
   LOG_INFO("Create unique property constraint, name:{}, label:{}, property:{}",
            index_name, label, property);
-  ctx->txn_->db()->AddVertexPropertyIndex(index_name, true, label, property);
+  ctx->txn_->db()->AddVertexPropertyIndex(index_name, true, label, {property});
 }
 
 void BuiltinProcedure::DbDeleteUniquePropertyConstraint(
@@ -713,13 +713,15 @@ void BuiltinProcedure::DbShowIndexes(
       if (yield == "name") {
         r.emplace_back(Value::String(index->meta().name()));
       } else if (yield == "type") {
-        r.emplace_back(Value::String("Unique"));
+        r.emplace_back(
+            Value::String(index->meta().is_unique() ? "Unique" : "NonUnique"));
       } else if (yield == "entityType") {
         r.emplace_back(Value::String("NODE"));
       } else if (yield == "labelsOrTypes") {
         r.emplace_back(Value::StringArray({index->meta().label()}));
       } else if (yield == "properties") {
-        r.emplace_back(Value::StringArray({index->meta().property()}));
+        r.emplace_back(Value::StringArray({index->meta().properties().begin(),
+                                           index->meta().properties().end()}));
       } else if (yield == "otherInfo") {
         r.emplace_back(Value());
       }

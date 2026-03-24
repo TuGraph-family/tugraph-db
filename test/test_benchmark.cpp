@@ -251,7 +251,7 @@ TEST(Benchmark, DISABLED_khop) {
   int n = FLAGS_num, thread = FLAGS_thread, depth = FLAGS_depth;
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});
-  graphDB->AddVertexPropertyIndex("person_id", true, "Person", "no");
+  graphDB->AddVertexPropertyIndex("person_id", true, "Person", {"no"});
   BenchmarkLightningGraph bm(*graphDB, 0);
 
   if (thread > 1) {

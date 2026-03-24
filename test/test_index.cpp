@@ -14,8 +14,10 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <filesystem>
 
+#include "common/byte_utils.h"
 #include "common/value.h"
 #include "graphdb/graph_db.h"
 #include "test_util.h"
@@ -23,6 +25,49 @@
 namespace fs = std::filesystem;
 static std::string testdb = "testdb";
 using namespace graphdb;
+
+namespace {
+
+std::vector<int64_t> CollectVertexPropertyIndexVids(
+    txn::Transaction* txn, const std::shared_ptr<VertexPropertyIndex>& index,
+    const std::vector<Value>& values) {
+  std::vector<std::string> serialized_values;
+  serialized_values.reserve(values.size());
+  for (const auto& value : values) {
+    serialized_values.push_back(value.Serialize());
+  }
+
+  rocksdb::ReadOptions ro;
+  std::vector<int64_t> vids;
+  std::string prefix = index->IndexKey(serialized_values);
+  if (index->is_unique()) {
+    std::string index_val;
+    auto s = txn->dbtxn()->Get(ro, index->cf(), prefix, &index_val);
+    if (s.ok()) {
+      vids.push_back(common::ReadValue<int64_t>(index_val.data()));
+    } else if (!s.IsNotFound()) {
+      throw std::runtime_error(s.ToString());
+    }
+    return vids;
+  }
+
+  std::unique_ptr<rocksdb::Iterator> iter(
+      txn->dbtxn()->GetIterator(ro, index->cf()));
+  for (iter->Seek(prefix); iter->Valid() && iter->key().starts_with(prefix);
+       iter->Next()) {
+    auto key = iter->key();
+    key.remove_prefix(prefix.size());
+    if (key.size() != sizeof(int64_t)) {
+      throw std::runtime_error("invalid non-unique vertex index entry");
+    }
+    vids.push_back(common::ReadValue<int64_t>(key.data()));
+  }
+  std::sort(vids.begin(), vids.end());
+  return vids;
+}
+
+}  // namespace
+
 TEST(VertexUniqueIndex, basic) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});
@@ -33,7 +78,7 @@ TEST(VertexUniqueIndex, basic) {
                                   {"str", Value::String(std::to_string(i))}});
   }
   txn->Commit();
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   txn = graphDB->BeginTransaction();
   for (auto i = 0; i < 100; i++) {
     auto viter = txn->NewVertexIterator(
@@ -78,7 +123,7 @@ TEST(VertexUniqueIndex, delete) {
                                   {"str", Value::String(std::to_string(i))}});
   }
   txn->Commit();
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   txn = graphDB->BeginTransaction();
   for (auto viter = txn->NewVertexIterator(); viter->Valid(); viter->Next()) {
     if (viter->GetVertex().GetProperty("id").AsInteger() < 10) {
@@ -119,7 +164,7 @@ TEST(VertexUniqueIndex, addLabelMaintainsIndex) {
   auto conflict_id = conflict.GetId();
   txn->Commit();
 
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
 
   txn = graphDB->BeginTransaction();
   txn->GetVertexById(addable_id).AddLabels({"label1"});
@@ -160,7 +205,7 @@ TEST(VertexUniqueIndex, deleteLabelMaintainsIndex) {
   auto removable_id = removable.GetId();
   txn->Commit();
 
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
 
   txn = graphDB->BeginTransaction();
   txn->GetVertexById(removable_id).DeleteLabels({"label1"});
@@ -203,7 +248,7 @@ TEST(VertexUniqueIndex, update) {
                                   {"str", Value::String(std::to_string(i))}});
   }
   txn->Commit();
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   txn = graphDB->BeginTransaction();
   for (auto viter = txn->NewVertexIterator(); viter->Valid(); viter->Next()) {
     auto& v = viter->GetVertex();
@@ -259,7 +304,7 @@ TEST(VertexUniqueIndex, idempotentUpdate) {
   auto vid = v.GetId();
   txn->Commit();
 
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
 
   txn = graphDB->BeginTransaction();
   auto viter = txn->NewVertexIterator(
@@ -291,7 +336,7 @@ TEST(VertexUniqueIndex, conflict) {
                                   {"str", Value::String(std::to_string(i))}});
   }
   txn->Commit();
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   for (auto i = 0; i < 100; i++) {
     txn = graphDB->BeginTransaction();
     EXPECT_THROW_CODE(
@@ -327,7 +372,7 @@ TEST(VertexUniqueIndex, reopen) {
                                   {"str", Value::String(std::to_string(i))}});
   }
   txn->Commit();
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   txn.reset();
   graphDB.reset();
   graphDB = GraphDB::Open(testdb, {});
@@ -356,7 +401,7 @@ TEST(VertexUniqueIndex, buildConflict) {
   txn->CreateVertex(v1_labels, {{"id", Value::Integer(10)}});
   txn->Commit();
   EXPECT_THROW_CODE(
-      graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id"),
+      graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"}),
       IndexValueAlreadyExist);
   txn.reset();
   graphDB.reset();
@@ -370,16 +415,16 @@ TEST(VertexUniqueIndex, buildConflict) {
                                   {"str", Value::String(std::to_string(i))}});
   }
   txn->Commit();
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   EXPECT_THROW_CODE(
-      graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id"),
+      graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"}),
       VertexIndexAlreadyExist);
 }
 
 TEST(VertexUniqueIndex, buildNonExists) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   auto txn = graphDB->BeginTransaction();
   std::unordered_set<std::string> v1_labels = {"label1", "label2"};
   for (auto i = 0; i < 100; i++) {
@@ -391,6 +436,155 @@ TEST(VertexUniqueIndex, buildNonExists) {
   EXPECT_THROW_CODE(txn->CreateVertex(v1_labels, {{"id", Value::Integer(10)}}),
                     IndexValueAlreadyExist);
   txn->Rollback();
+}
+
+TEST(VertexPropertyIndex, nonUniqueCompositeIndexMaintainsEntries) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  auto txn = graphDB->BeginTransaction();
+  auto v1 = txn->CreateVertex(
+      {"label1"}, {{"id", Value::Integer(1)}, {"str", Value::String("a")}});
+  auto v2 = txn->CreateVertex(
+      {"label1"}, {{"id", Value::Integer(1)}, {"str", Value::String("a")}});
+  auto v3 = txn->CreateVertex(
+      {"label1"}, {{"id", Value::Integer(1)}, {"str", Value::String("b")}});
+  auto v1_id = v1.GetId();
+  auto v2_id = v2.GetId();
+  auto v3_id = v3.GetId();
+  txn->Commit();
+
+  graphDB->AddVertexPropertyIndex("label1_id_str", false, "label1",
+                                  {"id", "str"});
+  auto index = graphDB->meta_info().GetVertexPropertyIndex("label1_id_str");
+  ASSERT_TRUE(index);
+  EXPECT_FALSE(index->meta().is_unique());
+  EXPECT_EQ(index->meta().properties_size(), 2);
+
+  txn = graphDB->BeginTransaction();
+  EXPECT_EQ((CollectVertexPropertyIndexVids(
+                txn.get(), index, {Value::Integer(1), Value::String("a")})),
+            (std::vector<int64_t>{v1_id, v2_id}));
+  EXPECT_EQ((CollectVertexPropertyIndexVids(
+                txn.get(), index, {Value::Integer(1), Value::String("b")})),
+            (std::vector<int64_t>{v3_id}));
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  txn->GetVertexById(v2_id).SetProperties({{"str", Value::String("c")}});
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  EXPECT_EQ((CollectVertexPropertyIndexVids(
+                txn.get(), index, {Value::Integer(1), Value::String("a")})),
+            (std::vector<int64_t>{v1_id}));
+  EXPECT_EQ((CollectVertexPropertyIndexVids(
+                txn.get(), index, {Value::Integer(1), Value::String("c")})),
+            (std::vector<int64_t>{v2_id}));
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  txn->GetVertexById(v1_id).RemoveProperty("str");
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  EXPECT_TRUE((CollectVertexPropertyIndexVids(
+                   txn.get(), index, {Value::Integer(1), Value::String("a")}))
+                  .empty());
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  txn->GetVertexById(v3_id).DeleteLabels({"label1"});
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  EXPECT_TRUE((CollectVertexPropertyIndexVids(
+                   txn.get(), index, {Value::Integer(1), Value::String("b")}))
+                  .empty());
+  txn->Commit();
+
+  txn.reset();
+  graphDB.reset();
+  graphDB = GraphDB::Open(testdb, {});
+  index = graphDB->meta_info().GetVertexPropertyIndex("label1_id_str");
+  ASSERT_TRUE(index);
+  EXPECT_FALSE(index->meta().is_unique());
+  EXPECT_EQ(index->meta().properties_size(), 2);
+
+  txn = graphDB->BeginTransaction();
+  EXPECT_EQ((CollectVertexPropertyIndexVids(
+                txn.get(), index, {Value::Integer(1), Value::String("c")})),
+            (std::vector<int64_t>{v2_id}));
+  EXPECT_TRUE((CollectVertexPropertyIndexVids(
+                   txn.get(), index, {Value::Integer(1), Value::String("a")}))
+                  .empty());
+  EXPECT_TRUE((CollectVertexPropertyIndexVids(
+                   txn.get(), index, {Value::Integer(1), Value::String("b")}))
+                  .empty());
+  txn->Commit();
+}
+
+TEST(VertexUniqueIndex, compositeLookupAndConflict) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  auto txn = graphDB->BeginTransaction();
+  auto alpha = txn->CreateVertex({"label1"}, {{"id", Value::Integer(1)},
+                                              {"country", Value::String("cn")},
+                                              {"str", Value::String("alpha")}});
+  auto beta = txn->CreateVertex({"label1"}, {{"id", Value::Integer(1)},
+                                             {"country", Value::String("us")},
+                                             {"str", Value::String("beta")}});
+  auto alpha_id = alpha.GetId();
+  auto beta_id = beta.GetId();
+  txn->Commit();
+
+  graphDB->AddVertexPropertyIndex("label1_id_country", true, "label1",
+                                  {"id", "country"});
+
+  txn = graphDB->BeginTransaction();
+  EXPECT_EQ(txn->GetVertexIteratorInfo(
+                "label1", std::unordered_set<std::string>{"id", "country"}),
+            "GetVertexByUniqueIndex");
+  EXPECT_EQ(txn->GetVertexIteratorInfo("label1",
+                                       std::unordered_set<std::string>{"id"}),
+            "ScanVertexBylabelProperties");
+  auto viter = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)},
+                                             {"country", Value::String("cn")}});
+  EXPECT_TRUE(dynamic_cast<GetVertexByUniqueIndex*>(viter.get()));
+  ASSERT_TRUE(viter->Valid());
+  EXPECT_EQ(viter->GetVertex().GetId(), alpha_id);
+  EXPECT_EQ(viter->GetVertex().GetProperty("str"), Value::String("alpha"));
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  EXPECT_THROW_CODE(
+      txn->CreateVertex({"label1"}, {{"id", Value::Integer(1)},
+                                     {"country", Value::String("cn")}}),
+      IndexValueAlreadyExist);
+  txn->Rollback();
+
+  txn = graphDB->BeginTransaction();
+  EXPECT_THROW_CODE(txn->GetVertexById(beta_id).SetProperties(
+                        {{"country", Value::String("cn")}}),
+                    IndexValueAlreadyExist);
+  txn->Rollback();
+
+  txn = graphDB->BeginTransaction();
+  txn->GetVertexById(beta_id).SetProperties(
+      {{"id", Value::Integer(2)}, {"country", Value::String("cn")}});
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  viter = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(2)},
+                                             {"country", Value::String("cn")}});
+  EXPECT_TRUE(dynamic_cast<GetVertexByUniqueIndex*>(viter.get()));
+  ASSERT_TRUE(viter->Valid());
+  EXPECT_EQ(viter->GetVertex().GetId(), beta_id);
+  EXPECT_EQ(viter->GetVertex().GetProperty("str"), Value::String("beta"));
+  txn->Commit();
 }
 
 TEST(VertexUniqueIndex, buildBusyBlocksSetAndRemoveAllProperty) {

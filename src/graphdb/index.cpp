@@ -21,6 +21,7 @@
 #include <rocksdb/utilities/write_batch_with_index.h>
 
 #include <fstream>
+#include <limits>
 #include <nlohmann/json.hpp>
 #include <unordered_set>
 
@@ -28,6 +29,7 @@
 #include "common/flags.h"
 #include "common/logger.h"
 #include "ftindex/include/lib.rs.h"
+#include "graphdb/graph_db.h"
 #include "spdlog/stopwatch.h"
 #include "transaction/transaction.h"
 
@@ -50,87 +52,162 @@ std::string FaissHnswMetaFilePath(const meta::VertexVectorIndex& meta) {
   return meta.path() + "/" + kFaissHnswMetaFileName;
 }
 
+std::string EncodeVertexPropertyIndexValues(
+    const std::vector<std::string>& values) {
+  std::string encoded;
+  for (const auto& value : values) {
+    if (value.size() > std::numeric_limits<uint32_t>::max()) {
+      THROW_CODE(InvalidParameter, "Indexed property value is too large");
+    }
+    uint32_t value_size = native_to_big(static_cast<uint32_t>(value.size()));
+    encoded.append(AsChars(value_size), sizeof(value_size));
+    encoded.append(value);
+  }
+  return encoded;
+}
+
 }  // namespace
 
 void VertexPropertyIndex::AddIndex(Transaction* txn, int64_t vid,
-                                   rocksdb::Slice value) {
-  if (meta_.is_unique()) {
-    rocksdb::ReadOptions ro;
-    std::string exists_val;
-    // lock index
-
-    std::string index_key = IndexKey(value.ToString());
-    auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key, &exists_val);
-    if (s.ok()) {
-      THROW_CODE(IndexValueAlreadyExist);
-    } else if (!s.IsNotFound()) {
-      THROW_CODE(StorageEngineError, s.ToString());
-    }
-    rocksdb::Slice index_val(AsChars(vid), sizeof(vid));
-    s = txn->dbtxn()->GetWriteBatch()->Put(cf_, index_key, index_val);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  }
+                                   const std::vector<std::string>& values) {
+  UpdateIndex(txn, vid, values, std::nullopt);
 }
 
-void VertexPropertyIndex::UpdateIndex(Transaction* txn, int64_t vid,
-                                      rocksdb::Slice new_value,
-                                      const std::string* old_value) {
+void VertexPropertyIndex::UpdateIndex(
+    Transaction* txn, int64_t vid,
+    const std::optional<std::vector<std::string>>& new_values,
+    const std::optional<std::vector<std::string>>& old_values) {
+  if (!new_values && !old_values) {
+    return;
+  }
+  std::string new_key;
+  std::string old_key;
   if (meta_.is_unique()) {
-    std::string tmp;
     rocksdb::ReadOptions ro;
-    // lock index
-    std::string index_key = IndexKey(new_value.ToString());
     bool keep_existing_entry = false;
-    auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key, &tmp);
-    if (s.ok()) {
-      if (tmp.size() != sizeof(int64_t)) {
-        THROW_CODE(StorageEngineError,
-                   "vertex unique index stores invalid vid size");
-      }
-      if (ReadValue<int64_t>(tmp.data()) != vid) {
-        THROW_CODE(IndexValueAlreadyExist);
-      }
-      keep_existing_entry = true;
-    } else if (!s.IsNotFound()) {
-      THROW_CODE(StorageEngineError, s.ToString());
-    }
-    if (old_value) {
-      // lock index
-      std::string key = IndexKey(*old_value);
-      if (key != index_key) {
-        s = txn->dbtxn()->GetForUpdate(ro, cf_, key,
-                                       static_cast<std::string*>(nullptr));
-        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-        s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, key);
-        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-        keep_existing_entry = false;
+    if (new_values) {
+      std::string tmp;
+      new_key = IndexKey(*new_values);
+      auto s = txn->dbtxn()->GetForUpdate(ro, cf_, new_key, &tmp);
+      if (s.ok()) {
+        if (tmp.size() != sizeof(int64_t)) {
+          THROW_CODE(StorageEngineError,
+                     "vertex unique index stores invalid vid size");
+        }
+        if (ReadValue<int64_t>(tmp.data()) != vid) {
+          THROW_CODE(IndexValueAlreadyExist);
+        }
+        keep_existing_entry = true;
+      } else if (!s.IsNotFound()) {
+        THROW_CODE(StorageEngineError, s.ToString());
       }
     }
-    if (!keep_existing_entry) {
-      s = txn->dbtxn()->GetWriteBatch()->Put(
-          cf_, index_key, rocksdb::Slice(AsChars(vid), sizeof(vid)));
+    if (old_values) {
+      old_key = IndexKey(*old_values);
+    }
+    if (old_values && (!new_values || old_key != new_key)) {
+      auto s = txn->dbtxn()->GetForUpdate(ro, cf_, old_key,
+                                          static_cast<std::string*>(nullptr));
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+      s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, old_key);
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+      keep_existing_entry = false;
+    }
+    if (new_values && !keep_existing_entry) {
+      auto s = txn->dbtxn()->GetWriteBatch()->Put(
+          cf_, new_key, rocksdb::Slice(AsChars(vid), sizeof(vid)));
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
+  } else {
+    if (new_values) {
+      new_key = EntryKey(*new_values, vid);
+    }
+    if (old_values) {
+      old_key = EntryKey(*old_values, vid);
+    }
+    if (old_values && (!new_values || old_key != new_key)) {
+      auto s = txn->dbtxn()->GetWriteBatch()->Delete(cf_, old_key);
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
+    if (new_values && (!old_values || old_key != new_key)) {
+      auto s = txn->dbtxn()->GetWriteBatch()->Put(cf_, new_key, {});
       if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     }
   }
 }
 
-std::string VertexPropertyIndex::IndexKey(const std::string& val) {
+std::string VertexPropertyIndex::IndexKey(
+    const std::vector<std::string>& values) const {
   std::string index_key(AsChars(index_id_), sizeof(index_id_));
-  index_key.append(val);
+  index_key.append(EncodeVertexPropertyIndexValues(values));
   return index_key;
 }
 
-void VertexPropertyIndex::DeleteIndex(Transaction* txn, rocksdb::Slice value) {
-  if (meta_.is_unique()) {
-    rocksdb::ReadOptions ro;
-    // lock index
-    std::string index_key = IndexKey(value.ToString());
-    auto s = txn->dbtxn()->GetForUpdate(ro, cf_, index_key,
-                                        static_cast<std::string*>(nullptr));
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-    s = txn->dbtxn()->GetWriteBatch()->SingleDelete(cf_, index_key);
-    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+std::string VertexPropertyIndex::EntryKey(
+    const std::vector<std::string>& values, int64_t vid) const {
+  std::string index_key = IndexKey(values);
+  index_key.append(AsChars(vid), sizeof(vid));
+  return index_key;
+}
+
+std::optional<std::vector<std::string>>
+VertexPropertyIndex::LoadVertexPropertyValues(
+    txn::Transaction* txn, int64_t vid,
+    const std::unordered_map<uint32_t, std::string>* overrides,
+    const std::unordered_set<uint32_t>* removed) const {
+  std::vector<std::string> values;
+  values.reserve(pids_.size());
+  rocksdb::ReadOptions ro;
+  for (auto pid : pids_) {
+    if (removed && removed->count(pid)) {
+      return std::nullopt;
+    }
+    if (overrides) {
+      auto iter = overrides->find(pid);
+      if (iter != overrides->end()) {
+        values.push_back(iter->second);
+        continue;
+      }
+    }
+    std::string property_key(AsChars(vid), sizeof(vid));
+    property_key.append(AsChars(pid), sizeof(pid));
+    std::string property_val;
+    auto s = txn->dbtxn()->Get(ro, txn->db()->graph_cf().vertex_property,
+                               property_key, &property_val);
+    if (s.IsNotFound()) {
+      return std::nullopt;
+    }
+    if (!s.ok()) {
+      THROW_CODE(StorageEngineError, s.ToString());
+    }
+    values.push_back(std::move(property_val));
   }
+  return values;
+}
+
+bool VertexPropertyIndex::TouchesAnyProperty(
+    const std::unordered_set<uint32_t>& pids) const {
+  for (auto pid : pids) {
+    if (pid_set_.count(pid)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool VertexPropertyIndex::AllPropertiesPresent(
+    const std::unordered_set<uint32_t>& pids) const {
+  for (auto pid : pids_) {
+    if (!pids.count(pid)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void VertexPropertyIndex::DeleteIndex(Transaction* txn, int64_t vid,
+                                      const std::vector<std::string>& values) {
+  UpdateIndex(txn, vid, std::nullopt, values);
 }
 
 void VertexFullTextIndex::StartTimer() {

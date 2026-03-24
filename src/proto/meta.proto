@@ -20,8 +20,8 @@ message VertexPropertyIndex {
     bool is_unique     = 2;
     string label       = 3;
     uint32 label_id    = 4;
-    string property    = 5;
-    uint32 property_id = 6;
+    repeated string properties   = 5;
+    repeated uint32 property_ids = 6;
     uint32 index_id    = 7;
 }
 

@@ -177,17 +177,17 @@ void ScanVertexByProperties::Next() {
 }
 
 GetVertexByUniqueIndex::GetVertexByUniqueIndex(
-    Transaction *txn, uint32_t lid, uint32_t pid, const Value &value,
-    const std::unordered_map<uint32_t, Value> &other_props)
-    : VertexIterator(txn) {
-  auto vi = txn_->db()->meta_info().GetVertexPropertyIndex(lid, pid);
-  if (!vi) {
+    Transaction *txn, std::shared_ptr<VertexPropertyIndex> index,
+    std::vector<std::string> values,
+    std::unordered_map<uint32_t, Value> other_props)
+    : VertexIterator(txn), index_(std::move(index)) {
+  if (!index_ || !index_->is_unique()) {
     return;
   }
   rocksdb::ReadOptions ro;
   std::string index_val;
-  std::string index_key = vi->IndexKey(value.Serialize());
-  auto s = txn_->dbtxn()->Get(ro, vi->cf(), index_key, &index_val);
+  std::string index_key = index_->IndexKey(values);
+  auto s = txn_->dbtxn()->Get(ro, index_->cf(), index_key, &index_val);
   if (s.ok()) {
     int64_t vid = ReadValue<int64_t>(index_val.data());
     ve_ = std::make_unique<Vertex>(txn_, vid);

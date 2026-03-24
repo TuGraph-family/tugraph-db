@@ -98,7 +98,7 @@ TEST(Concurrency, edge) {
                                   {"str", Value::String(std::to_string(i))}});
   }
   txn->Commit();
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   std::vector<std::thread> threads;
   for (size_t i = 0; i < 10; i++) {
     threads.emplace_back(CreateEdge, graphDB.get(), i);
@@ -123,7 +123,7 @@ TEST(Concurrency, edge) {
 TEST(Concurrency, vertexConflict) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});
-  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", "id");
+  graphDB->AddVertexPropertyIndex("label1_id", true, "label1", {"id"});
   auto txn1 = graphDB->BeginTransaction();
   txn1->CreateVertex({"label1"},
                      {{"id", Value::Integer(1)}, {"str", Value::String("1")}});

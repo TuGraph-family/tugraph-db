@@ -18,6 +18,7 @@
 
 #include "meta_info.h"
 
+#include <algorithm>
 #include <boost/endian/conversion.hpp>
 #include <filesystem>
 
@@ -26,8 +27,24 @@
 #include "common/logger.h"
 #include "proto/meta.pb.h"
 using namespace boost::endian;
+using common::AsChars;
 using common::ReadValue;
 namespace graphdb {
+namespace {
+
+std::string BuildVertexPropertyIndexKey(uint32_t lid,
+                                        const std::vector<uint32_t>& pids) {
+  std::vector<uint32_t> sorted_pids = pids;
+  std::sort(sorted_pids.begin(), sorted_pids.end());
+  std::string key(AsChars(lid), sizeof(lid));
+  for (auto pid : sorted_pids) {
+    key.append(AsChars(pid), sizeof(pid));
+  }
+  return key;
+}
+
+}  // namespace
+
 std::vector<std::shared_ptr<VertexFullTextIndex>>
 MetaInfo::GetVertexFullTextIndexes() {
   std::shared_lock lock(mutex_);
@@ -62,34 +79,54 @@ void MetaInfo::ClearVertexFullTextIndexes() {
 
 std::shared_ptr<VertexPropertyIndex> MetaInfo::GetVertexPropertyIndex(
     uint32_t lid, uint32_t pid) {
-  uint64_t index_key =
-      (static_cast<uint64_t>(lid) << 32) | static_cast<uint64_t>(pid);
+  return GetVertexPropertyIndex(lid, std::vector<uint32_t>{pid});
+}
+
+std::shared_ptr<VertexPropertyIndex> MetaInfo::GetVertexPropertyIndex(
+    uint32_t lid, const std::vector<uint32_t>& pids) {
   std::shared_lock lock(mutex_);
-  auto iter = vertex_property_indexes.find(index_key);
-  if (iter != vertex_property_indexes.end()) {
+  auto iter = vertex_property_indexes_by_schema_.find(
+      BuildVertexPropertyIndexKey(lid, pids));
+  if (iter != vertex_property_indexes_by_schema_.end()) {
     return iter->second;
   } else {
     return nullptr;
   }
 }
 
+std::shared_ptr<VertexPropertyIndex> MetaInfo::GetBestVertexPropertyUniqueIndex(
+    uint32_t lid, const std::unordered_set<uint32_t>& pids) {
+  std::shared_lock lock(mutex_);
+  std::shared_ptr<VertexPropertyIndex> best;
+  for (const auto& [_, index] : vertex_property_indexes_by_name_) {
+    if (!index->is_unique() || index->lid() != lid ||
+        !index->AllPropertiesPresent(pids)) {
+      continue;
+    }
+    if (!best || index->PropertyCount() > best->PropertyCount()) {
+      best = index;
+    }
+  }
+  return best;
+}
+
 std::shared_ptr<VertexPropertyIndex> MetaInfo::GetVertexPropertyIndex(
     const std::string& index_name) {
   std::shared_lock lock(mutex_);
-  for (const auto& [_, index] : vertex_property_indexes) {
-    if (index->meta().name() == index_name) {
-      return index;
-    }
+  auto iter = vertex_property_indexes_by_name_.find(index_name);
+  if (iter != vertex_property_indexes_by_name_.end()) {
+    return iter->second;
+  } else {
+    return nullptr;
   }
-  return nullptr;
 }
 
 std::vector<std::shared_ptr<VertexPropertyIndex>>
 MetaInfo::GetVertexPropertyIndexes() {
   std::shared_lock lock(mutex_);
   std::vector<std::shared_ptr<VertexPropertyIndex>> indexes;
-  indexes.reserve(vertex_property_indexes.size());
-  for (const auto& [_, index] : vertex_property_indexes) {
+  indexes.reserve(vertex_property_indexes_by_name_.size());
+  for (const auto& [_, index] : vertex_property_indexes_by_name_) {
     indexes.push_back(index);
   }
   return indexes;
@@ -148,26 +185,28 @@ void MetaInfo::ClearVertexVectorIndexes() {
 
 bool MetaInfo::AddVertexPropertyIndex(
     std::shared_ptr<graphdb::VertexPropertyIndex> vpi) {
-  uint64_t index_key = (static_cast<uint64_t>(vpi->lid()) << 32) |
-                       static_cast<uint64_t>(vpi->pid());
+  auto name = vpi->meta().name();
+  auto schema_key = BuildVertexPropertyIndexKey(vpi->lid(), vpi->pids());
   std::unique_lock lock(mutex_);
-  if (vertex_property_indexes.count(index_key)) {
+  if (vertex_property_indexes_by_name_.count(name) ||
+      vertex_property_indexes_by_schema_.count(schema_key)) {
     return false;
   } else {
-    vertex_property_indexes.emplace(index_key, std::move(vpi));
+    vertex_property_indexes_by_schema_.emplace(schema_key, vpi);
+    vertex_property_indexes_by_name_.emplace(std::move(name), std::move(vpi));
     return true;
   }
 }
 
 void MetaInfo::DeleteVertexPropertyIndex(const std::string& index_name) {
   std::unique_lock lock(mutex_);
-  for (auto iter = vertex_property_indexes.begin();
-       iter != vertex_property_indexes.end(); iter++) {
-    if (iter->second->meta().name() == index_name) {
-      vertex_property_indexes.erase(iter);
-      break;
-    }
+  auto name_iter = vertex_property_indexes_by_name_.find(index_name);
+  if (name_iter == vertex_property_indexes_by_name_.end()) {
+    return;
   }
+  vertex_property_indexes_by_schema_.erase(BuildVertexPropertyIndexKey(
+      name_iter->second->lid(), name_iter->second->pids()));
+  vertex_property_indexes_by_name_.erase(name_iter);
 }
 
 bool MetaInfo::AddVertexFullTextIndex(std::shared_ptr<VertexFullTextIndex> ft) {
@@ -231,10 +270,14 @@ void MetaInfo::Init(rocksdb::TransactionDB* db,
       LOG_INFO("vertex property index: [{}]", meta.ShortDebugString());
       max_index_id = std::max(max_index_id, meta.index_id());
       uint32_t lid = native_to_big(meta.label_id());
-      uint32_t pid = native_to_big(meta.property_id());
+      std::vector<uint32_t> pids;
+      pids.reserve(meta.property_ids_size());
+      for (auto pid : meta.property_ids()) {
+        pids.push_back(native_to_big(pid));
+      }
       uint32_t index_id = native_to_big(meta.index_id());
-      auto vi = std::make_shared<VertexPropertyIndex>(meta, graph_cf->index,
-                                                      index_id, lid, pid);
+      auto vi = std::make_shared<VertexPropertyIndex>(
+          meta, graph_cf->index, index_id, lid, std::move(pids));
       AddVertexPropertyIndex(std::move(vi));
       continue;
     }
