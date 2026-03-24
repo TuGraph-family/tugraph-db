@@ -3,8 +3,8 @@
 ## 点操作
 ### 创建点
 ```
-#为Person类型的点设置一个唯一约束，所有Person类型的点id字段的值是唯一的，为id字段设置唯一索引。
-CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
+#为Person类型的点设置一个唯一属性索引，所有Person类型的点id字段的值是唯一的。
+CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});
 
 CREATE (n:Person {id:1, name: 'James'});
 CREATE (n:Person {id:2, name: 'Robert'});

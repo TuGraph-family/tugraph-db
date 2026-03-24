@@ -223,7 +223,7 @@ Feature: test fulltext index
     Given an empty graph
     And having executed
       """
-      CALL db.createUniquePropertyConstraint('Chunk_id', 'Chunk', 'id');
+      CALL db.index.createNodeIndex('Chunk_id', 'Chunk', ['id'], {unique:true});
       CALL db.index.fulltext.createNodeIndex('Chunk_tags',['Chunk'], ['tags']);
       CREATE(n1:Chunk {id:1, tags:'keyword1 keyword2 keyword3 keyword4'})
       CREATE(n2:Chunk {id:2, tags:'keyword5 keyword6 keyword7 keyword8'});
@@ -248,7 +248,7 @@ Feature: test fulltext index
     Given an empty graph
     And having executed
       """
-      CALL db.createUniquePropertyConstraint('Chunk_id', 'Chunk', 'id');
+      CALL db.index.createNodeIndex('Chunk_id', 'Chunk', ['id'], {unique:true});
       CALL db.index.fulltext.createNodeIndex('Chunk_tags',['Chunk'], ['tags']);
       """
     When executing query

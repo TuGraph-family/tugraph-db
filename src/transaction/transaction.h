@@ -19,6 +19,7 @@
 #pragma once
 #include <rocksdb/utilities/transaction_db.h>
 
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -65,6 +66,11 @@ class Transaction {
   std::string GetVertexIteratorInfo(
       const std::optional<std::string>& label,
       const std::optional<std::unordered_set<std::string>>& props);
+  std::unique_ptr<graphdb::VertexIterator> QueryVertexByPropertyIndex(
+      const std::string& index_name, const Value& query);
+  std::unique_ptr<graphdb::VertexIterator> QueryVertexByPropertyRange(
+      const std::string& index_name, const std::optional<Value>& lower,
+      const std::optional<Value>& upper, bool left_closed, bool right_closed);
   std::unique_ptr<graphdb::VertexScoreIterator> QueryVertexByFTIndex(
       const std::string& index_name, const std::string& query, size_t top_n);
   std::unique_ptr<graphdb::VertexScoreIterator> QueryVertexByKnnSearch(

@@ -14,8 +14,8 @@ CALL db.index.vector.createNodeIndex('vector_index','Person', 'embedding', {dime
 #清空子图数据
 CALL db.dropDB();
 
-#为Person类型的点设置一个唯一约束，所有Person类型的点id字段的值是唯一的，为id字段设置唯一索引。
-CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
+#为Person类型的点设置一个唯一属性索引，所有Person类型的点id字段的值是唯一的。
+CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});
 
 #为Person类型点上的embedding字段创建向量索引，取名vector_index，维度是4, 其他向量参数默认。
 CALL db.index.vector.createNodeIndex('vector_index','Person', 'embedding', {dimension:4});

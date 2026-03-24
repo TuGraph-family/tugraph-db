@@ -4,9 +4,9 @@ upsert语义：如果不存在，则添加；如果存在，则更新。
 
 ## 批量 upsert 点
 
-为Person类型点的id字段设置唯一约束，推荐为每个类型的点都设置，这样可以唯一确定一个点。
+为Person类型点的id字段设置唯一属性索引，推荐为每个类型的点都设置，这样可以唯一确定一个点。
 ```
-CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
+CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});
 ```
 下面的语句根据Person的id字段进行查找，如果存在就更新其属性；不存在就创建点。
 UNWIND 后面是一个数组，数组里面的每一个元素是个map，map里面是点的属性：id是唯一约束字段，properties是点的其他属性字段值。

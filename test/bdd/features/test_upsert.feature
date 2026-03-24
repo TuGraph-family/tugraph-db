@@ -3,7 +3,7 @@ Feature: test upsert
     Given an empty graph
     And having executed
       """
-      CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
+      CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});
       """
     When executing query
       """
@@ -90,7 +90,7 @@ Feature: test upsert
     Given an empty graph
     And having executed
       """
-      CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
+      CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});
       UNWIND [
         {id: 1, name: 'Alice', age: 30},
         {id: 2, name: 'Bob', age: 25},
@@ -168,7 +168,7 @@ Feature: test upsert
     Given an empty graph
     And having executed
       """
-      CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
+      CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});
       UNWIND [
         {id: 1, properties:{name: 'Alice', age: 30}},
         {id: 2, properties:{name: 'Bob', age: 25}},
@@ -212,7 +212,7 @@ Feature: test upsert
     Given an empty graph
     And having executed
       """
-      CALL db.createUniquePropertyConstraint('person_id', 'Person', 'id');
+      CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});
       UNWIND [
         {id: 1, properties:{name: 'Alice', age: 30}},
         {id: 2, properties:{name: 'Bob', age: 25}},

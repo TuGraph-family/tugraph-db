@@ -81,11 +81,19 @@ class BuiltinProcedure {
       RTContext *ctx, const Record *record, const VEC_EXPR &args,
       const VEC_STR &yield_items,
       std::vector<std::vector<ProcedureResult>> *records);
-  static void DbCreateUniquePropertyConstraint(
+  static void DbIndexCreateNodeIndex(
       RTContext *ctx, const Record *record, const VEC_EXPR &args,
       const VEC_STR &yield_items,
       std::vector<std::vector<ProcedureResult>> *records);
-  static void DbDeleteUniquePropertyConstraint(
+  static void DbIndexDeleteIndex(
+      RTContext *ctx, const Record *record, const VEC_EXPR &args,
+      const VEC_STR &yield_items,
+      std::vector<std::vector<ProcedureResult>> *records);
+  static void DbIndexQueryNodes(
+      RTContext *ctx, const Record *record, const VEC_EXPR &args,
+      const VEC_STR &yield_items,
+      std::vector<std::vector<ProcedureResult>> *records);
+  static void DbIndexRangeQueryNodes(
       RTContext *ctx, const Record *record, const VEC_EXPR &args,
       const VEC_STR &yield_items,
       std::vector<std::vector<ProcedureResult>> *records);

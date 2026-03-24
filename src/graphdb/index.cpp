@@ -56,12 +56,136 @@ std::string EncodeVertexPropertyIndexValues(
     const std::vector<std::string>& values) {
   std::string encoded;
   for (const auto& value : values) {
-    if (value.size() > std::numeric_limits<uint32_t>::max()) {
-      THROW_CODE(InvalidParameter, "Indexed property value is too large");
+    if (value.empty()) {
+      THROW_CODE(InvalidParameter, "Indexed property value is invalid");
     }
-    uint32_t value_size = native_to_big(static_cast<uint32_t>(value.size()));
-    encoded.append(AsChars(value_size), sizeof(value_size));
-    encoded.append(value);
+    Value decoded;
+    decoded.Deserialize(value.data(), value.size());
+    encoded.push_back(static_cast<char>(decoded.type));
+    switch (decoded.type) {
+      case ValueType::Null: {
+        break;
+      }
+      case ValueType::BOOL: {
+        encoded.push_back(decoded.AsBool() ? 1 : 0);
+        break;
+      }
+      case ValueType::INTEGER: {
+        uint64_t sortable =
+            static_cast<uint64_t>(decoded.AsInteger()) ^ (1ULL << 63);
+        sortable = native_to_big(sortable);
+        encoded.append(AsChars(sortable), sizeof(sortable));
+        break;
+      }
+      case ValueType::DOUBLE: {
+        uint64_t bits = 0;
+        auto number = decoded.AsDouble();
+        std::memcpy(&bits, &number, sizeof(bits));
+        bits = (bits & (1ULL << 63)) ? ~bits : (bits ^ (1ULL << 63));
+        bits = native_to_big(bits);
+        encoded.append(AsChars(bits), sizeof(bits));
+        break;
+      }
+      case ValueType::FLOAT: {
+        uint32_t bits = 0;
+        auto number = decoded.AsFloat();
+        std::memcpy(&bits, &number, sizeof(bits));
+        bits = (bits & (1U << 31)) ? ~bits : (bits ^ (1U << 31));
+        bits = native_to_big(bits);
+        encoded.append(AsChars(bits), sizeof(bits));
+        break;
+      }
+      case ValueType::STRING: {
+        for (unsigned char ch : decoded.AsString()) {
+          if (ch == 0) {
+            encoded.push_back(0);
+            encoded.push_back(static_cast<char>(0xFF));
+          } else {
+            encoded.push_back(static_cast<char>(ch));
+          }
+        }
+        encoded.push_back(0);
+        encoded.push_back(0);
+        break;
+      }
+      case ValueType::ARRAY: {
+        for (size_t i = 1; i < value.size(); ++i) {
+          unsigned char ch = static_cast<unsigned char>(value[i]);
+          if (ch == 0) {
+            encoded.push_back(0);
+            encoded.push_back(static_cast<char>(0xFF));
+          } else {
+            encoded.push_back(static_cast<char>(ch));
+          }
+        }
+        encoded.push_back(0);
+        encoded.push_back(0);
+        break;
+      }
+      case ValueType::DATE: {
+        uint64_t sortable =
+            static_cast<uint64_t>(decoded.AsDate().GetStorage()) ^ (1ULL << 63);
+        sortable = native_to_big(sortable);
+        encoded.append(AsChars(sortable), sizeof(sortable));
+        break;
+      }
+      case ValueType::LOCALDATETIME: {
+        uint64_t sortable =
+            static_cast<uint64_t>(decoded.AsLocalDateTime().GetStorage()) ^
+            (1ULL << 63);
+        sortable = native_to_big(sortable);
+        encoded.append(AsChars(sortable), sizeof(sortable));
+        break;
+      }
+      case ValueType::LOCALTIME: {
+        uint64_t sortable =
+            static_cast<uint64_t>(decoded.AsLocalTime().GetStorage()) ^
+            (1ULL << 63);
+        sortable = native_to_big(sortable);
+        encoded.append(AsChars(sortable), sizeof(sortable));
+        break;
+      }
+      case ValueType::TIME: {
+        auto storage = decoded.AsTime().GetStorage();
+        uint64_t sortable =
+            static_cast<uint64_t>(std::get<0>(storage) -
+                                  std::get<1>(storage) * NANOS_PER_SECOND) ^
+            (1ULL << 63);
+        sortable = native_to_big(sortable);
+        encoded.append(AsChars(sortable), sizeof(sortable));
+        break;
+      }
+      case ValueType::DATETIME: {
+        auto storage = decoded.AsDateTime().GetStorage();
+        uint64_t sortable =
+            static_cast<uint64_t>(std::get<0>(storage)) ^ (1ULL << 63);
+        sortable = native_to_big(sortable);
+        encoded.append(AsChars(sortable), sizeof(sortable));
+        break;
+      }
+      case ValueType::DURATION: {
+        auto duration = decoded.AsDuration();
+        uint64_t months = native_to_big(static_cast<uint64_t>(duration.months) ^
+                                        (1ULL << 63));
+        uint64_t days =
+            native_to_big(static_cast<uint64_t>(duration.days) ^ (1ULL << 63));
+        uint64_t seconds = native_to_big(
+            static_cast<uint64_t>(duration.seconds) ^ (1ULL << 63));
+        uint64_t nanos =
+            native_to_big(static_cast<uint64_t>(duration.nanos) ^ (1ULL << 63));
+        encoded.append(AsChars(months), sizeof(months));
+        encoded.append(AsChars(days), sizeof(days));
+        encoded.append(AsChars(seconds), sizeof(seconds));
+        encoded.append(AsChars(nanos), sizeof(nanos));
+        break;
+      }
+      case ValueType::MAP:
+      default: {
+        THROW_CODE(ValueException,
+                   "Unsupported data type for property index, type: {}",
+                   ::ToString(decoded.type));
+      }
+    }
   }
   return encoded;
 }

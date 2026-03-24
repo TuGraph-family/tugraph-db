@@ -66,6 +66,16 @@ std::vector<int64_t> CollectVertexPropertyIndexVids(
   return vids;
 }
 
+std::vector<int64_t> CollectVertexIds(
+    std::unique_ptr<graphdb::VertexIterator> viter) {
+  std::vector<int64_t> vids;
+  for (; viter->Valid(); viter->Next()) {
+    vids.push_back(viter->GetVertex().GetId());
+  }
+  std::sort(vids.begin(), vids.end());
+  return vids;
+}
+
 }  // namespace
 
 TEST(VertexUniqueIndex, basic) {
@@ -520,6 +530,72 @@ TEST(VertexPropertyIndex, nonUniqueCompositeIndexMaintainsEntries) {
   EXPECT_TRUE((CollectVertexPropertyIndexVids(
                    txn.get(), index, {Value::Integer(1), Value::String("b")}))
                   .empty());
+  txn->Commit();
+}
+
+TEST(VertexPropertyIndex, nonUniqueQueryAndRange) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  auto txn = graphDB->BeginTransaction();
+  auto alice = txn->CreateVertex(
+      {"person"},
+      {{"id", Value::Integer(1)}, {"name", Value::String("alice")}});
+  auto bob = txn->CreateVertex(
+      {"person"}, {{"id", Value::Integer(2)}, {"name", Value::String("bob")}});
+  auto cindy = txn->CreateVertex(
+      {"person"},
+      {{"id", Value::Integer(2)}, {"name", Value::String("cindy")}});
+  auto david = txn->CreateVertex(
+      {"person"},
+      {{"id", Value::Integer(3)}, {"name", Value::String("david")}});
+  auto alice_id = alice.GetId();
+  auto bob_id = bob.GetId();
+  auto cindy_id = cindy.GetId();
+  auto david_id = david.GetId();
+  txn->Commit();
+
+  graphDB->AddVertexPropertyIndex("person_id", false, "person", {"id"});
+
+  txn = graphDB->BeginTransaction();
+  auto viter = txn->QueryVertexByPropertyIndex("person_id", Value::Integer(2));
+  EXPECT_TRUE(dynamic_cast<GetVertexByPropertyIndex*>(viter.get()));
+  EXPECT_EQ(CollectVertexIds(std::move(viter)),
+            (std::vector<int64_t>{bob_id, cindy_id}));
+
+  viter = txn->QueryVertexByPropertyRange("person_id", Value::Integer(2),
+                                          Value::Integer(3), true, true);
+  EXPECT_TRUE(dynamic_cast<GetVertexByPropertyRange*>(viter.get()));
+  EXPECT_EQ(CollectVertexIds(std::move(viter)),
+            (std::vector<int64_t>{bob_id, cindy_id, david_id}));
+
+  viter = txn->QueryVertexByPropertyRange("person_id", Value::Integer(2),
+                                          Value::Integer(3), false, false);
+  EXPECT_TRUE(dynamic_cast<GetVertexByPropertyRange*>(viter.get()));
+  EXPECT_TRUE(CollectVertexIds(std::move(viter)).empty());
+
+  viter = txn->QueryVertexByPropertyRange("person_id", Value::Integer(4),
+                                          Value::Integer(2), true, true);
+  EXPECT_TRUE(dynamic_cast<NoVertexFound*>(viter.get()));
+  EXPECT_TRUE(CollectVertexIds(std::move(viter)).empty());
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  txn->GetVertexById(alice_id).Delete();
+  txn->GetVertexById(cindy_id).SetProperties({{"id", Value::Integer(4)}});
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  viter = txn->QueryVertexByPropertyIndex("person_id", Value::Integer(2));
+  EXPECT_EQ(CollectVertexIds(std::move(viter)), (std::vector<int64_t>{bob_id}));
+
+  viter = txn->QueryVertexByPropertyRange("person_id", std::nullopt,
+                                          Value::Integer(3), true, false);
+  EXPECT_EQ(CollectVertexIds(std::move(viter)), (std::vector<int64_t>{bob_id}));
+
+  viter = txn->QueryVertexByPropertyRange("person_id", Value::Integer(4),
+                                          std::nullopt, true, true);
+  EXPECT_EQ(CollectVertexIds(std::move(viter)),
+            (std::vector<int64_t>{cindy_id}));
   txn->Commit();
 }
 
