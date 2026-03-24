@@ -11,6 +11,14 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#if __cplusplus >= 202002L
+#include <ranges>
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+#endif // __clang__
 
 namespace rust {
 inline namespace cxxbridge1 {
@@ -48,6 +56,10 @@ public:
   String(const char *, std::size_t);
   String(const char16_t *);
   String(const char16_t *, std::size_t);
+#ifdef __cpp_char8_t
+  String(const char8_t *s);
+  String(const char8_t *s, std::size_t len);
+#endif
 
   static String lossy(const std::string &) noexcept;
   static String lossy(const char *) noexcept;
@@ -55,8 +67,8 @@ public:
   static String lossy(const char16_t *) noexcept;
   static String lossy(const char16_t *, std::size_t) noexcept;
 
-  String &operator=(const String &) &noexcept;
-  String &operator=(String &&) &noexcept;
+  String &operator=(const String &) & noexcept;
+  String &operator=(String &&) & noexcept;
 
   explicit operator std::string() const;
 
@@ -111,8 +123,8 @@ template <>
 struct copy_assignable_if<false> {
   copy_assignable_if() noexcept = default;
   copy_assignable_if(const copy_assignable_if &) noexcept = default;
-  copy_assignable_if &operator=(const copy_assignable_if &) &noexcept = delete;
-  copy_assignable_if &operator=(copy_assignable_if &&) &noexcept = default;
+  copy_assignable_if &operator=(const copy_assignable_if &) & noexcept = delete;
+  copy_assignable_if &operator=(copy_assignable_if &&) & noexcept = default;
 };
 } // namespace detail
 
@@ -125,8 +137,11 @@ public:
   Slice() noexcept;
   Slice(T *, std::size_t count) noexcept;
 
-  Slice &operator=(const Slice<T> &) &noexcept = default;
-  Slice &operator=(Slice<T> &&) &noexcept = default;
+  template <typename C>
+  explicit Slice(C &c) : Slice(c.data(), c.size()) {}
+
+  Slice &operator=(const Slice<T> &) & noexcept = default;
+  Slice &operator=(Slice<T> &&) & noexcept = default;
 
   T *data() const noexcept;
   std::size_t size() const noexcept;
@@ -158,10 +173,20 @@ private:
   std::array<std::uintptr_t, 2> repr;
 };
 
+#ifdef __cpp_deduction_guides
+template <typename C>
+explicit Slice(C &c)
+    -> Slice<std::remove_reference_t<decltype(*std::declval<C>().data())>>;
+#endif // __cpp_deduction_guides
+
 template <typename T>
 class Slice<T>::iterator final {
 public:
+#if __cplusplus >= 202002L
+  using iterator_category = std::contiguous_iterator_tag;
+#else
   using iterator_category = std::random_access_iterator_tag;
+#endif
   using value_type = T;
   using difference_type = std::ptrdiff_t;
   using pointer = typename std::add_pointer<T>::type;
@@ -179,6 +204,9 @@ public:
   iterator &operator+=(difference_type) noexcept;
   iterator &operator-=(difference_type) noexcept;
   iterator operator+(difference_type) const noexcept;
+  friend inline iterator operator+(difference_type lhs, iterator rhs) noexcept {
+    return rhs + lhs;
+  }
   iterator operator-(difference_type) const noexcept;
   difference_type operator-(const iterator &) const noexcept;
 
@@ -194,6 +222,11 @@ private:
   void *pos;
   std::size_t stride;
 };
+
+#if __cplusplus >= 202002L
+static_assert(std::ranges::contiguous_range<rust::Slice<const uint8_t>>);
+static_assert(std::contiguous_iterator<rust::Slice<const uint8_t>::iterator>);
+#endif
 
 template <typename T>
 Slice<T>::Slice() noexcept {
@@ -409,7 +442,7 @@ public:
   explicit Box(const T &);
   explicit Box(T &&);
 
-  Box &operator=(Box &&) &noexcept;
+  Box &operator=(Box &&) & noexcept;
 
   const T *operator->() const noexcept;
   const T &operator*() const noexcept;
@@ -485,7 +518,7 @@ Box<T>::~Box() noexcept {
 }
 
 template <typename T>
-Box<T> &Box<T>::operator=(Box &&other) &noexcept {
+Box<T> &Box<T>::operator=(Box &&other) & noexcept {
   if (this->ptr) {
     this->drop();
   }
@@ -568,7 +601,7 @@ public:
   Vec(Vec &&) noexcept;
   ~Vec() noexcept;
 
-  Vec &operator=(Vec &&) &noexcept;
+  Vec &operator=(Vec &&) & noexcept;
   Vec &operator=(const Vec &) &;
 
   std::size_t size() const noexcept;
@@ -642,7 +675,7 @@ Vec<T>::~Vec() noexcept {
 }
 
 template <typename T>
-Vec<T> &Vec<T>::operator=(Vec &&other) &noexcept {
+Vec<T> &Vec<T>::operator=(Vec &&other) & noexcept {
   this->drop();
   this->repr = other.repr;
   new (&other) Vec();
@@ -873,6 +906,12 @@ std::size_t align_of() {
 } // namespace cxxbridge1
 } // namespace rust
 
+#if __cplusplus >= 201402L
+#define CXX_DEFAULT_VALUE(value) = value
+#else
+#define CXX_DEFAULT_VALUE(value)
+#endif
+
 struct IdScore;
 struct QueryOptions;
 struct FTIndex;
@@ -880,8 +919,8 @@ struct FTIndex;
 #ifndef CXXBRIDGE1_STRUCT_IdScore
 #define CXXBRIDGE1_STRUCT_IdScore
 struct IdScore final {
-  ::std::int64_t id;
-  float score;
+  ::std::int64_t id CXX_DEFAULT_VALUE(0);
+  float score CXX_DEFAULT_VALUE(0);
 
   using IsRelocatable = ::std::true_type;
 };
@@ -890,7 +929,7 @@ struct IdScore final {
 #ifndef CXXBRIDGE1_STRUCT_QueryOptions
 #define CXXBRIDGE1_STRUCT_QueryOptions
 struct QueryOptions final {
-  ::std::size_t top_n;
+  ::std::size_t top_n CXX_DEFAULT_VALUE(0);
 
   using IsRelocatable = ::std::true_type;
 };
@@ -912,12 +951,16 @@ private:
 
 ::rust::Box<::FTIndex> new_ftindex(::rust::String const &path, ::rust::Vec<::rust::String> const &properties);
 
-void ft_add_document(::FTIndex &ft, ::std::int64_t id, ::rust::Vec<::rust::String> const &fields, ::rust::Vec<::rust::String> const &valus);
+void ft_add_document(::FTIndex const &ft, ::std::int64_t id, ::rust::Vec<::rust::String> const &fields, ::rust::Vec<::rust::String> const &valus);
 
-void ft_delete_document(::FTIndex &ft, ::std::int64_t id);
+void ft_delete_document(::FTIndex const &ft, ::std::int64_t id);
 
-void ft_commit(::FTIndex &ft, ::rust::String const &payload);
+void ft_commit(::FTIndex const &ft, ::rust::String const &payload);
 
-::rust::Vec<::IdScore> ft_query(::FTIndex &ft, ::rust::String const &query, ::QueryOptions const &options);
+::rust::Vec<::IdScore> ft_query(::FTIndex const &ft, ::rust::String const &query, ::QueryOptions const &options);
 
-::rust::String ft_get_payload(::FTIndex &ft);
+::rust::String ft_get_payload(::FTIndex const &ft);
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif // __clang__
