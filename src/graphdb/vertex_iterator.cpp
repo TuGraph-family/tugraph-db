@@ -21,11 +21,13 @@
 #include <boost/endian/conversion.hpp>
 
 #include "bolt/connection.h"
-#include "byte_utils.h"
+#include "common/byte_utils.h"
 #include "common/logger.h"
 #include "graph_db.h"
 #include "transaction/transaction.h"
 using namespace txn;
+using common::AsChars;
+using common::ReadValue;
 namespace graphdb {
 ScanVertexBylabel::ScanVertexBylabel(Transaction *txn, uint32_t lid)
     : VertexIterator(txn), lid_(lid) {

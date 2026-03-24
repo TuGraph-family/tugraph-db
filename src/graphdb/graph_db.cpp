@@ -19,13 +19,14 @@
 
 #include <filesystem>
 
-#include "byte_utils.h"
+#include "common/byte_utils.h"
 #include "common/logger.h"
 #include "meta_info.h"
 #include "proto/meta.pb.h"
 #include "transaction/transaction.h"
 namespace fs = std::filesystem;
 using namespace boost::endian;
+using common::AsChars;
 namespace graphdb {
 std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
                                        const GraphDBOptions& graph_options) {

@@ -239,7 +239,6 @@ set(GRAPHDB_SOURCES
     src/graphdb/meta_info.cpp
     src/graphdb/index.cpp
     src/graphdb/hnsw_index.cpp
-    src/graphdb/uuid_generator.cpp
 )
 
 set(COMMON_SOURCES

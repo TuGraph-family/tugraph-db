@@ -21,10 +21,12 @@
 #include <boost/endian/conversion.hpp>
 
 #include "bolt/connection.h"
-#include "byte_utils.h"
+#include "common/byte_utils.h"
 #include "common/logger.h"
 #include "graph_db.h"
 #include "transaction/transaction.h"
+using common::AsChars;
+using common::ReadValue;
 namespace graphdb {
 ScanEdgeByVidDirectionTypes::ScanEdgeByVidDirectionTypes(
     txn::Transaction *txn, int64_t vid, EdgeDirection direction,

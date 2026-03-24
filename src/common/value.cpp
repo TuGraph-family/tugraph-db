@@ -21,6 +21,16 @@
 #include <cassert>
 
 #include "bolt/temporal.h"
+#include "common/byte_utils.h"
+
+namespace {
+
+template <typename T>
+void AppendRaw(std::string& buffer, const T& value) {
+  buffer.append(common::AsChars(value), sizeof(T));
+}
+
+}  // namespace
 
 std::string Value::Serialize() const {
   std::string buffer;
@@ -31,18 +41,15 @@ std::string Value::Serialize() const {
       break;
     }
     case ValueType::INTEGER: {
-      auto v = std::any_cast<int64_t>(data);
-      buffer.append((const char*)&v, sizeof(v));
+      AppendRaw(buffer, std::any_cast<int64_t>(data));
       break;
     }
     case ValueType::DOUBLE: {
-      auto v = std::any_cast<double>(data);
-      buffer.append((const char*)&v, sizeof(v));
+      AppendRaw(buffer, std::any_cast<double>(data));
       break;
     }
     case ValueType::FLOAT: {
-      auto v = std::any_cast<float>(data);
-      buffer.append((const char*)&v, sizeof(v));
+      AppendRaw(buffer, std::any_cast<float>(data));
       break;
     }
     case ValueType::STRING: {
@@ -56,7 +63,6 @@ std::string Value::Serialize() const {
       }
       auto t = array[0].type;
       buffer.append(1, static_cast<char>(t));
-      void* p = nullptr;
       for (const auto& item : array) {
         if (item.type != t) {
           THROW_CODE(ValueException,
@@ -66,53 +72,25 @@ std::string Value::Serialize() const {
         }
         switch (item.type) {
           case ValueType::BOOL: {
-            if (!p) {
-              buffer.resize(buffer.size() + array.size());
-              p = buffer.data() + 2;
-            }
-            auto* tmp = (char*)p;
-            *tmp = static_cast<char>(item.AsBool());
-            tmp++;
-            p = tmp;
+            buffer.append(1, static_cast<char>(item.AsBool()));
             break;
           }
           case ValueType::INTEGER: {
-            if (!p) {
-              buffer.resize(buffer.size() + array.size() * sizeof(int64_t));
-              p = buffer.data() + 2;
-            }
-            auto* tmp = (int64_t*)p;
-            *tmp = item.AsInteger();
-            tmp++;
-            p = tmp;
+            AppendRaw(buffer, item.AsInteger());
             break;
           }
           case ValueType::DOUBLE: {
-            if (!p) {
-              buffer.resize(buffer.size() + array.size() * sizeof(double));
-              p = buffer.data() + 2;
-            }
-            auto* tmp = (double*)p;
-            *tmp = item.AsDouble();
-            tmp++;
-            p = tmp;
+            AppendRaw(buffer, item.AsDouble());
             break;
           }
           case ValueType::FLOAT: {
-            if (!p) {
-              buffer.resize(buffer.size() + array.size() * sizeof(float));
-              p = buffer.data() + 2;
-            }
-            auto* tmp = (float*)p;
-            *tmp = item.AsFloat();
-            tmp++;
-            p = tmp;
+            AppendRaw(buffer, item.AsFloat());
             break;
           }
           case ValueType::STRING: {
             const auto& s = item.AsString();
             size_t len = s.size();
-            buffer.append((const char*)&len, sizeof(len));
+            AppendRaw(buffer, len);
             buffer.append(s);
             break;
           }
@@ -195,17 +173,17 @@ void Value::Deserialize(const char* p, size_t size) {
     }
     case ValueType::INTEGER: {
       assert(size == sizeof(int64_t));
-      data = *(int64_t*)p;
+      data = common::ReadValue<int64_t>(p);
       break;
     }
     case ValueType::DOUBLE: {
       assert(size == sizeof(double));
-      data = *(double*)p;
+      data = common::ReadValue<double>(p);
       break;
     }
     case ValueType::FLOAT: {
       assert(size == sizeof(float));
-      data = *(float*)p;
+      data = common::ReadValue<float>(p);
       break;
     }
     case ValueType::STRING: {
@@ -233,7 +211,8 @@ void Value::Deserialize(const char* p, size_t size) {
               std::vector<int64_t> ret;
               data = std::move(ret);
             }
-            std::any_cast<std::vector<Value>&>(data).emplace_back(*(int64_t*)p);
+            std::any_cast<std::vector<Value>&>(data).emplace_back(
+                common::ReadValue<int64_t>(p));
             p += sizeof(int64_t);
             size -= sizeof(int64_t);
             break;
@@ -243,7 +222,8 @@ void Value::Deserialize(const char* p, size_t size) {
               std::vector<double> ret;
               data = std::move(ret);
             }
-            std::any_cast<std::vector<Value>&>(data).emplace_back(*(double*)p);
+            std::any_cast<std::vector<Value>&>(data).emplace_back(
+                common::ReadValue<double>(p));
             p += sizeof(double);
             size -= sizeof(double);
             break;
@@ -253,7 +233,8 @@ void Value::Deserialize(const char* p, size_t size) {
               std::vector<float> ret;
               data = std::move(ret);
             }
-            std::any_cast<std::vector<Value>&>(data).emplace_back(*(float*)p);
+            std::any_cast<std::vector<Value>&>(data).emplace_back(
+                common::ReadValue<float>(p));
             p += sizeof(float);
             size -= sizeof(float);
             break;
@@ -263,7 +244,7 @@ void Value::Deserialize(const char* p, size_t size) {
               std::vector<std::string> ret;
               data = std::move(ret);
             }
-            auto len = *(size_t*)p;
+            auto len = common::ReadValue<size_t>(p);
             p += sizeof(size_t);
             size -= sizeof(size_t);
             std::any_cast<std::vector<Value>&>(data).emplace_back(
@@ -286,33 +267,38 @@ void Value::Deserialize(const char* p, size_t size) {
     }
     case ValueType::DATE: {
       assert(size == sizeof(int64_t));
-      data = common::Date(*(int64_t*)p);
+      data = common::Date(common::ReadValue<int64_t>(p));
       break;
     }
     case ValueType::LOCALDATETIME: {
       assert(size == sizeof(int64_t));
-      data = common::LocalDateTime(*(int64_t*)p);
+      data = common::LocalDateTime(common::ReadValue<int64_t>(p));
       break;
     }
     case ValueType::LOCALTIME: {
       assert(size == sizeof(int64_t));
-      data = common::LocalTime(*(int64_t*)p);
+      data = common::LocalTime(common::ReadValue<int64_t>(p));
       break;
     }
     case ValueType::TIME: {
       assert(size == sizeof(int64_t) * 2);
-      data = common::Time(*(int64_t*)p, *(int64_t*)(p + 8));
+      data = common::Time(common::ReadValue<int64_t>(p),
+                          common::ReadValue<int64_t>(p + sizeof(int64_t)));
       break;
     }
     case ValueType::DATETIME: {
       assert(size == sizeof(int64_t) * 2);
-      data = common::DateTime(*(int64_t*)p, *(int64_t*)(p + 8));
+      data = common::DateTime(common::ReadValue<int64_t>(p),
+                              common::ReadValue<int64_t>(p + sizeof(int64_t)));
       break;
     }
     case ValueType::DURATION: {
       assert(size == sizeof(int64_t) * 4);
-      data = common::Duration(*(int64_t*)p, *(int64_t*)(p + 8),
-                              *(int64_t*)(p + 16), *(int64_t*)(p + 24));
+      data =
+          common::Duration(common::ReadValue<int64_t>(p),
+                           common::ReadValue<int64_t>(p + sizeof(int64_t)),
+                           common::ReadValue<int64_t>(p + sizeof(int64_t) * 2),
+                           common::ReadValue<int64_t>(p + sizeof(int64_t) * 3));
       break;
     }
     default: {

@@ -22,6 +22,7 @@
 
 #include <boost/endian/conversion.hpp>
 
+#include "common/byte_utils.h"
 #include "common/exceptions.h"
 #include "common/logger.h"
 #include "cypher/execution_plan/result_iterator.h"
@@ -210,9 +211,9 @@ Edge Transaction::GetEdgeById(uint32_t etid, int64_t eid) {
   auto s = txn_->Get(ro, db_->graph_cf().edge_type_eid, key, &val);
   if (s.ok()) {
     auto p = val.data();
-    int64_t startId = *(int64_t*)p;
+    int64_t startId = common::ReadValue<int64_t>(p);
     p += sizeof(int64_t);
-    int64_t endId = *(int64_t*)p;
+    int64_t endId = common::ReadValue<int64_t>(p);
     return {this, eid, startId, endId, etid};
   } else if (s.IsNotFound()) {
     THROW_CODE(EdgeIdNotFound, "Edge [etid:{},eid:{}] not found",
@@ -349,13 +350,41 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
 }
 
 void Transaction::Commit() {
+  std::unique_lock<std::mutex> fulltext_commit_lock(
+      db_->fulltext_index_commit_mutex(), std::defer_lock);
+  std::unique_lock<std::mutex> vector_commit_lock(
+      db_->vector_index_commit_mutex(), std::defer_lock);
+  if (!pending_fulltext_wals_.empty() && !pending_vector_wals_.empty()) {
+    std::lock(fulltext_commit_lock, vector_commit_lock);
+  } else if (!pending_fulltext_wals_.empty()) {
+    fulltext_commit_lock.lock();
+  } else if (!pending_vector_wals_.empty()) {
+    vector_commit_lock.lock();
+  }
+  if (!pending_fulltext_wals_.empty() || !pending_vector_wals_.empty()) {
+    auto* write_batch = txn_->GetWriteBatch();
+    for (const auto& wal : pending_fulltext_wals_) {
+      auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
+                                wal.payload);
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
+    for (const auto& wal : pending_vector_wals_) {
+      auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
+                                wal.payload);
+      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    }
+  }
   auto s = txn_->Commit();
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  pending_fulltext_wals_.clear();
+  pending_vector_wals_.clear();
 }
 
 void Transaction::Rollback() {
   auto s = txn_->Rollback();
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  pending_fulltext_wals_.clear();
+  pending_vector_wals_.clear();
 }
 
 std::unique_ptr<VertexScoreIterator> Transaction::QueryVertexByFTIndex(

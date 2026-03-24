@@ -217,6 +217,102 @@ TEST(FTIndex, indexVertex) {
   txn->Commit();
 }
 
+TEST(FTIndex, corruptedWalIsRejected) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto index = graphDB->meta_info().GetVertexFullTextIndex("ft_index");
+  ASSERT_TRUE(index != nullptr);
+
+  auto txn = graphDB->BeginTransaction();
+  auto s = txn->dbtxn()->GetWriteBatch()->Put(graphDB->graph_cf().wal,
+                                              index->NextWALKey(), "bad_wal");
+  ASSERT_TRUE(s.ok());
+  txn->Commit();
+
+  EXPECT_THROW_CODE(index->ApplyWAL(), StorageEngineError);
+}
+
+TEST(FTIndex, rollbackDoesNotBreakWalApply) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(1)},
+                     {"str", Value::String("shared_token keep_one")}});
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(2)},
+                     {"str", Value::String("shared_token rolled_back")}});
+  txn->Rollback();
+
+  txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(3)},
+                     {"str", Value::String("shared_token keep_three")}});
+  txn->Commit();
+
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
+    index->ApplyWAL();
+  }
+
+  txn = graphDB->BeginTransaction();
+  std::set<int64_t> ids;
+  for (auto result = txn->QueryVertexByFTIndex("ft_index", "shared_token", 10);
+       result->Valid(); result->Next()) {
+    ids.insert(result->GetVertexScore().vertex.GetProperty("id").AsInteger());
+  }
+  EXPECT_EQ(ids, (std::set<int64_t>{1, 3}));
+  txn->Commit();
+}
+
+TEST(FTIndex, outOfOrderCommitsApplyCleanly) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto txn1 = graphDB->BeginTransaction();
+  txn1->CreateVertex({"label1"},
+                     {{"id", Value::Integer(1)},
+                      {"str", Value::String("shared_token commit_later")}});
+
+  auto txn2 = graphDB->BeginTransaction();
+  txn2->CreateVertex({"label1"},
+                     {{"id", Value::Integer(2)},
+                      {"str", Value::String("shared_token commit_first")}});
+
+  txn2->Commit();
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
+    index->ApplyWAL();
+  }
+
+  txn1->Commit();
+  for (const auto& index : graphDB->meta_info().GetVertexFullTextIndexes()) {
+    index->ApplyWAL();
+  }
+
+  auto read_txn = graphDB->BeginTransaction();
+  std::set<int64_t> ids;
+  for (auto result =
+           read_txn->QueryVertexByFTIndex("ft_index", "shared_token", 10);
+       result->Valid(); result->Next()) {
+    ids.insert(result->GetVertexScore().vertex.GetProperty("id").AsInteger());
+  }
+  EXPECT_EQ(ids, (std::set<int64_t>{1, 2}));
+  read_txn->Commit();
+}
+
 TEST(FTIndex, buildDeduplicatesVerticesWithMultipleMatchedLabels) {
   fs::remove_all(testdb);
   auto graphDB = GraphDB::Open(testdb, {});

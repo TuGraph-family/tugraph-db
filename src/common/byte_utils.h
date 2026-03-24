@@ -4,7 +4,7 @@
 #include <string_view>
 #include <type_traits>
 
-namespace graphdb {
+namespace common {
 
 template <typename T>
 const char* AsChars(const T& value) {
@@ -26,4 +26,4 @@ T ReadValue(const char* data) {
   return value;
 }
 
-}  // namespace graphdb
+}  // namespace common

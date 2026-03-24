@@ -79,6 +79,10 @@ class GraphDB {
   meta::GraphDBMetaInfo& db_meta() { return db_meta_; }
   const std::string& path() { return path_; }
   bool& drop_on_close() { return drop_on_close_; }
+  std::mutex& fulltext_index_commit_mutex() {
+    return fulltext_index_commit_mutex_;
+  }
+  std::mutex& vector_index_commit_mutex() { return vector_index_commit_mutex_; }
 
  private:
   std::string path_;
@@ -93,5 +97,7 @@ class GraphDB {
   GraphDBOptions options_;
   bool drop_on_close_ = false;
   std::mutex index_ddl_mutex_;
+  std::mutex fulltext_index_commit_mutex_;
+  std::mutex vector_index_commit_mutex_;
 };
 }  // namespace graphdb

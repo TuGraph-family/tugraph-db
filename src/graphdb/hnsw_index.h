@@ -13,6 +13,7 @@
 namespace faiss {
 struct IndexHNSW;
 struct IndexFlatCodes;
+struct Index;
 }  // namespace faiss
 
 namespace graphdb {
@@ -33,7 +34,8 @@ class FaissHnswIndex {
       const std::string& path, int64_t dim,
       meta::VectorDistanceType distance_type, int hnsw_m, int ef_construction);
 
-  void Add(const float* vectors, int64_t num_elements);
+  void Add(const float* vectors, int64_t num_elements,
+           const int64_t* ids = nullptr);
 
   SearchResult KnnSearch(const float* query, int top_k, int ef_search,
                          const Filter& filter = Filter()) const;
@@ -51,6 +53,8 @@ class FaissHnswIndex {
   static int DistanceTypeToFaissMetricType(
       meta::VectorDistanceType distance_type);
 
+  faiss::Index* BaseIndex();
+  const faiss::Index* BaseIndex() const;
   faiss::IndexHNSW* HnswIndex();
   const faiss::IndexHNSW* HnswIndex() const;
 

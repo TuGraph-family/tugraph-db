@@ -16,6 +16,7 @@
 
 #include <faiss/IndexFlatCodes.h>
 #include <faiss/IndexHNSW.h>
+#include <faiss/IndexIDMap.h>
 #include <faiss/impl/FaissException.h>
 #include <faiss/impl/HNSW.h>
 #include <faiss/impl/IDSelector.h>
@@ -46,11 +47,13 @@ class CallbackIdSelector : public faiss::IDSelector {
 FaissHnswIndex::FaissHnswIndex(int64_t dim,
                                meta::VectorDistanceType distance_type,
                                int hnsw_m, int ef_construction)
-    : FaissHnswIndex(std::unique_ptr<faiss::Index>(new faiss::IndexHNSWFlat(
-                         dim, hnsw_m,
-                         static_cast<faiss::MetricType>(
-                             DistanceTypeToFaissMetricType(distance_type)))),
-                     distance_type, hnsw_m, ef_construction) {}
+    : FaissHnswIndex(
+          std::unique_ptr<faiss::Index>(
+              new faiss::IndexIDMap2(new faiss::IndexHNSWFlat(
+                  dim, hnsw_m,
+                  static_cast<faiss::MetricType>(
+                      DistanceTypeToFaissMetricType(distance_type))))),
+          distance_type, hnsw_m, ef_construction) {}
 
 FaissHnswIndex::FaissHnswIndex(std::unique_ptr<faiss::Index> index,
                                meta::VectorDistanceType distance_type,
@@ -72,6 +75,12 @@ std::unique_ptr<FaissHnswIndex> FaissHnswIndex::Load(
         new FaissHnswIndex(std::unique_ptr<faiss::Index>(raw_index),
                            distance_type, hnsw_m, ef_construction));
     index->ValidateIndex(dim);
+    auto* id_map = dynamic_cast<faiss::IndexIDMap2*>(index->index_.get());
+    if (id_map == nullptr) {
+      THROW_CODE(VectorIndexException,
+                 "loaded index is not a faiss id-mapped hnsw index");
+    }
+    id_map->construct_rev_map();
     return index;
   } catch (const faiss::FaissException& e) {
     THROW_CODE(IOException, "failed to load faiss hnsw index {}: {}", path,
@@ -80,13 +89,22 @@ std::unique_ptr<FaissHnswIndex> FaissHnswIndex::Load(
   return nullptr;
 }
 
-void FaissHnswIndex::Add(const float* vectors, int64_t num_elements) {
+void FaissHnswIndex::Add(const float* vectors, int64_t num_elements,
+                         const int64_t* ids) {
   if (num_elements <= 0) {
     return;
   }
 
   try {
-    index_->add(num_elements, vectors);
+    if (ids == nullptr) {
+      index_->add(num_elements, vectors);
+      return;
+    }
+    std::vector<faiss::idx_t> faiss_ids(num_elements);
+    for (int64_t i = 0; i < num_elements; ++i) {
+      faiss_ids[i] = ids[i];
+    }
+    index_->add_with_ids(num_elements, vectors, faiss_ids.data());
   } catch (const faiss::FaissException& e) {
     THROW_CODE(VectorIndexException, "failed to add vectors: {}", e.msg);
   }
@@ -149,6 +167,10 @@ int64_t FaissHnswIndex::GetMemoryUsage() const {
 
   const auto* storage = FlatStorage();
   bytes += storage->codes.capacity() * sizeof(uint8_t);
+  auto* id_map = dynamic_cast<const faiss::IndexIDMap*>(index_.get());
+  if (id_map != nullptr) {
+    bytes += id_map->id_map.capacity() * sizeof(faiss::idx_t);
+  }
   return bytes;
 }
 
@@ -167,8 +189,26 @@ int FaissHnswIndex::DistanceTypeToFaissMetricType(
   return faiss::MetricType::METRIC_L2;
 }
 
+faiss::Index* FaissHnswIndex::BaseIndex() {
+  auto* id_map = dynamic_cast<faiss::IndexIDMap*>(index_.get());
+  if (id_map == nullptr) {
+    THROW_CODE(VectorIndexException,
+               "faiss index is not wrapped by index id map");
+  }
+  return id_map->index;
+}
+
+const faiss::Index* FaissHnswIndex::BaseIndex() const {
+  auto* id_map = dynamic_cast<const faiss::IndexIDMap*>(index_.get());
+  if (id_map == nullptr) {
+    THROW_CODE(VectorIndexException,
+               "faiss index is not wrapped by index id map");
+  }
+  return id_map->index;
+}
+
 faiss::IndexHNSW* FaissHnswIndex::HnswIndex() {
-  auto* hnsw = dynamic_cast<faiss::IndexHNSW*>(index_.get());
+  auto* hnsw = dynamic_cast<faiss::IndexHNSW*>(BaseIndex());
   if (hnsw == nullptr) {
     THROW_CODE(VectorIndexException, "loaded index is not a faiss hnsw index");
   }
@@ -176,7 +216,7 @@ faiss::IndexHNSW* FaissHnswIndex::HnswIndex() {
 }
 
 const faiss::IndexHNSW* FaissHnswIndex::HnswIndex() const {
-  auto* hnsw = dynamic_cast<const faiss::IndexHNSW*>(index_.get());
+  auto* hnsw = dynamic_cast<const faiss::IndexHNSW*>(BaseIndex());
   if (hnsw == nullptr) {
     THROW_CODE(VectorIndexException, "loaded index is not a faiss hnsw index");
   }
