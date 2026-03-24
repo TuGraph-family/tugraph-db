@@ -364,3 +364,73 @@ Feature: test function
     Then the result should be, in any order
     | tointeger('haha') |
     | null              |
+
+  Scenario: case02 vector similarity cosine
+    Given an empty graph
+    And having executed
+      """
+      CREATE (:person {id:1, name:'target', embedding:[3.0,4.0]})
+      CREATE (:person {id:2, name:'close_y', embedding:[0.0,5.0]})
+      CREATE (:person {id:3, name:'close_x', embedding:[5.0,0.0]})
+      CREATE (:person {id:4, name:'opposite', embedding:[-3.0,-4.0]})
+      """
+    When executing query
+      '''
+      MATCH (query:person {id:1}), (candidate:person)
+      WHERE candidate.id <> query.id
+      WITH query, candidate,
+           vector.similarity.cosine(candidate.embedding, query.embedding) AS score
+      WHERE score > 0.5
+      WITH query, candidate, score
+      ORDER BY score DESC, candidate.id ASC
+      RETURN query.name AS source, candidate.id AS candidate_id, candidate.name AS candidate,
+             round(score * 100) AS score_pct;
+      '''
+    Then the result should be, in order
+      | source   | candidate_id | candidate | score_pct |
+      | 'target' | 2            | 'close_y' | 80.0      |
+      | 'target' | 3            | 'close_x' | 60.0      |
+    When executing query
+      '''
+      MATCH (query:person {id:1}), (candidate:person)
+      WITH candidate, vector.similarity.cosine(candidate.embedding, query.embedding) AS score
+      ORDER BY score DESC, candidate.id ASC
+      LIMIT 3
+      RETURN candidate.id AS candidate_id, candidate.name AS candidate,
+             round(score * 100) AS score_pct;
+      '''
+    Then the result should be, in order
+      | candidate_id | candidate | score_pct |
+      | 1            | 'target'  | 100.0     |
+      | 2            | 'close_y' | 80.0      |
+      | 3            | 'close_x' | 60.0      |
+
+  Scenario: case03 vector similarity cosine edge cases
+    Given an empty graph
+    When executing query
+      '''
+      RETURN vector.similarity.cosine([1, 0], [1, 0]) AS identical,
+             vector.similarity.cosine([1, 0], [0, 1]) AS orthogonal,
+             vector.similarity.cosine([1, 0], [-1, 0]) AS opposite;
+      '''
+    Then the result should be, in any order
+      | identical | orthogonal | opposite |
+      | 1.0       | 0.0        | -1.0     |
+    When executing query
+      '''
+      RETURN vector.similarity.cosine([], []) AS empty_sim,
+             vector.similarity.cosine([0, 0], [1, 1]) AS zero_sim;
+      '''
+    Then the result should be, in any order
+      | empty_sim | zero_sim |
+      | null      | null     |
+    When executing query
+      '''
+      RETURN vector.similarity.cosine([1, 2], [1, 2, 3]);
+      '''
+    Then an Error should be raised
+    When executing query
+      '''
+      RETURN vector.similarity.cosine([1, 'x'], [1, 2]);
+      '''
+    Then an Error should be raised
