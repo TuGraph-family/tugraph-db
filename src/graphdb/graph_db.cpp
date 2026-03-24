@@ -198,7 +198,7 @@ void GraphDB::AddVertexPropertyIndex(
     auto key = iter->key();
     key.remove_prefix(sizeof(uint32_t));
     int64_t vid = common::ReadValue<int64_t>(key.data());
-    auto values = vpi->LoadVertexPropertyValues(build_txn.get(), vid);
+    auto values = vpi->LoadIndexedPropertyValues(build_txn.get(), vid);
     if (!values) {
       continue;
     }

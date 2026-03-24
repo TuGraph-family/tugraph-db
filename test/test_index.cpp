@@ -31,15 +31,9 @@ namespace {
 std::vector<int64_t> CollectVertexPropertyIndexVids(
     txn::Transaction* txn, const std::shared_ptr<VertexPropertyIndex>& index,
     const std::vector<Value>& values) {
-  std::vector<std::string> serialized_values;
-  serialized_values.reserve(values.size());
-  for (const auto& value : values) {
-    serialized_values.push_back(value.Serialize());
-  }
-
   rocksdb::ReadOptions ro;
   std::vector<int64_t> vids;
-  std::string prefix = index->IndexKey(serialized_values);
+  std::string prefix = index->IndexKey(values);
   if (index->is_unique()) {
     std::string index_val;
     auto s = txn->dbtxn()->Get(ro, index->cf(), prefix, &index_val);

@@ -58,7 +58,7 @@ void AddVertexPropertyIndexesForLabels(
       continue;
     }
     auto index_values =
-        index->LoadVertexPropertyValues(txn, vid, &properties, nullptr);
+        index->LoadIndexedPropertyValues(txn, vid, &properties, nullptr);
     if (!index_values) {
       continue;
     }
@@ -76,7 +76,7 @@ void DeleteVertexPropertyIndexesForLabels(
       continue;
     }
     auto index_values =
-        index->LoadVertexPropertyValues(txn, vid, &properties, nullptr);
+        index->LoadIndexedPropertyValues(txn, vid, &properties, nullptr);
     if (!index_values) {
       continue;
     }
@@ -98,9 +98,9 @@ void RefreshVertexPropertyIndexes(
     if (!lids.count(index->lid()) || !index->TouchesAnyProperty(touched_pids)) {
       continue;
     }
-    auto old_values = index->LoadVertexPropertyValues(txn, vid);
+    auto old_values = index->LoadIndexedPropertyValues(txn, vid);
     auto new_values =
-        index->LoadVertexPropertyValues(txn, vid, &overrides, &removed_pids);
+        index->LoadIndexedPropertyValues(txn, vid, &overrides, &removed_pids);
     index->UpdateIndex(txn, vid, new_values, old_values);
   }
 }

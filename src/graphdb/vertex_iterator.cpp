@@ -214,8 +214,7 @@ void ScanVertexByProperties::Next() {
 
 GetVertexByUniqueIndex::GetVertexByUniqueIndex(
     Transaction *txn, std::shared_ptr<VertexPropertyIndex> index,
-    std::vector<std::string> values,
-    std::unordered_map<uint32_t, Value> other_props)
+    std::vector<Value> values, std::unordered_map<uint32_t, Value> other_props)
     : VertexIterator(txn), index_(std::move(index)) {
   if (!index_ || !index_->is_unique()) {
     return;

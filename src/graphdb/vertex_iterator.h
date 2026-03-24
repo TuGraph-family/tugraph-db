@@ -107,7 +107,7 @@ class GetVertexByUniqueIndex : public VertexIterator {
  public:
   GetVertexByUniqueIndex(txn::Transaction* txn,
                          std::shared_ptr<VertexPropertyIndex> index,
-                         std::vector<std::string> values,
+                         std::vector<Value> values,
                          std::unordered_map<uint32_t, Value> other_props);
   void Next() override { valid_ = false; };
   Vertex& GetVertex() override {

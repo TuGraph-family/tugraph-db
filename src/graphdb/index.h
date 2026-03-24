@@ -54,16 +54,15 @@ struct VertexPropertyIndex {
         pids_(std::move(pids)),
         pid_set_(pids_.begin(), pids_.end()) {}
   void AddIndex(txn::Transaction* txn, int64_t vid,
-                const std::vector<std::string>& values);
+                const std::vector<Value>& values);
   void UpdateIndex(txn::Transaction* txn, int64_t vid,
-                   const std::optional<std::vector<std::string>>& new_values,
-                   const std::optional<std::vector<std::string>>& old_values);
+                   const std::optional<std::vector<Value>>& new_values,
+                   const std::optional<std::vector<Value>>& old_values);
   void DeleteIndex(txn::Transaction* txn, int64_t vid,
-                   const std::vector<std::string>& values);
-  std::string IndexKey(const std::vector<std::string>& values) const;
-  std::string EntryKey(const std::vector<std::string>& values,
-                       int64_t vid) const;
-  std::optional<std::vector<std::string>> LoadVertexPropertyValues(
+                   const std::vector<Value>& values);
+  std::string IndexKey(const std::vector<Value>& values) const;
+  std::string EntryKey(const std::vector<Value>& values, int64_t vid) const;
+  std::optional<std::vector<Value>> LoadIndexedPropertyValues(
       txn::Transaction* txn, int64_t vid,
       const std::unordered_map<uint32_t, std::string>* overrides = nullptr,
       const std::unordered_set<uint32_t>* removed = nullptr) const;

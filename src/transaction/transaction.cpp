@@ -71,16 +71,6 @@ std::vector<Value> BuildPropertyIndexQueryValues(
   return {items.begin(), items.end()};
 }
 
-std::vector<std::string> SerializePropertyIndexValues(
-    const std::vector<Value>& values) {
-  std::vector<std::string> serialized;
-  serialized.reserve(values.size());
-  for (const auto& value : values) {
-    serialized.emplace_back(value.Serialize());
-  }
-  return serialized;
-}
-
 std::optional<std::string> BuildPropertyIndexRangeKey(
     const std::shared_ptr<VertexPropertyIndex>& index,
     const std::optional<Value>& bound, const std::string& arg_name) {
@@ -94,7 +84,7 @@ std::optional<std::string> BuildPropertyIndexRangeKey(
                  "{} does not support ARRAY or MAP component", arg_name);
     }
   }
-  return index->IndexKey(SerializePropertyIndexValues(values));
+  return index->IndexKey(values);
 }
 
 bool IsEmptyPropertyIndexRange(const std::optional<std::string>& lower_key,
@@ -162,8 +152,8 @@ Vertex Transaction::CreateVertex(
     if (!lids.count(index->lid())) {
       continue;
     }
-    auto index_values =
-        index->LoadVertexPropertyValues(this, vid, &serialized_values, nullptr);
+    auto index_values = index->LoadIndexedPropertyValues(
+        this, vid, &serialized_values, nullptr);
     if (!index_values) {
       continue;
     }
@@ -421,10 +411,10 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
       return std::make_unique<ScanVertexBylabelProperties>(this, lid.value(),
                                                            std::move(map));
     }
-    std::vector<std::string> indexed_values;
+    std::vector<Value> indexed_values;
     indexed_values.reserve(unique_index->PropertyCount());
     for (auto pid : unique_index->pids()) {
-      indexed_values.push_back(map.at(pid).Serialize());
+      indexed_values.push_back(map.at(pid));
       map.erase(pid);
     }
     return std::make_unique<GetVertexByUniqueIndex>(
@@ -481,8 +471,7 @@ std::unique_ptr<graphdb::VertexIterator>
 Transaction::QueryVertexByPropertyIndex(const std::string& index_name,
                                         const Value& query) {
   auto index = ResolveVertexPropertyIndexOrThrow(this, index_name);
-  auto values = SerializePropertyIndexValues(
-      BuildPropertyIndexQueryValues(index, query, "query"));
+  auto values = BuildPropertyIndexQueryValues(index, query, "query");
   auto key = index->IndexKey(values);
   return std::make_unique<GetVertexByPropertyIndex>(this, std::move(index),
                                                     std::move(key));
