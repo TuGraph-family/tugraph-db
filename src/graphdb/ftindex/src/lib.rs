@@ -38,15 +38,18 @@ fn normalize_text(text: &str) -> Cow<'_, str> {
     Cow::Owned(text.chars().filter(|c| !is_ignored_char(*c)).collect())
 }
 
-fn register_tokenizer(index: &Index) {
+fn build_analyzer() -> TextAnalyzer {
     let mut tokenizer = JiebaTokenizer::new();
     // Tantivy phrase queries expect ordinal token positions instead of byte offsets.
     tokenizer.set_ordinal_position_mode(true);
-    let analyzer = TextAnalyzer::builder(tokenizer)
+    TextAnalyzer::builder(tokenizer)
         .filter(RemoveLongFilter::limit(40))
         .filter(LowerCaser)
-        .build();
-    index.tokenizers().register(ZH_TOKENIZER_NAME, analyzer);
+        .build()
+}
+
+fn register_tokenizer(index: &Index) {
+    index.tokenizers().register(ZH_TOKENIZER_NAME, build_analyzer());
 }
 
 fn fulltext_options() -> TextOptions {
@@ -74,6 +77,7 @@ mod ffi {
         fn ft_commit(ft: &FTIndex, payload: &String) -> Result<()>;
         fn ft_query(ft: &FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>>;
         fn ft_get_payload(ft: &FTIndex) -> Result<String>;
+        fn ft_tokenize(text: &String) -> Result<Vec<String>>;
     }
 }
 
@@ -137,6 +141,17 @@ pub fn ft_commit(ft: &FTIndex, payload: &String) -> Result<(),  Box<dyn Error>> 
 pub fn ft_get_payload(ft: &FTIndex) -> Result<String,  Box<dyn Error>> {
     let metas = ft.index.load_metas()?;
     Ok(metas.payload.unwrap_or("".to_string()))
+}
+
+pub fn ft_tokenize(text: &String) -> Result<Vec<String>, Box<dyn Error>> {
+    let normalized = normalize_text(text);
+    let mut analyzer = build_analyzer();
+    let mut token_stream = analyzer.token_stream(normalized.as_ref());
+    let mut tokens = Vec::new();
+    while let Some(token) = token_stream.next() {
+        tokens.push(token.text.clone());
+    }
+    Ok(tokens)
 }
 
 pub fn ft_query(ft: &FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>, Box<dyn Error>> {

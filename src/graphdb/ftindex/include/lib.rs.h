@@ -961,6 +961,8 @@ void ft_commit(::FTIndex const &ft, ::rust::String const &payload);
 
 ::rust::String ft_get_payload(::FTIndex const &ft);
 
+::rust::Vec<::rust::String> ft_tokenize(::rust::String const &text);
+
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif // __clang__

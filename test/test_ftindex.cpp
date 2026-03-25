@@ -16,8 +16,10 @@
 
 #include <chrono>
 #include <filesystem>
+#include <iostream>
 #include <set>
 #include <thread>
+#include <vector>
 
 #include "common/logger.h"
 #include "common/value.h"
@@ -158,6 +160,29 @@ TEST(FTIndex, chinese_segmentation) {
   ret = ft_query(*ft, zero_width + "恶性肿瘤", {10});
   ASSERT_EQ(ret.size(), 1);
   EXPECT_EQ(ret[0].id, 1);
+}
+
+TEST(FTIndex, jieba_tokenize_output) {
+  const std::string text = "图数据库支持知识检索，恶性肿瘤属于重大疾病";
+  const auto rust_tokens = ft_tokenize(text);
+
+  std::vector<std::string> tokens;
+  tokens.reserve(rust_tokens.size());
+  for (const auto& token : rust_tokens) {
+    tokens.emplace_back(token.data(), token.size());
+  }
+
+  const std::vector<std::string> expected = {
+      "图",       "数据",   "据库",   "数据库", "支持", "知识",
+      "检索",     "，",     "恶性",   "肿瘤",   "恶性肿瘤",
+      "属于",     "重大",   "疾病"};
+  EXPECT_EQ(tokens, expected);
+
+  std::cout << "jieba tokens:";
+  for (const auto& token : tokens) {
+    std::cout << " [" << token << "]";
+  }
+  std::cout << std::endl;
 }
 
 TEST(FTIndex, update) {
