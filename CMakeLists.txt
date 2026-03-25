@@ -104,6 +104,8 @@ endfunction()
 
 set(FTINDEX_DIR "${PROJECT_SOURCE_DIR}/src/graphdb/ftindex")
 set(FTINDEX_LIB "${FTINDEX_DIR}/target/release/libftindex.a")
+set(FTINDEX_HEADER "${FTINDEX_DIR}/include/lib.rs.h")
+set(FTINDEX_GENERATED_HEADER "${FTINDEX_DIR}/target/cxxbridge/ftindex/src/lib.rs.h")
 
 find_static_library(ROCKSDB_LIBRARY rocksdb)
 find_static_library(LZ4_LIBRARY lz4)
@@ -136,6 +138,7 @@ file(
   "${FTINDEX_DIR}/Cargo.toml"
   "${FTINDEX_DIR}/Cargo.lock"
   "${FTINDEX_DIR}/build.rs"
+  "${FTINDEX_DIR}/stopwords_zh.txt"
 )
 file(
   GLOB_RECURSE
@@ -145,15 +148,18 @@ file(
 )
 
 add_custom_command(
-  OUTPUT "${FTINDEX_LIB}"
+  OUTPUT "${FTINDEX_LIB}" "${FTINDEX_HEADER}"
   COMMAND cargo build --release
+  COMMAND
+    "${CMAKE_COMMAND}" -E copy_if_different "${FTINDEX_GENERATED_HEADER}"
+    "${FTINDEX_HEADER}"
   WORKING_DIRECTORY "${FTINDEX_DIR}"
   DEPENDS ${FTINDEX_MANIFEST_FILES} ${FTINDEX_SOURCE_FILES}
-  COMMENT "Building ftindex static library"
+  COMMENT "Building ftindex static library and syncing bridge header"
   VERBATIM
 )
 
-add_custom_target(ftindex_static_build DEPENDS "${FTINDEX_LIB}")
+add_custom_target(ftindex_static_build DEPENDS "${FTINDEX_LIB}" "${FTINDEX_HEADER}")
 add_imported_static_archive(ftindex_archive "${FTINDEX_LIB}")
 add_dependencies(ftindex_archive ftindex_static_build)
 
@@ -347,6 +353,10 @@ add_static_library(proto ${PROTO_SOURCES})
 target_include_directories(proto PUBLIC ${PROTOBUF_INCLUDE_DIRS_LOCAL})
 
 target_include_directories(graphdb PUBLIC ${PROTOBUF_INCLUDE_DIRS_LOCAL})
+add_dependencies(graphdb ftindex_static_build)
+add_dependencies(transaction ftindex_static_build)
+add_dependencies(cypher ftindex_static_build)
+add_dependencies(server ftindex_static_build)
 
 # Executables
 add_executable_target(lgraph_server src/server/server_main.cpp)
@@ -354,6 +364,7 @@ target_link_libraries(lgraph_server PRIVATE ${RUNTIME_LINK_LIBS})
 
 add_executable_target(test_case ${TEST_CASE_SOURCES})
 enable_folly_sanitize(test_case)
+add_dependencies(test_case ftindex_static_build)
 target_link_libraries(test_case PRIVATE ${TEST_LINK_LIBS})
 
 add_executable_target(lgraph_cli ${LGRAPH_CLI_SOURCES})

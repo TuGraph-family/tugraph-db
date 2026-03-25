@@ -15,9 +15,12 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <algorithm>
 #include <filesystem>
+#include <iostream>
 #include <set>
 #include <thread>
+#include <vector>
 
 #include "common/logger.h"
 #include "common/value.h"
@@ -110,21 +113,115 @@ TEST(FTIndex, chinese) {
   auto ft = new_ftindex(test_ftindex, properties);
   ::rust::Vec<::rust::String> fields = {"title", "body"};
   {
-    ::rust::Vec<::rust::String> values = {"标题1 公共标题 标题2",
-                                          "内容1 公共内容 内容2"};
+    ::rust::Vec<::rust::String> values = {"恶性肿瘤 公共标题 图数据库",
+                                          "内容甲 公共内容 内容乙"};
     ft_add_document(*ft, 1, fields, values);
   }
   {
-    ::rust::Vec<::rust::String> values = {"标题3 公共标题 标题4",
-                                          "内容3 公共内容 内容4"};
+    ::rust::Vec<::rust::String> values = {"糖尿病 公共标题 时序数据库",
+                                          "内容丙 公共内容 内容丁"};
     ft_add_document(*ft, 2, fields, values);
   }
   ft_commit(*ft, "payload");
-  auto ret = ft_query(*ft, "标题1", {10});
+  auto ret = ft_query(*ft, "恶性肿瘤", {10});
   EXPECT_EQ(ret.size(), 1);
   EXPECT_EQ(ret[0].id, 1);
   ret = ft_query(*ft, "公共标题", {10});
   EXPECT_EQ(ret.size(), 2);
+}
+
+TEST(FTIndex, chinese_segmentation) {
+  fs::remove_all(test_ftindex);
+  ::rust::Vec<::rust::String> properties;
+  properties.push_back("title");
+  properties.push_back("body");
+  auto ft = new_ftindex(test_ftindex, properties);
+  ::rust::Vec<::rust::String> fields = {"title", "body"};
+  {
+    ::rust::Vec<::rust::String> values = {"图数据库支持知识检索",
+                                          "恶性肿瘤属于重大疾病"};
+    ft_add_document(*ft, 1, fields, values);
+  }
+  {
+    ::rust::Vec<::rust::String> values = {"时序数据库支持监控分析",
+                                          "糖尿病需要长期管理"};
+    ft_add_document(*ft, 2, fields, values);
+  }
+  ft_commit(*ft, "payload");
+
+  auto ret = ft_query(*ft, "图数据库", {10});
+  ASSERT_EQ(ret.size(), 1);
+  EXPECT_EQ(ret[0].id, 1);
+
+  ret = ft_query(*ft, "恶性肿瘤", {10});
+  ASSERT_EQ(ret.size(), 1);
+  EXPECT_EQ(ret[0].id, 1);
+
+  std::string zero_width = "\xE2\x80\x8B";
+  ret = ft_query(*ft, zero_width + "恶性肿瘤", {10});
+  ASSERT_EQ(ret.size(), 1);
+  EXPECT_EQ(ret[0].id, 1);
+}
+
+TEST(FTIndex, jieba_tokenize_output) {
+  const std::string text = "图数据库支持知识检索，恶性肿瘤属于重大疾病";
+  const auto rust_tokens = ft_tokenize(text);
+
+  std::vector<std::string> tokens;
+  tokens.reserve(rust_tokens.size());
+  for (const auto& token : rust_tokens) {
+    tokens.emplace_back(token.data(), token.size());
+  }
+
+  const std::vector<std::string> expected = {
+      "图",       "数据",   "据库",   "数据库", "支持", "知识",
+      "检索",     "恶性",   "肿瘤",   "恶性肿瘤",
+      "属于",     "重大",   "疾病"};
+  EXPECT_EQ(tokens, expected);
+
+  std::cout << "jieba tokens:";
+  for (const auto& token : tokens) {
+    std::cout << " [" << token << "]";
+  }
+  std::cout << std::endl;
+}
+
+TEST(FTIndex, chinese_stop_words) {
+  const std::string text = "图数据库的检索是在知识图谱中进行的";
+  const auto rust_tokens = ft_tokenize(text);
+
+  std::vector<std::string> tokens;
+  tokens.reserve(rust_tokens.size());
+  for (const auto& token : rust_tokens) {
+    tokens.emplace_back(token.data(), token.size());
+  }
+
+  EXPECT_NE(std::find(tokens.begin(), tokens.end(), "数据库"), tokens.end());
+  EXPECT_NE(std::find(tokens.begin(), tokens.end(), "检索"), tokens.end());
+  EXPECT_NE(std::find(tokens.begin(), tokens.end(), "图谱"), tokens.end());
+
+  EXPECT_EQ(std::find(tokens.begin(), tokens.end(), "的"), tokens.end());
+  EXPECT_EQ(std::find(tokens.begin(), tokens.end(), "是"), tokens.end());
+  EXPECT_EQ(std::find(tokens.begin(), tokens.end(), "在"), tokens.end());
+}
+
+TEST(FTIndex, english_stop_words) {
+  const std::string text = "The graph database is in the cloud";
+  const auto rust_tokens = ft_tokenize(text);
+
+  std::vector<std::string> tokens;
+  tokens.reserve(rust_tokens.size());
+  for (const auto& token : rust_tokens) {
+    tokens.emplace_back(token.data(), token.size());
+  }
+
+  EXPECT_NE(std::find(tokens.begin(), tokens.end(), "graph"), tokens.end());
+  EXPECT_NE(std::find(tokens.begin(), tokens.end(), "database"), tokens.end());
+  EXPECT_NE(std::find(tokens.begin(), tokens.end(), "cloud"), tokens.end());
+
+  EXPECT_EQ(std::find(tokens.begin(), tokens.end(), "the"), tokens.end());
+  EXPECT_EQ(std::find(tokens.begin(), tokens.end(), "is"), tokens.end());
+  EXPECT_EQ(std::find(tokens.begin(), tokens.end(), "in"), tokens.end());
 }
 
 TEST(FTIndex, update) {

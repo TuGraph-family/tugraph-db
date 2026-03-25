@@ -7,8 +7,9 @@ edition = "2021"
 crate-type = ["staticlib"]
 
 [dependencies]
-cxx = "1.0.124"
-tantivy = "0.22.0"
+cxx = "1.0.194"
+tantivy = "0.25.0"
+tantivy-jieba = "0.18.0"
 
 [build-dependencies]
-cxx-build = "1.0.124"
+cxx-build = "1.0.194"

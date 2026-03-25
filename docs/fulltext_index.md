@@ -47,6 +47,11 @@ CALL db.index.fulltext.applyWal();
 第二个参数是模糊查询语句，可以写各种模糊语法，第三个参数是top_k。
 CALL db.index.fulltext.queryNodes("namesAndTeams", "nils", 10) YIELD node, score RETURN node.name;
 
+全文索引默认支持中文分词，查询语法不变。对于无空格中文文本，可以直接使用中文词语查询，例如：
+```
+CALL db.index.fulltext.queryNodes("medicalTerms", "恶性肿瘤", 10) YIELD node, score RETURN node;
+```
+
 搜索team是Operations的点，返回前10个，然后再进行图搜索，返回这些点的一跳邻居。
 CALL db.index.fulltext.queryNodes("namesAndTeams", 'team:"Operations"', 10) YIELD node where node.name = 'Maya Tanaka'
 with node
