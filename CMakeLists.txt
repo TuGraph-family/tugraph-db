@@ -138,6 +138,7 @@ file(
   "${FTINDEX_DIR}/Cargo.toml"
   "${FTINDEX_DIR}/Cargo.lock"
   "${FTINDEX_DIR}/build.rs"
+  "${FTINDEX_DIR}/stopwords_zh.txt"
 )
 file(
   GLOB_RECURSE

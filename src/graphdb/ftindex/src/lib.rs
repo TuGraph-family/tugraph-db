@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::error::Error;
 use std::path::Path;
 use std::fs;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use tantivy::{Index, IndexReader, IndexWriter, ReloadPolicy, TantivyDocument, Term};
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
@@ -11,12 +11,13 @@ use tantivy::schema::{
     FAST, Field, INDEXED, IndexRecordOption, NumericOptions, STORED, Schema, TextFieldIndexing,
     TextOptions, Value,
 };
-use tantivy::tokenizer::{LowerCaser, RemoveLongFilter, TextAnalyzer};
+use tantivy::tokenizer::{Language, LowerCaser, RemoveLongFilter, StopWordFilter, TextAnalyzer};
 use tantivy_jieba::JiebaTokenizer;
 use crate::ffi::IdScore;
 use crate::ffi::QueryOptions;
 
 const ZH_TOKENIZER_NAME: &str = "jieba";
+const ZH_STOP_WORDS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/stopwords_zh.txt"));
 
 pub struct FTIndex {
     schema: Schema,
@@ -38,6 +39,16 @@ fn normalize_text(text: &str) -> Cow<'_, str> {
     Cow::Owned(text.chars().filter(|c| !is_ignored_char(*c)).collect())
 }
 
+fn zh_stop_words() -> &'static Vec<String> {
+    static STOP_WORDS: OnceLock<Vec<String>> = OnceLock::new();
+    STOP_WORDS.get_or_init(|| {
+        ZH_STOP_WORDS
+            .split_whitespace()
+            .map(std::string::ToString::to_string)
+            .collect()
+    })
+}
+
 fn build_analyzer() -> TextAnalyzer {
     let mut tokenizer = JiebaTokenizer::new();
     // Tantivy phrase queries expect ordinal token positions instead of byte offsets.
@@ -45,6 +56,8 @@ fn build_analyzer() -> TextAnalyzer {
     TextAnalyzer::builder(tokenizer)
         .filter(RemoveLongFilter::limit(40))
         .filter(LowerCaser)
+        .filter(StopWordFilter::remove(zh_stop_words().iter().cloned()))
+        .filter(StopWordFilter::new(Language::English).expect("english stop words should exist"))
         .build()
 }
 
