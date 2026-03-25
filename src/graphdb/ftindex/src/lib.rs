@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::error::Error;
 use std::path::Path;
 use std::fs;
@@ -6,9 +7,16 @@ use tantivy::{Index, IndexReader, IndexWriter, ReloadPolicy, TantivyDocument, Te
 use tantivy::collector::TopDocs;
 use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
-use tantivy::schema::{FAST, Field, INDEXED, NumericOptions, Schema, STORED, TEXT, Value};
+use tantivy::schema::{
+    FAST, Field, INDEXED, IndexRecordOption, NumericOptions, STORED, Schema, TextFieldIndexing,
+    TextOptions, Value,
+};
+use tantivy::tokenizer::{LowerCaser, RemoveLongFilter, TextAnalyzer};
+use tantivy_jieba::JiebaTokenizer;
 use crate::ffi::IdScore;
 use crate::ffi::QueryOptions;
+
+const ZH_TOKENIZER_NAME: &str = "jieba";
 
 pub struct FTIndex {
     schema: Schema,
@@ -17,6 +25,36 @@ pub struct FTIndex {
     reader: IndexReader,
     id_field: Field,
     fields: Vec<Field>,
+}
+
+fn is_ignored_char(c: char) -> bool {
+    matches!(c, '\u{200B}' | '\u{200C}' | '\u{200D}' | '\u{2060}' | '\u{FEFF}')
+}
+
+fn normalize_text(text: &str) -> Cow<'_, str> {
+    if !text.chars().any(is_ignored_char) {
+        return Cow::Borrowed(text);
+    }
+    Cow::Owned(text.chars().filter(|c| !is_ignored_char(*c)).collect())
+}
+
+fn register_tokenizer(index: &Index) {
+    let mut tokenizer = JiebaTokenizer::new();
+    // Tantivy phrase queries expect ordinal token positions instead of byte offsets.
+    tokenizer.set_ordinal_position_mode(true);
+    let analyzer = TextAnalyzer::builder(tokenizer)
+        .filter(RemoveLongFilter::limit(40))
+        .filter(LowerCaser)
+        .build();
+    index.tokenizers().register(ZH_TOKENIZER_NAME, analyzer);
+}
+
+fn fulltext_options() -> TextOptions {
+    TextOptions::default().set_indexing_options(
+        TextFieldIndexing::default()
+            .set_tokenizer(ZH_TOKENIZER_NAME)
+            .set_index_option(IndexRecordOption::WithFreqsAndPositions),
+    )
 }
 
 #[cxx::bridge]
@@ -46,12 +84,13 @@ pub fn new_ftindex(path: &String, properties: &Vec<String>) -> Result<Box<FTInde
     let id_field = schema_builder.add_i64_field("id", NumericOptions::default() | STORED | INDEXED | FAST);
     let mut fields: Vec<Field> = Vec::new();
     for property in properties {
-        let f = schema_builder.add_text_field(property, TEXT);
+        let f = schema_builder.add_text_field(property, fulltext_options());
         fields.push(f);
     }
     let schema = schema_builder.build();
     let mmap_directory = MmapDirectory::open(path)?;
     let index = Index::open_or_create(mmap_directory,  schema.clone())?;
+    register_tokenizer(&index);
     let writer = index.writer(50_000_000)?;
     let reader = index.reader_builder().reload_policy(ReloadPolicy::OnCommitWithDelay).try_into()?;
     let ft = FTIndex {
@@ -70,7 +109,8 @@ pub fn ft_add_document(ft: &FTIndex, id:i64, fields: &Vec<String>, valus: &Vec<S
     document.add_i64(ft.id_field, id);
     for i in 0..fields.len() {
         let field = ft.schema.get_field(&fields[i])?;
-        document.add_text(field, &valus[i]);
+        let normalized = normalize_text(&valus[i]);
+        document.add_text(field, normalized.as_ref());
     }
     let writer = ft.writer.lock().unwrap();
     writer.add_document(document)?;
@@ -102,7 +142,8 @@ pub fn ft_get_payload(ft: &FTIndex) -> Result<String,  Box<dyn Error>> {
 pub fn ft_query(ft: &FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>, Box<dyn Error>> {
     let searcher = ft.reader.searcher();
     let query_parser = QueryParser::for_index(&ft.index, ft.fields.clone());
-    let query = query_parser.parse_query(query)?;
+    let normalized = normalize_text(query);
+    let query = query_parser.parse_query(normalized.as_ref())?;
     let top_docs = searcher.search(&query, &TopDocs::with_limit(options.top_n))?;
     let mut id_score: Vec<IdScore> =  Vec::new();
     for (_score, doc_address) in top_docs {

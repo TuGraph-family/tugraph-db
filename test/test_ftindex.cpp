@@ -127,6 +127,39 @@ TEST(FTIndex, chinese) {
   EXPECT_EQ(ret.size(), 2);
 }
 
+TEST(FTIndex, chinese_segmentation) {
+  fs::remove_all(test_ftindex);
+  ::rust::Vec<::rust::String> properties;
+  properties.push_back("title");
+  properties.push_back("body");
+  auto ft = new_ftindex(test_ftindex, properties);
+  ::rust::Vec<::rust::String> fields = {"title", "body"};
+  {
+    ::rust::Vec<::rust::String> values = {"图数据库支持知识检索",
+                                          "恶性肿瘤属于重大疾病"};
+    ft_add_document(*ft, 1, fields, values);
+  }
+  {
+    ::rust::Vec<::rust::String> values = {"时序数据库支持监控分析",
+                                          "糖尿病需要长期管理"};
+    ft_add_document(*ft, 2, fields, values);
+  }
+  ft_commit(*ft, "payload");
+
+  auto ret = ft_query(*ft, "图数据库", {10});
+  ASSERT_EQ(ret.size(), 1);
+  EXPECT_EQ(ret[0].id, 1);
+
+  ret = ft_query(*ft, "恶性肿瘤", {10});
+  ASSERT_EQ(ret.size(), 1);
+  EXPECT_EQ(ret[0].id, 1);
+
+  std::string zero_width = "\xE2\x80\x8B";
+  ret = ft_query(*ft, zero_width + "恶性肿瘤", {10});
+  ASSERT_EQ(ret.size(), 1);
+  EXPECT_EQ(ret[0].id, 1);
+}
+
 TEST(FTIndex, update) {
   fs::remove_all(test_ftindex);
   ::rust::Vec<::rust::String> properties;
