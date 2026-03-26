@@ -11,6 +11,31 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 message(STATUS "CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}")
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS AND NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+  set(COMPILE_COMMANDS_LINK "${CMAKE_SOURCE_DIR}/compile_commands.json")
+  if(IS_SYMLINK "${COMPILE_COMMANDS_LINK}")
+    file(REMOVE "${COMPILE_COMMANDS_LINK}")
+  endif()
+
+  if(NOT EXISTS "${COMPILE_COMMANDS_LINK}")
+    execute_process(
+      COMMAND
+        "${CMAKE_COMMAND}" -E create_symlink "${CMAKE_BINARY_DIR}/compile_commands.json"
+        "${COMPILE_COMMANDS_LINK}"
+      RESULT_VARIABLE CREATE_COMPILE_COMMANDS_LINK_RESULT
+      ERROR_VARIABLE CREATE_COMPILE_COMMANDS_LINK_ERROR
+    )
+    if(NOT CREATE_COMPILE_COMMANDS_LINK_RESULT EQUAL 0)
+      message(
+        WARNING
+          "Failed to create compile_commands.json symlink at ${COMPILE_COMMANDS_LINK}: ${CREATE_COMPILE_COMMANDS_LINK_ERROR}"
+      )
+    endif()
+  endif()
+endif()
+
 # check OpenMP
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fopenmp>)
 
