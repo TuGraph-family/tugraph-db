@@ -39,6 +39,7 @@ set(COMMON_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/deps/gea
 
 add_library(project_common INTERFACE)
 target_include_directories(project_common INTERFACE ${COMMON_INCLUDE_DIRS})
+target_compile_definitions(project_common INTERFACE SPDLOG_COMPILED_LIB)
 
 function(add_static_library target_name)
   add_library(${target_name} STATIC ${ARGN})
@@ -221,6 +222,7 @@ set(TEST_LINK_LIBS
 set(CLI_LINK_LIBS
     bolt
     common
+    spdlog::spdlog
     gflags::gflags
     date::date-tz
     -static-libstdc++
