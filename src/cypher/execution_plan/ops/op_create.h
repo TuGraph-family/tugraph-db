@@ -50,6 +50,7 @@ class OpGqlCreate : public OpBase {
                   geax::frontend::Edge* edge, geax::frontend::Node* end);
 
   void CreateVE(RTContext* ctx, bool update_visited = true);
+  void ResetCreatedState();
 
   void ResultSummary(RTContext* ctx);
 
@@ -96,28 +97,15 @@ class OpGqlCreate : public OpBase {
       auto child = children[0];
       if (summary_) {
         while (child->Consume(ctx) == OP_OK) {
-          CreateVE(ctx, false);
-        }
-        for (auto path : paths_) {
-          auto start = path->head();
-          if (!start->filler()->v().has_value()) CYPHER_TODO();
-          auto& start_name = start->filler()->v().value();
-          auto& lhs_node = pattern_graph_->GetNode(start_name);
-          lhs_node.Visited() = true;
-          const auto& tails = path->tails();
-          for (auto& tail_tup : tails) {
-            auto end = std::get<1>(tail_tup);
-            if (!end->filler()->v().has_value()) CYPHER_TODO();
-            auto& end_name = end->filler()->v().value();
-            auto& rhs_node = pattern_graph_->GetNode(end_name);
-            rhs_node.Visited() = true;
-          }
+          ResetCreatedState();
+          CreateVE(ctx);
         }
         ResultSummary(ctx);
         state = StreamDepleted;
         return OP_OK;
       } else {
         if (child->Consume(ctx) == OP_OK) {
+          ResetCreatedState();
           CreateVE(ctx);
           return OP_OK;
         } else {

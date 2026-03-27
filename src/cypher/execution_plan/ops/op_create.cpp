@@ -147,6 +147,20 @@ void OpGqlCreate::CreateVE(RTContext* ctx, bool update_visited) {
   }
 }
 
+void OpGqlCreate::ResetCreatedState() {
+  for (auto& node : pattern_graph_->GetNodes()) {
+    if (node.derivation_ == Node::CREATED) {
+      node.Visited() = false;
+      node.vertex_.reset();
+    }
+  }
+  for (auto& rel : pattern_graph_->GetRelationships()) {
+    if (rel.derivation_ == Relationship::CREATED) {
+      rel.edge_.reset();
+    }
+  }
+}
+
 void OpGqlCreate::ResultSummary(RTContext* ctx) {
   if (summary_) {
     std::string summary;
