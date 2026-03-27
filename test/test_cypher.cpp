@@ -20,6 +20,7 @@
 #include "common/value.h"
 #include "cypher/execution_plan/result_iterator.h"
 #include "graphdb/graph_db.h"
+#include "test_util.h"
 
 using namespace graphdb;
 namespace fs = std::filesystem;
@@ -47,4 +48,15 @@ TEST(Cypher, unwind_create_three_vertices) {
   EXPECT_EQ(count, 3);
   EXPECT_EQ(ids, (std::set<int64_t>{1, 2, 3}));
   txn->Commit();
+}
+
+TEST(Cypher, create_redefine_local_alias_should_fail) {
+  fs::remove_all(testdb);
+  auto graphDB = GraphDB::Open(testdb, {});
+  cypher::RTContext rtx;
+
+  auto txn = graphDB->BeginTransaction();
+  EXPECT_THROW_CODE_MSG(
+      txn->Execute(&rtx, "create(n:test {id:1}) create(n:test {id:2})"),
+      InputError, "already defined");
 }
