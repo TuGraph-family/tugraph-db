@@ -100,6 +100,7 @@ class VertexFullTextIndex
                  std::vector<std::string> values);
   void DeleteVertex(int64_t id);
   void ApplyWAL();
+  void NotifyWALWritten();
   void Start();
   void Stop();
   [[nodiscard]] bool MatchLabelIds(
@@ -127,6 +128,9 @@ class VertexFullTextIndex
 
  private:
   void StartTimer();
+  bool RequestApplyLocked(bool reschedule_if_running);
+  void QueueApplyTask();
+  void RunApplyTask();
   void Commit(const std::string& payload);
 
   rocksdb::TransactionDB* db_ = nullptr;
@@ -146,6 +150,8 @@ class VertexFullTextIndex
   size_t active_callbacks_ = 0;
   bool started_ = false;
   bool stopped_ = false;
+  bool apply_scheduled_ = false;
+  bool rerun_requested_ = false;
   size_t interval_ = 5;
   boost::asio::steady_timer timer_;
 };

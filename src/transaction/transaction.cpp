@@ -424,34 +424,45 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
 }
 
 void Transaction::Commit() {
-  std::unique_lock<std::mutex> fulltext_commit_lock(
-      db_->fulltext_index_commit_mutex(), std::defer_lock);
-  std::unique_lock<std::mutex> vector_commit_lock(
-      db_->vector_index_commit_mutex(), std::defer_lock);
-  if (!pending_fulltext_wals_.empty() && !pending_vector_wals_.empty()) {
-    std::lock(fulltext_commit_lock, vector_commit_lock);
-  } else if (!pending_fulltext_wals_.empty()) {
-    fulltext_commit_lock.lock();
-  } else if (!pending_vector_wals_.empty()) {
-    vector_commit_lock.lock();
-  }
-  if (!pending_fulltext_wals_.empty() || !pending_vector_wals_.empty()) {
-    auto* write_batch = txn_->GetWriteBatch();
-    for (const auto& wal : pending_fulltext_wals_) {
-      auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
-                                wal.payload);
-      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+  std::vector<std::shared_ptr<graphdb::VertexFullTextIndex>>
+      touched_fulltext_indexes;
+  {
+    std::unique_lock<std::mutex> fulltext_commit_lock(
+        db_->fulltext_index_commit_mutex(), std::defer_lock);
+    std::unique_lock<std::mutex> vector_commit_lock(
+        db_->vector_index_commit_mutex(), std::defer_lock);
+    if (!pending_fulltext_wals_.empty() && !pending_vector_wals_.empty()) {
+      std::lock(fulltext_commit_lock, vector_commit_lock);
+    } else if (!pending_fulltext_wals_.empty()) {
+      fulltext_commit_lock.lock();
+    } else if (!pending_vector_wals_.empty()) {
+      vector_commit_lock.lock();
     }
-    for (const auto& wal : pending_vector_wals_) {
-      auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
-                                wal.payload);
-      if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    if (!pending_fulltext_wals_.empty() || !pending_vector_wals_.empty()) {
+      auto* write_batch = txn_->GetWriteBatch();
+      std::unordered_set<graphdb::VertexFullTextIndex*> seen_fulltext_indexes;
+      for (const auto& wal : pending_fulltext_wals_) {
+        if (seen_fulltext_indexes.insert(wal.index.get()).second) {
+          touched_fulltext_indexes.push_back(wal.index);
+        }
+        auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
+                                  wal.payload);
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+      }
+      for (const auto& wal : pending_vector_wals_) {
+        auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
+                                  wal.payload);
+        if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+      }
     }
+    auto s = txn_->Commit();
+    if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
+    pending_fulltext_wals_.clear();
+    pending_vector_wals_.clear();
   }
-  auto s = txn_->Commit();
-  if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  pending_fulltext_wals_.clear();
-  pending_vector_wals_.clear();
+  for (const auto& index : touched_fulltext_indexes) {
+    index->NotifyWALWritten();
+  }
 }
 
 void Transaction::Rollback() {

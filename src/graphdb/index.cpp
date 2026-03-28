@@ -415,7 +415,14 @@ void VertexFullTextIndex::StartTimer() {
       }
       active_callbacks_++;
     }
-    ApplyWAL();
+    bool schedule_apply = false;
+    {
+      std::lock_guard<std::mutex> lock(timer_mutex_);
+      schedule_apply = RequestApplyLocked(false);
+    }
+    if (schedule_apply) {
+      QueueApplyTask();
+    }
     bool restart = false;
     {
       std::lock_guard<std::mutex> lock(timer_mutex_);
@@ -438,6 +445,76 @@ void VertexFullTextIndex::Start() {
     started_ = true;
   }
   StartTimer();
+}
+
+bool VertexFullTextIndex::RequestApplyLocked(bool reschedule_if_running) {
+  if (stopped_) {
+    return false;
+  }
+  if (apply_scheduled_) {
+    if (reschedule_if_running) {
+      rerun_requested_ = true;
+    }
+    return false;
+  }
+  apply_scheduled_ = true;
+  active_callbacks_++;
+  return true;
+}
+
+void VertexFullTextIndex::QueueApplyTask() {
+  auto self = shared_from_this();
+  boost::asio::post(timer_.get_executor(), [self]() { self->RunApplyTask(); });
+}
+
+void VertexFullTextIndex::RunApplyTask() {
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    if (stopped_) {
+      apply_scheduled_ = false;
+      rerun_requested_ = false;
+      active_callbacks_--;
+      timer_cv_.notify_all();
+      return;
+    }
+  }
+
+  ApplyWAL();
+
+  bool schedule_again = false;
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    if (stopped_) {
+      apply_scheduled_ = false;
+      rerun_requested_ = false;
+      active_callbacks_--;
+      timer_cv_.notify_all();
+      return;
+    }
+    if (rerun_requested_) {
+      rerun_requested_ = false;
+      schedule_again = true;
+    } else {
+      apply_scheduled_ = false;
+      active_callbacks_--;
+      timer_cv_.notify_all();
+    }
+  }
+
+  if (schedule_again) {
+    QueueApplyTask();
+  }
+}
+
+void VertexFullTextIndex::NotifyWALWritten() {
+  bool schedule_apply = false;
+  {
+    std::lock_guard<std::mutex> lock(timer_mutex_);
+    schedule_apply = RequestApplyLocked(true);
+  }
+  if (schedule_apply) {
+    QueueApplyTask();
+  }
 }
 
 void VertexFullTextIndex::Stop() {
@@ -755,8 +832,8 @@ VertexVectorIndex::VertexVectorIndex(rocksdb::TransactionDB* db,
       metafile >> meta_info;
       metafile.close();
       hnsw_index_ = FaissHnswIndex::Load(
-          FaissHnswIndexPath(meta_), meta_.dimensions(),
-          meta_.distance_type(), meta_.hnsw_m(), meta_.hnsw_ef_construction());
+          FaissHnswIndexPath(meta_), meta_.dimensions(), meta_.distance_type(),
+          meta_.hnsw_m(), meta_.hnsw_ef_construction());
       uint64_t apply_id = meta_info["apply_id"];
       apply_id_ = native_to_big(apply_id);
       LOG_INFO("End load vector index {} from data file, num:{}", meta_.name(),

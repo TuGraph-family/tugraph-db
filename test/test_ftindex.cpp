@@ -14,8 +14,8 @@
 
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <set>
@@ -47,6 +47,29 @@ bool WaitUntilBusy(
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
   return false;
+}
+
+bool WaitUntilQueryCount(
+    GraphDB* graph_db, const std::string& index_name, const std::string& query,
+    size_t expected_count,
+    std::chrono::milliseconds timeout = std::chrono::seconds(1)) {
+  auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (true) {
+    auto txn = graph_db->BeginTransaction();
+    size_t actual_count = 0;
+    for (auto result = txn->QueryVertexByFTIndex(index_name, query, 10);
+         result->Valid(); result->Next()) {
+      actual_count++;
+    }
+    txn->Commit();
+    if (actual_count == expected_count) {
+      return true;
+    }
+    if (std::chrono::steady_clock::now() >= deadline) {
+      return false;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  }
 }
 
 }  // namespace
@@ -174,9 +197,8 @@ TEST(FTIndex, jieba_tokenize_output) {
   }
 
   const std::vector<std::string> expected = {
-      "图",       "数据",   "据库",   "数据库", "支持", "知识",
-      "检索",     "恶性",   "肿瘤",   "恶性肿瘤",
-      "属于",     "重大",   "疾病"};
+      "图",   "数据", "据库",     "数据库", "支持", "知识", "检索",
+      "恶性", "肿瘤", "恶性肿瘤", "属于",   "重大", "疾病"};
   EXPECT_EQ(tokens, expected);
 
   std::cout << "jieba tokens:";
@@ -312,6 +334,36 @@ TEST(FTIndex, indexVertex) {
   }
   EXPECT_EQ(count, 2);
   txn->Commit();
+}
+
+TEST(FTIndex, committedWalIsAppliedWithoutWaitingForPeriodicTimer) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(1)},
+                     {"str", Value::String("near_real_time_token")}});
+  txn->Commit();
+
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index",
+                                  "near_real_time_token", 1,
+                                  std::chrono::milliseconds(800)));
+
+  txn = graphDB->BeginTransaction();
+  auto viter = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  ASSERT_TRUE(viter->Valid());
+  viter->GetVertex().Delete();
+  txn->Commit();
+
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index",
+                                  "near_real_time_token", 0,
+                                  std::chrono::milliseconds(800)));
 }
 
 TEST(FTIndex, corruptedWalIsRejected) {

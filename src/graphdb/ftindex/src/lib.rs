@@ -109,7 +109,10 @@ pub fn new_ftindex(path: &String, properties: &Vec<String>) -> Result<Box<FTInde
     let index = Index::open_or_create(mmap_directory,  schema.clone())?;
     register_tokenizer(&index);
     let writer = index.writer(50_000_000)?;
-    let reader = index.reader_builder().reload_policy(ReloadPolicy::OnCommitWithDelay).try_into()?;
+    let reader = index
+        .reader_builder()
+        .reload_policy(ReloadPolicy::Manual)
+        .try_into()?;
     let ft = FTIndex {
         schema: schema,
         index: index,
