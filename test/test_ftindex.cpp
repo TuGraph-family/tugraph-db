@@ -366,6 +366,27 @@ TEST(FTIndex, committedWalIsAppliedWithoutWaitingForPeriodicTimer) {
                                   std::chrono::milliseconds(800)));
 }
 
+TEST(FTIndex, reopenWithPendingWalIsAppliedImmediately) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  {
+    auto graphDB = GraphDB::Open(testdb, options);
+    graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+    auto txn = graphDB->BeginTransaction();
+    txn->CreateVertex({"label1"},
+                      {{"id", Value::Integer(1)},
+                       {"str", Value::String("pending_restart_token")}});
+    txn->Commit();
+  }
+
+  auto graphDB = GraphDB::Open(testdb, options);
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index",
+                                  "pending_restart_token", 1,
+                                  std::chrono::milliseconds(800)));
+}
+
 TEST(FTIndex, corruptedWalIsRejected) {
   fs::remove_all(testdb);
   GraphDBOptions options;
@@ -707,6 +728,41 @@ TEST(FTIndex, updateVertex) {
   }
   EXPECT_EQ(count, 1);
   txn->Commit();
+}
+
+TEST(FTIndex, repeatedUpdatesInSingleTransactionApplyLatestDocument) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"}, {{"id", Value::Integer(1)},
+                                 {"str", Value::String("original_token")}});
+  txn->Commit();
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index", "original_token",
+                                  1, std::chrono::milliseconds(800)));
+
+  txn = graphDB->BeginTransaction();
+  auto viter = txn->NewVertexIterator(
+      "label1",
+      std::unordered_map<std::string, Value>{{"id", Value::Integer(1)}});
+  ASSERT_TRUE(viter->Valid());
+  viter->GetVertex().SetProperties(
+      {{"str", Value::String("middle_token temporary_token")}});
+  viter->GetVertex().SetProperties(
+      {{"str", Value::String("latest_token final_token")}});
+  txn->Commit();
+
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index", "original_token",
+                                  0, std::chrono::milliseconds(800)));
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index", "middle_token", 0,
+                                  std::chrono::milliseconds(800)));
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index", "latest_token", 1,
+                                  std::chrono::milliseconds(800)));
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index", "final_token", 1,
+                                  std::chrono::milliseconds(800)));
 }
 
 TEST(FTIndex, deleteOneMatchedLabelKeepsDocumentIndexed) {

@@ -423,6 +423,19 @@ std::unique_ptr<VertexIterator> Transaction::NewVertexIterator(
   }
 }
 
+void Transaction::AppendFullTextIndexWAL(
+    std::shared_ptr<graphdb::VertexFullTextIndex> index,
+    const meta::FullTextIndexUpdate& update) {
+  PendingFullTextWALKey key{index.get(), update.vid()};
+  auto it = pending_fulltext_wal_positions_.find(key);
+  if (it == pending_fulltext_wal_positions_.end()) {
+    pending_fulltext_wal_positions_.emplace(key, pending_fulltext_wals_.size());
+    pending_fulltext_wals_.push_back({std::move(index), update});
+    return;
+  }
+  pending_fulltext_wals_[it->second].update.CopyFrom(update);
+}
+
 void Transaction::Commit() {
   std::vector<std::shared_ptr<graphdb::VertexFullTextIndex>>
       touched_fulltext_indexes;
@@ -446,7 +459,7 @@ void Transaction::Commit() {
           touched_fulltext_indexes.push_back(wal.index);
         }
         auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
-                                  wal.payload);
+                                  wal.update.SerializeAsString());
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
       }
       for (const auto& wal : pending_vector_wals_) {
@@ -458,6 +471,7 @@ void Transaction::Commit() {
     auto s = txn_->Commit();
     if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
     pending_fulltext_wals_.clear();
+    pending_fulltext_wal_positions_.clear();
     pending_vector_wals_.clear();
   }
   for (const auto& index : touched_fulltext_indexes) {
@@ -469,6 +483,7 @@ void Transaction::Rollback() {
   auto s = txn_->Rollback();
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
   pending_fulltext_wals_.clear();
+  pending_fulltext_wal_positions_.clear();
   pending_vector_wals_.clear();
 }
 

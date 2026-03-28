@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -20,12 +21,12 @@ const ZH_TOKENIZER_NAME: &str = "jieba";
 const ZH_STOP_WORDS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/stopwords_zh.txt"));
 
 pub struct FTIndex {
-    schema: Schema,
     index : Index,
     writer: Mutex<IndexWriter>,
     reader: IndexReader,
     id_field: Field,
-    fields: Vec<Field>,
+    field_by_name: HashMap<String, Field>,
+    query_parser: QueryParser,
 }
 
 fn is_ignored_char(c: char) -> bool {
@@ -100,26 +101,29 @@ pub fn new_ftindex(path: &String, properties: &Vec<String>) -> Result<Box<FTInde
     let mut schema_builder = Schema::builder();
     let id_field = schema_builder.add_i64_field("id", NumericOptions::default() | STORED | INDEXED | FAST);
     let mut fields: Vec<Field> = Vec::new();
+    let mut field_by_name = HashMap::with_capacity(properties.len());
     for property in properties {
         let f = schema_builder.add_text_field(property, fulltext_options());
         fields.push(f);
+        field_by_name.insert(property.clone(), f);
     }
     let schema = schema_builder.build();
     let mmap_directory = MmapDirectory::open(path)?;
     let index = Index::open_or_create(mmap_directory,  schema.clone())?;
     register_tokenizer(&index);
+    let query_parser = QueryParser::for_index(&index, fields);
     let writer = index.writer(50_000_000)?;
     let reader = index
         .reader_builder()
         .reload_policy(ReloadPolicy::Manual)
         .try_into()?;
     let ft = FTIndex {
-        schema: schema,
         index: index,
         writer: Mutex::new(writer),
         reader: reader,
         id_field: id_field,
-        fields: fields,
+        field_by_name: field_by_name,
+        query_parser: query_parser,
     };
     return Ok(Box::new(ft));
 }
@@ -128,7 +132,12 @@ pub fn ft_add_document(ft: &FTIndex, id:i64, fields: &Vec<String>, valus: &Vec<S
     let mut document = TantivyDocument::default();
     document.add_i64(ft.id_field, id);
     for i in 0..fields.len() {
-        let field = ft.schema.get_field(&fields[i])?;
+        let field = *ft.field_by_name.get(fields[i].as_str()).ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("unknown fulltext field: {}", fields[i]),
+            )
+        })?;
         let normalized = normalize_text(&valus[i]);
         document.add_text(field, normalized.as_ref());
     }
@@ -172,9 +181,8 @@ pub fn ft_tokenize(text: &String) -> Result<Vec<String>, Box<dyn Error>> {
 
 pub fn ft_query(ft: &FTIndex, query: &String, options: &QueryOptions) -> Result<Vec<IdScore>, Box<dyn Error>> {
     let searcher = ft.reader.searcher();
-    let query_parser = QueryParser::for_index(&ft.index, ft.fields.clone());
     let normalized = normalize_text(query);
-    let query = query_parser.parse_query(normalized.as_ref())?;
+    let query = ft.query_parser.parse_query(normalized.as_ref())?;
     let top_docs = searcher.search(&query, &TopDocs::with_limit(options.top_n))?;
     let id_readers = searcher
         .segment_readers()

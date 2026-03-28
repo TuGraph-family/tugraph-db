@@ -21,6 +21,7 @@
 
 #include <optional>
 #include <set>
+#include <unordered_map>
 #include <vector>
 
 #include "common/value.h"
@@ -78,9 +79,7 @@ class Transaction {
       int ef_search);
   void AppendFullTextIndexWAL(
       std::shared_ptr<graphdb::VertexFullTextIndex> index,
-      std::string payload) {
-    pending_fulltext_wals_.push_back({std::move(index), std::move(payload)});
-  }
+      const meta::FullTextIndexUpdate& update);
   std::unique_ptr<ResultIterator> Execute(void* ctx, const std::string& cypher);
   void AppendVectorIndexWAL(std::shared_ptr<graphdb::VertexVectorIndex> index,
                             std::string payload) {
@@ -96,9 +95,27 @@ class Transaction {
   std::shared_ptr<bolt::BoltConnection>& conn() { return conn_; }
 
  private:
+  struct PendingFullTextWALKey {
+    graphdb::VertexFullTextIndex* index = nullptr;
+    int64_t vid = 0;
+
+    bool operator==(const PendingFullTextWALKey& other) const {
+      return index == other.index && vid == other.vid;
+    }
+  };
+
+  struct PendingFullTextWALKeyHash {
+    size_t operator()(const PendingFullTextWALKey& key) const {
+      size_t hash = std::hash<graphdb::VertexFullTextIndex*>{}(key.index);
+      hash ^= std::hash<int64_t>{}(key.vid) + 0x9e3779b9 + (hash << 6) +
+              (hash >> 2);
+      return hash;
+    }
+  };
+
   struct PendingFullTextWAL {
     std::shared_ptr<graphdb::VertexFullTextIndex> index;
-    std::string payload;
+    meta::FullTextIndexUpdate update;
   };
 
   struct PendingVectorWAL {
@@ -110,6 +127,8 @@ class Transaction {
   graphdb::GraphDB* db_;
   std::shared_ptr<bolt::BoltConnection> conn_;
   std::vector<PendingFullTextWAL> pending_fulltext_wals_;
+  std::unordered_map<PendingFullTextWALKey, size_t, PendingFullTextWALKeyHash>
+      pending_fulltext_wal_positions_;
   std::vector<PendingVectorWAL> pending_vector_wals_;
 };
 

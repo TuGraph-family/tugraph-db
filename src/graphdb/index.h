@@ -132,6 +132,7 @@ class VertexFullTextIndex
   void QueueApplyTask();
   void RunApplyTask();
   void Commit(const std::string& payload);
+  bool HasCommittedUnappliedWAL();
 
   rocksdb::TransactionDB* db_ = nullptr;
   GraphCF* graph_cf_ = nullptr;
@@ -150,6 +151,7 @@ class VertexFullTextIndex
   size_t active_callbacks_ = 0;
   bool started_ = false;
   bool stopped_ = false;
+  bool has_pending_wal_ = false;
   bool apply_scheduled_ = false;
   bool rerun_requested_ = false;
   size_t interval_ = 5;

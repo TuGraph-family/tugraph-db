@@ -437,18 +437,23 @@ void VertexFullTextIndex::StartTimer() {
 }
 
 void VertexFullTextIndex::Start() {
+  bool schedule_apply = false;
   {
     std::lock_guard<std::mutex> lock(timer_mutex_);
     if (started_ || stopped_) {
       return;
     }
     started_ = true;
+    schedule_apply = RequestApplyLocked(false);
+  }
+  if (schedule_apply) {
+    QueueApplyTask();
   }
   StartTimer();
 }
 
 bool VertexFullTextIndex::RequestApplyLocked(bool reschedule_if_running) {
-  if (stopped_) {
+  if (stopped_ || !has_pending_wal_) {
     return false;
   }
   if (apply_scheduled_) {
@@ -491,7 +496,7 @@ void VertexFullTextIndex::RunApplyTask() {
       timer_cv_.notify_all();
       return;
     }
-    if (rerun_requested_) {
+    if (rerun_requested_ || has_pending_wal_) {
       rerun_requested_ = false;
       schedule_again = true;
     } else {
@@ -510,6 +515,7 @@ void VertexFullTextIndex::NotifyWALWritten() {
   bool schedule_apply = false;
   {
     std::lock_guard<std::mutex> lock(timer_mutex_);
+    has_pending_wal_ = true;
     schedule_apply = RequestApplyLocked(true);
   }
   if (schedule_apply) {
@@ -590,6 +596,7 @@ VertexFullTextIndex::VertexFullTextIndex(
     }
   }
   next_wal_id_ = std::max(next_wal_id_.load(), big_to_native(apply_id_) + 1);
+  has_pending_wal_ = HasCommittedUnappliedWAL();
 }
 
 void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid,
@@ -597,7 +604,7 @@ void VertexFullTextIndex::AddIndex(txn::Transaction* txn, int64_t vid,
   auto s =
       txn->dbtxn()->GetWriteBatch()->Put(graph_cf_->index, IndexKey(vid), {});
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  txn->AppendFullTextIndexWAL(shared_from_this(), wal.SerializeAsString());
+  txn->AppendFullTextIndexWAL(shared_from_this(), wal);
 }
 
 void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid,
@@ -605,7 +612,7 @@ void VertexFullTextIndex::DeleteIndex(txn::Transaction* txn, int64_t vid,
   auto s =
       txn->dbtxn()->GetWriteBatch()->Delete(graph_cf_->index, IndexKey(vid));
   if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-  txn->AppendFullTextIndexWAL(shared_from_this(), wal.SerializeAsString());
+  txn->AppendFullTextIndexWAL(shared_from_this(), wal);
 }
 
 bool VertexFullTextIndex::IsIndexed(Transaction* txn, int64_t vid) {
@@ -724,6 +731,19 @@ void VertexFullTextIndex::Commit(const std::string& payload) {
   ft_commit(*ft_index_, payload);
 }
 
+bool VertexFullTextIndex::HasCommittedUnappliedWAL() {
+  std::string prefix(AsChars(index_id_), sizeof(index_id_));
+  std::string start_key(prefix);
+  uint64_t next = big_to_native(apply_id_) + 1;
+  native_to_big_inplace(next);
+  start_key.append(AsChars(next), sizeof(next));
+
+  rocksdb::ReadOptions ro;
+  std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(ro, graph_cf_->wal));
+  iter->Seek(start_key);
+  return iter->Valid() && iter->key().starts_with(prefix);
+}
+
 void VertexFullTextIndex::ApplyWAL() {
   std::lock_guard<std::mutex> lock(mutex_);
   std::string prefix(AsChars(index_id_), sizeof(index_id_));
@@ -758,6 +778,7 @@ void VertexFullTextIndex::ApplyWAL() {
                  "failed to parse fulltext index wal payload");
     }
     if (update.type() == meta::UpdateType::Add) {
+      DeleteVertex(update.vid());
       AddVertex(update.vid(),
                 {std::make_move_iterator(update.mutable_fields()->begin()),
                  std::make_move_iterator(update.mutable_fields()->end())},
@@ -793,6 +814,11 @@ void VertexFullTextIndex::ApplyWAL() {
   }
   if (consumed_wal_id != 0) {
     apply_id_ = consumed_wal_id;
+  }
+  bool has_pending_wal = HasCommittedUnappliedWAL();
+  {
+    std::lock_guard<std::mutex> timer_lock(timer_mutex_);
+    has_pending_wal_ = has_pending_wal;
   }
 }
 
