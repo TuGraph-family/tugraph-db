@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::error::Error;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use tantivy::{Index, IndexReader, IndexWriter, ReloadPolicy, TantivyDocument, Term};
 use tantivy::collector::TopDocs;
@@ -9,7 +9,7 @@ use tantivy::directory::MmapDirectory;
 use tantivy::query::QueryParser;
 use tantivy::schema::{
     FAST, Field, INDEXED, IndexRecordOption, NumericOptions, STORED, Schema, TextFieldIndexing,
-    TextOptions, Value,
+    TextOptions,
 };
 use tantivy::tokenizer::{Language, LowerCaser, RemoveLongFilter, StopWordFilter, TextAnalyzer};
 use tantivy_jieba::JiebaTokenizer;
@@ -176,12 +176,24 @@ pub fn ft_query(ft: &FTIndex, query: &String, options: &QueryOptions) -> Result<
     let normalized = normalize_text(query);
     let query = query_parser.parse_query(normalized.as_ref())?;
     let top_docs = searcher.search(&query, &TopDocs::with_limit(options.top_n))?;
-    let mut id_score: Vec<IdScore> =  Vec::new();
-    for (_score, doc_address) in top_docs {
-        let retrieved_doc: TantivyDocument = searcher.doc(doc_address)?;
+    let id_readers = searcher
+        .segment_readers()
+        .iter()
+        .map(|segment_reader| segment_reader.fast_fields().i64("id"))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut id_score: Vec<IdScore> = Vec::with_capacity(top_docs.len());
+    for (score, doc_address) in top_docs {
+        let id = id_readers[doc_address.segment_ord as usize].first(doc_address.doc_id).ok_or_else(
+            || {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "fulltext document missing id fast field",
+                )
+            },
+        )?;
         let res = crate::IdScore {
-            id: retrieved_doc.get_first(ft.id_field).unwrap().as_i64().unwrap(),
-            score: _score
+            id: id,
+            score: score,
         };
         id_score.push(res);
     }
