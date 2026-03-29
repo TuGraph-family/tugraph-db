@@ -6,9 +6,9 @@ Feature: test vector index
       CREATE (n1:person {id:1, age:10, embedding: [1.0,1.0,1.0,1.0]})
       CREATE (n2:person {id:2, age:20, embedding: [2.0,2.0,2.0,2.0]})
       CREATE (n3:person {id:3, age:30, embedding: [3.0,3.0,3.0,3.0]})
-      CREATE (n1)-[r:like]->(n2),
-             (n2)-[r:like]->(n3),
-             (n3)-[r:like]->(n1);
+      CREATE (n1)-[:like]->(n2),
+             (n2)-[:like]->(n3),
+             (n3)-[:like]->(n1);
       CALL db.index.vector.createNodeIndex('vector_index','person', 'embedding', {dimension:4});
       """
     When executing query
@@ -42,9 +42,9 @@ Feature: test vector index
       CREATE (n1:person {id:1, age:10, embedding: [1.0,1.0,1.0,1.0]})
       CREATE (n2:person {id:2, age:20, embedding: [2.0,2.0,2.0,2.0]})
       CREATE (n3:person {id:3, age:30, embedding: [3.0,3.0,3.0,3.0]})
-      CREATE (n1)-[r:like]->(n2),
-             (n2)-[r:like]->(n3),
-             (n3)-[r:like]->(n1);
+      CREATE (n1)-[:like]->(n2),
+             (n2)-[:like]->(n3),
+             (n3)-[:like]->(n1);
       CALL db.index.vector.createNodeIndex('vector_index','person', 'embedding', {dimension:4});
       """
     When executing query
@@ -72,9 +72,9 @@ Feature: test vector index
       CREATE (n1:person {id:1, age:10, embedding: [1.0,1.0,1.0,1.0]})
       CREATE (n2:person {id:2, age:20, embedding: [2.0,2.0,2.0,2.0]})
       CREATE (n3:person {id:3, age:30, embedding: [3.0,3.0,3.0,3.0]})
-      CREATE (n1)-[r:like]->(n2),
-             (n2)-[r:like]->(n3),
-             (n3)-[r:like]->(n1);
+      CREATE (n1)-[:like]->(n2),
+             (n2)-[:like]->(n3),
+             (n3)-[:like]->(n1);
       CALL db.index.vector.createNodeIndex('vector_index','person', 'embedding', {dimension:4});
       """
     When executing query
@@ -102,9 +102,9 @@ Feature: test vector index
       CREATE (n1:person {id:1, age:10, embedding: toFloat32List([1.0,1.0,1.0,1.0])})
       CREATE (n2:person {id:2, age:20, embedding: toFloat32List([2.0,2.0,2.0,2.0])})
       CREATE (n3:person {id:3, age:30, embedding: toFloat32List([3.0,3.0,3.0,3.0])})
-      CREATE (n1)-[r:like]->(n2),
-             (n2)-[r:like]->(n3),
-             (n3)-[r:like]->(n1);
+      CREATE (n1)-[:like]->(n2),
+             (n2)-[:like]->(n3),
+             (n3)-[:like]->(n1);
       CALL db.index.vector.createNodeIndex('vector_index','person', 'embedding', {dimension:4});
       """
     When executing query
@@ -123,9 +123,9 @@ Feature: test vector index
       CREATE (n1:person {id:1, age:10})
       CREATE (n2:person {id:2, age:20})
       CREATE (n3:person {id:3, age:30})
-      CREATE (n1)-[r:like]->(n2),
-             (n2)-[r:like]->(n3),
-             (n3)-[r:like]->(n1);
+      CREATE (n1)-[:like]->(n2),
+             (n2)-[:like]->(n3),
+             (n3)-[:like]->(n1);
       CALL db.index.vector.createNodeIndex('vector_index','person', 'embedding', {dimension:4});
       MATCH(n:person {id:1}) set n.embedding = toFloat32List([1.0,1.0,1.0,1.0]);
       MATCH(n:person {id:2}) set n.embedding = toFloat32List([2.0,2.0,2.0,2.0]);

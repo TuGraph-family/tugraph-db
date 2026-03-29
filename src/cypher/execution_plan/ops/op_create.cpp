@@ -64,6 +64,7 @@ void OpGqlCreate::CreateVertex(RTContext* ctx, geax::frontend::Node* node,
       pattern_node->Visited() = true;
     }
     pattern_node->vertex_ = v;
+    created_nodes_.push_back(pattern_node);
     // fill the record
     if (!summary_) {
       auto it = pattern_graph_->symbol_table.symbols.find(variable);
@@ -106,6 +107,7 @@ void OpGqlCreate::CreateEdge(RTContext* ctx, geax::frontend::Node* start,
     auto relp = &pattern_graph_->GetRelationship(edge_variable);
     if (relp->Empty()) CYPHER_TODO();
     relp->edge_ = e;
+    created_relationships_.push_back(relp);
     // fill the record
     if (!summary_) {
       auto it = pattern_graph_->symbol_table.symbols.find(edge_variable);
@@ -148,17 +150,16 @@ void OpGqlCreate::CreateVE(RTContext* ctx, bool update_visited) {
 }
 
 void OpGqlCreate::ResetCreatedState() {
-  for (auto& node : pattern_graph_->GetNodes()) {
-    if (node.derivation_ == Node::CREATED) {
-      node.Visited() = false;
-      node.vertex_.reset();
-    }
+  for (auto* node : created_nodes_) {
+    node->Visited() = false;
+    node->vertex_.reset();
   }
-  for (auto& rel : pattern_graph_->GetRelationships()) {
-    if (rel.derivation_ == Relationship::CREATED) {
-      rel.edge_.reset();
-    }
+  created_nodes_.clear();
+
+  for (auto* rel : created_relationships_) {
+    rel->edge_.reset();
   }
+  created_relationships_.clear();
 }
 
 void OpGqlCreate::ResultSummary(RTContext* ctx) {

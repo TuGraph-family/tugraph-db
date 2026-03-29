@@ -25,6 +25,8 @@ class OpGqlCreate : public OpBase {
   PatternGraph* pattern_graph_;
   bool standalone_ = false;
   bool summary_ = false;
+  std::vector<Node*> created_nodes_;
+  std::vector<Relationship*> created_relationships_;
 
   void ExtractProperties(RTContext* ctx,
                          std::unordered_map<std::string, Value>& properties,
