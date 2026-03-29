@@ -252,11 +252,11 @@ def step_impl(context):
 
 @given("an empty graph")
 def step_impl(context):
-    run_cypher("CALL db.dropDB()", context)
+    run_cypher("CALL dbms.graph.clearGraph('default')", context)
 
 @given("yago graph")
 def step_impl(context):
-    run_cypher("CALL db.dropDB()", context)
+    run_cypher("CALL dbms.graph.clearGraph('default')", context)
     check_exception(context)
     yago_graph = """
 CREATE (rachel:Person {name: 'Rachel Kempson', birthyear: 1910})

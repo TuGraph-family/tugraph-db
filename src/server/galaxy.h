@@ -49,6 +49,7 @@ class Galaxy {
                                       const GalaxyOptions& galaxy_options);
   std::shared_ptr<graphdb::GraphDB> OpenGraph(const std::string& name);
   graphdb::GraphDB* CreateGraph(const std::string& name);
+  graphdb::GraphDB* ClearGraph(const std::string& name);
   void DeleteGraph(const std::string& name);
   const std::unordered_map<std::string, std::shared_ptr<graphdb::GraphDB>>&
   Graphs() {

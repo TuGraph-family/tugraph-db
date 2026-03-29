@@ -154,6 +154,66 @@ GraphDB *Galaxy::CreateGraph(const std::string &name) {
   return graphs_[name].get();
 }
 
+GraphDB *Galaxy::ClearGraph(const std::string &name) {
+  std::shared_ptr<GraphDB> old_graph;
+  std::unique_ptr<GraphDB> new_graph;
+  std::unique_lock<std::shared_mutex> write_lock(graphs_mutex_);
+  auto iter = graphs_.find(name);
+  if (iter == graphs_.end()) {
+    THROW_CODE(NoSuchGraph, "No such graph: {}", name);
+  }
+
+  uint64_t old_graph_id = iter->second->db_meta().graph_id();
+  old_graph = iter->second;
+  std::string old_graph_path = old_graph->path();
+
+  meta::GraphDBMetaInfo meta;
+  uint64_t graph_id = next_graph_id_++;
+  meta.set_graph_id(graph_id);
+  meta.set_graph_name(name);
+  std::string graph_path = path_ + "/graph" + std::to_string(meta.graph_id());
+  new_graph = GraphDB::Open(
+      graph_path, {.block_cache = block_cache_,
+                   .row_cache = row_cache_,
+                   .ft_apply_interval_ = options_.ft_apply_interval,
+                   .ft_apply_batch_size_ = options_.ft_apply_batch_size,
+                   .ft_apply_max_delay_ms_ = options_.ft_apply_max_delay_ms,
+                   .ft_writer_threads_ = options_.ft_writer_threads,
+                   .ft_writer_memory_budget_ = options_.ft_writer_memory_budget,
+                   .vt_apply_interval_ = options_.vt_apply_interval,
+                   .server_id_ = options_.server_id});
+
+  rocksdb::WriteOptions wo;
+  rocksdb::WriteBatch wb;
+  std::string old_key;
+  old_key.append(1, static_cast<char>(GalaxyMetaDataType::GraphDB));
+  native_to_big_inplace(old_graph_id);
+  old_key.append((const char *)&old_graph_id, sizeof(old_graph_id));
+  wb.Delete(old_key);
+
+  std::string new_key;
+  new_key.append(1, static_cast<char>(GalaxyMetaDataType::GraphDB));
+  uint64_t new_graph_id = graph_id;
+  native_to_big_inplace(new_graph_id);
+  new_key.append((const char *)&new_graph_id, sizeof(new_graph_id));
+  wb.Put(new_key, meta.SerializeAsString());
+  uint64_t next = next_graph_id_;
+  wb.Put(std::string(1, static_cast<char>(GalaxyMetaDataType::NextGraphID)),
+         std::string((const char *)&next, sizeof(next)));
+  auto s = meta_db_->Write(wo, {}, &wb);
+  if (!s.ok()) {
+    new_graph->drop_on_close() = true;
+    THROW_CODE(StorageEngineError, s.ToString());
+  }
+
+  LOG_INFO("Clear graph:{}, old_path:{}, new_path:{}", name, old_graph_path,
+           graph_path);
+  old_graph->drop_on_close() = true;
+  new_graph->db_meta() = meta;
+  iter->second = std::move(new_graph);
+  return iter->second.get();
+}
+
 void Galaxy::DeleteGraph(const std::string &name) {
   std::unique_lock<std::shared_mutex> write_lock(graphs_mutex_);
   auto iter = graphs_.find(name);

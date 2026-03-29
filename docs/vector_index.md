@@ -12,7 +12,7 @@ CALL db.index.vector.createNodeIndex('vector_index','Person', 'embedding', {dime
 使用例子
 ```
 #清空子图数据
-CALL db.dropDB();
+CALL dbms.graph.clearGraph('default');
 
 #为Person类型的点设置一个唯一属性索引，所有Person类型的点id字段的值是唯一的。
 CALL db.index.createNodeIndex('person_id', 'Person', ['id'], {unique:true});

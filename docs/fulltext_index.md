@@ -19,7 +19,7 @@ CALL db.index.fulltext.createNodeIndex('namesAndTeams',['Employee','Manager'], [
 使用例子
 ```
 #清空子图数据
-CALL db.dropDB();
+CALL dbms.graph.clearGraph('default');
 
 #为Employee类型的点设置一个唯一属性索引，所有Employee类型的点name字段的值是唯一的。
 CALL db.index.createNodeIndex('employee_name', 'Employee', ['name'], {unique:true});

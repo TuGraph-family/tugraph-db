@@ -144,8 +144,10 @@ std::vector<Procedure> global_procedures = {
         "dbms.graph.deleteGraph", BuiltinProcedure::DbmsGraphDeleteGraph,
         Procedure::SIG_SPEC{{"graph_name", {0, ProcedureResultType::Value}}},
         Procedure::SIG_SPEC{}),
-    Procedure("db.dropDB", BuiltinProcedure::DbDropDB, Procedure::SIG_SPEC{},
-              Procedure::SIG_SPEC{}),
+    Procedure(
+        "dbms.graph.clearGraph", BuiltinProcedure::DbmsGraphClearGraph,
+        Procedure::SIG_SPEC{{"graph_name", {0, ProcedureResultType::Value}}},
+        Procedure::SIG_SPEC{}),
     Procedure("dbms.graph.listGraph", BuiltinProcedure::DbmsGraphListGraph,
               Procedure::SIG_SPEC{},
               Procedure::SIG_SPEC{{"id", {0, ProcedureResultType::Value}},
@@ -789,18 +791,18 @@ void BuiltinProcedure::DbmsGraphListGraph(
   }
 }
 
-void BuiltinProcedure::DbDropDB(
+void BuiltinProcedure::DbmsGraphClearGraph(
     RTContext *ctx, const Record *record, const VEC_EXPR &args,
     const VEC_STR &yield_items,
     std::vector<std::vector<ProcedureResult>> *records) {
-  CYPHER_ARG_CHECK(args.empty(),
-                   fmt::format("Function requires 0 arguments, but {} are "
-                               "given. Usage: db.dropDB()",
+  CYPHER_ARG_CHECK(args.size() == 1,
+                   fmt::format("Function requires 1 argument, but {} are "
+                               "given. Usage: dbms.graph.clearGraph('graph1')",
                                args.size()))
-  std::string name = ctx->txn_->db()->db_meta().graph_name();
-  LOG_INFO("dropDB {}", name);
-  server::g_galaxy->DeleteGraph(name);
-  server::g_galaxy->CreateGraph(name);
+  CYPHER_ARG_CHECK(args[0].IsString(), "graph_name type should be String")
+  std::string name = args[0].constant.AsString();
+  LOG_INFO("clearGraph {}", name);
+  server::g_galaxy->ClearGraph(name);
 }
 
 void BuiltinProcedure::DbShowIndexes(

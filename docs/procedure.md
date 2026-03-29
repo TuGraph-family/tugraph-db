@@ -158,19 +158,18 @@ CALL dbms.graph.createGraph('graph1');
 CALL dbms.graph.deleteGraph('graph1');
 ```
 
+* dbms.graph.clearGraph
+
+清空子图数据
+```
+CALL dbms.graph.clearGraph('graph1');
+```
+
 * dbms.graph.listGraph
 
 查看所有子图
 ```
 CALL dbms.graph.listGraph();
-```
-
-## 其他
-* db.dropDB
-
-清空子图数据
-```
-CALL db.dropDB();
 ```
 
 * db.showIndexes
