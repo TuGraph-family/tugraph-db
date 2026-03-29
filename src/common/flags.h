@@ -44,6 +44,8 @@ DECLARE_uint64(row_cache);
 DECLARE_uint64(ft_apply_interval);
 DECLARE_uint64(ft_apply_batch_size);
 DECLARE_uint64(ft_apply_max_delay_ms);
+DECLARE_uint64(ft_writer_threads);
+DECLARE_uint64(ft_writer_memory_budget);
 DECLARE_uint64(vt_apply_interval);
 DECLARE_uint64(vt_serialize_interval);
 DECLARE_uint32(server_id);

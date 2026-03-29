@@ -45,6 +45,53 @@ namespace {
 const char* kFaissHnswIndexFileName = "hnsw.index.data";
 const char* kFaissHnswMetaFileName = "hnsw.index.meta";
 
+enum class FTBatchOp : uint8_t {
+  Delete = 0,
+  Add = 1,
+};
+
+struct FTUpdateBatch {
+  ::rust::Vec<int64_t> ids;
+  ::rust::Vec<uint8_t> ops;
+  ::rust::Vec<uint64_t> field_counts;
+  ::rust::Vec<::rust::String> fields;
+  ::rust::Vec<uint64_t> value_counts;
+  ::rust::Vec<::rust::String> values;
+
+  template <typename FieldContainer, typename ValueContainer>
+  void AddDocument(int64_t id, FieldContainer* field_items,
+                   ValueContainer* value_items) {
+    ids.push_back(id);
+    ops.push_back(static_cast<uint8_t>(FTBatchOp::Add));
+    field_counts.push_back(static_cast<uint64_t>(field_items->size()));
+    value_counts.push_back(static_cast<uint64_t>(value_items->size()));
+    for (auto& item : *field_items) {
+      fields.emplace_back(std::move(item));
+    }
+    for (auto& item : *value_items) {
+      values.emplace_back(std::move(item));
+    }
+  }
+
+  void AddDelete(int64_t id) {
+    ids.push_back(id);
+    ops.push_back(static_cast<uint8_t>(FTBatchOp::Delete));
+    field_counts.push_back(0);
+    value_counts.push_back(0);
+  }
+
+  bool Empty() const { return ids.size() == 0; }
+
+  void Clear() {
+    ids.clear();
+    ops.clear();
+    field_counts.clear();
+    fields.clear();
+    value_counts.clear();
+    values.clear();
+  }
+};
+
 std::string FaissHnswIndexPath(const meta::VertexVectorIndex& meta) {
   return meta.path() + "/" + kFaissHnswIndexFileName;
 }
@@ -588,7 +635,8 @@ VertexFullTextIndex::VertexFullTextIndex(
     rocksdb::TransactionDB* db, boost::asio::io_service& service,
     GraphCF* graph_cf, IdGenerator* id_generator,
     meta::VertexFullTextIndex meta, uint32_t index_id, size_t apply_batch_size,
-    size_t apply_max_delay_ms, const std::unordered_set<uint32_t>& lids,
+    size_t apply_max_delay_ms, size_t writer_threads,
+    size_t writer_memory_budget, const std::unordered_set<uint32_t>& lids,
     const std::unordered_set<uint32_t>& pids, size_t commit_interval)
     : db_(db),
       graph_cf_(graph_cf),
@@ -607,7 +655,7 @@ VertexFullTextIndex::VertexFullTextIndex(
     fields.push_back(prop);
   }
   instance_ = std::make_unique<::rust::Box<::FTIndex>>(
-      new_ftindex(meta_.path(), fields));
+      new_ftindex(meta_.path(), fields, writer_threads, writer_memory_budget));
   ft_index_ = instance_->operator->();
   auto payload = ft_get_payload(*ft_index_);
   if (!payload.empty()) {
@@ -682,6 +730,7 @@ std::string VertexFullTextIndex::NextWALKey() {
 
 void VertexFullTextIndex::Load() {
   int count = 0;
+  FTUpdateBatch batch;
   std::unordered_set<int64_t> loaded_vids;
   for (auto lid : lids_) {
     rocksdb::ReadOptions ro;
@@ -721,31 +770,31 @@ void VertexFullTextIndex::Load() {
         }
         auto s = db_->Put({}, graph_cf_->index, IndexKey(id), {});
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
-        AddVertex(id, fields, values);
+        batch.AddDocument(id, &fields, &values);
         count++;
         if (count == 10000) {
+          ApplyUpdatesBatch(batch.ids, batch.ops, batch.field_counts,
+                            batch.fields, batch.value_counts, batch.values);
           Commit("0");
           count = 0;
+          batch.Clear();
         }
       }
     }
   }
   if (count > 0) {
+    ApplyUpdatesBatch(batch.ids, batch.ops, batch.field_counts, batch.fields,
+                      batch.value_counts, batch.values);
     Commit("0");
   }
 }
 
 void VertexFullTextIndex::AddVertex(int64_t id, std::vector<std::string> fields,
                                     std::vector<std::string> values) {
-  ::rust::Vec<::rust::String> rust_fields;
-  ::rust::Vec<::rust::String> rust_values;
-  for (auto& item : fields) {
-    rust_fields.emplace_back(std::move(item));
-  }
-  for (auto& item : values) {
-    rust_values.emplace_back(std::move(item));
-  }
-  ft_add_document(*ft_index_, id, rust_fields, rust_values);
+  FTUpdateBatch batch;
+  batch.AddDocument(id, &fields, &values);
+  ApplyUpdatesBatch(batch.ids, batch.ops, batch.field_counts, batch.fields,
+                    batch.value_counts, batch.values);
 }
 
 bool VertexFullTextIndex::MatchLabelIds(
@@ -763,7 +812,20 @@ bool VertexFullTextIndex::MatchPropertyIds(
 }
 
 void VertexFullTextIndex::DeleteVertex(int64_t id) {
-  ft_delete_document(*ft_index_, id);
+  FTUpdateBatch batch;
+  batch.AddDelete(id);
+  ApplyUpdatesBatch(batch.ids, batch.ops, batch.field_counts, batch.fields,
+                    batch.value_counts, batch.values);
+}
+
+void VertexFullTextIndex::ApplyUpdatesBatch(
+    const ::rust::Vec<int64_t>& ids, const ::rust::Vec<uint8_t>& ops,
+    const ::rust::Vec<uint64_t>& field_counts,
+    const ::rust::Vec<::rust::String>& fields,
+    const ::rust::Vec<uint64_t>& value_counts,
+    const ::rust::Vec<::rust::String>& values) {
+  ft_apply_updates(*ft_index_, ids, ops, field_counts, fields, value_counts,
+                   values);
 }
 
 void VertexFullTextIndex::Commit(const std::string& payload) {
@@ -792,6 +854,7 @@ void VertexFullTextIndex::ApplyWAL() {
   start_key.append(AsChars(next), sizeof(next));
   int count = 0;
   uint64_t consumed_wal_id = 0;
+  FTUpdateBatch batch;
   rocksdb::WriteBatch delete_batch;
   rocksdb::ReadOptions ro;
   rocksdb::WriteOptions wo;
@@ -817,16 +880,15 @@ void VertexFullTextIndex::ApplyWAL() {
                  "failed to parse fulltext index wal payload");
     }
     if (update.type() == meta::UpdateType::Add) {
-      DeleteVertex(update.vid());
-      AddVertex(update.vid(),
-                {std::make_move_iterator(update.mutable_fields()->begin()),
-                 std::make_move_iterator(update.mutable_fields()->end())},
-                {std::make_move_iterator(update.mutable_values()->begin()),
-                 std::make_move_iterator(update.mutable_values()->end())});
+      batch.AddDelete(update.vid());
+      batch.AddDocument(update.vid(), update.mutable_fields(),
+                        update.mutable_values());
     } else {
-      DeleteVertex(update.vid());
+      batch.AddDelete(update.vid());
     }
     if (++count == 1000) {
+      ApplyUpdatesBatch(batch.ids, batch.ops, batch.field_counts, batch.fields,
+                        batch.value_counts, batch.values);
       auto payload = std::to_string(big_to_native(consumed_wal_id));
       Commit(payload);
       LOG_DEBUG("apply {} wal, payload: {}", count, payload);
@@ -837,9 +899,12 @@ void VertexFullTextIndex::ApplyWAL() {
       auto s = db_->Write(wo, two, &delete_batch);
       if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
       delete_batch.Clear();
+      batch.Clear();
     }
   }
   if (count > 0) {
+    ApplyUpdatesBatch(batch.ids, batch.ops, batch.field_counts, batch.fields,
+                      batch.value_counts, batch.values);
     auto payload = std::to_string(big_to_native(consumed_wal_id));
     Commit(payload);
     LOG_DEBUG("apply {} wal, payload: {}", count, payload);

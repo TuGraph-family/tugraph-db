@@ -94,7 +94,8 @@ class VertexFullTextIndex
                       boost::asio::io_service& service, GraphCF* graph_cf,
                       IdGenerator* id_generator, meta::VertexFullTextIndex meta,
                       uint32_t index_id, size_t apply_batch_size,
-                      size_t apply_max_delay_ms,
+                      size_t apply_max_delay_ms, size_t writer_threads,
+                      size_t writer_memory_budget,
                       const std::unordered_set<uint32_t>& lids,
                       const std::unordered_set<uint32_t>& pids,
                       size_t commit_interval);
@@ -134,6 +135,12 @@ class VertexFullTextIndex
   bool RequestApplyLocked(bool reschedule_if_running);
   void QueueApplyTask();
   void RunApplyTask();
+  void ApplyUpdatesBatch(const ::rust::Vec<int64_t>& ids,
+                         const ::rust::Vec<uint8_t>& ops,
+                         const ::rust::Vec<uint64_t>& field_counts,
+                         const ::rust::Vec<::rust::String>& fields,
+                         const ::rust::Vec<uint64_t>& value_counts,
+                         const ::rust::Vec<::rust::String>& values);
   void Commit(const std::string& payload);
   bool HasCommittedUnappliedWAL();
 

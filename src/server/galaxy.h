@@ -31,6 +31,8 @@ struct GalaxyOptions {
   size_t ft_apply_interval = 1;
   size_t ft_apply_batch_size = 128;
   size_t ft_apply_max_delay_ms = 20;
+  size_t ft_writer_threads = 1;
+  size_t ft_writer_memory_budget = 50 * 1000 * 1000;
   size_t vt_apply_interval = 1;
   uint16_t server_id = 0;
 };

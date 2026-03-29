@@ -233,6 +233,7 @@ void MetaInfo::Init(rocksdb::TransactionDB* db,
                     boost::asio::io_service& service, GraphCF* graph_cf,
                     uint16_t server_id, size_t ft_commit_interval,
                     size_t ft_apply_batch_size, size_t ft_apply_max_delay_ms,
+                    size_t ft_writer_threads, size_t ft_writer_memory_budget,
                     size_t vt_commit_interval) {
   id_generator_.Bind(db, graph_cf, server_id);
   uint32_t max_lid = 0;
@@ -298,7 +299,8 @@ void MetaInfo::Init(rocksdb::TransactionDB* db,
       auto v_ft_index = std::make_shared<VertexFullTextIndex>(
           db, service, graph_cf, &id_generator_, meta,
           native_to_big(meta.index_id()), ft_apply_batch_size,
-          ft_apply_max_delay_ms, lids, pids, ft_commit_interval);
+          ft_apply_max_delay_ms, ft_writer_threads, ft_writer_memory_budget,
+          lids, pids, ft_commit_interval);
       AddVertexFullTextIndex(v_ft_index);
       v_ft_index->Start();
       continue;

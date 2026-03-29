@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <set>
@@ -32,6 +33,9 @@ using namespace graphdb;
 namespace fs = std::filesystem;
 static std::string testdb = "testdb";
 static std::string test_ftindex = "test_ftindex";
+
+constexpr size_t kDefaultFTWriterThreads = 1;
+constexpr uint64_t kDefaultFTWriterMemoryBudget = 50 * 1000 * 1000;
 
 namespace {
 
@@ -79,7 +83,8 @@ TEST(FTIndex, basic_v1) {
   ::rust::Vec<::rust::String> properties;
   properties.push_back("title");
   properties.push_back("body");
-  auto ft = new_ftindex(test_ftindex, properties);
+  auto ft = new_ftindex(test_ftindex, properties, kDefaultFTWriterThreads,
+                        kDefaultFTWriterMemoryBudget);
   ::rust::Vec<::rust::String> fields = {"title", "body"};
   {
     ::rust::Vec<::rust::String> values = {"title1 common_title title2",
@@ -109,7 +114,8 @@ TEST(FTIndex, basic_v2) {
   ::rust::Vec<::rust::String> properties;
   properties.push_back("title");
   properties.push_back("body");
-  auto ft = new_ftindex(test_ftindex, properties);
+  auto ft = new_ftindex(test_ftindex, properties, kDefaultFTWriterThreads,
+                        kDefaultFTWriterMemoryBudget);
   ::rust::Vec<::rust::String> fields = {"title", "body"};
   {
     ::rust::Vec<::rust::String> values = {"title1 common_title title11",
@@ -133,7 +139,8 @@ TEST(FTIndex, chinese) {
   ::rust::Vec<::rust::String> properties;
   properties.push_back("title");
   properties.push_back("body");
-  auto ft = new_ftindex(test_ftindex, properties);
+  auto ft = new_ftindex(test_ftindex, properties, kDefaultFTWriterThreads,
+                        kDefaultFTWriterMemoryBudget);
   ::rust::Vec<::rust::String> fields = {"title", "body"};
   {
     ::rust::Vec<::rust::String> values = {"恶性肿瘤 公共标题 图数据库",
@@ -158,7 +165,8 @@ TEST(FTIndex, chinese_segmentation) {
   ::rust::Vec<::rust::String> properties;
   properties.push_back("title");
   properties.push_back("body");
-  auto ft = new_ftindex(test_ftindex, properties);
+  auto ft = new_ftindex(test_ftindex, properties, kDefaultFTWriterThreads,
+                        kDefaultFTWriterMemoryBudget);
   ::rust::Vec<::rust::String> fields = {"title", "body"};
   {
     ::rust::Vec<::rust::String> values = {"图数据库支持知识检索",
@@ -251,7 +259,8 @@ TEST(FTIndex, update) {
   ::rust::Vec<::rust::String> properties;
   properties.push_back("title");
   properties.push_back("body");
-  auto ft = new_ftindex(test_ftindex, properties);
+  auto ft = new_ftindex(test_ftindex, properties, kDefaultFTWriterThreads,
+                        kDefaultFTWriterMemoryBudget);
   ::rust::Vec<::rust::String> fields = {"title", "body"};
   {
     ::rust::Vec<::rust::String> values = {"title1 common_title title2",
@@ -422,6 +431,25 @@ TEST(FTIndex, applyBatchSizeTriggersFlushBeforeDelayExpires) {
   EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index",
                                   "batch_threshold_token_two", 1,
                                   std::chrono::milliseconds(300)));
+}
+
+TEST(FTIndex, configuredWriterOptionsWork) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_writer_threads_ = 2;
+  options.ft_writer_memory_budget_ = 80 * 1000 * 1000;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(1)},
+                     {"str", Value::String("configured_writer_token")}});
+  txn->Commit();
+
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index",
+                                  "configured_writer_token", 1,
+                                  std::chrono::milliseconds(800)));
 }
 
 TEST(FTIndex, reopenWithPendingWalIsAppliedImmediately) {
