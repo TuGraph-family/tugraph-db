@@ -366,6 +366,64 @@ TEST(FTIndex, committedWalIsAppliedWithoutWaitingForPeriodicTimer) {
                                   std::chrono::milliseconds(800)));
 }
 
+TEST(FTIndex, committedWalVisibilityRespectsMicroBatchDelay) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  options.ft_apply_max_delay_ms_ = 200;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(1)},
+                     {"str", Value::String("delayed_visibility_token")}});
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  int count = 0;
+  for (auto result = txn->QueryVertexByFTIndex("ft_index",
+                                               "delayed_visibility_token", 10);
+       result->Valid(); result->Next()) {
+    count++;
+  }
+  EXPECT_EQ(count, 0);
+  txn->Commit();
+
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index",
+                                  "delayed_visibility_token", 1,
+                                  std::chrono::milliseconds(1200)));
+}
+
+TEST(FTIndex, applyBatchSizeTriggersFlushBeforeDelayExpires) {
+  fs::remove_all(testdb);
+  GraphDBOptions options;
+  options.ft_apply_interval_ = 3600;
+  options.ft_apply_batch_size_ = 2;
+  options.ft_apply_max_delay_ms_ = 1000;
+  auto graphDB = GraphDB::Open(testdb, options);
+  graphDB->AddVertexFullTextIndex("ft_index", {"label1"}, {"str"});
+
+  auto txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(1)},
+                     {"str", Value::String("batch_threshold_token_one")}});
+  txn->Commit();
+
+  txn = graphDB->BeginTransaction();
+  txn->CreateVertex({"label1"},
+                    {{"id", Value::Integer(2)},
+                     {"str", Value::String("batch_threshold_token_two")}});
+  txn->Commit();
+
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index",
+                                  "batch_threshold_token_one", 1,
+                                  std::chrono::milliseconds(300)));
+  EXPECT_TRUE(WaitUntilQueryCount(graphDB.get(), "ft_index",
+                                  "batch_threshold_token_two", 1,
+                                  std::chrono::milliseconds(300)));
+}
+
 TEST(FTIndex, reopenWithPendingWalIsAppliedImmediately) {
   fs::remove_all(testdb);
   GraphDBOptions options;

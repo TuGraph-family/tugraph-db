@@ -189,6 +189,8 @@ class LGraphDaemon : public Service {
                        {.block_cache_size = FLAGS_block_cache,
                         .row_cache_size = FLAGS_row_cache,
                         .ft_apply_interval = FLAGS_ft_apply_interval,
+                        .ft_apply_batch_size = FLAGS_ft_apply_batch_size,
+                        .ft_apply_max_delay_ms = FLAGS_ft_apply_max_delay_ms,
                         .vt_apply_interval = FLAGS_vt_apply_interval,
                         .server_id = static_cast<uint16_t>(FLAGS_server_id)});
       BoltServer::Instance().Start(FLAGS_bolt_port, FLAGS_bolt_io_thread_num,

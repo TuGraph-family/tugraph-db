@@ -439,6 +439,7 @@ void Transaction::AppendFullTextIndexWAL(
 void Transaction::Commit() {
   std::vector<std::shared_ptr<graphdb::VertexFullTextIndex>>
       touched_fulltext_indexes;
+  std::unordered_map<graphdb::VertexFullTextIndex*, size_t> fulltext_wal_counts;
   {
     std::unique_lock<std::mutex> fulltext_commit_lock(
         db_->fulltext_index_commit_mutex(), std::defer_lock);
@@ -458,6 +459,7 @@ void Transaction::Commit() {
         if (seen_fulltext_indexes.insert(wal.index.get()).second) {
           touched_fulltext_indexes.push_back(wal.index);
         }
+        fulltext_wal_counts[wal.index.get()]++;
         auto s = write_batch->Put(db_->graph_cf().wal, wal.index->NextWALKey(),
                                   wal.update.SerializeAsString());
         if (!s.ok()) THROW_CODE(StorageEngineError, s.ToString());
@@ -475,7 +477,7 @@ void Transaction::Commit() {
     pending_vector_wals_.clear();
   }
   for (const auto& index : touched_fulltext_indexes) {
-    index->NotifyWALWritten();
+    index->NotifyWALWritten(fulltext_wal_counts.at(index.get()));
   }
 }
 

@@ -436,6 +436,36 @@ void VertexFullTextIndex::StartTimer() {
   });
 }
 
+void VertexFullTextIndex::ScheduleDelayedApplyLocked() {
+  if (stopped_ || delayed_apply_armed_ || apply_scheduled_) {
+    return;
+  }
+  delayed_apply_armed_ = true;
+  active_callbacks_++;
+  delayed_apply_timer_.expires_after(apply_max_delay_);
+  delayed_apply_timer_.async_wait([this](const boost::system::error_code& e) {
+    bool schedule_apply = false;
+    {
+      std::lock_guard<std::mutex> lock(timer_mutex_);
+      delayed_apply_armed_ = false;
+      if (!e && !stopped_) {
+        schedule_apply = RequestApplyLocked(false);
+      }
+      active_callbacks_--;
+      timer_cv_.notify_all();
+    }
+    if (e) {
+      if (e != boost::asio::error::operation_aborted) {
+        LOG_ERROR("delayed apply timer async_wait error: {}", e.message());
+      }
+      return;
+    }
+    if (schedule_apply) {
+      QueueApplyTask();
+    }
+  });
+}
+
 void VertexFullTextIndex::Start() {
   bool schedule_apply = false;
   {
@@ -511,12 +541,17 @@ void VertexFullTextIndex::RunApplyTask() {
   }
 }
 
-void VertexFullTextIndex::NotifyWALWritten() {
+void VertexFullTextIndex::NotifyWALWritten(size_t wal_count) {
   bool schedule_apply = false;
   {
     std::lock_guard<std::mutex> lock(timer_mutex_);
     has_pending_wal_ = true;
-    schedule_apply = RequestApplyLocked(true);
+    pending_wal_count_ += wal_count;
+    if (pending_wal_count_ >= apply_batch_size_) {
+      schedule_apply = RequestApplyLocked(true);
+    } else {
+      ScheduleDelayedApplyLocked();
+    }
   }
   if (schedule_apply) {
     QueueApplyTask();
@@ -540,6 +575,7 @@ void VertexFullTextIndex::Stop() {
   boost::asio::post(timer_.get_executor(), [this, &cancelled]() mutable {
     boost::system::error_code ec;
     timer_.cancel(ec);
+    delayed_apply_timer_.cancel(ec);
     cancelled.set_value();
   });
   future.wait();
@@ -551,8 +587,8 @@ void VertexFullTextIndex::Stop() {
 VertexFullTextIndex::VertexFullTextIndex(
     rocksdb::TransactionDB* db, boost::asio::io_service& service,
     GraphCF* graph_cf, IdGenerator* id_generator,
-    meta::VertexFullTextIndex meta, uint32_t index_id,
-    const std::unordered_set<uint32_t>& lids,
+    meta::VertexFullTextIndex meta, uint32_t index_id, size_t apply_batch_size,
+    size_t apply_max_delay_ms, const std::unordered_set<uint32_t>& lids,
     const std::unordered_set<uint32_t>& pids, size_t commit_interval)
     : db_(db),
       graph_cf_(graph_cf),
@@ -561,8 +597,11 @@ VertexFullTextIndex::VertexFullTextIndex(
       index_id_(index_id),
       lids_(lids),
       pids_(pids),
+      apply_batch_size_(apply_batch_size),
+      apply_max_delay_(apply_max_delay_ms),
       interval_(commit_interval),
-      timer_(service) {
+      timer_(service),
+      delayed_apply_timer_(service) {
   ::rust::Vec<::rust::String> fields;
   for (auto& prop : meta_.properties()) {
     fields.push_back(prop);
@@ -819,6 +858,9 @@ void VertexFullTextIndex::ApplyWAL() {
   {
     std::lock_guard<std::mutex> timer_lock(timer_mutex_);
     has_pending_wal_ = has_pending_wal;
+    if (!has_pending_wal_) {
+      pending_wal_count_ = 0;
+    }
   }
 }
 
