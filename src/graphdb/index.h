@@ -20,6 +20,7 @@
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <boost/asio.hpp>
+#include <chrono>
 #include <condition_variable>
 #include <future>
 #include <mutex>
@@ -92,7 +93,9 @@ class VertexFullTextIndex
   VertexFullTextIndex(rocksdb::TransactionDB* db,
                       boost::asio::io_service& service, GraphCF* graph_cf,
                       IdGenerator* id_generator, meta::VertexFullTextIndex meta,
-                      uint32_t index_id,
+                      uint32_t index_id, size_t apply_batch_size,
+                      size_t apply_max_delay_ms, size_t writer_threads,
+                      size_t writer_memory_budget,
                       const std::unordered_set<uint32_t>& lids,
                       const std::unordered_set<uint32_t>& pids,
                       size_t commit_interval);
@@ -100,6 +103,7 @@ class VertexFullTextIndex
                  std::vector<std::string> values);
   void DeleteVertex(int64_t id);
   void ApplyWAL();
+  void NotifyWALWritten(size_t wal_count);
   void Start();
   void Stop();
   [[nodiscard]] bool MatchLabelIds(
@@ -127,7 +131,18 @@ class VertexFullTextIndex
 
  private:
   void StartTimer();
+  void ScheduleDelayedApplyLocked();
+  bool RequestApplyLocked(bool reschedule_if_running);
+  void QueueApplyTask();
+  void RunApplyTask();
+  void ApplyUpdatesBatch(const ::rust::Vec<int64_t>& ids,
+                         const ::rust::Vec<uint8_t>& ops,
+                         const ::rust::Vec<uint64_t>& field_counts,
+                         const ::rust::Vec<::rust::String>& fields,
+                         const ::rust::Vec<uint64_t>& value_counts,
+                         const ::rust::Vec<::rust::String>& values);
   void Commit(const std::string& payload);
+  bool HasCommittedUnappliedWAL();
 
   rocksdb::TransactionDB* db_ = nullptr;
   GraphCF* graph_cf_ = nullptr;
@@ -146,8 +161,16 @@ class VertexFullTextIndex
   size_t active_callbacks_ = 0;
   bool started_ = false;
   bool stopped_ = false;
+  bool has_pending_wal_ = false;
+  bool apply_scheduled_ = false;
+  bool delayed_apply_armed_ = false;
+  bool rerun_requested_ = false;
+  size_t pending_wal_count_ = 0;
+  size_t apply_batch_size_ = 128;
+  std::chrono::milliseconds apply_max_delay_{20};
   size_t interval_ = 5;
   boost::asio::steady_timer timer_;
+  boost::asio::steady_timer delayed_apply_timer_;
 };
 
 struct BusyIndex {

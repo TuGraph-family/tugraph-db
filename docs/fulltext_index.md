@@ -19,7 +19,7 @@ CALL db.index.fulltext.createNodeIndex('namesAndTeams',['Employee','Manager'], [
 使用例子
 ```
 #清空子图数据
-CALL db.dropDB();
+CALL dbms.graph.clearGraph('default');
 
 #为Employee类型的点设置一个唯一属性索引，所有Employee类型的点name字段的值是唯一的。
 CALL db.index.createNodeIndex('employee_name', 'Employee', ['name'], {unique:true});
@@ -38,7 +38,7 @@ CREATE (nilsE:Employee {name: "Nils-Erik Karlsson", position: "Engineer", team: 
 (lisa)-[:REVIEWED {message: "Nils-Erik is reportedly difficult to work with."}]->(nilsE),
 (maya)-[:EMAILED {message: "I have booked a team meeting tomorrow."}]->(nils);
 
-#这里为了立刻读取到全文索引数据，手动触发了一次回放全文索引的wal，该操作可选。默认系统会自动进行回放，但有延迟，每隔1秒进行一次。
+#这里手动触发了一次回放全文索引的wal，该操作可选。默认系统会在事务提交后立即触发回放，同时保留后台周期检查作为兜底。
 CALL db.index.fulltext.applyWal();
 
 #全文搜索

@@ -949,11 +949,13 @@ private:
 };
 #endif // CXXBRIDGE1_STRUCT_FTIndex
 
-::rust::Box<::FTIndex> new_ftindex(::rust::String const &path, ::rust::Vec<::rust::String> const &properties);
+::rust::Box<::FTIndex> new_ftindex(::rust::String const &path, ::rust::Vec<::rust::String> const &properties, ::std::size_t writer_threads, ::std::uint64_t writer_memory_budget);
 
 void ft_add_document(::FTIndex const &ft, ::std::int64_t id, ::rust::Vec<::rust::String> const &fields, ::rust::Vec<::rust::String> const &valus);
 
 void ft_delete_document(::FTIndex const &ft, ::std::int64_t id);
+
+void ft_apply_updates(::FTIndex const &ft, ::rust::Vec<::std::int64_t> const &ids, ::rust::Vec<::std::uint8_t> const &ops, ::rust::Vec<::std::uint64_t> const &field_counts, ::rust::Vec<::rust::String> const &fields, ::rust::Vec<::std::uint64_t> const &value_counts, ::rust::Vec<::rust::String> const &values);
 
 void ft_commit(::FTIndex const &ft, ::rust::String const &payload);
 

@@ -101,6 +101,10 @@ std::unique_ptr<GraphDB> GraphDB::Open(const std::string& path,
   graph_db->meta_info_.Init(graph_db->db_, graph_db->assistant_,
                             &graph_db->graph_cf_, graph_db->options_.server_id_,
                             graph_db->options_.ft_apply_interval_,
+                            graph_db->options_.ft_apply_batch_size_,
+                            graph_db->options_.ft_apply_max_delay_ms_,
+                            graph_db->options_.ft_writer_threads_,
+                            graph_db->options_.ft_writer_memory_budget_,
                             graph_db->options_.vt_apply_interval_);
 
   return graph_db;
@@ -289,8 +293,10 @@ void GraphDB::AddVertexFullTextIndex(
   *meta.mutable_property_ids() = {native_pids.begin(), native_pids.end()};
   auto busy_guard = busy_index_.Hold(lids, pids);
   auto v_ft_index = std::make_shared<VertexFullTextIndex>(
-      db_, assistant_, &graph_cf_, &id_generator(), meta, index_id, lids, pids,
-      options_.ft_apply_interval_);
+      db_, assistant_, &graph_cf_, &id_generator(), meta, index_id,
+      options_.ft_apply_batch_size_, options_.ft_apply_max_delay_ms_,
+      options_.ft_writer_threads_, options_.ft_writer_memory_budget_, lids,
+      pids, options_.ft_apply_interval_);
   v_ft_index->Load();
   rocksdb::WriteOptions wo;
   auto s =

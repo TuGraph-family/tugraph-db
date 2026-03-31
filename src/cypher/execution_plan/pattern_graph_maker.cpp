@@ -179,6 +179,8 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
   if (!variable.has_value()) {
     NOT_SUPPORT();
   }
+  const bool redefining_element =
+      node->label().has_value() || !node->predicates().empty();
   SymbolNode::Type symbol_node_type;
   auto& symbols = pattern_graphs_[cur_pattern_graph_].symbol_table.symbols;
   auto& pattern_graph = pattern_graphs_[cur_pattern_graph_];
@@ -207,6 +209,12 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
         }
       }
     } else {
+      if (ClauseGuard::InClause(geax::frontend::AstNodeType::kInsertStatement,
+                                cur_types_) &&
+          it->second.scope == cypher::SymbolNode::LOCAL && redefining_element) {
+        THROW_CODE(InputError, "Variable `{}` already defined",
+                   variable.value());
+      }
       if (it->second.scope == cypher::SymbolNode::ARGUMENT) {
         node_t_->derivation_ = Node::Derivation::ARGUMENT;
       }
@@ -243,6 +251,12 @@ std::any PatternGraphMaker::visit(geax::frontend::ElementFiller* node) {
         }
       }
     } else {
+      if (ClauseGuard::InClause(geax::frontend::AstNodeType::kInsertStatement,
+                                cur_types_) &&
+          it->second.scope == cypher::SymbolNode::LOCAL && redefining_element) {
+        THROW_CODE(InputError, "Variable `{}` already defined",
+                   variable.value());
+      }
       if (it->second.scope == cypher::SymbolNode::ARGUMENT) {
         relp_t_->derivation_ = Relationship::Derivation::ARGUMENT;
       }

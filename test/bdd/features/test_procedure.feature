@@ -70,6 +70,33 @@ Feature: test procedure
       | 'default' |
       | 'graph2'  |
 
+  Scenario: case05b
+    Given an empty graph
+    And having executed
+      """
+      CREATE (:person {id:1});
+      CREATE (:person {id:2});
+      """
+    When executing query
+      """
+      MATCH (n) RETURN count(n)
+      """
+    Then the result should be, in any order
+      | count(n) |
+      | 2        |
+    When executing query
+      """
+      CALL dbms.graph.clearGraph('default')
+      """
+    Then the result should be empty
+    When executing query
+      """
+      MATCH (n) RETURN count(n)
+      """
+    Then the result should be, in any order
+      | count(n) |
+      | 0        |
+
   Scenario: case06
     Given an initialized database
     Given yago graph

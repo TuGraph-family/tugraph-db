@@ -29,6 +29,10 @@ struct GalaxyOptions {
   size_t block_cache_size = 64 * 1024 * 1024L;
   size_t row_cache_size = 32 * 1024 * 1024L;
   size_t ft_apply_interval = 1;
+  size_t ft_apply_batch_size = 128;
+  size_t ft_apply_max_delay_ms = 20;
+  size_t ft_writer_threads = 1;
+  size_t ft_writer_memory_budget = 50 * 1000 * 1000;
   size_t vt_apply_interval = 1;
   uint16_t server_id = 0;
 };
@@ -45,6 +49,7 @@ class Galaxy {
                                       const GalaxyOptions& galaxy_options);
   std::shared_ptr<graphdb::GraphDB> OpenGraph(const std::string& name);
   graphdb::GraphDB* CreateGraph(const std::string& name);
+  graphdb::GraphDB* ClearGraph(const std::string& name);
   void DeleteGraph(const std::string& name);
   const std::unordered_map<std::string, std::shared_ptr<graphdb::GraphDB>>&
   Graphs() {

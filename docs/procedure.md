@@ -105,7 +105,7 @@ CALL db.index.fulltext.deleteIndex('namesAndTeams');
 
 回放点的全文索引WAL日志。
 
-写入全文索引数据后，真正生效有一定的延迟，属于最终一致性读。默认是系统每隔1秒检查一次是否有新增的wal日志，如果有，则读出来进行回放生效。
+写入全文索引数据后，系统会在事务提交后立即触发一次wal回放，同时保留后台周期检查作为兜底。
 
 这个调用是手动触发一次wal的回放。
 ```
@@ -158,19 +158,18 @@ CALL dbms.graph.createGraph('graph1');
 CALL dbms.graph.deleteGraph('graph1');
 ```
 
+* dbms.graph.clearGraph
+
+清空子图数据
+```
+CALL dbms.graph.clearGraph('graph1');
+```
+
 * dbms.graph.listGraph
 
 查看所有子图
 ```
 CALL dbms.graph.listGraph();
-```
-
-## 其他
-* db.dropDB
-
-清空子图数据
-```
-CALL db.dropDB();
 ```
 
 * db.showIndexes

@@ -53,7 +53,7 @@ Feature: test openspg
 
     When executing query
       """
-      CALL db.dropDB()
+      CALL dbms.graph.clearGraph('default')
       """
     Then the result should be empty
     When executing query

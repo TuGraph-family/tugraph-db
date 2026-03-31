@@ -32,6 +32,8 @@ struct MetaInfo {
   // property index
   void Init(rocksdb::TransactionDB* db, boost::asio::io_service& service,
             GraphCF* graph_cf, uint16_t server_id, size_t ft_commit_interval,
+            size_t ft_apply_batch_size, size_t ft_apply_max_delay_ms,
+            size_t ft_writer_threads, size_t ft_writer_memory_budget,
             size_t vt_commit_interval);
   IdGenerator& id_generator() { return id_generator_; }
   std::shared_ptr<VertexPropertyIndex> GetVertexPropertyIndex(uint32_t lid,

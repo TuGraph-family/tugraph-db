@@ -317,6 +317,7 @@ set(PROTO_SOURCES src/proto/meta.pb.cc)
 
 set(TEST_CASE_SOURCES
     test/main.cpp
+    test/test_cypher.cpp
     test/test_graph_db.cpp
     test/test_kv_engine.cpp
     test/test_transaction.cpp

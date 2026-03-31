@@ -74,9 +74,8 @@ TEST(ExecutionPlan, scan_by_label) {
   auto graphDB = GraphDB::Open(testdb, {});
   auto txn = graphDB->BeginTransaction();
   cypher::RTContext rtx;
-  txn->Execute(
-         &rtx,
-         "create (n:person {name:'bob'}) create (n:person {name:'alice'})")
+  txn->Execute(&rtx,
+               "create (:person {name:'bob'}) create (:person {name:'alice'})")
       ->Consume();
   auto iter = txn->Execute(&rtx, "explain match(n:person) return n");
   EXPECT_TRUE(iter->Valid());

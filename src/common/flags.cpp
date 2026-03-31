@@ -55,6 +55,16 @@ DEFINE_uint64(row_cache, (uint64_t)8 * 1024 * 1024 * 1024,
               "Row data cache size, in bytes.");
 DEFINE_uint64(ft_apply_interval, (uint64_t)1,
               "Fulltext index WAL auto apply interval, in seconds.");
+DEFINE_uint64(ft_apply_batch_size, (uint64_t)128,
+              "Fulltext index WAL apply batch size.");
+DEFINE_uint64(ft_apply_max_delay_ms, (uint64_t)20,
+              "Maximum delay before a fulltext index WAL micro-batch is "
+              "applied, in milliseconds.");
+DEFINE_uint64(ft_writer_threads, (uint64_t)1,
+              "Number of Tantivy indexing worker threads per fulltext index.");
+DEFINE_uint64(ft_writer_memory_budget, (uint64_t)50 * 1000 * 1000,
+              "Total Tantivy writer memory budget per fulltext index, in "
+              "bytes.");
 DEFINE_uint64(vt_apply_interval, (uint64_t)1,
               "Vector index WAL auto apply interval, in seconds.");
 DEFINE_uint64(vt_serialize_interval, (uint64_t)10000,
