@@ -77,7 +77,7 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     const [type, version] = values;
     const lang = getCurrentLanguage();
     if (type === "TuGraph_Analytics") {
-      window.location.href = `https://tugraph-family.github.io/tugraph-analytics/${lang}/guide/`;
+      window.location.href = `https://geaflow.apache.org/docs/guide`;
       return;
     }
 

@@ -43,7 +43,7 @@ export default function HomeBreadcrumbItem(): JSX.Element {
         className="breadcrumbs__link"
         href={homeHref()}
       >
-        <div style={{ color: "#1a1b2572" }}>{homeText()}</div>
+        <div style={{ color: "#71717a" }}>{homeText()}</div>
       </Link>
     </li>
   );

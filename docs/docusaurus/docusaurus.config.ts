@@ -268,6 +268,12 @@ const config: Config = {
     tableOfContents: {
       maxHeadingLevel: 5,
     },
+    // 暗黑模式配置
+    colorMode: {
+      defaultMode: 'dark', // 默认模式：'light' 或 'dark'
+      disableSwitch: false, // 是否禁用切换开关
+      respectPrefersColorScheme: true, // 是否尊重系统的颜色方案偏好
+    },
     algolia: {
       apiKey: "829a7e48ddbd6916e159c003391543a0",
       indexName: "zhongyunwanio",
