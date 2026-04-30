@@ -10,6 +10,13 @@ jobs:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+          cache-dependency-path: docs/docusaurus/yarn.lock
+
       - name: Install Pandoc
         run: sudo apt-get update && sudo apt-get install -y pandoc && pandoc --version
 
@@ -17,7 +24,9 @@ jobs:
         run: |
           export NODE_OPTIONS="--max_old_space_size=8192"
           cd docs/docusaurus
-          yarn install
+          # 配置使用公共 npm 镜像源
+          yarn config set registry https://registry.npmmirror.com
+          yarn install --network-timeout 600000 --ignore-engines
           yarn build
 
       - name: Deploy 🚀
