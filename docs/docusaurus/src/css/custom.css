@@ -5,6 +5,15 @@
  */
 
 /* You can override the default Infima variables here. */
+
+html {
+  color-scheme: light only; /* 或者根据你的需求调整 */
+  background-color: transparent !important;
+}
+body {
+  background-color: transparent !important;
+}
+
 :root {
   --ifm-color-primary: #3b82f6;
   --ifm-color-primary-dark: #3b82f6;
