@@ -275,9 +275,9 @@ const config: Config = {
       respectPrefersColorScheme: true, // 是否尊重系统的颜色方案偏好
     },
     algolia: {
-      apiKey: "829a7e48ddbd6916e159c003391543a0",
-      indexName: "zhongyunwanio",
-      appId: "DGYVABHR0M",
+      apiKey: "315fd6a0c1acbdeecd5ba56d8062d00d",
+      indexName: "tugraphDB",
+      appId: "HO4M21RAQI",
     },
     navbar: {
       logo: {
@@ -303,7 +303,7 @@ const config: Config = {
       tagName: "meta",
       attributes: {
         name: "algolia-site-verification",
-        content: "FC204AA054194DE3",
+        content: "4AB782AC2021573E",
       },
     },
   ],

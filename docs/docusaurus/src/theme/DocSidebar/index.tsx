@@ -125,9 +125,9 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
     }
 
     return {
-      apiKey: "829a7e48ddbd6916e159c003391543a0",
-      indexName: "zhongyunwanio",
-      appId: "DGYVABHR0M",
+      apiKey: "315fd6a0c1acbdeecd5ba56d8062d00d",
+      indexName: "tugraphDB",
+      appId: "HO4M21RAQI",
     };
   }, [location.pathname]);
 
