@@ -53,24 +53,33 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   };
 
   const formatDocSearchVersion = (tag: string) => {
-    return tag.replace(
-      /docs-(\d+\.\d+\.\d+)|docs-latest_zh/g,
-      (match, version) => {
-        if (["3.5.1", "3.5.0"].includes(version)) {
-          return "docs-3-6-0";
-        }
+    // 提取语言部分 (zh 或 en)
+    const langMatch = tag.match(/_(zh|en)-current$/);
+    const lang = langMatch ? langMatch[1] : "en";
 
-        if (["4.0.1", "4.1.0"].includes(version)) {
-          return "docs-4-1-0";
-        }
+    // 提取版本号
+    const versionMatch = tag.match(/docs-(\d+\.\d+\.\d+)/);
+    const version = versionMatch ? versionMatch[1] : null;
 
-        if (["4.5.1", "4.3.2", "4.3.1", "4.3.0", "4.2.0"].includes(version)) {
-          return "docs-4-5-1";
-        }
+    if (!version) {
+      console.warn('[DocSearch] Cannot extract version from tag:', tag);
+      return tag; // 如果没有版本号,返回原始标签
+    }
 
-        return `docs-${version.replace(/\./g, "-")}`;
-      }
-    );
+    // 版本映射
+    let mappedVersion: string;
+    if (["3.5.1", "3.5.0"].includes(version)) {
+      mappedVersion = "3-6-0";
+    } else if (["4.0.1", "4.1.0"].includes(version)) {
+      mappedVersion = "4-1-0";
+    } else if (["4.5.1", "4.3.2", "4.3.1", "4.3.0", "4.2.0", "4.5.2"].includes(version)) {
+      mappedVersion = "4-5-1";
+    } else {
+      mappedVersion = version.replace(/\./g, "-");
+    }
+
+    const result = `docusaurus_tag:docs-${mappedVersion}_${lang}-default`;
+    return result;
   };
 
   const onVersionChange = (values) => {
@@ -114,19 +123,19 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
   const getDocSearchKey = useMemo(() => {
     const { value } = getCurrentVersion();
 
-    if (
-      ["4.1.0", "4.0.1", "4.0.0", "3.6.0", "3.5.1", "3.5.0"].includes(value)
-    ) {
-      return {
-        apiKey: "7d995257839cea75cceb969a6d96e40a",
-        indexName: "zhongyunwanio",
-        appId: "FHM90YCZ2Z",
-      };
-    }
+    // if (
+    //   ["4.1.0", "4.0.1", "4.0.0", "3.6.0", "3.5.1", "3.5.0"].includes(value)
+    // ) {
+    //   return {
+    //     apiKey: "7d995257839cea75cceb969a6d96e40a",
+    //     indexName: "zhongyunwanio",
+    //     appId: "FHM90YCZ2Z",
+    //   };
+    // }
 
     return {
       apiKey: "315fd6a0c1acbdeecd5ba56d8062d00d",
-      indexName: "tugraph_d_b_pages",
+      indexName: "tugraphzh",
       appId: "HO4M21RAQI",
     };
   }, [location.pathname]);
@@ -241,20 +250,56 @@ export default function DocSidebarWrapper(props: Props): JSX.Element {
           <div className="searchWrapper">
             <DocSearch
               {...{
-                ...getDocSearchKey,
+                apiKey: "315fd6a0c1acbdeecd5ba56d8062d00d",
+                indexName: getCurrentLanguage() === 'en' ? 'tugraph_en' : "tugraph_zh",
+                appId: "HO4M21RAQI",
                 searchParameters: {
-                  facetFilters: [
-                    formatDocSearchVersion(
-                      `docusaurus_tag:docs-${getCurrentVersion()?.value
-                      }_${getCurrentLanguage()}-current`
-                    ),
-                  ],
+                  facetFilters: [`version:${getCurrentVersion()?.value}`],
                 },
                 hitComponent: Hit,
                 transformItems: (items) => {
-                  return items.map((item) => {
+                  console.log('[DocSearch] Raw items from Algolia:', items);
+                  return items.map((item, index) => {
+                    // 确保 hierarchy 存在,否则 DocSearch 会报错
+                    if (!item.hierarchy) {
+                      console.error(`[DocSearch] Item ${index} missing hierarchy:`, {
+                        objectID: item.objectID,
+                        url: item.url,
+                        type: item.type,
+                        item: item
+                      });
+                      // 返回一个符合 DocSearch 结构的默认对象
+                      return {
+                        ...item,
+                        hierarchy: {
+                          lvl0: item.type || 'Documentation',
+                          lvl1: item.url?.split('/').pop() || 'Unknown',
+                          lvl2: null,
+                          lvl3: null,
+                          lvl4: null,
+                          lvl5: null,
+                          lvl6: null,
+                        },
+                        url: replaceVersionInLink(
+                          "/tugraph-db" + item?.url?.split("/tugraph-db")[1] ?? ""
+                        ),
+                      };
+                    }
+
+                    // 确保 hierarchy 有所有必需的层级
+                    const hierarchy = {
+                      lvl0: item.hierarchy?.lvl0 || 'Documentation',
+                      lvl1: item.hierarchy?.lvl1 || 'Unknown',
+                      lvl2: item.hierarchy?.lvl2 || null,
+                      lvl3: item.hierarchy?.lvl3 || null,
+                      lvl4: item.hierarchy?.lvl4 || null,
+                      lvl5: item.hierarchy?.lvl5 || null,
+                      lvl6: item.hierarchy?.lvl6 || null,
+                    };
+
                     return {
                       ...item,
+                      hierarchy,
                       url: replaceVersionInLink(
                         "/tugraph-db" + item?.url?.split("/tugraph-db")[1] ?? ""
                       ),

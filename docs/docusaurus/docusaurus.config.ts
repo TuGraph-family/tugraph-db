@@ -276,7 +276,7 @@ const config: Config = {
     },
     algolia: {
       apiKey: "315fd6a0c1acbdeecd5ba56d8062d00d",
-      indexName: "tugraph_d_b_pages",
+      indexName: "tugraph_zh",
       appId: "HO4M21RAQI",
     },
     navbar: {

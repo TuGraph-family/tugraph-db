@@ -64,9 +64,8 @@ body {
 
 .menu__link--sublist-caret:after {
   transform: rotate(0) !important;
-  background-image: url("https://mdn.alipayobjects.com/huamei_p63okt/afts/img/HKqLQKFpMR8AAAAAF1AAAAgAeh8WAQFr/original");
-  background-repeat: no-repeat;
-  background-size: 10px 10px;
+  background: url("https://mdn.alipayobjects.com/huamei_p63okt/afts/img/HKqLQKFpMR8AAAAAF1AAAAgAeh8WAQFr/original")
+    50% / 10px 10px no-repeat;
 }
 .menu__list-item-collapsible:hover {
   background-color: transparent;
