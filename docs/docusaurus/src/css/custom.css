@@ -213,9 +213,78 @@ body {
 
 /* Cascader style */
 
+/* Ant Design Cascader 暗黑主题样式 */
+.ant-cascader {
+  width: 100%;
+}
+
 .ant-cascader-menu {
   height: fit-content !important;
 }
+
+/* 下拉菜单容器 */
+.ant-cascader-dropdown {
+  background: rgba(30, 30, 35, 0.95) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 6px 16px 0 rgba(0, 0, 0, 0.32),
+    0 3px 6px -4px rgba(0, 0, 0, 0.48) !important;
+}
+
+/* 下拉菜单项 */
+.ant-cascader-menu {
+  background: rgba(30, 30, 35, 0.95) !important;
+  border: none !important;
+}
+
+.ant-cascader-menu-item {
+  color: rgba(244, 244, 245, 0.96) !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  line-height: 22px !important;
+}
+
+.ant-cascader-menu-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.ant-cascader-menu-item-active {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #3b82f6 !important;
+}
+
+.ant-cascader-menu-item-selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #3b82f6 !important;
+  font-weight: 500 !important;
+}
+
+/* 展开箭头 */
+.ant-cascader-menu-item-expand-icon {
+  color: rgba(161, 161, 170, 0.92) !important;
+}
+
+/* 禁用状态 */
+.ant-cascader-menu-item-disabled {
+  color: rgba(161, 161, 170, 0.4) !important;
+}
+
+/* Checkbox 样式(如果使用多选) */
+.ant-checkbox-wrapper {
+  color: rgba(244, 244, 245, 0.96) !important;
+}
+
+.ant-checkbox-inner {
+  background: rgba(30, 30, 35, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
 .itemWrapper {
   display: flex;
   flex-direction: column;
