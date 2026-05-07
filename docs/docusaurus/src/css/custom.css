@@ -9,6 +9,7 @@
 html {
   color-scheme: light only; /* 或者根据你的需求调整 */
   background-color: transparent !important;
+  overflow-x: hidden;
 }
 body {
   background-color: transparent !important;
@@ -132,6 +133,11 @@ body {
   border-radius: 16px;
   padding: 14px 32px;
   font-size: 14px !important;
+  max-width: 100%;
+}
+
+.docMainContainer_TBSr {
+  max-width: calc(100% - var(--doc-sidebar-width) - 64px) !important;
 }
 
 .markdown > h2,
