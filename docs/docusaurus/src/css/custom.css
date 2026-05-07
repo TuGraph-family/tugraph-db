@@ -48,7 +48,6 @@ body {
 }
 
 #__docusaurus {
-  padding: 0 120px;
   background-color: transparent;
   cursor: pointer !important;
 }
@@ -127,7 +126,7 @@ body {
 
 /* Docs container Style */
 .container {
-  margin: 0 32px;
+  margin: 0 0 0 32px;
   background: rgba(15, 15, 20, 0.8);
   backdrop-filter: blur(16px);
   border-radius: 16px;
