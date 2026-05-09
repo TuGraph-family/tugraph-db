@@ -374,3 +374,18 @@ body {
   height: 16px !important;
   color: rgba(161, 161, 170, 0.92) !important;
 }
+
+.ant-breadcrumb-link > span,
+.ant-breadcrumb .ant-breadcrumb-separator {
+  color: #d4d4d8;
+  font-size: 12px;
+  line-height: 22px;
+}
+
+.ant-breadcrumb-item:last-child > .ant-breadcrumb-link > span {
+  color: #fff;
+}
+
+.ant-breadcrumb-link > span:hover {
+  color: #fff;
+}

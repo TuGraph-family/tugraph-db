@@ -4,7 +4,6 @@ import { useBreadcrumb } from '../hooks/useBreadcrumbHistory';
 import DocBreadcrumbs from '@theme-original/DocBreadcrumbs';
 import type DocBreadcrumbsType from '@theme/DocBreadcrumbs';
 import type { WrapperProps } from '@docusaurus/types';
-import Link from "@docusaurus/Link";
 import { useHistory } from '@docusaurus/router';
 
 type Props = WrapperProps<typeof DocBreadcrumbsType>;
@@ -18,8 +17,8 @@ export default function DocBreadcrumbsWrapper(props: Props): ReactNode {
       return {
         key: i.href,
         title: idx === arr.length - 1
-          ? <span style={{ color: '#fff' }}>{i.label}</span>
-          : <span style={{ color: '#d4d4d8', }} onClick={() => history.push(i.href)}>{i.label}</span>,
+          ? <span>{i.label}</span>
+          : <span onClick={() => history.push(i.href)}>{i.label}</span>,
       }
     })
 
