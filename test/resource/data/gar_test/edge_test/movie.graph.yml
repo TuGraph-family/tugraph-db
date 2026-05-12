@@ -1,0 +1,9 @@
+name: movie
+vertices:
+  - viewer.vertex.yml
+  - actor.vertex.yml
+  - movie.vertex.yml
+edges:
+  - viewer_comment_movie.edge.yml
+  - actor_comment_movie.edge.yml
+version: gar/v1
