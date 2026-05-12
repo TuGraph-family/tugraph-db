@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-import os, subprocess, sys, shlex
+import os, subprocess, sys, shlex, platform
 project = 'TuGraph'
 copyright = '2023, Ant Group'
 author = 'Ant Group'
@@ -46,7 +46,17 @@ if read_the_docs_build:
     breathe_projects = {"cpp_procedure": "9.olap&procedure/1.procedure/build/xml"}
     breathe_default_project = "cpp_procedure"
 else:
-    if os.path.exists("9.olap&procedure/1.procedure/3.C++-procedure.rst") and \
+    if platform.linux_distribution()[0].lower().startswith('centos') and platform.linux_distribution()[1].startswith('7'):
+        subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/centos7/liblgraph_python_api.so"))
+        subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/centos7/liblgraph.so"))
+        subprocess.run(shlex.split("wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/doc_deps/centos7/libjvm.so"))
+        sys.path.insert(0, os.path.abspath('9.olap&procedure/1.procedure/'))
+        # doxygen & breathe
+        extensions.append("breathe")
+        subprocess.run(shlex.split("doxygen"), cwd="9.olap&procedure/1.procedure/")
+        breathe_projects = {"cpp_procedure": "9.olap&procedure/1.procedure/build/xml"}
+        breathe_default_project = "cpp_procedure"
+    elif os.path.exists("9.olap&procedure/1.procedure/3.C++-procedure.rst") and \
             os.path.exists("9.olap&procedure/1.procedure/4.Python-procedure.rst") and \
             os.path.exists("9.olap&procedure/1.procedure/index.rst") and \
             os.path.exists("9.olap&procedure/1.procedure/index.rst.aci"):
