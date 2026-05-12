@@ -386,11 +386,12 @@ RUN wget -O /tmp/openblas-faiss.tar.gz https://tugraph-web.oss-cn-beijing.aliyun
     && rm -rf /tmp/openblas-faiss /tmp/openblas-faiss.tar.gz && ldconfig
 
 # install vsag
-RUN wget https://tugraph-web.oss-cn-beijing.aliyuncs.com/tugraph/deps/vsag-0.11.5.tar.gz -O /tmp/vsag.tar.gz && \
+RUN wget https://vsagcache.oss-rg-china-mainland.aliyuncs.com/vsag/v0.14.4.tar.gz -O /tmp/vsag.tar.gz && \
     cd /tmp && mkdir vsag && tar -xzf vsag.tar.gz --strip-components=1 -C vsag && cd vsag && \
+    chmod +x /tmp/vsag/scripts/deps/install_deps_centos.sh && ./tmp/vsag/scripts/deps/install_deps_centos.sh && \
     yum install -y libgfortran5.aarch64 && ln -s /usr/lib64/libgfortran.so.5.0.0 /usr/local/lib/libgfortran.so && ldconfig && \
-    mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
-    make ${JFLAG} && make install && \
+    mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=OFF -DENABLE_TOOLS=OFF -DENABLE_TESTS=OFF -DENABLE_INTEL_MKL=OFF -DDISABLE_AVX2_FORCE=ON -DDISABLE_AVX512_FORCE=ON .. && \
+    make ${JFLAG} && make install && cp /tmp/vsag/build/_deps/roaringbitmap-build/src/libroaring.a /usr/local/lib/ && \
     cd / && rm -rf /tmp/vsag*
 
 RUN sed -i '3 s/-lgomp/-l:libgomp.a/' /usr/local/lib64/libgomp.spec

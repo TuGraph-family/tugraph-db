@@ -143,7 +143,13 @@ add_executable(unit_test
 )
 
 target_link_libraries(unit_test
-        vsag
+        -laio
+        /usr/local/lib64/libvsag_static.a
+        /usr/local/lib64/libvsag_mockimpl.a
+        libdiskann.a
+        libcpuinfo.a
+        libsimd.a
+        libroaring.a
         /opt/OpenBLAS/lib/libopenblas.a
         faiss
         lgraph_server_lib
